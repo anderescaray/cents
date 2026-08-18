@@ -28,7 +28,7 @@ investment portfolio with prices pulled from the internet.
 | Layer | Choice | Why |
 |---|---|---|
 | Language | Kotlin | Official Android standard |
-| UI | Jetpack Compose + Material 3 | Declarative UI, smooth animations, Google's recommendation |
+| UI | Jetpack Compose + Material 3 as a **base**, styled to look like iOS | Compose gives layout, insets and accessibility; the appearance follows Apple's HIG — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
 | Architecture | MVVM with `data` / `domain` / `ui` layers | Testable, with clear boundaries for parallel work |
 | State | `StateFlow` + unidirectional data flow | One immutable `UiState` per screen |
 | Database | Room (with KSP) | Typed SQLite, returns `Flow`, versioned migrations |
@@ -102,6 +102,13 @@ Retrofit. The `domain` layer imports nothing from Android.
     Never hardcode display text.
 11. **No new libraries without justification.** Every added dependency is recorded in the
     table in section 2.
+12. **The UI looks like iOS, not like Material.** Inset grouped lists, large collapsing
+    titles, a bottom tab bar, iOS-style switches and alerts, horizontal push/pop
+    transitions, the iOS system palette and the Inter typeface. Material 3 is a base to
+    build on, never a look to ship: no screen is assembled from default Material widgets,
+    and there is no dynamic colour. The full specification, including what stays native
+    Android, is [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md)
+    — read it before writing any composable.
 
 ## 5. Performance (the "it must feel smooth" goal)
 
@@ -154,8 +161,10 @@ adb devices                           # check the phone is connected
 
 **Phase 0 — in progress.** The skeleton (Compose Empty Activity) builds and installs on a
 physical device, and the build tooling is in place: Hilt + KSP, detekt, Spotless/ktlint and
-CI on GitHub Actions running build + tests + lint on every PR. Next: Room entities, DAOs
-and migrations with their tests, then theme, navigation and the core screens. Roadmap in
+CI on GitHub Actions running build + tests + lint on every PR. The Room schema (accounts,
+categories, transactions) and the iOS-flavoured design system, navigation and base
+components are in. Next: repositories and domain models, then the real Phase 1 screens —
+account and category management, transaction entry and the transaction list. Roadmap in
 [`docs/PRD.md`](docs/PRD.md).
 
 Note on tool versions: detekt is on the `dev.detekt` 2.x line rather than the older

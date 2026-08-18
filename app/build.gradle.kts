@@ -35,6 +35,18 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests {
+            // Robolectric needs the merged Android resources to run Room on the JVM
+            isIncludeAndroidResources = true
+        }
+    }
+}
+
+ksp {
+    // Every schema version is exported to app/schemas and committed, so migrations can be
+    // written and tested against the real previous schema.
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -48,7 +60,15 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

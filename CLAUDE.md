@@ -40,7 +40,7 @@ investment portfolio with prices pulled from the internet.
 | Background work | WorkManager | Periodic price refresh, recurring reminders |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
-| Tests | JUnit + MockK + Turbine + in-memory Room + Compose UI Test | |
+| Tests | JUnit + MockK + Turbine + in-memory Room (on the JVM via Robolectric) + Compose UI Test | Robolectric lets DAO and migration tests run in CI, which has no device |
 | CI | GitHub Actions | build + tests + lint on every PR |
 
 **minSdk 26** (Android 8.0) — gives `java.time` without desugaring and covers the vast

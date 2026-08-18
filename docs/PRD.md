@@ -5,7 +5,7 @@ Technical decisions about *how* live in [`../CLAUDE.md`](../CLAUDE.md).
 
 - **Version:** 0.1 (initial draft)
 - **Date:** 2026-08-18
-- **Status:** Phase 0 — no code
+- **Status:** Phase 1 in progress — see [`../PLAN.md` Part C](../PLAN.md#part-c--where-the-project-stands) for exactly what is built
 - **Author:** Ander
 
 ---

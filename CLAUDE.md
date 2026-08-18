@@ -150,6 +150,9 @@ adb devices                           # check the phone is connected
   `feat(transactions): add category picker`.
 - One PR per branch, reviewed with `/code-review` before merging, and **squash merge** so
   the history of `main` stays readable.
+- **Before stopping, update [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands):**
+  what got merged, what the next branch is, and any gap left behind. A session that ends
+  without this leaves the next one guessing what is unfinished versus what is broken.
 - **Parallel work:** each agent on its own branch and its own `git worktree` (separate
   directories), so they never fight over files or the Gradle build directory.
 - **When to parallelize:** only when tasks touch disjoint files. The database schema, the
@@ -159,13 +162,16 @@ adb devices                           # check the phone is connected
 
 ## 8. Current status
 
-**Phase 0 — in progress.** The skeleton (Compose Empty Activity) builds and installs on a
-physical device, and the build tooling is in place: Hilt + KSP, detekt, Spotless/ktlint and
-CI on GitHub Actions running build + tests + lint on every PR. The Room schema (accounts,
-categories, transactions) and the iOS-flavoured design system, navigation and base
-components are in. Next: repositories and domain models, then the real Phase 1 screens —
-account and category management, transaction entry and the transaction list. Roadmap in
-[`docs/PRD.md`](docs/PRD.md).
+**Phase 1 — in progress.** Recording money works end to end: the Room schema, the domain
+and repository layers, the iOS-flavoured design system and navigation, a transaction list
+grouped by day with a monthly summary, and an entry form whose keypad types minor units.
+42 tests run on the JVM, so CI covers the database and the UI without a device.
+
+**Where to start a session and what is left to build is
+[`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session
+checklist, the ordered list of remaining Phase 1 branches, and the list of known gaps —
+keep it updated at the end of every session, because it is the only place that records
+what is deliberately unfinished rather than broken.
 
 Note on tool versions: detekt is on the `dev.detekt` 2.x line rather than the older
 `io.gitlab.arturbosch.detekt` 1.23.x, because 1.23.x embeds an IntelliJ core that cannot

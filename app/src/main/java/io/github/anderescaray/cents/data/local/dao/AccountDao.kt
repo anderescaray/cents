@@ -74,6 +74,9 @@ interface AccountDao {
     )
     fun observeBalance(accountId: Long): Flow<Long?>
 
+    @Query("SELECT COUNT(*) FROM accounts")
+    suspend fun countAll(): Int
+
     @Insert
     suspend fun insert(account: AccountEntity): Long
 

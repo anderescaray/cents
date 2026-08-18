@@ -18,6 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
+import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
@@ -97,7 +98,14 @@ private fun CentsNavHost(navController: NavHostController) {
             )
         },
     ) {
-        composable<Destination.Transactions> { TransactionsScreen() }
+        composable<Destination.Transactions> {
+            TransactionsScreen(
+                onAddTransaction = { navController.navigate(Destination.AddTransaction) },
+            )
+        }
+        composable<Destination.AddTransaction> {
+            AddTransactionScreen(onDone = { navController.popBackStack() })
+        }
         composable<Destination.Accounts> { AccountsScreen() }
         composable<Destination.Reports> { ReportsScreen() }
         composable<Destination.Settings> { SettingsScreen() }

@@ -1,0 +1,189 @@
+package io.github.anderescaray.cents.data.repository
+
+import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.category
+import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.domain.model.AccountType
+import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Transaction
+import io.github.anderescaray.cents.domain.model.TransactionKind
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+
+@RunWith(RobolectricTestRunner::class)
+class RoomRepositoriesTest {
+    private lateinit var database: CentsDatabase
+    private lateinit var accounts: RoomAccountRepository
+    private lateinit var categories: RoomCategoryRepository
+    private lateinit var transactions: RoomTransactionRepository
+
+    private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
+
+    @Before
+    fun setUp() {
+        database = createTestDatabase()
+        accounts = RoomAccountRepository(database.accountDao(), clock)
+        categories = RoomCategoryRepository(database.categoryDao(), clock)
+        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+    }
+
+    @Test
+    fun `an account reports its balance after movements are recorded`() =
+        runTest {
+            val id = database.accountDao().insert(account(openingBalanceMinor = 10_000))
+
+            transactions.addTransaction(newTransaction(id, TransactionKind.INCOME, 200_000))
+            transactions.addTransaction(newTransaction(id, TransactionKind.EXPENSE, 4_599))
+
+            val withBalance = accounts.observeAccountsWithBalances().first().single()
+
+            assertEquals(Money(205_401, "EUR"), withBalance.balance)
+            assertEquals(AccountType.BANK, withBalance.account.type)
+        }
+
+    @Test
+    fun `a saved transaction comes back with its category and account names`() =
+        runTest {
+            val accountId = database.accountDao().insert(account(name = "Checking"))
+            val categoryId = database.categoryDao().insert(category(name = "Groceries"))
+
+            transactions.addTransaction(
+                newTransaction(accountId, TransactionKind.EXPENSE, 1_250).copy(
+                    categoryId = categoryId,
+                    note = "Market",
+                ),
+            )
+
+            val details = transactions.observeTransactions().first().single()
+
+            assertEquals("Checking", details.accountName)
+            assertEquals("Groceries", details.categoryName)
+            assertEquals("Market", details.transaction.note)
+            assertEquals(Money(1_250, "EUR"), details.transaction.amount)
+        }
+
+    @Test
+    fun `an expense counts as negative and income as positive in the same period`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            transactions.addTransaction(newTransaction(accountId, TransactionKind.INCOME, 150_000))
+            transactions.addTransaction(newTransaction(accountId, TransactionKind.EXPENSE, 25_000))
+
+            val summary =
+                transactions
+                    .observeSummary(
+                        from = LocalDate.of(2026, 8, 1),
+                        to = LocalDate.of(2026, 8, 31),
+                        currency = "EUR",
+                    ).first()
+
+            assertEquals(Money(150_000, "EUR"), summary.income)
+            assertEquals(Money(25_000, "EUR"), summary.expenses)
+            assertEquals(Money(125_000, "EUR"), summary.net)
+        }
+
+    @Test
+    fun `a period only counts the transactions inside it`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            transactions.addTransaction(
+                newTransaction(accountId, TransactionKind.EXPENSE, 5_000)
+                    .copy(date = LocalDate.of(2026, 7, 31)),
+            )
+            transactions.addTransaction(
+                newTransaction(accountId, TransactionKind.EXPENSE, 3_000)
+                    .copy(date = LocalDate.of(2026, 8, 15)),
+            )
+
+            val august =
+                transactions
+                    .observeSummary(
+                        from = LocalDate.of(2026, 8, 1),
+                        to = LocalDate.of(2026, 8, 31),
+                        currency = "EUR",
+                    ).first()
+
+            assertEquals(Money(3_000, "EUR"), august.expenses)
+        }
+
+    @Test
+    fun `editing a transaction keeps its original creation instant`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val id = transactions.addTransaction(newTransaction(accountId, TransactionKind.EXPENSE, 1_000))
+            val createdAt = database.transactionDao().findById(id)!!.createdAt
+
+            val later =
+                RoomTransactionRepository(
+                    database.transactionDao(),
+                    Clock.fixed(Instant.parse("2026-09-01T12:00:00Z"), ZoneOffset.UTC),
+                )
+            later.updateTransaction(
+                requireNotNull(transactions.findById(id)).copy(amount = Money(2_000, "EUR")),
+            )
+
+            val stored = requireNotNull(database.transactionDao().findById(id))
+            assertEquals(createdAt, stored.createdAt)
+            assertEquals(Instant.parse("2026-09-01T12:00:00Z"), stored.updatedAt)
+            assertEquals(2_000L, stored.amountMinor)
+        }
+
+    @Test
+    fun `categories are offered per kind`() =
+        runTest {
+            database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
+            database.categoryDao().insert(category(name = "Rent", kind = CategoryKind.EXPENSE))
+
+            assertEquals(
+                listOf("Salary"),
+                categories.observeCategories(CategoryKind.INCOME).first().map { it.name },
+            )
+            assertEquals(
+                listOf("Rent"),
+                categories.observeCategories(CategoryKind.EXPENSE).first().map { it.name },
+            )
+        }
+
+    @Test
+    fun `a deleted transaction is gone`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val id = transactions.addTransaction(newTransaction(accountId, TransactionKind.EXPENSE, 900))
+
+            transactions.deleteTransaction(id)
+
+            assertNull(transactions.findById(id))
+        }
+
+    private fun newTransaction(
+        accountId: Long,
+        kind: TransactionKind,
+        minor: Long,
+    ) = Transaction(
+        id = 0,
+        accountId = accountId,
+        categoryId = null,
+        kind = kind,
+        amount = Money(minor, "EUR"),
+        date = LocalDate.of(2026, 8, 18),
+        note = null,
+    )
+}

@@ -6,7 +6,9 @@ complexity:
     # Composables legitimately take many parameters (state + callbacks)
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
-    ignoreAnnotated: ['Composable']
+    # A @Dao is a query surface, not a class with responsibilities: one function per
+    # query is the point of it. Composables aggregate other composables by design.
+    ignoreAnnotated: ['Composable', 'Dao']
 
 naming:
   FunctionNaming:

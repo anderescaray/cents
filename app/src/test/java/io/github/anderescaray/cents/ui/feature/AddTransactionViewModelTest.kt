@@ -1,0 +1,168 @@
+package io.github.anderescaray.cents.ui.feature
+
+import app.cash.turbine.TurbineTestContext
+import app.cash.turbine.test
+import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.category
+import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
+import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
+import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionUiState
+import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+class AddTransactionViewModelTest {
+    private lateinit var database: CentsDatabase
+    private lateinit var viewModel: AddTransactionViewModel
+    private lateinit var transactions: RoomTransactionRepository
+
+    private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        database = createTestDatabase()
+        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+        viewModel =
+            AddTransactionViewModel(
+                transactionRepository = transactions,
+                accountRepository = RoomAccountRepository(database.accountDao(), clock),
+                categoryRepository = RoomCategoryRepository(database.categoryDao(), clock),
+                clock = clock,
+            )
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+        Dispatchers.resetMain()
+    }
+
+    /** Waits for a state matching [predicate] instead of guessing how many emissions arrive. */
+    private suspend fun TurbineTestContext<AddTransactionUiState>.awaitState(
+        predicate: (AddTransactionUiState) -> Boolean,
+    ): AddTransactionUiState {
+        while (true) {
+            val item = awaitItem()
+            if (predicate(item)) return item
+        }
+    }
+
+    @Test
+    fun `typed digits are minor units, so 1250 means twelve euros fifty`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitState { it.accounts.isNotEmpty() }
+                "1250".forEach(viewModel::appendDigit)
+
+                val state = awaitState { it.amountDigits == "1250" }
+                assertEquals(Money(1_250, "EUR"), state.amount)
+                assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `leading zeros never accumulate`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitState { it.accounts.isNotEmpty() }
+                "0007".forEach(viewModel::appendDigit)
+
+                val state = awaitState { it.amountDigits.isNotEmpty() && it.amountDigits.last() == '7' }
+                assertEquals(Money(7, "EUR"), state.amount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an empty amount cannot be saved`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                val state = awaitState { it.accounts.isNotEmpty() }
+                assertFalse(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `switching kind clears a category that belonged to the other kind`() =
+        runTest {
+            database.accountDao().insert(account())
+            val expenseCategory =
+                database.categoryDao().insert(
+                    category(name = "Groceries", kind = CategoryKind.EXPENSE),
+                )
+            database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
+
+            viewModel.uiState.test {
+                awaitState { it.categories.isNotEmpty() }
+                viewModel.selectCategory(expenseCategory)
+                awaitState { it.selectedCategoryId == expenseCategory }
+
+                viewModel.setKind(TransactionKind.INCOME)
+
+                val state = awaitState { it.kind == TransactionKind.INCOME }
+                assertNull(state.selectedCategoryId)
+                assertEquals(listOf("Salary"), state.categories.map { it.name })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `saving writes exactly what was entered and reports completion`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val categoryId = database.categoryDao().insert(category(name = "Groceries"))
+
+            viewModel.uiState.test {
+                awaitState { it.accounts.isNotEmpty() && it.categories.isNotEmpty() }
+                "4599".forEach(viewModel::appendDigit)
+                viewModel.selectCategory(categoryId)
+                viewModel.setNote("Weekly shop")
+                awaitState { it.amountDigits == "4599" && it.selectedCategoryId == categoryId }
+
+                viewModel.save()
+
+                assertTrue(awaitState { it.saved }.saved)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val stored = transactions.observeTransactions().first().single()
+            assertEquals(Money(4_599, "EUR"), stored.transaction.amount)
+            assertEquals(TransactionKind.EXPENSE, stored.transaction.kind)
+            assertEquals("Groceries", stored.categoryName)
+            assertEquals("Weekly shop", stored.transaction.note)
+        }
+}

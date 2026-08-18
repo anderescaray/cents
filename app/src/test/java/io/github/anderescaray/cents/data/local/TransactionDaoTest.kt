@@ -1,7 +1,7 @@
 package io.github.anderescaray.cents.data.local
 
 import android.database.sqlite.SQLiteConstraintException
-import io.github.anderescaray.cents.data.local.entity.TransactionKind
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest

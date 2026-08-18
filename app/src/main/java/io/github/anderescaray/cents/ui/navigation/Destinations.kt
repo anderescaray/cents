@@ -21,6 +21,9 @@ sealed interface Destination {
 
     @Serializable
     data object Settings : Destination
+
+    @Serializable
+    data object AddTransaction : Destination
 }
 
 /** A tab in the bottom bar, tying a destination to how it is presented. */

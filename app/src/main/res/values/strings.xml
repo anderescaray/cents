@@ -28,4 +28,28 @@
     <string name="settings_currency">Main currency</string>
     <string name="settings_data_footer">Everything stays on this device. Nothing is uploaded anywhere.</string>
     <string name="settings_add_transaction">Add transaction</string>
+
+    <!-- Actions -->
+    <string name="action_add">+</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+
+    <!-- Transactions -->
+    <string name="transactions_this_month">This month</string>
+    <string name="summary_income">Income</string>
+    <string name="summary_expenses">Expenses</string>
+    <string name="summary_net">Net</string>
+    <string name="transactions_empty_title">No transactions yet</string>
+    <string name="transactions_empty_footer">Tap + to record your first income or expense.</string>
+    <string name="transactions_uncategorized">Uncategorized</string>
+    <string name="date_today">Today</string>
+    <string name="date_yesterday">Yesterday</string>
+
+    <!-- Add transaction -->
+    <string name="add_transaction_title">New transaction</string>
+    <string name="kind_expense">Expense</string>
+    <string name="kind_income">Income</string>
+    <string name="field_account">Account</string>
+    <string name="field_category">Category</string>
+    <string name="field_category_footer">Optional. Uncategorized transactions can be classified later.</string>
 </resources>

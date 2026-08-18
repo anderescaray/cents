@@ -53,4 +53,75 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /**
+     * The list the transactions screen shows: every movement with its account and category
+     * names resolved by the database, so the UI never issues a query per row.
+     */
+    @Query(
+        """
+        SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
+               t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
+               t.date AS date, t.note AS note,
+               a.name AS accountName,
+               c.name AS categoryName,
+               c.colorArgb AS categoryColorArgb
+        FROM transactions t
+        INNER JOIN accounts a ON a.id = t.accountId
+        LEFT JOIN categories c ON c.id = t.categoryId
+        ORDER BY t.date DESC, t.id DESC
+        """,
+    )
+    fun observeAllWithNames(): Flow<List<TransactionWithNames>>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(CASE WHEN kind = 'INCOME' THEN amountMinor ELSE 0 END), 0) AS incomeMinor,
+               COALESCE(SUM(CASE WHEN kind = 'EXPENSE' THEN amountMinor ELSE 0 END), 0) AS expenseMinor
+        FROM transactions
+        WHERE date BETWEEN :from AND :to
+        """,
+    )
+    fun observeTotalsBetween(
+        from: LocalDate,
+        to: LocalDate,
+    ): Flow<PeriodTotals>
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(CASE WHEN kind = 'INCOME' THEN amountMinor ELSE 0 END), 0) AS incomeMinor,
+               COALESCE(SUM(CASE WHEN kind = 'EXPENSE' THEN amountMinor ELSE 0 END), 0) AS expenseMinor
+        FROM transactions
+        WHERE accountId = :accountId AND date BETWEEN :from AND :to
+        """,
+    )
+    fun observeAccountTotalsBetween(
+        accountId: Long,
+        from: LocalDate,
+        to: LocalDate,
+    ): Flow<PeriodTotals>
+
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun count(): Int
 }
+
+/** A transaction joined with the names a list row needs, resolved in SQL. */
+data class TransactionWithNames(
+    val id: Long,
+    val accountId: Long,
+    val categoryId: Long?,
+    val kind: io.github.anderescaray.cents.domain.model.TransactionKind,
+    val amountMinor: Long,
+    val currency: String,
+    val date: java.time.LocalDate,
+    val note: String?,
+    val accountName: String,
+    val categoryName: String?,
+    val categoryColorArgb: Int?,
+)
+
+/** Income and expense totals for a period, summed in SQL. */
+data class PeriodTotals(
+    val incomeMinor: Long,
+    val expenseMinor: Long,
+)

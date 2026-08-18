@@ -3,11 +3,11 @@ package io.github.anderescaray.cents.data.local
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
-import io.github.anderescaray.cents.data.local.entity.AccountType
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
-import io.github.anderescaray.cents.data.local.entity.CategoryKind
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
-import io.github.anderescaray.cents.data.local.entity.TransactionKind
+import io.github.anderescaray.cents.domain.model.AccountType
+import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import java.time.Instant
 import java.time.LocalDate
 

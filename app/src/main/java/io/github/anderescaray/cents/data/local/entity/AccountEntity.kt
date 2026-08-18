@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import io.github.anderescaray.cents.domain.model.AccountType
 import java.time.Instant
 
 /**
@@ -36,12 +37,3 @@ data class AccountEntity(
     val sortOrder: Int = 0,
     val createdAt: Instant,
 )
-
-enum class AccountType {
-    CASH,
-    BANK,
-    CARD,
-    SAVINGS,
-    BROKER,
-    OTHER,
-}

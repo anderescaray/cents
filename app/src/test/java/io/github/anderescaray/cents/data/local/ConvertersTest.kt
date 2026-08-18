@@ -1,9 +1,9 @@
 package io.github.anderescaray.cents.data.local
 
 import io.github.anderescaray.cents.data.local.converter.Converters
-import io.github.anderescaray.cents.data.local.entity.AccountType
-import io.github.anderescaray.cents.data.local.entity.CategoryKind
-import io.github.anderescaray.cents.data.local.entity.TransactionKind
+import io.github.anderescaray.cents.domain.model.AccountType
+import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

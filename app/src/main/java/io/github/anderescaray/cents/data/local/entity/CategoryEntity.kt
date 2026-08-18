@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import io.github.anderescaray.cents.domain.model.CategoryKind
 import java.time.Instant
 
 /**
@@ -42,8 +43,3 @@ data class CategoryEntity(
     val sortOrder: Int = 0,
     val createdAt: Instant,
 )
-
-enum class CategoryKind {
-    INCOME,
-    EXPENSE,
-}

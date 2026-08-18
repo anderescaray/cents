@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import java.time.Instant
 import java.time.LocalDate
 
@@ -57,8 +58,3 @@ data class TransactionEntity(
     val createdAt: Instant,
     val updatedAt: Instant,
 )
-
-enum class TransactionKind {
-    INCOME,
-    EXPENSE,
-}

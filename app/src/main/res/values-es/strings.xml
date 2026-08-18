@@ -26,4 +26,28 @@
     <string name="settings_currency">Moneda principal</string>
     <string name="settings_data_footer">Todo se queda en este dispositivo. No se sube nada a ningún sitio.</string>
     <string name="settings_add_transaction">Añadir movimiento</string>
+
+    <!-- Acciones -->
+    <string name="action_add">+</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+
+    <!-- Movimientos -->
+    <string name="transactions_this_month">Este mes</string>
+    <string name="summary_income">Ingresos</string>
+    <string name="summary_expenses">Gastos</string>
+    <string name="summary_net">Balance</string>
+    <string name="transactions_empty_title">Todavía no hay movimientos</string>
+    <string name="transactions_empty_footer">Pulsa + para registrar tu primer ingreso o gasto.</string>
+    <string name="transactions_uncategorized">Sin categoría</string>
+    <string name="date_today">Hoy</string>
+    <string name="date_yesterday">Ayer</string>
+
+    <!-- Nuevo movimiento -->
+    <string name="add_transaction_title">Nuevo movimiento</string>
+    <string name="kind_expense">Gasto</string>
+    <string name="kind_income">Ingreso</string>
+    <string name="field_account">Cuenta</string>
+    <string name="field_category">Categoría</string>
+    <string name="field_category_footer">Opcional. Los movimientos sin categoría se pueden clasificar más tarde.</string>
 </resources>

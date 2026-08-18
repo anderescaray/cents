@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
-import io.github.anderescaray.cents.data.local.entity.CategoryKind
+import io.github.anderescaray.cents.domain.model.CategoryKind
 import kotlinx.coroutines.flow.Flow
 
 @Dao

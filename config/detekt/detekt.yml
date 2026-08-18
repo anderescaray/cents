@@ -1,0 +1,21 @@
+# Overrides on top of detekt's default rule set (buildUponDefaultConfig = true).
+# Only the deviations we actually want live here, so upgrades stay readable.
+
+complexity:
+  LongParameterList:
+    # Composables legitimately take many parameters (state + callbacks)
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    ignoreAnnotated: ['Composable']
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    ignoreAnnotated: ['Composable', 'Preview']
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedPrivateFunction:
+    ignoreAnnotated: ['Preview']

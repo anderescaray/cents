@@ -152,8 +152,15 @@ adb devices                           # check the phone is connected
 
 ## 8. Current status
 
-**Phase 0 — no code yet.** Only documentation exists. Next up: install Android Studio and
-generate the project skeleton. Roadmap in [`docs/PRD.md`](docs/PRD.md).
+**Phase 0 — in progress.** The skeleton (Compose Empty Activity) builds and installs on a
+physical device, and the build tooling is in place: Hilt + KSP, detekt, Spotless/ktlint and
+CI on GitHub Actions running build + tests + lint on every PR. Next: Room entities, DAOs
+and migrations with their tests, then theme, navigation and the core screens. Roadmap in
+[`docs/PRD.md`](docs/PRD.md).
+
+Note on tool versions: detekt is on the `dev.detekt` 2.x line rather than the older
+`io.gitlab.arturbosch.detekt` 1.23.x, because 1.23.x embeds an IntelliJ core that cannot
+parse a JDK 25 version string and crashes when run on the current toolchain.
 
 ## 9. Things not to do
 

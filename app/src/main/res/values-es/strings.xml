@@ -1,0 +1,29 @@
+<resources>
+    <!-- Tabs -->
+    <string name="tab_transactions">Movimientos</string>
+    <string name="tab_accounts">Cuentas</string>
+    <string name="tab_reports">Informes</string>
+    <string name="tab_settings">Ajustes</string>
+
+    <!-- Contenido de ejemplo, se sustituye cuando llega cada pantalla real -->
+    <string name="placeholder_section_header">Hoy</string>
+    <string name="placeholder_row_title">Supermercado</string>
+    <string name="placeholder_row_subtitle">Cuenta corriente</string>
+    <string name="placeholder_row_income">Nómina</string>
+    <string name="placeholder_empty_title">Todavía no hay movimientos</string>
+    <string name="placeholder_empty_footer">Las filas, las secciones y el título que se pliega son el sistema de diseño. Los datos reales llegan con el repositorio de movimientos.</string>
+    <string name="accounts_section_header">Mis cuentas</string>
+    <string name="placeholder_account_checking">Cuenta corriente</string>
+    <string name="placeholder_account_cash">Efectivo</string>
+    <string name="reports_placeholder_title">Los gráficos llegan en la fase 2</string>
+    <string name="reports_placeholder_footer">Gasto por categoría, ingresos frente a gastos y evolución del saldo.</string>
+
+    <!-- Ajustes -->
+    <string name="settings_section_security">Seguridad</string>
+    <string name="settings_biometric_lock">Desbloquear con huella</string>
+    <string name="settings_section_data">Datos</string>
+    <string name="settings_export">Exportar una copia</string>
+    <string name="settings_currency">Moneda principal</string>
+    <string name="settings_data_footer">Todo se queda en este dispositivo. No se sube nada a ningún sitio.</string>
+    <string name="settings_add_transaction">Añadir movimiento</string>
+</resources>

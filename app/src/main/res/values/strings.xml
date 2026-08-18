@@ -1,4 +1,31 @@
 <resources>
     <string name="app_name">Cents</string>
-    <string name="placeholder_greeting">Cents</string>
+
+    <!-- Tabs -->
+    <string name="tab_transactions">Transactions</string>
+    <string name="tab_accounts">Accounts</string>
+    <string name="tab_reports">Reports</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Placeholder content, replaced as each real screen lands -->
+    <string name="placeholder_section_header">Today</string>
+    <string name="placeholder_row_title">Groceries</string>
+    <string name="placeholder_row_subtitle">Checking</string>
+    <string name="placeholder_row_income">Salary</string>
+    <string name="placeholder_empty_title">No transactions yet</string>
+    <string name="placeholder_empty_footer">Rows, sections and the collapsing title are the design system. Real data arrives with the transaction repository.</string>
+    <string name="accounts_section_header">My accounts</string>
+    <string name="placeholder_account_checking">Checking</string>
+    <string name="placeholder_account_cash">Cash</string>
+    <string name="reports_placeholder_title">Charts arrive in phase 2</string>
+    <string name="reports_placeholder_footer">Spending by category, income versus expenses, and balance over time.</string>
+
+    <!-- Settings -->
+    <string name="settings_section_security">Security</string>
+    <string name="settings_biometric_lock">Unlock with fingerprint</string>
+    <string name="settings_section_data">Data</string>
+    <string name="settings_export">Export a backup</string>
+    <string name="settings_currency">Main currency</string>
+    <string name="settings_data_footer">Everything stays on this device. Nothing is uploaded anywhere.</string>
+    <string name="settings_add_transaction">Add transaction</string>
 </resources>

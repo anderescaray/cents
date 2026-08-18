@@ -1,0 +1,153 @@
+package io.github.anderescaray.cents.ui.components
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import io.github.anderescaray.cents.ui.theme.CentsDimens
+import io.github.anderescaray.cents.ui.theme.CentsTheme
+
+/** Scroll distance over which the large title hands over to the compact bar. */
+private const val COLLAPSE_THRESHOLD_PX = 60
+
+/**
+ * A screen with an iOS large title that collapses into a compact bar on scroll.
+ *
+ * The large title lives inside the scrolling content, exactly as on iOS, so it scrolls
+ * away naturally; the bar above it fades in only once the title has left. The collapse
+ * state is derived with derivedStateOf, so scrolling does not recompose the whole screen
+ * on every pixel.
+ */
+@Composable
+fun CentsLargeTitleScaffold(
+    title: String,
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+    bottomPadding: Dp = 0.dp,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    content: LazyListScope.() -> Unit,
+) {
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val collapsed by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 ||
+                listState.firstVisibleItemScrollOffset > COLLAPSE_THRESHOLD_PX
+        }
+    }
+    val barAlpha by animateFloatAsState(if (collapsed) 1f else 0f, label = "navBarAlpha")
+
+    Box(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(CentsTheme.colors.groupedBackground),
+    ) {
+        LazyColumn(
+            state = listState,
+            contentPadding =
+                PaddingValues(
+                    top = topInset + CentsDimens.barHeight,
+                    bottom = bottomPadding + CentsDimens.sectionSpacing,
+                ),
+            verticalArrangement = Arrangement.spacedBy(CentsDimens.sectionSpacing),
+        ) {
+            item(key = "largeTitle") { LargeTitle(title) }
+            content()
+        }
+
+        CollapsingNavBar(
+            title = title,
+            alpha = barAlpha,
+            topInset = topInset,
+            trailing = trailing,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
+    }
+}
+
+@Composable
+private fun LargeTitle(title: String) {
+    Text(
+        text = title,
+        style = CentsTheme.typography.largeTitle,
+        color = CentsTheme.colors.label,
+        modifier =
+            Modifier.padding(
+                start = CentsDimens.screenMargin,
+                end = CentsDimens.screenMargin,
+                bottom = CentsDimens.spacingS,
+            ),
+    )
+}
+
+/** The compact bar that takes over once the large title has scrolled away. */
+@Composable
+private fun CollapsingNavBar(
+    title: String,
+    alpha: Float,
+    topInset: Dp,
+    trailing: (@Composable RowScope.() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(CentsTheme.colors.barBackground.copy(alpha = alpha)),
+    ) {
+        Box(modifier = Modifier.height(topInset))
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(CentsDimens.barHeight)
+                    .padding(horizontal = CentsDimens.screenMargin),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = CentsTheme.typography.headline,
+                color = CentsTheme.colors.label,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .alpha(alpha),
+            )
+            if (trailing != null) {
+                trailing()
+            }
+        }
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(CentsDimens.separatorThickness)
+                    .background(CentsTheme.colors.barSeparator.copy(alpha = alpha)),
+        )
+    }
+}

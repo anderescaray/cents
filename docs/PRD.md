@@ -25,6 +25,10 @@ place and without depending on any bank's app.
 3. **Categories I define.** No fixed taxonomy imposed by the app.
 4. **The numbers never lie.** Exact precision on money, and full transparency when a
    value comes from the internet and may be stale.
+5. **It feels like an Apple app.** The appearance and the flow follow iOS conventions —
+   inset grouped lists, large collapsing titles, a bottom tab bar, push/pop transitions —
+   even though this is an Android app built with Compose. Recorded, with its consequences,
+   in [`decisions/0001-ios-flavored-ui.md`](decisions/0001-ios-flavored-ui.md).
 
 **Non-goals** (out of scope, at least for now): multi-user or shared expenses, direct
 bank connections, iOS, a web version, publishing on Google Play.
@@ -181,9 +185,12 @@ landing in an "uncategorized inbox" for me to classify later.
 
 ### 4.8 Polish — P2
 
-Light/dark theme with dynamic color (Material You), a home screen widget for quick
-expense entry, an app icon shortcut, screen transition animations, and accessibility
-support (TalkBack, font scaling).
+Light/dark theme, a home screen widget for quick expense entry, an app icon shortcut,
+screen transition animations, and accessibility support (TalkBack, font scaling).
+
+*Dynamic color (Material You) was dropped:* it contradicts design principle 5, since an
+iOS-flavoured app whose accent color follows the wallpaper looks like neither platform.
+The palette is fixed, with a proper dark variant.
 
 ## 5. Feasibility analysis
 

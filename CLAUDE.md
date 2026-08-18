@@ -129,8 +129,14 @@ Not something fixed at the end; watched from day one.
 
 ## 6. Commands
 
-> These do not exist yet: they appear once the project is generated in Android Studio
-> (Phase 0).
+**Toolchain paths.** Gradle needs a JDK, and the one that works here is the JBR bundled
+with Android Studio. From a Bash shell neither it, `adb` nor `gh` are on `PATH`, so a
+session that shells out sets them itself:
+
+```bash
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
+export PATH="$JAVA_HOME/bin:$PATH:/c/Users/ander/AppData/Local/Android/Sdk/platform-tools:/c/Program Files/GitHub CLI"
+```
 
 ```bash
 ./gradlew assembleDebug               # build
@@ -140,6 +146,13 @@ Not something fixed at the end; watched from day one.
 ./gradlew detekt spotlessCheck        # code quality
 ./gradlew spotlessApply               # auto-format
 adb devices                           # check the phone is connected
+```
+
+A full local run of what CI checks, worth doing before opening a PR:
+
+```bash
+./gradlew spotlessApply                                            # fix formatting first
+./gradlew spotlessCheck detekt testDebugUnitTest assembleDebug      # then the gates
 ```
 
 ## 7. Git and agent workflow

@@ -461,6 +461,29 @@ Then take the first unchecked branch in C3 and work it end to end:
 One branch and one PR each, in this order. They touch overlapping files, so they stay
 serial — this is still the single-agent phase.
 
+- [ ] **`feat/categories`** — **the owner's categories, created by the owner.** Requested
+      2026-08-18, and first in the queue because the app currently imposes a taxonomy that
+      contradicts PRD design principle 3.
+      - The app **ships with no categories at all**. The first-run seeding of eleven
+        default categories is removed from `DefaultDataSeeder`.
+      - Full management from inside the app: create, rename, recolour and reorder
+        categories, separately for income and for expenses.
+      - **Delete** removes the category outright when nothing uses it
+        (`CategoryDao.countTransactions` already answers this). When it does have
+        transactions, "delete" means **archive**: it disappears from the pickers and the
+        history it classified is left untouched (rule 8). The UI has to say which of the
+        two happened, rather than silently doing something different from what the button
+        said.
+      - With no categories, the entry form's category section needs an empty state that
+        leads straight to creating one, instead of an empty box.
+      - *Done when:* a fresh install has zero categories, and every category in the app is
+        one the owner typed.
+      - **Open question for the owner:** the same argument applies to the seeded *Cash*
+        account, which is still created on first run. It cannot simply be dropped —
+        a transaction cannot be saved without an account — so removing it means adding a
+        first-run step that asks for one account before anything else. Decide this when
+        `feat/accounts` is planned; the categories change does not depend on it.
+
 - [ ] **`feat/transaction-edit`** — tap a row to edit or delete it. Delete asks for
       confirmation and offers Undo (rule 7). Also add the two fields the entry form is
       missing: **date picker** (it is hardcoded to today) and **note input**.
@@ -470,11 +493,6 @@ serial — this is still the single-agent phase.
       archive, and an account detail showing only its movements plus its own income and
       expenses.
       *Done when:* balances shown match the transactions that produced them.
-- [ ] **`feat/categories`** — manage categories: create, rename, recolour, one level of
-      subcategories, archive. Hard delete only when the category has no transactions
-      (`countTransactions` already exists for this).
-      *Done when:* the entry form picks from categories the owner defined, not the seeded
-      defaults.
 - [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
       category, kind, amount, note text.
       *Done when:* "what did I spend on restaurants in July" is answerable in the app.
@@ -486,6 +504,9 @@ before that, and do not parallelize before that.
 
 - The entry form always uses **today's date** and does not expose the note field, although
   the view model already supports both. First item of `feat/transaction-edit`.
+- **The app seeds eleven categories on first run.** This is on its way out: the owner
+  creates their own categories (`feat/categories`). Until that lands, the categories in a
+  fresh install are the app's invention, not the owner's.
 - **Accounts and Reports tabs are placeholders.** They render the design system with
   invented content and read nothing from the database.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
@@ -509,6 +530,7 @@ else on the phone (rule 13). So these are always handed back:
 
 ## Next concrete action
 
-**`feat/transaction-edit`**, as described in C3. It is first because entering a wrong
-amount is currently unfixable inside the app, and because it closes the two missing fields
-in the entry form.
+**`feat/categories`**, as described in C3: remove the seeded categories and let the owner
+create, rename and delete their own. Requested directly by the owner, and it comes before
+`feat/transaction-edit` because right now the app decides what the owner's money is spent
+on, which is the opposite of the point.

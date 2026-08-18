@@ -80,6 +80,14 @@ Priority: **P0** = required for the app to be worth using · **P1** = important 
 - Add, edit and delete income and expenses.
 - Create, edit, archive and reorder my own categories, with color and icon. Optional
   subcategories (e.g. `Car > Fuel`).
+- **The app ships with no categories.** It does not propose a starting set and does not
+  invent a taxonomy: on a fresh install the list is empty and every category in it is one I
+  created, for income and for expenses separately. This is design principle 3 taken
+  literally — a suggested list is still the app deciding what my money is spent on.
+- **Deleting a category** removes it outright while nothing uses it. Once it classifies
+  transactions it can only be archived: it leaves the pickers and its history stays intact
+  (see §3, "categories can be archived but not deleted"). The app says which of the two
+  happened rather than quietly doing the other one.
 - Fast entry: a dedicated screen with a large numeric keypad, today as the default date,
   and the last used category suggested.
 - Transaction list with search and filters (date range, account, category, kind, amount,

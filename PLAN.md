@@ -54,7 +54,7 @@ Move-Item "C:\Users\ander\OneDrive\Desktop\mi app" C:\dev\cents
 
 **Verify:** `ls C:\dev\cents` lists `CLAUDE.md`, `PLAN.md`, `README.md` and `docs/`.
 
-- [ ] Folder moved and Claude Code relaunched from the new path
+- [x] Folder moved and Claude Code relaunched from the new path
 
 ## A2. Android Studio
 
@@ -83,8 +83,8 @@ adb version
 If `adb` is not found, add `C:\Users\ander\AppData\Local\Android\Sdk\platform-tools` to
 the user PATH manually.
 
-- [ ] Android Studio installed and the Standard wizard completed
-- [ ] `adb version` responds
+- [x] Android Studio installed and the Standard wizard completed
+- [x] `adb version` responds
 
 ## A3. GitHub CLI
 
@@ -105,7 +105,7 @@ Choose: `GitHub.com` → `HTTPS` → `Yes` (authenticate git with your credentia
 
 **Verify:** `gh auth status` reports `Logged in to github.com`.
 
-- [ ] `gh` installed and authenticated
+- [x] `gh` installed and authenticated
 
 ## A4. Git identity
 
@@ -119,7 +119,7 @@ git config --global init.defaultBranch main
 
 **Verify:** `git config --global --list` shows the three lines.
 
-- [ ] Identity configured
+- [x] Identity configured
 
 ## A5. Wire the local folder to the repo
 
@@ -156,7 +156,7 @@ commits.
 **Verify:** `git remote -v` points at `anderescaray/cents`, and `gh repo view --web` opens
 the repo with the documents in it.
 
-- [ ] Folder linked to the repo and first commit pushed
+- [x] Folder linked to the repo and first commit pushed
 
 ### Before the first commit with code
 
@@ -182,7 +182,7 @@ performance**, and the stated goal is an app that feels smooth.
 
 **Verify:** `adb devices` lists your device as `device` (not `unauthorized`).
 
-- [ ] Phone detected by `adb`
+- [x] Phone detected by `adb`
 
 ## A7. What not to install yet
 

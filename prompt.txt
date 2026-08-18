@@ -1,0 +1,65 @@
+New project: a native Android personal finance app. I have just moved this folder out of
+OneDrive, so this is a clean session.
+
+In a previous session we wrote the documents that define the whole project. Read them
+before doing anything:
+
+- README.md      -> what the project is, stack, architecture, roadmap
+- CLAUDE.md      -> stack, architecture, code rules, commands, git workflow
+- PLAN.md        -> setup steps (Part A) and working process (Part B)
+- docs/PRD.md    -> product: features, data model, feasibility analysis, roadmap
+
+FIXED PROJECT FACTS
+- Name: Cents
+- Package / applicationId: io.github.anderescaray.cents
+- Repo: https://github.com/anderescaray/cents (private, already created)
+- Local path: C:\dev\cents
+
+STATUS
+From PLAN.md Part A: A0 (name and package) and A1 (folder out of OneDrive) are done.
+Pending: A2 (Android Studio), A3 (GitHub CLI), A4 (git identity),
+A5 (link this folder to the repo, which already exists and is empty or nearly so),
+A6 (phone in developer mode).
+
+WHAT I WANT YOU TO DO NOW, IN THIS ORDER
+
+1. Read the documents.
+2. Check the actual environment and tell me exactly what is missing: git and whether its
+   identity is configured, gh and whether it is authenticated, adb, the Android SDK, and
+   which JDK is in use. Do not assume anything the documents claim — verify it.
+3. Walk me through the remaining Part A steps one at a time, waiting for my confirmation
+   between each. Do not chain them all at once.
+4. Once the environment is ready, we start Phase 0 of the roadmap: generate the project,
+   set up the version catalog, Hilt, detekt/Spotless and CI on GitHub Actions, and get the
+   app installing on my real phone.
+
+LANGUAGE
+
+- Everything in the repository is in English: code, commits, documentation, comments.
+- Talk to me in Spanish. I read English fine, but I would rather discuss in Spanish.
+- App UI strings: English in values/strings.xml, Spanish in values-es/strings.xml.
+
+HOW I WANT YOU TO COMMUNICATE
+
+- Do not explain the code or teach me Kotlin. No tutorials, no summaries of what a
+  ViewModel or a Flow is. Assume it and get on with it.
+- Short answers: what you did, what is left, what you need from me. No long recaps, no
+  celebration.
+- Make routine technical decisions yourself without asking. Ask me only when the decision
+  actually changes what the app does.
+- If something fails, tell me with the error output. Do not paper over it.
+
+WORKING RULES FOR THIS STAGE
+
+- One agent, working serially. No parallelization, no subagents, no worktrees until the
+  app runs on my phone (reasoning is in PLAN.md, Part B section 2).
+- Do not commit or push without asking me first.
+- Do not add dependencies that are not in the table in CLAUDE.md section 2 without
+  justifying why they are needed.
+- If anything in the documents no longer matches reality (a version, a library that
+  changed, a decision that was a bad idea), tell me instead of following it blindly.
+- When we finish a phase, update the "Current status" section of CLAUDE.md, the roadmap
+  status column in README.md, and the relevant checkboxes in PLAN.md.
+- Before telling me something is done, actually verify it: it builds and the tests pass.
+
+Start with steps 1 and 2, and tell me what I still need to install.

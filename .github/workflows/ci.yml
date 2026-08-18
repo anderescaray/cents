@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A new push to the same branch cancels the previous run: no point burning
+  # minutes on a commit that is already superseded.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Formatting (Spotless + ktlint)
+        run: ./gradlew spotlessCheck
+
+      - name: Static analysis (detekt)
+        run: ./gradlew detekt
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+          retention-days: 7

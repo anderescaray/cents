@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Cents</string>
+    <string name="placeholder_greeting">Cents</string>
 </resources>

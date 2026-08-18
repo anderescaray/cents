@@ -426,7 +426,111 @@ control panel once volume justifies it; it does not replace any of the above.
 
 ---
 
+# Part C — Where the project stands
+
+**This section is the handoff between sessions. Whoever finishes a piece of work updates it
+before stopping.** Everything else in this file describes how the project is run; this
+describes what is actually built right now.
+
+## C1. Start of session checklist
+
+```powershell
+git status                                   # anything half-finished?
+gh pr list                                   # anything open waiting on review?
+git checkout main; git pull --ff-only        # start from what is merged
+./gradlew spotlessCheck detekt testDebugUnitTest   # green before touching anything
+```
+
+Then take the first unchecked branch in C3 and work it end to end:
+`branch → implement → tests → gates → PR → wait for CI → hand back`.
+
+## C2. What is built and merged
+
+| Area | State |
+|---|---|
+| Toolchain | Gradle KTS + version catalog, Hilt + KSP, detekt (`dev.detekt` 2.x), Spotless/ktlint, GitHub Actions running build + tests + lint on every PR |
+| Database | Room v1: `accounts`, `categories`, `transactions`. Balances computed in SQL, foreign keys `RESTRICT`, schema exported to `app/schemas/` |
+| Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
+| Design system | iOS-flavoured tokens and components — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
+| Navigation | Four tabs, type-safe routes, push/pop transitions |
+| Transactions | List grouped by day with a monthly summary, and an entry form with a minor-unit keypad that writes to the database |
+| Tests | 42, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+
+## C3. Remaining Phase 1 work
+
+One branch and one PR each, in this order. They touch overlapping files, so they stay
+serial — this is still the single-agent phase.
+
+- [ ] **`feat/categories`** — **the owner's categories, created by the owner.** Requested
+      2026-08-18, and first in the queue because the app currently imposes a taxonomy that
+      contradicts PRD design principle 3.
+      - The app **ships with no categories at all**. The first-run seeding of eleven
+        default categories is removed from `DefaultDataSeeder`.
+      - Full management from inside the app: create, rename, recolour and reorder
+        categories, separately for income and for expenses.
+      - **Delete** removes the category outright when nothing uses it
+        (`CategoryDao.countTransactions` already answers this). When it does have
+        transactions, "delete" means **archive**: it disappears from the pickers and the
+        history it classified is left untouched (rule 8). The UI has to say which of the
+        two happened, rather than silently doing something different from what the button
+        said.
+      - With no categories, the entry form's category section needs an empty state that
+        leads straight to creating one, instead of an empty box.
+      - *Done when:* a fresh install has zero categories, and every category in the app is
+        one the owner typed.
+      - **Open question for the owner:** the same argument applies to the seeded *Cash*
+        account, which is still created on first run. It cannot simply be dropped —
+        a transaction cannot be saved without an account — so removing it means adding a
+        first-run step that asks for one account before anything else. Decide this when
+        `feat/accounts` is planned; the categories change does not depend on it.
+
+- [ ] **`feat/transaction-edit`** — tap a row to edit or delete it. Delete asks for
+      confirmation and offers Undo (rule 7). Also add the two fields the entry form is
+      missing: **date picker** (it is hardcoded to today) and **note input**.
+      *Done when:* a wrong amount can be corrected and a mistake removed, without touching
+      the database by hand.
+- [ ] **`feat/accounts`** — the Accounts tab for real: list with balances, create, edit,
+      archive, and an account detail showing only its movements plus its own income and
+      expenses.
+      *Done when:* balances shown match the transactions that produced them.
+- [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
+      category, kind, amount, note text.
+      *Done when:* "what did I spend on restaurants in July" is answerable in the app.
+
+**Phase 1 is finished when the four exit criteria in Part B §2 hold.** Do not start Phase 2
+before that, and do not parallelize before that.
+
+## C4. Known gaps, so they are not mistaken for bugs
+
+- The entry form always uses **today's date** and does not expose the note field, although
+  the view model already supports both. First item of `feat/transaction-edit`.
+- **The app seeds eleven categories on first run.** This is on its way out: the owner
+  creates their own categories (`feat/categories`). Until that lands, the categories in a
+  fresh install are the app's invention, not the owner's.
+- **Accounts and Reports tabs are placeholders.** They render the design system with
+  invented content and read nothing from the database.
+- **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
+  schema has no tables for them yet: they arrive with a tested migration.
+- **Cross-currency totals are not supported.** `Money` refuses arithmetic between different
+  currencies on purpose; a conversion step has to be designed when a second currency
+  appears.
+- **Only schema v1 exists**, so there is no migration test yet. The first schema change must
+  ship one (rule 9).
+
+## C5. What only the owner can do
+
+The agent may install the APK, launch the app, read logcat and take screenshots — nothing
+else on the phone (rule 13). So these are always handed back:
+
+- Tapping through a flow to judge whether it feels right.
+- Anything needing a device setting, an unlock, or a permission dialog.
+- Reviewing and merging every PR.
+
+---
+
 ## Next concrete action
 
-Right now: **A1** (move the folder). Then relaunch Claude Code from `C:\dev\cents` and
-continue with A2.
+**`feat/categories`**, as described in C3: remove the seeded categories and let the owner
+create, rename and delete their own. Requested directly by the owner, and it comes before
+`feat/transaction-edit` because right now the app decides what the owner's money is spent
+on, which is the opposite of the point.

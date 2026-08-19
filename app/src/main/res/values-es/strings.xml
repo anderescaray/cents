@@ -81,4 +81,5 @@
     <string name="category_delete_title">¿Eliminar «%1$s»?</string>
     <string name="category_delete_message">Ningún movimiento la usa, así que se puede borrar del todo.</string>
     <string name="category_archive_title">¿Archivar «%1$s»?</string>
+    <string name="category_archived_footer">Esta categoría clasifica movimientos ya registrados, así que no se puede eliminar. Restáurala para volver a usarla.</string>
 </resources>

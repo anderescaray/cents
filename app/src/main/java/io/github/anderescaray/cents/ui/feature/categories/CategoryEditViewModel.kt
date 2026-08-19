@@ -12,7 +12,10 @@ import io.github.anderescaray.cents.ui.navigation.Destination
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,9 +38,10 @@ data class CategoryEditUiState(
     val transactionCount: Int = 0,
     val nameTaken: Boolean = false,
     val confirmingDeletion: Boolean = false,
+    val saving: Boolean = false,
     val finished: Boolean = false,
 ) {
-    val canSave: Boolean get() = name.isNotBlank() && !nameTaken
+    val canSave: Boolean get() = name.isNotBlank() && !nameTaken && !saving
 
     val deletionKind: DeletionKind
         get() = if (transactionCount == 0) DeletionKind.OUTRIGHT else DeletionKind.ARCHIVE
@@ -81,12 +85,20 @@ class CategoryEditViewModel
         init {
             viewModelScope.launch { load() }
             viewModelScope.launch {
-                categoryRepository.observeAllCategories().collect { categories ->
-                    takenNames =
-                        categories
-                            .filter { it.kind == form.value.kind && it.id != categoryId }
-                            .map { it.name.lowercase() }
-                            .toSet()
+                // The kind is part of the input, not a constant: an existing category only
+                // reveals its own once it is loaded, and a name clashes only within a kind.
+                // Snapshotting it here would compare an income category against the expense
+                // names and let a duplicate through.
+                combine(
+                    form.map { it.kind }.distinctUntilChanged(),
+                    categoryRepository.observeAllCategories(),
+                ) { kind, categories ->
+                    categories
+                        .filter { it.kind == kind && it.id != categoryId }
+                        .map { it.name.lowercase() }
+                        .toSet()
+                }.collect { names ->
+                    takenNames = names
                     form.update { it.copy(nameTaken = isNameTaken(it.name)) }
                 }
             }
@@ -128,6 +140,9 @@ class CategoryEditViewModel
         fun save() {
             val state = form.value
             if (!state.canSave) return
+            // Marked before suspending: the button stays live until the write finishes, and
+            // two quick taps would otherwise store the category twice.
+            form.update { it.copy(saving = true) }
 
             viewModelScope.launch {
                 val id = categoryId
@@ -144,12 +159,16 @@ class CategoryEditViewModel
                         ),
                     )
                 } else {
-                    val existing = categoryRepository.findById(id) ?: return@launch
+                    val existing = categoryRepository.findById(id)
+                    if (existing == null) {
+                        form.update { it.copy(saving = false) }
+                        return@launch
+                    }
                     categoryRepository.updateCategory(
                         existing.copy(name = state.name.trim(), colorArgb = state.colorArgb),
                     )
                 }
-                form.update { it.copy(finished = true) }
+                form.update { it.copy(saving = false, finished = true) }
             }
         }
 
@@ -179,7 +198,12 @@ class CategoryEditViewModel
         fun restore() {
             val id = categoryId ?: return
             viewModelScope.launch {
-                categoryRepository.setArchived(id, archived = false)
+                val category = categoryRepository.findById(id) ?: return@launch
+                // Reordering renumbers the active list only, so the position this kept while
+                // archived means nothing now. It comes back at the end, where it is visible.
+                categoryRepository.updateCategory(
+                    category.copy(archived = false, sortOrder = nextSortOrder(category.kind)),
+                )
                 form.update { it.copy(finished = true) }
             }
         }

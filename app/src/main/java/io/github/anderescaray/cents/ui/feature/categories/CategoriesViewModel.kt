@@ -20,8 +20,12 @@ data class CategoriesUiState(
     val archived: List<Category> = emptyList(),
     val isLoading: Boolean = true,
 ) {
-    /** Nothing at all for this kind — the state a fresh install starts in. */
-    val isEmpty: Boolean get() = !isLoading && active.isEmpty() && archived.isEmpty()
+    /**
+     * Nothing to list for this kind. False while loading, so opening the screen does not
+     * flash "no categories yet" for the length of the push transition before the real
+     * list arrives.
+     */
+    val showEmptyState: Boolean get() = !isLoading && active.isEmpty()
 }
 
 /**

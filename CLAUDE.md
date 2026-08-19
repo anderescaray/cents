@@ -183,6 +183,11 @@ category is one the owner created — and the Accounts tab with balances compute
 movements behind them.
 99 tests run on the JVM, so CI covers the database and the UI without a device.
 
+**Open questions that only the owner can settle live in
+[`DECISIONS.md`](DECISIONS.md)** — read it at the start of every session, act on anything
+answered since last time, and add any new question there with a default rather than guessing
+or stalling. The protocol is [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
+
 **Where to start a session and what is left to build is
 [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session
 checklist, the ordered list of remaining Phase 1 branches, and the list of known gaps —

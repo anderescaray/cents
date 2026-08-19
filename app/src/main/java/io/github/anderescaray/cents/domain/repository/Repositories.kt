@@ -73,6 +73,9 @@ interface TransactionRepository {
 
     fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>>
 
+    /** One account's movements, carrying the names its rows have to show. */
+    fun observeAccountTransactionDetails(accountId: Long): Flow<List<TransactionDetails>>
+
     /** Income and expense totals for a period, summed by the database. */
     fun observeSummary(
         from: LocalDate,

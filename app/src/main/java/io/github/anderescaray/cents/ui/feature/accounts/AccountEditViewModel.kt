@@ -42,6 +42,7 @@ data class AccountEditUiState(
     val nameTaken: Boolean = false,
     val confirmingRemoval: Boolean = false,
     val saving: Boolean = false,
+    val writeFailed: Boolean = false,
     val finished: Boolean = false,
 ) {
     /** Typed as minor units, like every amount in the app (rule 1). */
@@ -144,7 +145,7 @@ class AccountEditViewModel
 
         fun setName(name: String) {
             edited = true
-            form.update { it.copy(name = name, nameTaken = isNameTaken(name)) }
+            form.update { it.copy(name = name, nameTaken = isNameTaken(name), writeFailed = false) }
         }
 
         fun setType(type: AccountType) {
@@ -217,7 +218,15 @@ class AccountEditViewModel
                             )
                         }
                     }
-                form.update { it.copy(saving = false, finished = written.isSuccess) }
+                // The name has a unique index of its own: if two writes race, the second
+                // one fails, and the form has to say so rather than looking inert.
+                form.update {
+                    it.copy(
+                        saving = false,
+                        writeFailed = written.isFailure,
+                        finished = written.isSuccess,
+                    )
+                }
             }
         }
 
@@ -235,11 +244,23 @@ class AccountEditViewModel
         fun confirmRemoval() {
             val id = accountId ?: return
             viewModelScope.launch {
-                when (form.value.removal) {
-                    AccountRemoval.OUTRIGHT -> accountRepository.deleteAccount(id)
-                    AccountRemoval.ARCHIVE -> accountRepository.setArchived(id, archived = true)
+                // A movement could have landed in the account between counting and
+                // confirming, and the foreign key would refuse the delete: report that
+                // rather than letting it escape the coroutine.
+                val removed =
+                    runCatching {
+                        when (form.value.removal) {
+                            AccountRemoval.OUTRIGHT -> accountRepository.deleteAccount(id)
+                            AccountRemoval.ARCHIVE -> accountRepository.setArchived(id, archived = true)
+                        }
+                    }
+                form.update {
+                    it.copy(
+                        confirmingRemoval = false,
+                        writeFailed = removed.isFailure,
+                        finished = removed.isSuccess,
+                    )
                 }
-                form.update { it.copy(confirmingRemoval = false, finished = true) }
             }
         }
 

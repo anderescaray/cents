@@ -7,16 +7,19 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.PeriodSummary
-import io.github.anderescaray.cents.domain.model.Transaction
+import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
 import java.time.LocalDate
@@ -25,7 +28,7 @@ import javax.inject.Inject
 /** One day of movements inside a single account. */
 data class AccountDay(
     val date: LocalDate,
-    val items: List<Transaction>,
+    val items: List<TransactionDetails>,
 )
 
 data class AccountDetailUiState(
@@ -53,13 +56,21 @@ class AccountDetailViewModel
     ) : ViewModel() {
         private val accountId: Long = savedStateHandle.toRoute<Destination.AccountDetail>().accountId
 
+        private val account: Flow<AccountWithBalance?> =
+            accountRepository.observeAccountWithBalance(accountId)
+
+        /**
+         * The month's totals, re-queried only when the currency they are expressed in
+         * changes — not on every movement, which is what watching the whole account would
+         * do, since its balance moves with each one.
+         */
         @OptIn(ExperimentalCoroutinesApi::class)
-        val uiState: StateFlow<AccountDetailUiState> =
-            combine(
-                accountRepository.observeAccountWithBalance(accountId),
-                transactionRepository.observeTransactionsForAccount(accountId),
-                accountRepository.observeAccountWithBalance(accountId).flatMapLatest { account ->
-                    if (account == null) {
+        private val monthSummary: Flow<PeriodSummary?> =
+            account
+                .map { it?.account?.currency }
+                .distinctUntilChanged()
+                .flatMapLatest { currency ->
+                    if (currency == null) {
                         flowOf(null)
                     } else {
                         val today = LocalDate.now(clock)
@@ -67,17 +78,23 @@ class AccountDetailViewModel
                             accountId = accountId,
                             from = today.withDayOfMonth(1),
                             to = today.withDayOfMonth(today.lengthOfMonth()),
-                            currency = account.account.currency,
+                            currency = currency,
                         )
                     }
-                },
+                }
+
+        val uiState: StateFlow<AccountDetailUiState> =
+            combine(
+                account,
+                transactionRepository.observeAccountTransactionDetails(accountId),
+                monthSummary,
             ) { account, movements, summary ->
                 AccountDetailUiState(
                     account = account,
                     monthSummary = summary,
                     days =
                         movements
-                            .groupBy { it.date }
+                            .groupBy { it.transaction.date }
                             .map { (date, items) -> AccountDay(date, items) }
                             .sortedByDescending { it.date },
                     today = LocalDate.now(clock),

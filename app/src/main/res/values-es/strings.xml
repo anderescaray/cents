@@ -12,6 +12,7 @@
     <string name="accounts_total">Total: %1$s</string>
     <string name="accounts_total_mixed_currencies">Sin total: estas cuentas están en monedas distintas, y convertirlas necesita un cambio que la app no tiene.</string>
     <string name="accounts_empty_title">Todavía no hay cuentas</string>
+    <string name="accounts_add">Añadir cuenta</string>
     <string name="accounts_empty_footer">Pulsa + para añadir la primera. Un movimiento siempre se registra en una cuenta.</string>
     <string name="account_empty_title">Esta cuenta no tiene movimientos</string>
     <string name="account_empty_footer">El saldo de arriba es su saldo inicial hasta que se mueva algo.</string>
@@ -22,6 +23,7 @@
     <string name="account_name_header">Nombre</string>
     <string name="account_name_placeholder">Cuenta corriente</string>
     <string name="account_name_taken">Ya existe una cuenta con ese nombre.</string>
+    <string name="account_write_failed">No se ha podido guardar. Vuelve a intentarlo.</string>
     <string name="account_type_header">Tipo</string>
     <string name="account_type_cash">Efectivo</string>
     <string name="account_type_bank">Banco</string>
@@ -41,7 +43,6 @@
     <string name="account_delete_title">¿Eliminar «%1$s»?</string>
     <string name="account_delete_message">No contiene ningún movimiento, así que se puede borrar del todo.</string>
     <string name="account_archive_title">¿Archivar «%1$s»?</string>
-    <string name="account_archive_message">Contiene %1$d movimientos, así que eliminarla se los llevaría por delante. Dejará de ofrecerse y los conserva todos.</string>
     <string name="action_edit">Editar</string>
     <string name="field_account_empty">Crea tu primera cuenta</string>
     <string name="field_account_empty_footer">Un movimiento tiene que vivir en una cuenta, así que hay algo que hacer antes.</string>
@@ -100,6 +101,7 @@
 
     <!-- Categorías -->
     <string name="categories_title">Categorías</string>
+    <string name="categories_add">Añadir categoría</string>
     <string name="categories_section_header">Mis categorías</string>
     <string name="categories_reorder_footer">Arrastra el asa de la derecha para cambiar el orden en que aparecen.</string>
     <string name="categories_reorder">Reordenar</string>

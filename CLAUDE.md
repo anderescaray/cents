@@ -181,7 +181,7 @@ grouped by day with a monthly summary, one form that adds and edits movements (k
 date picker, note, delete with undo), category management with nothing seeded — every
 category is one the owner created — and the Accounts tab with balances computed from the
 movements behind them.
-98 tests run on the JVM, so CI covers the database and the UI without a device.
+99 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Where to start a session and what is left to build is
 [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session

@@ -14,6 +14,7 @@
     <string name="accounts_total">Total: %1$s</string>
     <string name="accounts_total_mixed_currencies">No total: these accounts are in different currencies, and converting them needs a rate the app does not have.</string>
     <string name="accounts_empty_title">No accounts yet</string>
+    <string name="accounts_add">Add account</string>
     <string name="accounts_empty_footer">Tap + to add the first one. A movement is always recorded in an account.</string>
     <string name="account_empty_title">No movements in this account</string>
     <string name="account_empty_footer">The balance above is its opening balance until something moves.</string>
@@ -24,6 +25,7 @@
     <string name="account_name_header">Name</string>
     <string name="account_name_placeholder">Checking</string>
     <string name="account_name_taken">There is already an account with that name.</string>
+    <string name="account_write_failed">That could not be saved. Try again.</string>
     <string name="account_type_header">Type</string>
     <string name="account_type_cash">Cash</string>
     <string name="account_type_bank">Bank</string>
@@ -43,7 +45,6 @@
     <string name="account_delete_title">Delete \u201c%1$s\u201d?</string>
     <string name="account_delete_message">It holds no movements, so it can be removed for good.</string>
     <string name="account_archive_title">Archive \u201c%1$s\u201d?</string>
-    <string name="account_archive_message">It holds %1$d movements, so deleting it would take them with it. It will leave the pickers and keep every one of them.</string>
     <string name="action_edit">Edit</string>
     <string name="field_account_empty">Create your first account</string>
     <string name="field_account_empty_footer">A movement has to live in an account, so there is one thing to do first.</string>
@@ -102,6 +103,7 @@
 
     <!-- Categories -->
     <string name="categories_title">Categories</string>
+    <string name="categories_add">Add category</string>
     <string name="categories_section_header">My categories</string>
     <string name="categories_reorder_footer">Drag the grip on the right to change the order they are offered in.</string>
     <string name="categories_reorder">Reorder</string>

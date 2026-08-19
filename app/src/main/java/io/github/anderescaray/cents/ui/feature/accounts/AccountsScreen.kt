@@ -16,6 +16,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,9 +46,11 @@ fun AccountsScreen(
         title = stringResource(R.string.tab_accounts),
         bottomPadding = CentsDimens.sectionSpacing,
         trailing = {
+            val addLabel = stringResource(R.string.accounts_add)
             Box(
                 modifier =
                     Modifier
+                        .semantics { contentDescription = addLabel }
                         .testTag(ADD_ACCOUNT_TAG)
                         .size(CentsDimens.minRowHeight)
                         .clip(CircleShape)

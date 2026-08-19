@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -118,7 +119,12 @@ private fun AccountForm(
         item(key = "name") {
             CentsListSection(
                 header = stringResource(R.string.account_name_header),
-                footer = stringResource(R.string.account_name_taken).takeIf { state.nameTaken },
+                footer =
+                    when {
+                        state.nameTaken -> stringResource(R.string.account_name_taken)
+                        state.writeFailed -> stringResource(R.string.account_write_failed)
+                        else -> null
+                    },
             ) {
                 CentsTextField(
                     value = state.name,
@@ -300,7 +306,11 @@ private fun RemovalAlert(
             if (outright) {
                 stringResource(R.string.account_delete_message)
             } else {
-                stringResource(R.string.account_archive_message, state.transactionCount)
+                pluralStringResource(
+                    R.plurals.account_archive_message,
+                    state.transactionCount,
+                    state.transactionCount,
+                )
             },
         confirmLabel = stringResource(if (outright) R.string.action_delete else R.string.action_archive),
         onConfirm = onConfirm,

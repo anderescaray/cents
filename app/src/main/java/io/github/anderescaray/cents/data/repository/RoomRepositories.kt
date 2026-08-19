@@ -141,6 +141,9 @@ class RoomTransactionRepository
         override fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>> =
             transactionDao.observeByAccount(accountId).map { rows -> rows.map { it.toDomain() } }
 
+        override fun observeAccountTransactionDetails(accountId: Long): Flow<List<TransactionDetails>> =
+            transactionDao.observeByAccountWithNames(accountId).map { rows -> rows.map { it.toDomain() } }
+
         override fun observeSummary(
             from: LocalDate,
             to: LocalDate,

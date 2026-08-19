@@ -138,17 +138,13 @@ private fun LazyListScope.movementDay(
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
-            day.items.forEachIndexed { index, movement ->
+            day.items.forEachIndexed { index, details ->
+                val movement = details.transaction
                 CentsListRow(
                     title =
-                        movement.note?.takeIf { it.isNotBlank() }
-                            ?: stringResource(
-                                if (movement.kind == TransactionKind.INCOME) {
-                                    R.string.kind_income
-                                } else {
-                                    R.string.kind_expense
-                                },
-                            ),
+                        details.categoryName
+                            ?: stringResource(R.string.transactions_uncategorized),
+                    subtitle = movement.note?.takeIf { it.isNotBlank() },
                     value = MoneyFormatter.formatSigned(movement.signedAmount),
                     valueColor =
                         if (movement.kind == TransactionKind.INCOME) {

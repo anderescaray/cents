@@ -29,6 +29,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -67,9 +69,11 @@ fun CategoriesScreen(
             CentsBackButton(label = stringResource(R.string.tab_settings), onClick = onBack)
         },
         trailing = {
+            val addLabel = stringResource(R.string.categories_add)
             Box(
                 modifier =
                     Modifier
+                        .semantics { contentDescription = addLabel }
                         .testTag(ADD_CATEGORY_TAG)
                         .size(CentsDimens.minRowHeight)
                         .clip(CircleShape)

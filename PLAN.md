@@ -456,7 +456,7 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, delete when empty, and an account detail with its own month summary and movements |
-| Tests | 98, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 99, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 

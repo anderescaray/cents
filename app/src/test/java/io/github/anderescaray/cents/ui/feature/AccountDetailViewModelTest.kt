@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
@@ -72,7 +73,7 @@ class AccountDetailViewModelTest {
                         .first()
                         .items
                         .single()
-                        .amount.minorUnits,
+                        .transaction.amount.minorUnits,
                 )
                 cancelAndIgnoreRemainingEvents()
             }
@@ -121,6 +122,25 @@ class AccountDetailViewModelTest {
             detailFor(mine).uiState.test {
                 val state = awaitStateThat { it.monthSummary != null && it.days.isNotEmpty() }
                 assertEquals(Money(5_000, "EUR"), requireNotNull(state.monthSummary).income)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `each movement carries the category that classified it`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking"))
+            val categoryId = database.categoryDao().insert(category(name = "Groceries"))
+            database.transactionDao().insert(
+                transaction(accountId = id, categoryId = categoryId, amountMinor = 1_000),
+            )
+            database.transactionDao().insert(transaction(accountId = id, amountMinor = 500))
+
+            detailFor(id).uiState.test {
+                val state = awaitStateThat { it.days.isNotEmpty() }
+                val names = state.days.flatMap { day -> day.items.map { it.categoryName } }
+                // The uncategorized one keeps a null, which the row turns into a label.
+                assertEquals(listOf("Groceries", null), names.sortedWith(nullsLast(naturalOrder())))
                 cancelAndIgnoreRemainingEvents()
             }
         }

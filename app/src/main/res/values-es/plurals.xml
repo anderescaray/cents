@@ -3,4 +3,8 @@
         <item quantity="one">La usa un movimiento, así que eliminarla cambiaría un historial ya registrado. Dejará de ofrecerse y ese movimiento la conserva.</item>
         <item quantity="other">La usan %1$d movimientos, así que eliminarla cambiaría un historial ya registrado. Dejará de ofrecerse y esos movimientos la conservan.</item>
     </plurals>
+    <plurals name="account_archive_message">
+        <item quantity="one">Contiene un movimiento, así que eliminarla se lo llevaría por delante. Deja de ofrecerse y lo conserva.</item>
+        <item quantity="other">Contiene %1$d movimientos, así que eliminarla se los llevaría por delante. Deja de ofrecerse y los conserva todos.</item>
+    </plurals>
 </resources>

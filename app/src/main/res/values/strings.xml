@@ -37,6 +37,7 @@
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
     <string name="action_archive">Archive</string>
+    <string name="action_undo">Undo</string>
 
     <!-- Transactions -->
     <string name="transactions_this_month">This month</string>
@@ -48,9 +49,19 @@
     <string name="transactions_uncategorized">Uncategorized</string>
     <string name="date_today">Today</string>
     <string name="date_yesterday">Yesterday</string>
+    <string name="date_previous_month">Previous month</string>
+    <string name="date_next_month">Next month</string>
+    <string name="transaction_deleted">Movement deleted</string>
 
     <!-- Add transaction -->
     <string name="add_transaction_title">New transaction</string>
+    <string name="edit_transaction_title">Edit movement</string>
+    <string name="field_date">Date</string>
+    <string name="field_note_placeholder">Note</string>
+    <string name="transaction_delete">Delete movement</string>
+    <string name="transaction_write_failed">That could not be saved. Try again.</string>
+    <string name="transaction_delete_title">Delete this movement?</string>
+    <string name="transaction_delete_message">It leaves the list and the totals straight away. You can undo it from the list for a few seconds.</string>
     <string name="kind_expense">Expense</string>
     <string name="kind_income">Income</string>
     <string name="field_account">Account</string>

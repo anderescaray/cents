@@ -33,6 +33,8 @@ data class TransactionsUiState(
     val days: List<TransactionDay> = emptyList(),
     val monthSummary: PeriodSummary? = null,
     val isLoading: Boolean = true,
+    /** The day the labels are relative to, from the injected clock rather than the device. */
+    val today: LocalDate = LocalDate.now(),
     /** A movement just deleted on the form, still restorable from here (rule 7). */
     val undoableDeletion: Transaction? = null,
 ) {
@@ -75,6 +77,7 @@ class TransactionsViewModel
                             .sortedByDescending { it.date },
                     monthSummary = summary,
                     isLoading = false,
+                    today = LocalDate.now(clock),
                     undoableDeletion = deleted,
                 )
             }.stateIn(

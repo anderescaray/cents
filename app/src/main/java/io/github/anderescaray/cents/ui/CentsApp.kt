@@ -116,9 +116,15 @@ private fun CentsNavHost(navController: NavHostController) {
 private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) {
     composable<Destination.Transactions> {
         TransactionsScreen(
-            onAddTransaction = { navController.navigate(Destination.TransactionForm()) },
+            // Single top: during the push animation a second tap would otherwise stack a
+            // second copy of the form behind the first.
+            onAddTransaction = {
+                navController.navigate(Destination.TransactionForm()) { launchSingleTop = true }
+            },
             onOpenTransaction = { id ->
-                navController.navigate(Destination.TransactionForm(transactionId = id))
+                navController.navigate(Destination.TransactionForm(transactionId = id)) {
+                    launchSingleTop = true
+                }
             },
         )
     }

@@ -180,7 +180,7 @@ and repository layers, the iOS-flavoured design system and navigation, a transac
 grouped by day with a monthly summary, one form that adds and edits movements (keypad,
 date picker, note, delete with undo), and category management with nothing seeded — every
 category is one the owner created.
-76 tests run on the JVM, so CI covers the database and the UI without a device.
+81 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Where to start a session and what is left to build is
 [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session

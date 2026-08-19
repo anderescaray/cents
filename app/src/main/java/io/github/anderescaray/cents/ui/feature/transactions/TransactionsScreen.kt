@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +29,7 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.relativeLabel
-import kotlinx.coroutines.delay
+import java.time.LocalDate
 
 @Composable
 fun TransactionsScreen(
@@ -39,14 +38,6 @@ fun TransactionsScreen(
     viewModel: TransactionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-
-    // The offer to undo is not permanent: it fades with the moment it belongs to.
-    LaunchedEffect(state.undoableDeletion) {
-        if (state.undoableDeletion != null) {
-            delay(UNDO_WINDOW_MS)
-            viewModel.dismissUndo()
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         TransactionsList(state = state, onAddTransaction = onAddTransaction, onOpenTransaction = onOpenTransaction)
@@ -85,7 +76,7 @@ private fun TransactionsList(
         if (state.isEmpty) {
             emptyState()
         }
-        state.days.forEach { day -> day(day, onOpenTransaction) }
+        state.days.forEach { day -> day(day, state.today, onOpenTransaction) }
     }
 }
 
@@ -159,10 +150,11 @@ private fun LazyListScope.emptyState() {
 
 private fun LazyListScope.day(
     day: TransactionDay,
+    today: LocalDate,
     onOpenTransaction: (Long) -> Unit,
 ) {
     item(key = "day-${day.date}") {
-        CentsListSection(header = day.date.relativeLabel()) {
+        CentsListSection(header = day.date.relativeLabel(today)) {
             day.items.forEachIndexed { index, details ->
                 val transaction = details.transaction
                 CentsListRow(
@@ -186,4 +178,3 @@ private fun LazyListScope.day(
 }
 
 private const val BANNER_RADIUS = 14
-private const val UNDO_WINDOW_MS = 6_000L

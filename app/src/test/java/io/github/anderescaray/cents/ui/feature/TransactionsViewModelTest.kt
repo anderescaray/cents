@@ -11,6 +11,7 @@ import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsViewModel
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -45,7 +46,10 @@ class TransactionsViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
         transactions = RoomTransactionRepository(database.transactionDao(), clock)
-        deleted = DeletedTransactionBuffer()
+        // Real time on purpose: runTest races virtual time ahead while the database
+        // works, which would expire the undo window mid-test. Its expiry has its
+        // own test, with a scheduler it controls.
+        deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
         viewModel =
             TransactionsViewModel(
                 transactionRepository = transactions,

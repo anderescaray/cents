@@ -41,22 +41,31 @@ data class TransactionFormUiState(
     val selectedAccountId: Long? = null,
     val selectedCategoryId: Long? = null,
     val date: LocalDate = LocalDate.now(),
+    val today: LocalDate = LocalDate.now(),
     val note: String = "",
+    /**
+     * What this movement is denominated in: the account's currency for a new one, and the
+     * currency it was recorded with for an existing one. Never inferred at save time — a
+     * fallback there would silently rewrite what a movement is worth (rule 2).
+     */
+    val currency: String = DEFAULT_CURRENCY,
     val isEditing: Boolean = false,
     val pickingDate: Boolean = false,
     val confirmingDeletion: Boolean = false,
     val saving: Boolean = false,
+    val writeFailed: Boolean = false,
     val finished: Boolean = false,
 ) {
     val selectedAccount: Account? get() = accounts.firstOrNull { it.id == selectedAccountId }
-
-    val currency: String get() = selectedAccount?.currency ?: "EUR"
 
     val amount: Money get() = Money(amountDigits.toLongOrNull() ?: 0L, currency)
 
     /** An amount of zero is not a movement, and every movement needs an account. */
     val canSave: Boolean get() = amount.minorUnits > 0 && selectedAccountId != null && !saving
 }
+
+/** A placeholder until an account is known; never what a movement is actually saved as. */
+private const val DEFAULT_CURRENCY = "EUR"
 
 /**
  * One view model behind both adding and editing, because the fields are the same and two
@@ -83,7 +92,9 @@ class TransactionFormViewModel
                 .transactionId
                 .takeIf { it != Destination.TransactionForm.NEW }
 
-        private val form = MutableStateFlow(TransactionFormUiState(date = LocalDate.now(clock)))
+        private val today = LocalDate.now(clock)
+
+        private val form = MutableStateFlow(TransactionFormUiState(date = today, today = today))
 
         val uiState: StateFlow<TransactionFormUiState> = form.asStateFlow()
 
@@ -125,6 +136,7 @@ class TransactionFormViewModel
                         selectedCategoryId = transaction.categoryId,
                         date = transaction.date,
                         note = transaction.note.orEmpty(),
+                        currency = transaction.amount.currency,
                     ).withOptions(state.accounts, allCategories)
             }
         }
@@ -145,10 +157,14 @@ class TransactionFormViewModel
                     category.kind == kind.toCategoryKind() &&
                         (!category.archived || category.id == selectedCategoryId)
                 }
+            // A movement with no account chosen yet takes the first one, and its currency
+            // with it; an existing movement keeps the currency it was recorded in.
+            val defaulted = if (selectedAccountId == null) accounts.firstOrNull() else null
             return copy(
                 accounts = accounts,
                 categories = offered,
-                selectedAccountId = selectedAccountId ?: accounts.firstOrNull()?.id,
+                selectedAccountId = selectedAccountId ?: defaulted?.id,
+                currency = defaulted?.currency ?: currency,
                 // Only prune a selection once the real set is known: the form and the
                 // category list load independently, and whichever arrives second must not
                 // read the other's absence as "that category is gone".
@@ -176,7 +192,12 @@ class TransactionFormViewModel
             }
         }
 
-        fun selectAccount(id: Long) = form.update { it.copy(selectedAccountId = id) }
+        fun selectAccount(id: Long) =
+            form.update { state ->
+                // Choosing an account is choosing a currency: it is the same decision.
+                val account = state.accounts.firstOrNull { it.id == id }
+                state.copy(selectedAccountId = id, currency = account?.currency ?: state.currency)
+            }
 
         fun selectCategory(id: Long?) = form.update { it.copy(selectedCategoryId = id) }
 
@@ -186,7 +207,7 @@ class TransactionFormViewModel
 
         fun setDate(date: LocalDate) = form.update { it.copy(date = date, pickingDate = false) }
 
-        fun setNote(note: String) = form.update { it.copy(note = note) }
+        fun setNote(note: String) = form.update { it.copy(note = note, writeFailed = false) }
 
         fun save() {
             val state = form.value
@@ -206,12 +227,23 @@ class TransactionFormViewModel
                         date = state.date,
                         note = state.note.takeIf { it.isNotBlank() },
                     )
-                if (transactionId == null) {
-                    transactionRepository.addTransaction(movement)
-                } else {
-                    transactionRepository.updateTransaction(movement)
+                val written =
+                    runCatching {
+                        if (transactionId == null) {
+                            transactionRepository.addTransaction(movement)
+                        } else {
+                            transactionRepository.updateTransaction(movement)
+                        }
+                    }
+                // A write that fails leaves the form open and says so, rather than taking
+                // the app down or leaving Save greyed out with nothing explaining why.
+                form.update {
+                    it.copy(
+                        saving = false,
+                        writeFailed = written.isFailure,
+                        finished = written.isSuccess,
+                    )
                 }
-                form.update { it.copy(saving = false, finished = true) }
             }
         }
 
@@ -227,9 +259,15 @@ class TransactionFormViewModel
             val id = transactionId ?: return
             viewModelScope.launch {
                 val movement = stored ?: transactionRepository.findById(id)
-                transactionRepository.deleteTransaction(id)
-                if (movement != null) deletedTransactions.remember(movement)
-                form.update { it.copy(confirmingDeletion = false, finished = true) }
+                val removed = runCatching { transactionRepository.deleteTransaction(id) }
+                if (removed.isSuccess && movement != null) deletedTransactions.remember(movement)
+                form.update {
+                    it.copy(
+                        confirmingDeletion = false,
+                        writeFailed = removed.isFailure,
+                        finished = removed.isSuccess,
+                    )
+                }
             }
         }
 

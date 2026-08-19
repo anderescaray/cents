@@ -455,7 +455,7 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
-| Tests | 76, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 81, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -531,9 +531,12 @@ before that, and do not parallelize before that.
   and classification are restored exactly; only the internal bookkeeping timestamp moves,
   and nothing in the app reads it. It would take a repository method that carries the
   original instant to preserve it.
-- **The undo window is six seconds and lives in memory.** Leaving the list or closing the
-  app forgets the deletion. That is the intent: an undo that survives a restart is a
-  recycle bin, which is a different feature.
+- **The undo window is six seconds, counted by the buffer itself and held in memory.**
+  Closing the app forgets the deletion. That is the intent: an undo that survives a
+  restart is a recycle bin, which is a different feature.
+- **Nothing invalidates the screen at midnight.** "Today" and "Yesterday" come from the
+  injected clock when the state is built, so an app left open across midnight keeps
+  yesterday's labels until something else refreshes it.
 
 ## C5. What only the owner can do
 

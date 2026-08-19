@@ -57,6 +57,7 @@
     <string name="field_date">Fecha</string>
     <string name="field_note_placeholder">Nota</string>
     <string name="transaction_delete">Eliminar movimiento</string>
+    <string name="transaction_write_failed">No se ha podido guardar. Vuelve a intentarlo.</string>
     <string name="transaction_delete_title">¿Eliminar este movimiento?</string>
     <string name="transaction_delete_message">Desaparece de la lista y de los totales al momento. Puedes deshacerlo desde la lista durante unos segundos.</string>
     <string name="kind_expense">Gasto</string>

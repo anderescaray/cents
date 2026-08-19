@@ -3,9 +3,8 @@ package io.github.anderescaray.cents
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import io.github.anderescaray.cents.data.repository.DefaultDataSeeder
+import io.github.anderescaray.cents.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,7 +17,9 @@ class CentsApplication : Application() {
     @Inject
     lateinit var seeder: DefaultDataSeeder
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject
+    @ApplicationScope
+    lateinit var applicationScope: CoroutineScope
 
     override fun onCreate() {
         super.onCreate()

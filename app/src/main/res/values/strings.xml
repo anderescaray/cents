@@ -59,6 +59,7 @@
     <string name="field_date">Date</string>
     <string name="field_note_placeholder">Note</string>
     <string name="transaction_delete">Delete movement</string>
+    <string name="transaction_write_failed">That could not be saved. Try again.</string>
     <string name="transaction_delete_title">Delete this movement?</string>
     <string name="transaction_delete_message">It leaves the list and the totals straight away. You can undo it from the list for a few seconds.</string>
     <string name="kind_expense">Expense</string>

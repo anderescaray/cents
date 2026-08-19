@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormViewModel
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -52,7 +53,10 @@ class TransactionFormViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
         transactions = RoomTransactionRepository(database.transactionDao(), clock)
-        deleted = DeletedTransactionBuffer()
+        // Real time on purpose: runTest races virtual time ahead while the database
+        // works, which would expire the undo window mid-test. Its expiry has its
+        // own test, with a scheduler it controls.
+        deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
         viewModel = formFor()
     }
 
@@ -263,6 +267,72 @@ class TransactionFormViewModelTest {
                 assertEquals(categoryId, state.selectedCategoryId)
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `a movement is recorded in the currency of its account, not in euros by default`() =
+        runTest {
+            database.accountDao().insert(account(name = "Dollars", currency = "USD"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                "2500".forEach(viewModel::appendDigit)
+                awaitStateThat { it.amountDigits == "2500" }
+
+                viewModel.save()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                Money(2_500, "USD"),
+                transactions
+                    .observeTransactions()
+                    .first()
+                    .single()
+                    .transaction.amount,
+            )
+        }
+
+    @Test
+    fun `editing a movement keeps the currency it was recorded in`() =
+        runTest {
+            val accountId = database.accountDao().insert(account(name = "Dollars", currency = "USD"))
+            val id =
+                transactions.addTransaction(
+                    Transaction(
+                        id = 0,
+                        accountId = accountId,
+                        categoryId = null,
+                        kind = TransactionKind.EXPENSE,
+                        amount = Money(2_500, "USD"),
+                        date = LocalDate.of(2026, 8, 18),
+                        note = null,
+                    ),
+                )
+            val editor = formFor(id)
+
+            editor.uiState.test {
+                // The currency is known from the movement itself, before the accounts have
+                // even arrived: a fallback here would re-denominate it as euros.
+                val loaded = awaitStateThat { it.isEditing }
+                assertEquals("USD", loaded.currency)
+
+                editor.appendDigit('0')
+                awaitStateThat { it.amountDigits == "25000" }
+                editor.save()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                Money(25_000, "USD"),
+                transactions
+                    .observeTransactions()
+                    .first()
+                    .single()
+                    .transaction.amount,
+            )
         }
 
     @Test

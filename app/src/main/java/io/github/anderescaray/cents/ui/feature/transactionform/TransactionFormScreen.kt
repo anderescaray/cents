@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -40,7 +41,6 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.relativeLabel
-import java.time.LocalDate
 
 @Composable
 fun TransactionFormScreen(
@@ -59,7 +59,11 @@ fun TransactionFormScreen(
             Modifier
                 .fillMaxSize()
                 .background(CentsTheme.colors.groupedBackground)
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
+                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                // The note field is the app's first text input inside a form that already
+                // has a keypad pinned to the bottom: without this the soft keyboard covers
+                // the field the owner just tapped.
+                .imePadding(),
     ) {
         CentsModalBar(
             title =
@@ -92,10 +96,19 @@ fun TransactionFormScreen(
         )
     }
 
+    FormDialogs(state = state, viewModel = viewModel)
+}
+
+/** What the form puts on top of itself: the calendar, and the deletion it asks about. */
+@Composable
+private fun FormDialogs(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+) {
     if (state.pickingDate) {
         CentsDatePicker(
             selected = state.date,
-            today = LocalDate.now(),
+            today = state.today,
             onSelect = viewModel::setDate,
             onDismiss = viewModel::dismissDatePicker,
         )
@@ -127,6 +140,21 @@ private fun FormFields(
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
     ) {
         item(key = "amount") { AmountHeader(state) }
+
+        if (state.writeFailed) {
+            item(key = "error") {
+                Text(
+                    text = stringResource(R.string.transaction_write_failed),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.destructive,
+                    textAlign = TextAlign.Center,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CentsDimens.screenMargin),
+                )
+            }
+        }
 
         item(key = "kind") {
             // Resolved here: a lambda passed to a component is not a composable scope.
@@ -169,7 +197,7 @@ private fun LazyListScope.details(
         CentsListSection {
             CentsListRow(
                 title = stringResource(R.string.field_date),
-                value = state.date.relativeLabel(),
+                value = state.date.relativeLabel(state.today),
                 showChevron = true,
                 onClick = viewModel::openDatePicker,
             )

@@ -77,6 +77,13 @@ interface AccountDao {
     @Query("SELECT COUNT(*) FROM accounts")
     suspend fun countAll(): Int
 
+    /** How many movements live in this account: zero means it is safe to hard-delete. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE accountId = :id")
+    suspend fun countTransactions(id: Long): Int
+
+    @Query("DELETE FROM accounts WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Insert
     suspend fun insert(account: AccountEntity): Long
 

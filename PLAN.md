@@ -455,7 +455,8 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
-| Tests | 81, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, delete when empty, and an account detail with its own month summary and movements |
+| Tests | 99, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -495,10 +496,14 @@ serial — this is still the single-agent phase.
       (`ui/feature/transactionform`), the date picker is an iOS-style month grid that
       starts the week where the device locale says, and the undo lives in a banner on the
       list, fed by an in-memory buffer that is deliberately not persisted.
-- [ ] **`feat/accounts`** — the Accounts tab for real: list with balances, create, edit,
+- [x] **`feat/accounts`** — the Accounts tab for real: list with balances, create, edit,
       archive, and an account detail showing only its movements plus its own income and
       expenses.
-      *Done when:* balances shown match the transactions that produced them.
+      *Done when:* balances shown match the transactions that produced them. **Done**, with
+      three things worth knowing: an account's currency is fixed once it holds movements
+      (they are already denominated in it), an account can open in the red for money owed
+      on a card, and the accounts list shows **no total at all** when its accounts are in
+      different currencies rather than adding them up at an invented rate.
 - [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
       category, kind, amount, note text.
       *Done when:* "what did I spend on restaurants in July" is answerable in the app.
@@ -518,8 +523,12 @@ before that, and do not parallelize before that.
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **Accounts and Reports tabs are placeholders.** They render the design system with
-  invented content and read nothing from the database.
+- **The Reports tab is still a placeholder.** It renders the design system with invented
+  content and reads nothing from the database. Charts are PRD phase 2.
+- **The app still seeds a *Cash* account on first run.** Now that accounts can be created
+  in the app — and the movement form leads to creating one when there are none — nothing
+  depends on it any more. Removing it is a ten-line change to `DefaultDataSeeder` and its
+  test, waiting on the owner's word.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
   schema has no tables for them yet: they arrive with a tested migration.
 - **Cross-currency totals are not supported.** `Money` refuses arithmetic between different
@@ -551,7 +560,9 @@ else on the phone (rule 13). So these are always handed back:
 
 ## Next concrete action
 
-**`feat/accounts`**, as described in C3: the Accounts tab for real — list with balances,
-create, edit, archive, and an account detail showing only its movements. It is also where
-the seeded *Cash* account gets decided (see the note in the `feat/categories` entry), so
-plan that first-run question with it.
+**`feat/transaction-filters`**, the last item in C3: search and filters on the movement
+list — date range, account, category, kind, amount, note text.
+
+**It is also the last piece of Phase 1.** When it lands, check the four exit criteria in
+Part B §2 and stop: the decision about whether and how to run several agents in parallel
+is the owner's, and it is taken deliberately rather than drifted into.

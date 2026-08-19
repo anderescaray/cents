@@ -6,15 +6,46 @@
     <string name="tab_settings">Ajustes</string>
 
     <!-- Contenido de ejemplo, se sustituye cuando llega cada pantalla real -->
-    <string name="placeholder_section_header">Hoy</string>
-    <string name="placeholder_row_title">Supermercado</string>
-    <string name="placeholder_row_subtitle">Cuenta corriente</string>
-    <string name="placeholder_row_income">Nómina</string>
-    <string name="placeholder_empty_title">Todavía no hay movimientos</string>
-    <string name="placeholder_empty_footer">Las filas, las secciones y el título que se pliega son el sistema de diseño. Los datos reales llegan con el repositorio de movimientos.</string>
     <string name="accounts_section_header">Mis cuentas</string>
-    <string name="placeholder_account_checking">Cuenta corriente</string>
-    <string name="placeholder_account_cash">Efectivo</string>
+    <string name="accounts_archived_header">Archivadas</string>
+    <string name="accounts_archived_footer">Las cuentas archivadas no se ofrecen al registrar, y conservan los movimientos que contienen.</string>
+    <string name="accounts_total">Total: %1$s</string>
+    <string name="accounts_total_mixed_currencies">Sin total: estas cuentas están en monedas distintas, y convertirlas necesita un cambio que la app no tiene.</string>
+    <string name="accounts_empty_title">Todavía no hay cuentas</string>
+    <string name="accounts_add">Añadir cuenta</string>
+    <string name="accounts_empty_footer">Pulsa + para añadir la primera. Un movimiento siempre se registra en una cuenta.</string>
+    <string name="account_empty_title">Esta cuenta no tiene movimientos</string>
+    <string name="account_empty_footer">El saldo de arriba es su saldo inicial hasta que se mueva algo.</string>
+
+    <!-- Una cuenta -->
+    <string name="account_new_title">Nueva cuenta</string>
+    <string name="account_edit_title">Cuenta</string>
+    <string name="account_name_header">Nombre</string>
+    <string name="account_name_placeholder">Cuenta corriente</string>
+    <string name="account_name_taken">Ya existe una cuenta con ese nombre.</string>
+    <string name="account_write_failed">No se ha podido guardar. Vuelve a intentarlo.</string>
+    <string name="account_type_header">Tipo</string>
+    <string name="account_type_cash">Efectivo</string>
+    <string name="account_type_bank">Banco</string>
+    <string name="account_type_card">Tarjeta</string>
+    <string name="account_type_savings">Ahorro</string>
+    <string name="account_type_broker">Bróker</string>
+    <string name="account_type_other">Otra</string>
+    <string name="account_currency_header">Moneda</string>
+    <string name="account_currency_locked">Fija: los movimientos de esta cuenta ya están registrados en ella.</string>
+    <string name="account_color_header">Color</string>
+    <string name="account_opening_balance">Saldo inicial</string>
+    <string name="account_held">Dinero disponible</string>
+    <string name="account_owed">Dinero debido</string>
+    <string name="account_delete">Eliminar cuenta</string>
+    <string name="account_restore">Restaurar cuenta</string>
+    <string name="account_delete_footer">Una cuenta sin movimientos se elimina. La que contiene movimientos se archiva, para que su historial siga como estaba.</string>
+    <string name="account_delete_title">¿Eliminar «%1$s»?</string>
+    <string name="account_delete_message">No contiene ningún movimiento, así que se puede borrar del todo.</string>
+    <string name="account_archive_title">¿Archivar «%1$s»?</string>
+    <string name="action_edit">Editar</string>
+    <string name="field_account_empty">Crea tu primera cuenta</string>
+    <string name="field_account_empty_footer">Un movimiento tiene que vivir en una cuenta, así que hay algo que hacer antes.</string>
     <string name="reports_placeholder_title">Los gráficos llegan en la fase 2</string>
     <string name="reports_placeholder_footer">Gasto por categoría, ingresos frente a gastos y evolución del saldo.</string>
 
@@ -70,6 +101,7 @@
 
     <!-- Categorías -->
     <string name="categories_title">Categorías</string>
+    <string name="categories_add">Añadir categoría</string>
     <string name="categories_section_header">Mis categorías</string>
     <string name="categories_reorder_footer">Arrastra el asa de la derecha para cambiar el orden en que aparecen.</string>
     <string name="categories_reorder">Reordenar</string>

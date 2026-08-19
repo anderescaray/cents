@@ -13,7 +13,12 @@ import java.time.LocalDate
 interface AccountRepository {
     fun observeAccounts(includeArchived: Boolean = false): Flow<List<Account>>
 
-    fun observeAccountsWithBalances(): Flow<List<AccountWithBalance>>
+    fun observeAccountsWithBalances(includeArchived: Boolean = false): Flow<List<AccountWithBalance>>
+
+    /** One account and its balance, for the screen that shows only that account. */
+    fun observeAccountWithBalance(id: Long): Flow<AccountWithBalance?>
+
+    suspend fun findById(id: Long): Account?
 
     suspend fun createAccount(account: Account): Long
 
@@ -23,6 +28,15 @@ interface AccountRepository {
         id: Long,
         archived: Boolean,
     )
+
+    /**
+     * Removes the account outright. Only legitimate while [countTransactions] is zero:
+     * with movements in it, archiving is the operation that keeps the history.
+     */
+    suspend fun deleteAccount(id: Long)
+
+    /** Zero means the account can be deleted outright instead of archived. */
+    suspend fun countTransactions(id: Long): Int
 }
 
 interface CategoryRepository {
@@ -58,6 +72,9 @@ interface TransactionRepository {
     fun observeTransactions(): Flow<List<TransactionDetails>>
 
     fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>>
+
+    /** One account's movements, carrying the names its rows have to show. */
+    fun observeAccountTransactionDetails(accountId: Long): Flow<List<TransactionDetails>>
 
     /** Income and expense totals for a period, summed by the database. */
     fun observeSummary(

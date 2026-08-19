@@ -38,6 +38,21 @@ sealed interface Destination {
     }
 
     @Serializable
+    data class AccountDetail(
+        val accountId: Long,
+    ) : Destination
+
+    /** [accountId] is [AccountEdit.NEW] when the screen is creating one. */
+    @Serializable
+    data class AccountEdit(
+        val accountId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
+    @Serializable
     data object Categories : Destination
 
     /** [categoryId] is [CategoryEdit.NEW] when the screen is creating one. */

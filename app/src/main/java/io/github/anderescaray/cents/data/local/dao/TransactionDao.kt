@@ -74,6 +74,24 @@ interface TransactionDao {
     )
     fun observeAllWithNames(): Flow<List<TransactionWithNames>>
 
+    /** The same rows as [observeAllWithNames], for one account. */
+    @Query(
+        """
+        SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
+               t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
+               t.date AS date, t.note AS note,
+               a.name AS accountName,
+               c.name AS categoryName,
+               c.colorArgb AS categoryColorArgb
+        FROM transactions t
+        INNER JOIN accounts a ON a.id = t.accountId
+        LEFT JOIN categories c ON c.id = t.categoryId
+        WHERE t.accountId = :accountId
+        ORDER BY t.date DESC, t.id DESC
+        """,
+    )
+    fun observeByAccountWithNames(accountId: Long): Flow<List<TransactionWithNames>>
+
     @Query(
         """
         SELECT COALESCE(SUM(CASE WHEN kind = 'INCOME' THEN amountMinor ELSE 0 END), 0) AS incomeMinor,

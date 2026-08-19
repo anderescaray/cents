@@ -8,15 +8,46 @@
     <string name="tab_settings">Settings</string>
 
     <!-- Placeholder content, replaced as each real screen lands -->
-    <string name="placeholder_section_header">Today</string>
-    <string name="placeholder_row_title">Groceries</string>
-    <string name="placeholder_row_subtitle">Checking</string>
-    <string name="placeholder_row_income">Salary</string>
-    <string name="placeholder_empty_title">No transactions yet</string>
-    <string name="placeholder_empty_footer">Rows, sections and the collapsing title are the design system. Real data arrives with the transaction repository.</string>
     <string name="accounts_section_header">My accounts</string>
-    <string name="placeholder_account_checking">Checking</string>
-    <string name="placeholder_account_cash">Cash</string>
+    <string name="accounts_archived_header">Archived</string>
+    <string name="accounts_archived_footer">Archived accounts stay out of the pickers, and the movements they hold are kept.</string>
+    <string name="accounts_total">Total: %1$s</string>
+    <string name="accounts_total_mixed_currencies">No total: these accounts are in different currencies, and converting them needs a rate the app does not have.</string>
+    <string name="accounts_empty_title">No accounts yet</string>
+    <string name="accounts_add">Add account</string>
+    <string name="accounts_empty_footer">Tap + to add the first one. A movement is always recorded in an account.</string>
+    <string name="account_empty_title">No movements in this account</string>
+    <string name="account_empty_footer">The balance above is its opening balance until something moves.</string>
+
+    <!-- One account -->
+    <string name="account_new_title">New account</string>
+    <string name="account_edit_title">Account</string>
+    <string name="account_name_header">Name</string>
+    <string name="account_name_placeholder">Checking</string>
+    <string name="account_name_taken">There is already an account with that name.</string>
+    <string name="account_write_failed">That could not be saved. Try again.</string>
+    <string name="account_type_header">Type</string>
+    <string name="account_type_cash">Cash</string>
+    <string name="account_type_bank">Bank</string>
+    <string name="account_type_card">Card</string>
+    <string name="account_type_savings">Savings</string>
+    <string name="account_type_broker">Broker</string>
+    <string name="account_type_other">Other</string>
+    <string name="account_currency_header">Currency</string>
+    <string name="account_currency_locked">Fixed: the movements in this account are already recorded in it.</string>
+    <string name="account_color_header">Colour</string>
+    <string name="account_opening_balance">Opening balance</string>
+    <string name="account_held">Money held</string>
+    <string name="account_owed">Money owed</string>
+    <string name="account_delete">Delete account</string>
+    <string name="account_restore">Restore account</string>
+    <string name="account_delete_footer">An account with no movements is deleted. One that holds movements is archived instead, so its history stays as it was.</string>
+    <string name="account_delete_title">Delete \u201c%1$s\u201d?</string>
+    <string name="account_delete_message">It holds no movements, so it can be removed for good.</string>
+    <string name="account_archive_title">Archive \u201c%1$s\u201d?</string>
+    <string name="action_edit">Edit</string>
+    <string name="field_account_empty">Create your first account</string>
+    <string name="field_account_empty_footer">A movement has to live in an account, so there is one thing to do first.</string>
     <string name="reports_placeholder_title">Charts arrive in phase 2</string>
     <string name="reports_placeholder_footer">Spending by category, income versus expenses, and balance over time.</string>
 
@@ -72,6 +103,7 @@
 
     <!-- Categories -->
     <string name="categories_title">Categories</string>
+    <string name="categories_add">Add category</string>
     <string name="categories_section_header">My categories</string>
     <string name="categories_reorder_footer">Drag the grip on the right to change the order they are offered in.</string>
     <string name="categories_reorder">Reorder</string>

@@ -141,6 +141,68 @@ class CategoryEditViewModelTest {
         }
 
     @Test
+    fun `an existing category is checked against its own kind, not the route default`() =
+        runTest {
+            database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
+            database.categoryDao().insert(category(name = "Rent", kind = CategoryKind.EXPENSE))
+            val id = database.categoryDao().insert(category(name = "Bonus", kind = CategoryKind.INCOME))
+            // The list opens an existing category by id; the kind is whatever it turns out
+            // to be once loaded, which is what the clash has to be measured against.
+            val viewModel = viewModelFor(categoryId = id, kind = CategoryKind.EXPENSE)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.kind == CategoryKind.INCOME }
+
+                viewModel.setName("Salary")
+                assertTrue(awaitStateThat { it.name == "Salary" }.nameTaken)
+
+                // "Rent" is an expense category, so it says nothing about this income one.
+                viewModel.setName("Rent")
+                assertFalse(awaitStateThat { it.name == "Rent" }.nameTaken)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `tapping save twice stores one category, not two`() =
+        runTest {
+            val viewModel = viewModelFor()
+
+            viewModel.uiState.test {
+                viewModel.setName("Groceries")
+                viewModel.save()
+                viewModel.save()
+
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(listOf("Groceries"), categories.observeAllCategories().first().map { it.name })
+        }
+
+    @Test
+    fun `a restored category comes back at the end, not at the position it had`() =
+        runTest {
+            database.categoryDao().insert(category(name = "First", sortOrder = 0))
+            database.categoryDao().insert(category(name = "Second", sortOrder = 1))
+            // Archived while the active list was renumbered around it: its position is stale.
+            val id = database.categoryDao().insert(category(name = "Back", archived = true, sortOrder = 0))
+            val viewModel = viewModelFor(categoryId = id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.archived }
+                viewModel.restore()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                listOf("First", "Second", "Back"),
+                categories.observeCategories(CategoryKind.EXPENSE).first().map { it.name },
+            )
+        }
+
+    @Test
     fun `a category nothing uses is deleted outright`() =
         runTest {
             val id = database.categoryDao().insert(category(name = "Typo"))

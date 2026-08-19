@@ -12,12 +12,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -53,7 +55,7 @@ import kotlin.math.roundToInt
 fun CategoriesScreen(
     onBack: () -> Unit,
     onNewCategory: (CategoryKind) -> Unit,
-    onEditCategory: (Long) -> Unit,
+    onEditCategory: (Long, CategoryKind) -> Unit,
     viewModel: CategoriesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -65,23 +67,28 @@ fun CategoriesScreen(
             CentsBackButton(label = stringResource(R.string.tab_settings), onClick = onBack)
         },
         trailing = {
-            Text(
-                text = stringResource(R.string.action_add),
-                style = CentsTheme.typography.title2,
-                color = CentsTheme.colors.accent,
+            Box(
                 modifier =
                     Modifier
                         .testTag(ADD_CATEGORY_TAG)
-                        .clickable { onNewCategory(state.kind) }
-                        .padding(horizontal = CentsDimens.spacingXs),
-            )
+                        .size(CentsDimens.minRowHeight)
+                        .clip(CircleShape)
+                        .clickable { onNewCategory(state.kind) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.action_add),
+                    style = CentsTheme.typography.title2,
+                    color = CentsTheme.colors.accent,
+                )
+            }
         },
     ) {
         kindSelector(state.kind, viewModel::setKind)
 
-        if (state.active.isEmpty()) {
+        if (state.showEmptyState) {
             emptyState(state.kind)
-        } else {
+        } else if (state.active.isNotEmpty()) {
             activeCategories(
                 categories = state.active,
                 onOpen = onEditCategory,
@@ -132,7 +139,7 @@ private fun LazyListScope.emptyState(kind: CategoryKind) {
 
 private fun LazyListScope.archivedCategories(
     categories: List<Category>,
-    onOpen: (Long) -> Unit,
+    onOpen: (Long, CategoryKind) -> Unit,
 ) {
     item(key = "archived") {
         CentsListSection(
@@ -145,7 +152,7 @@ private fun LazyListScope.archivedCategories(
                     leading = { ColorDot(Color(category.colorArgb)) },
                     showChevron = true,
                     showSeparator = index != categories.lastIndex,
-                    onClick = { onOpen(category.id) },
+                    onClick = { onOpen(category.id, category.kind) },
                 )
             }
         }
@@ -160,7 +167,7 @@ private fun LazyListScope.archivedCategories(
  */
 private fun LazyListScope.activeCategories(
     categories: List<Category>,
-    onOpen: (Long) -> Unit,
+    onOpen: (Long, CategoryKind) -> Unit,
     onMove: (Int, Int) -> Unit,
 ) {
     item(key = "active") {
@@ -190,17 +197,22 @@ private fun CategoryRow(
     index: Int,
     count: Int,
     reorder: ReorderState,
-    onOpen: (Long) -> Unit,
+    onOpen: (Long, CategoryKind) -> Unit,
     onMove: (Int, Int) -> Unit,
 ) {
     val isDragged = index == reorder.draggedIndex
-    val shift =
-        displacement(
-            index = index,
-            from = reorder.draggedIndex,
-            to = reorder.targetIndex(count),
-            rowHeight = reorder.rowHeight,
-        )
+    // Derived, not computed inline: a drag emits an offset per frame, but the displacement
+    // of the rows around it only changes when the finger crosses into the next position.
+    val shift by remember(index, count) {
+        derivedStateOf {
+            displacement(
+                index = index,
+                from = reorder.draggedIndex,
+                to = reorder.targetIndex(count),
+                rowHeight = reorder.rowHeight,
+            )
+        }
+    }
     val animatedShift by animateFloatAsState(shift, label = "categoryShift")
 
     Box(
@@ -235,7 +247,7 @@ private fun CategoryRow(
                 )
             },
             showSeparator = index != count - 1,
-            onClick = { onOpen(category.id) },
+            onClick = { onOpen(category.id, category.kind) },
         )
     }
 }

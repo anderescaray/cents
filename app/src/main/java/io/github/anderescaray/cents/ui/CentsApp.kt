@@ -108,7 +108,9 @@ private fun CentsNavHost(navController: NavHostController) {
         composable<Destination.AddTransaction> {
             AddTransactionScreen(
                 onDone = { navController.popBackStack() },
-                onManageCategories = { navController.navigate(Destination.Categories) },
+                // Straight to the editor: with nothing to pick from, the list would be one
+                // more empty screen between the owner and their first category.
+                onCreateCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
             )
         }
         composable<Destination.Accounts> { AccountsScreen() }
@@ -120,7 +122,9 @@ private fun CentsNavHost(navController: NavHostController) {
             CategoriesScreen(
                 onBack = { navController.popBackStack() },
                 onNewCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
-                onEditCategory = { id -> navController.navigate(Destination.CategoryEdit(categoryId = id)) },
+                onEditCategory = { id, kind ->
+                    navController.navigate(Destination.CategoryEdit(categoryId = id, kind = kind))
+                },
             )
         }
         composable<Destination.CategoryEdit> {

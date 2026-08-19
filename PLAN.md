@@ -455,7 +455,7 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
 | Transactions | List grouped by day with a monthly summary, and an entry form with a minor-unit keypad that writes to the database |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
-| Tests | 62, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 65, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -512,7 +512,11 @@ before that, and do not parallelize before that.
   classify movements is the owner's call: they can be deleted or archived one by one in
   Settings → Categories. A fresh install has none.
 - **Category subcategories and icons are not built.** The schema has `parentId` and
-  `iconKey` columns and the PRD lists both as optional; the editor writes neither.
+  `iconKey` columns and the PRD lists both as optional; the editor writes neither. One
+  consequence to fix when subcategories arrive: deleting a category runs a bare `DELETE`,
+  and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
+  children would throw out of the view model with nothing catching it. Unreachable today
+  because nothing can create a child.
 - **Accounts and Reports tabs are placeholders.** They render the design system with
   invented content and read nothing from the database.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the

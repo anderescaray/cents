@@ -53,7 +53,7 @@ class CategoriesViewModelTest {
             viewModel.uiState.test {
                 val state = awaitStateThat { !it.isLoading }
                 assertEquals(emptyList<String>(), state.active.map { category -> category.name })
-                assertEquals(true, state.isEmpty)
+                assertEquals(true, state.showEmptyState)
                 cancelAndIgnoreRemainingEvents()
             }
         }

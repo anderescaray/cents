@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsKeypad
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -34,7 +35,7 @@ import io.github.anderescaray.cents.ui.util.MoneyFormatter
 @Composable
 fun AddTransactionScreen(
     onDone: () -> Unit,
-    onManageCategories: () -> Unit,
+    onCreateCategory: (CategoryKind) -> Unit,
     viewModel: AddTransactionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,7 +63,7 @@ fun AddTransactionScreen(
         FormFields(
             state = state,
             viewModel = viewModel,
-            onManageCategories = onManageCategories,
+            onCreateCategory = onCreateCategory,
             modifier = Modifier.weight(1f),
         )
 
@@ -84,7 +85,7 @@ fun AddTransactionScreen(
 private fun FormFields(
     state: AddTransactionUiState,
     viewModel: AddTransactionViewModel,
-    onManageCategories: () -> Unit,
+    onCreateCategory: (CategoryKind) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -127,7 +128,7 @@ private fun FormFields(
                         title = stringResource(R.string.field_category_empty),
                         showChevron = true,
                         showSeparator = false,
-                        onClick = onManageCategories,
+                        onClick = { onCreateCategory(state.kind.toCategoryKind()) },
                     )
                 }
             } else {
@@ -185,5 +186,12 @@ private fun PickerSection(
         }
     }
 }
+
+/** The categories a movement of this direction can be classified with. */
+private fun TransactionKind.toCategoryKind(): CategoryKind =
+    when (this) {
+        TransactionKind.INCOME -> CategoryKind.INCOME
+        TransactionKind.EXPENSE -> CategoryKind.EXPENSE
+    }
 
 private const val SELECTED_MARK = "✓"

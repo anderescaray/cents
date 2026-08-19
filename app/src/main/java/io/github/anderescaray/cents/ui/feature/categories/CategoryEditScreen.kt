@@ -125,7 +125,7 @@ private fun CategoryForm(
 
         if (!state.isNew) {
             CategoryActions(
-                archived = state.archived,
+                state = state,
                 onRestore = viewModel::restore,
                 onDelete = viewModel::requestDeletion,
             )
@@ -193,27 +193,41 @@ private fun ColorSwatch(
     }
 }
 
+/**
+ * Restoring, deleting, or — for an archived category that still classifies movements —
+ * only restoring: archiving it again is the one thing "delete" could do to it, and it is
+ * already archived. Offering a button that would do nothing is worse than not offering it.
+ */
 @Composable
 private fun CategoryActions(
-    archived: Boolean,
+    state: CategoryEditUiState,
     onRestore: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    CentsListSection(footer = stringResource(R.string.category_delete_footer)) {
-        if (archived) {
+    val deletable = !state.archived || state.deletionKind == DeletionKind.OUTRIGHT
+
+    CentsListSection(
+        footer =
+            stringResource(
+                if (deletable) R.string.category_delete_footer else R.string.category_archived_footer,
+            ),
+    ) {
+        if (state.archived) {
             CenteredActionRow(
                 label = stringResource(R.string.category_restore),
                 color = CentsTheme.colors.accent,
                 onClick = onRestore,
-                showSeparator = true,
+                showSeparator = deletable,
             )
         }
-        CenteredActionRow(
-            label = stringResource(R.string.category_delete),
-            color = CentsTheme.colors.destructive,
-            onClick = onDelete,
-            showSeparator = false,
-        )
+        if (deletable) {
+            CenteredActionRow(
+                label = stringResource(R.string.category_delete),
+                color = CentsTheme.colors.destructive,
+                onClick = onDelete,
+                showSeparator = false,
+            )
+        }
     }
 }
 

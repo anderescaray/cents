@@ -1,35 +1,157 @@
 package io.github.anderescaray.cents.ui.feature.accounts
 
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.MoneyFormatter
 
-/** Placeholder until the account repository lands. */
+/**
+ * Where the money is. Every balance here is computed from the movements that produced it,
+ * never stored, so it cannot drift away from the history behind it.
+ */
 @Composable
-fun AccountsScreen() {
-    CentsLargeTitleScaffold(title = stringResource(R.string.tab_accounts)) {
-        item {
-            CentsListSection(header = stringResource(R.string.accounts_section_header)) {
-                CentsListRow(
-                    title = stringResource(R.string.placeholder_account_checking),
-                    value = "2.431,08 €",
-                    valueColor = CentsTheme.colors.label,
-                    showChevron = true,
-                    onClick = {},
+fun AccountsScreen(
+    onNewAccount: () -> Unit,
+    onOpenAccount: (Long) -> Unit,
+    viewModel: AccountsViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    CentsLargeTitleScaffold(
+        title = stringResource(R.string.tab_accounts),
+        bottomPadding = CentsDimens.sectionSpacing,
+        trailing = {
+            Box(
+                modifier =
+                    Modifier
+                        .testTag(ADD_ACCOUNT_TAG)
+                        .size(CentsDimens.minRowHeight)
+                        .clip(CircleShape)
+                        .clickable(onClick = onNewAccount),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.action_add),
+                    style = CentsTheme.typography.title2,
+                    color = CentsTheme.colors.accent,
                 )
+            }
+        },
+    ) {
+        if (state.showEmptyState) {
+            emptyState()
+        } else {
+            accountSection(
+                key = "active",
+                headerRes = R.string.accounts_section_header,
+                accounts = state.active,
+                footer = { totalFooter(state) },
+                onOpenAccount = onOpenAccount,
+            )
+        }
+
+        if (state.archived.isNotEmpty()) {
+            accountSection(
+                key = "archived",
+                headerRes = R.string.accounts_archived_header,
+                accounts = state.archived,
+                footer = { stringResource(R.string.accounts_archived_footer) },
+                onOpenAccount = onOpenAccount,
+            )
+        }
+    }
+}
+
+/**
+ * The total, or an explanation instead of one: accounts in different currencies cannot be
+ * added up without a conversion rate the app does not have, and inventing one would be a
+ * number that lies.
+ */
+@Composable
+private fun totalFooter(state: AccountsUiState): String? {
+    val total = state.total
+    return when {
+        state.active.isEmpty() -> null
+        total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))
+        else -> stringResource(R.string.accounts_total_mixed_currencies)
+    }
+}
+
+private fun LazyListScope.accountSection(
+    key: String,
+    @StringRes headerRes: Int,
+    accounts: List<AccountWithBalance>,
+    footer: @Composable () -> String?,
+    onOpenAccount: (Long) -> Unit,
+) {
+    item(key = "section-$key") {
+        CentsListSection(header = stringResource(headerRes), footer = footer()) {
+            accounts.forEachIndexed { index, item ->
+                val account = item.account
                 CentsListRow(
-                    title = stringResource(R.string.placeholder_account_cash),
-                    value = "85,00 €",
-                    valueColor = CentsTheme.colors.label,
+                    title = account.name,
+                    subtitle = stringResource(account.type.labelRes()),
+                    value = MoneyFormatter.format(item.balance),
+                    valueColor =
+                        if (item.balance.isNegative) {
+                            CentsTheme.colors.destructive
+                        } else {
+                            CentsTheme.colors.label
+                        },
+                    leading = { AccountDot(Color(account.colorArgb)) },
                     showChevron = true,
-                    showSeparator = false,
-                    onClick = {},
+                    showSeparator = index != accounts.lastIndex,
+                    onClick = { onOpenAccount(account.id) },
                 )
             }
         }
     }
 }
+
+private fun LazyListScope.emptyState() {
+    item(key = "empty") {
+        CentsListSection(footer = stringResource(R.string.accounts_empty_footer)) {
+            CentsListRow(
+                title = stringResource(R.string.accounts_empty_title),
+                showSeparator = false,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun AccountDot(color: Color) {
+    Box(
+        modifier =
+            Modifier
+                .size(DOT_SIZE.dp)
+                .clip(CircleShape)
+                .background(color),
+    )
+}
+
+private const val DOT_SIZE = 12
+internal const val ADD_ACCOUNT_TAG = "addAccount"

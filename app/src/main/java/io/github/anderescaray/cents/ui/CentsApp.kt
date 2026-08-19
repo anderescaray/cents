@@ -18,6 +18,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
+import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailScreen
+import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
@@ -102,9 +104,9 @@ private fun CentsNavHost(navController: NavHostController) {
         },
     ) {
         transactionRoutes(navController)
+        accountRoutes(navController)
         categoryRoutes(navController)
 
-        composable<Destination.Accounts> { AccountsScreen() }
         composable<Destination.Reports> { ReportsScreen() }
         composable<Destination.Settings> {
             SettingsScreen(onOpenCategories = { navController.navigate(Destination.Categories) })
@@ -134,7 +136,40 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
             // Straight to the editor: with nothing to pick from, the list would be one
             // more empty screen between the owner and their first category.
             onCreateCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
+            onCreateAccount = { navController.navigate(Destination.AccountEdit()) },
         )
+    }
+}
+
+/** The accounts tab, one account on its own, and the form behind both. */
+private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
+    composable<Destination.Accounts> {
+        AccountsScreen(
+            onNewAccount = {
+                navController.navigate(Destination.AccountEdit()) { launchSingleTop = true }
+            },
+            onOpenAccount = { id ->
+                navController.navigate(Destination.AccountDetail(id)) { launchSingleTop = true }
+            },
+        )
+    }
+    composable<Destination.AccountDetail> {
+        AccountDetailScreen(
+            onBack = { navController.popBackStack() },
+            onEdit = { id ->
+                navController.navigate(Destination.AccountEdit(accountId = id)) {
+                    launchSingleTop = true
+                }
+            },
+            onOpenTransaction = { id ->
+                navController.navigate(Destination.TransactionForm(transactionId = id)) {
+                    launchSingleTop = true
+                }
+            },
+        )
+    }
+    composable<Destination.AccountEdit> {
+        AccountEditScreen(onDone = { navController.popBackStack() })
     }
 }
 

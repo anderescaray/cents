@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
@@ -34,9 +35,9 @@ class RoomAccountRepository
             (if (includeArchived) accountDao.observeAll() else accountDao.observeActive())
                 .map { accounts -> accounts.map { it.toDomain() } }
 
-        override fun observeAccountsWithBalances(): Flow<List<AccountWithBalance>> =
+        override fun observeAccountsWithBalances(includeArchived: Boolean): Flow<List<AccountWithBalance>> =
             combine(
-                accountDao.observeActive(),
+                if (includeArchived) accountDao.observeAll() else accountDao.observeActive(),
                 accountDao.observeBalances(),
             ) { accounts, balances ->
                 val byAccount = balances.associateBy { it.accountId }
@@ -45,6 +46,18 @@ class RoomAccountRepository
                     account.withBalance(byAccount[entity.id]?.toMoney())
                 }
             }
+
+        override fun observeAccountWithBalance(id: Long): Flow<AccountWithBalance?> =
+            combine(
+                accountDao.observeById(id),
+                accountDao.observeBalance(id),
+            ) { entity, balanceMinor ->
+                entity?.toDomain()?.let { account ->
+                    account.withBalance(balanceMinor?.let { Money(it, account.currency) })
+                }
+            }
+
+        override suspend fun findById(id: Long): Account? = accountDao.findById(id)?.toDomain()
 
         override suspend fun createAccount(account: Account): Long =
             accountDao.insert(account.toEntity(createdAt = clock.instant()))
@@ -61,6 +74,12 @@ class RoomAccountRepository
         ) {
             accountDao.setArchived(id, archived)
         }
+
+        override suspend fun deleteAccount(id: Long) {
+            accountDao.deleteById(id)
+        }
+
+        override suspend fun countTransactions(id: Long): Int = accountDao.countTransactions(id)
     }
 
 @Singleton

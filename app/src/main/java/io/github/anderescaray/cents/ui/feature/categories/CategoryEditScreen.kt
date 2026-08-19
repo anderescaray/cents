@@ -1,22 +1,16 @@
 package io.github.anderescaray.cents.ui.feature.categories
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -35,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsAlert
+import io.github.anderescaray.cents.ui.components.CentsColorPicker
 import io.github.anderescaray.cents.ui.components.CentsListScreen
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
@@ -140,64 +135,10 @@ private fun ColorSection(
     onSelect: (Int) -> Unit,
 ) {
     CentsListSection(header = stringResource(R.string.category_color_header)) {
-        Column(
-            modifier = Modifier.padding(CentsDimens.rowHorizontalPadding),
-            verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingM),
-        ) {
-            CategoryPalette.chunked(COLORS_PER_ROW).forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    row.forEach { colorArgb ->
-                        ColorSwatch(
-                            colorArgb = colorArgb,
-                            selected = colorArgb == selected,
-                            onSelect = { onSelect(colorArgb) },
-                        )
-                    }
-                }
-            }
-        }
+        CentsColorPicker(colors = CategoryPalette, selected = selected, onSelect = onSelect)
     }
 }
 
-@Composable
-private fun ColorSwatch(
-    colorArgb: Int,
-    selected: Boolean,
-    onSelect: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .size(SWATCH_TAP_SIZE.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onSelect),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(SWATCH_SIZE.dp)
-                    .clip(CircleShape)
-                    .background(Color(colorArgb))
-                    .then(
-                        if (selected) {
-                            Modifier.border(SWATCH_RING.dp, CentsTheme.colors.label, CircleShape)
-                        } else {
-                            Modifier
-                        },
-                    ),
-        )
-    }
-}
-
-/**
- * Restoring, deleting, or — for an archived category that still classifies movements —
- * only restoring: archiving it again is the one thing "delete" could do to it, and it is
- * already archived. Offering a button that would do nothing is worse than not offering it.
- */
 @Composable
 private fun CategoryActions(
     state: CategoryEditUiState,
@@ -209,56 +150,21 @@ private fun CategoryActions(
     CentsListSection(
         footer =
             stringResource(
-                if (deletable) R.string.category_delete_footer else R.string.category_archived_footer,
+                if (deletable) R.string.category_delete_footer else R.string.categories_archived_footer,
             ),
     ) {
         if (state.archived) {
-            CenteredActionRow(
+            CentsActionRow(
                 label = stringResource(R.string.category_restore),
-                color = CentsTheme.colors.accent,
                 onClick = onRestore,
                 showSeparator = deletable,
             )
         }
         if (deletable) {
-            CenteredActionRow(
+            CentsActionRow(
                 label = stringResource(R.string.category_delete),
-                color = CentsTheme.colors.destructive,
                 onClick = onDelete,
-                showSeparator = false,
-            )
-        }
-    }
-}
-
-/** A row whose whole point is its label: centred, tinted, no chevron. */
-@Composable
-private fun CenteredActionRow(
-    label: String,
-    color: Color,
-    onClick: () -> Unit,
-    showSeparator: Boolean,
-) {
-    Column {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(CentsTheme.colors.groupedCard)
-                    .clickable(onClick = onClick)
-                    .padding(vertical = CentsDimens.spacingM),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = label, style = CentsTheme.typography.body, color = color)
-        }
-        if (showSeparator) {
-            Box(
-                modifier =
-                    Modifier
-                        .padding(start = CentsDimens.rowHorizontalPadding)
-                        .fillMaxWidth()
-                        .height(CentsDimens.separatorThickness)
-                        .background(CentsTheme.colors.separator),
+                destructive = true,
             )
         }
     }
@@ -300,8 +206,4 @@ private fun DeletionAlert(
     )
 }
 
-private const val COLORS_PER_ROW = 6
-private const val SWATCH_SIZE = 30
-private const val SWATCH_TAP_SIZE = 44
-private const val SWATCH_RING = 2
 internal const val NAME_FIELD_TAG = "categoryName"

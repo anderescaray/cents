@@ -46,6 +46,7 @@ import io.github.anderescaray.cents.ui.util.relativeLabel
 fun TransactionFormScreen(
     onDone: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
+    onCreateAccount: () -> Unit,
     viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,6 +82,7 @@ fun TransactionFormScreen(
             state = state,
             viewModel = viewModel,
             onCreateCategory = onCreateCategory,
+            onCreateAccount = onCreateAccount,
             modifier = Modifier.weight(1f),
         )
 
@@ -133,6 +135,7 @@ private fun FormFields(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
     onCreateCategory: (CategoryKind) -> Unit,
+    onCreateAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -169,14 +172,7 @@ private fun FormFields(
             )
         }
 
-        item(key = "account") {
-            PickerSection(
-                header = stringResource(R.string.field_account),
-                options = state.accounts.map { it.id to it.name },
-                selectedId = state.selectedAccountId,
-                onSelect = viewModel::selectAccount,
-            )
-        }
+        accountSection(state = state, viewModel = viewModel, onCreateAccount = onCreateAccount)
 
         details(state = state, viewModel = viewModel)
 
@@ -184,6 +180,36 @@ private fun FormFields(
 
         if (state.isEditing) {
             deleteAction(onDelete = viewModel::requestDeletion)
+        }
+    }
+}
+
+/** Where the money moved. Without an account there is nowhere to record anything. */
+private fun LazyListScope.accountSection(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+    onCreateAccount: () -> Unit,
+) {
+    item(key = "account") {
+        if (state.accounts.isEmpty()) {
+            CentsListSection(
+                header = stringResource(R.string.field_account),
+                footer = stringResource(R.string.field_account_empty_footer),
+            ) {
+                CentsListRow(
+                    title = stringResource(R.string.field_account_empty),
+                    showChevron = true,
+                    showSeparator = false,
+                    onClick = onCreateAccount,
+                )
+            }
+        } else {
+            PickerSection(
+                header = stringResource(R.string.field_account),
+                options = state.accounts.map { it.id to it.name },
+                selectedId = state.selectedAccountId,
+                onSelect = viewModel::selectAccount,
+            )
         }
     }
 }

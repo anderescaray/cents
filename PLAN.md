@@ -454,14 +454,15 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Design system | iOS-flavoured tokens and components — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
 | Transactions | List grouped by day with a monthly summary, and an entry form with a minor-unit keypad that writes to the database |
-| Tests | 42, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
+| Tests | 62, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
 One branch and one PR each, in this order. They touch overlapping files, so they stay
 serial — this is still the single-agent phase.
 
-- [ ] **`feat/categories`** — **the owner's categories, created by the owner.** Requested
+- [x] **`feat/categories`** — **the owner's categories, created by the owner.** Merged. Requested
       2026-08-18, and first in the queue because the app currently imposes a taxonomy that
       contradicts PRD design principle 3.
       - The app **ships with no categories at all**. The first-run seeding of eleven
@@ -477,12 +478,14 @@ serial — this is still the single-agent phase.
       - With no categories, the entry form's category section needs an empty state that
         leads straight to creating one, instead of an empty box.
       - *Done when:* a fresh install has zero categories, and every category in the app is
-        one the owner typed.
-      - **Open question for the owner:** the same argument applies to the seeded *Cash*
+        one the owner typed. **Done**, plus: archived categories are no longer offered on
+        the entry form (they were), a category list can be dragged into order, and the
+        design system gained a text field, an alert, a back button and a shared modal bar.
+      - **Still open for the owner:** the same argument applies to the seeded *Cash*
         account, which is still created on first run. It cannot simply be dropped —
         a transaction cannot be saved without an account — so removing it means adding a
         first-run step that asks for one account before anything else. Decide this when
-        `feat/accounts` is planned; the categories change does not depend on it.
+        `feat/accounts` is planned.
 
 - [ ] **`feat/transaction-edit`** — tap a row to edit or delete it. Delete asks for
       confirmation and offers Undo (rule 7). Also add the two fields the entry form is
@@ -504,9 +507,12 @@ before that, and do not parallelize before that.
 
 - The entry form always uses **today's date** and does not expose the note field, although
   the view model already supports both. First item of `feat/transaction-edit`.
-- **The app seeds eleven categories on first run.** This is on its way out: the owner
-  creates their own categories (`feat/categories`). Until that lands, the categories in a
-  fresh install are the app's invention, not the owner's.
+- **Installs made before `feat/categories` still hold the eleven categories the app used
+  to seed.** Nothing removes them automatically, because deleting rows that may already
+  classify movements is the owner's call: they can be deleted or archived one by one in
+  Settings → Categories. A fresh install has none.
+- **Category subcategories and icons are not built.** The schema has `parentId` and
+  `iconKey` columns and the PRD lists both as optional; the editor writes neither.
 - **Accounts and Reports tabs are placeholders.** They render the design system with
   invented content and read nothing from the database.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
@@ -530,7 +536,7 @@ else on the phone (rule 13). So these are always handed back:
 
 ## Next concrete action
 
-**`feat/categories`**, as described in C3: remove the seeded categories and let the owner
-create, rename and delete their own. Requested directly by the owner, and it comes before
-`feat/transaction-edit` because right now the app decides what the owner's money is spent
-on, which is the opposite of the point.
+**`feat/transaction-edit`**, as described in C3: tapping a row opens it for editing or
+deletion, with a confirmation and an Undo, and the entry form finally gets its date picker
+and note field. It is next because a wrong amount currently cannot be corrected from
+inside the app at all.

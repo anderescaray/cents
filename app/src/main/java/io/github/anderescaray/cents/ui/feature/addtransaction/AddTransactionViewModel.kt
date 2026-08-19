@@ -68,7 +68,10 @@ class AddTransactionViewModel
                 accountRepository.observeAccounts(),
                 categoryRepository.observeAllCategories(),
             ) { state, accounts, categories ->
-                val kindCategories = categories.filter { it.kind == state.kind.toCategoryKind() }
+                // Archived categories keep classifying old transactions but are not offered
+                // for new ones — that is the whole point of archiving instead of deleting.
+                val kindCategories =
+                    categories.filter { it.kind == state.kind.toCategoryKind() && !it.archived }
                 state.copy(
                     accounts = accounts,
                     categories = kindCategories,

@@ -76,6 +76,46 @@ class CategoryDaoTest {
         }
 
     @Test
+    fun `sortOrder decides the order they are listed in, not insertion order`() =
+        runTest {
+            val dao = database.categoryDao()
+            dao.insert(category(name = "Last", sortOrder = 2))
+            dao.insert(category(name = "First", sortOrder = 0))
+            dao.insert(category(name = "Middle", sortOrder = 1))
+
+            assertEquals(
+                listOf("First", "Middle", "Last"),
+                dao.observeActiveByKind(CategoryKind.EXPENSE).first().map { it.name },
+            )
+        }
+
+    @Test
+    fun `updating the sort order moves a category without touching anything else`() =
+        runTest {
+            val dao = database.categoryDao()
+            val first = dao.insert(category(name = "First", sortOrder = 0))
+            dao.insert(category(name = "Second", sortOrder = 1))
+
+            dao.updateSortOrder(first, sortOrder = 9)
+
+            val stored = dao.observeActiveByKind(CategoryKind.EXPENSE).first()
+            assertEquals(listOf("Second", "First"), stored.map { it.name })
+            assertEquals("First", requireNotNull(dao.findById(first)).name)
+        }
+
+    @Test
+    fun `deleting by id removes exactly one category`() =
+        runTest {
+            val dao = database.categoryDao()
+            val doomed = dao.insert(category(name = "Typo"))
+            dao.insert(category(name = "Rent"))
+
+            dao.deleteById(doomed)
+
+            assertEquals(listOf("Rent"), dao.observeAll().first().map { it.name })
+        }
+
+    @Test
     fun `archiving hides a category from the picker while keeping its history`() =
         runTest {
             val dao = database.categoryDao()

@@ -36,7 +36,7 @@ class RoomRepositoriesTest {
     fun setUp() {
         database = createTestDatabase()
         accounts = RoomAccountRepository(database.accountDao(), clock)
-        categories = RoomCategoryRepository(database.categoryDao(), clock)
+        categories = RoomCategoryRepository(database.categoryDao(), database, clock)
         transactions = RoomTransactionRepository(database.transactionDao(), clock)
     }
 
@@ -160,6 +160,20 @@ class RoomRepositoriesTest {
                 listOf("Rent"),
                 categories.observeCategories(CategoryKind.EXPENSE).first().map { it.name },
             )
+        }
+
+    @Test
+    fun `reordering stores consecutive positions, whatever they were before`() =
+        runTest {
+            val first = database.categoryDao().insert(category(name = "First", sortOrder = 5))
+            val second = database.categoryDao().insert(category(name = "Second", sortOrder = 40))
+            val third = database.categoryDao().insert(category(name = "Third", sortOrder = 41))
+
+            categories.reorder(listOf(third, first, second))
+
+            val stored = categories.observeCategories(CategoryKind.EXPENSE).first()
+            assertEquals(listOf("Third", "First", "Second"), stored.map { it.name })
+            assertEquals(listOf(0, 1, 2), stored.map { it.sortOrder })
         }
 
     @Test

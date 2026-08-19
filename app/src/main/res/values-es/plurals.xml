@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="category_archive_message">
+        <item quantity="one">La usa un movimiento, así que eliminarla cambiaría un historial ya registrado. Dejará de ofrecerse y ese movimiento la conserva.</item>
+        <item quantity="other">La usan %1$d movimientos, así que eliminarla cambiaría un historial ya registrado. Dejará de ofrecerse y esos movimientos la conservan.</item>
+    </plurals>
+</resources>

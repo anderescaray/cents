@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature
 
-import app.cash.turbine.TurbineTestContext
 import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
@@ -12,7 +11,6 @@ import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
-import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionUiState
 import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,7 +50,7 @@ class AddTransactionViewModelTest {
             AddTransactionViewModel(
                 transactionRepository = transactions,
                 accountRepository = RoomAccountRepository(database.accountDao(), clock),
-                categoryRepository = RoomCategoryRepository(database.categoryDao(), clock),
+                categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
                 clock = clock,
             )
     }
@@ -63,26 +61,16 @@ class AddTransactionViewModelTest {
         Dispatchers.resetMain()
     }
 
-    /** Waits for a state matching [predicate] instead of guessing how many emissions arrive. */
-    private suspend fun TurbineTestContext<AddTransactionUiState>.awaitState(
-        predicate: (AddTransactionUiState) -> Boolean,
-    ): AddTransactionUiState {
-        while (true) {
-            val item = awaitItem()
-            if (predicate(item)) return item
-        }
-    }
-
     @Test
     fun `typed digits are minor units, so 1250 means twelve euros fifty`() =
         runTest {
             database.accountDao().insert(account())
 
             viewModel.uiState.test {
-                awaitState { it.accounts.isNotEmpty() }
+                awaitStateThat { it.accounts.isNotEmpty() }
                 "1250".forEach(viewModel::appendDigit)
 
-                val state = awaitState { it.amountDigits == "1250" }
+                val state = awaitStateThat { it.amountDigits == "1250" }
                 assertEquals(Money(1_250, "EUR"), state.amount)
                 assertTrue(state.canSave)
                 cancelAndIgnoreRemainingEvents()
@@ -95,10 +83,10 @@ class AddTransactionViewModelTest {
             database.accountDao().insert(account())
 
             viewModel.uiState.test {
-                awaitState { it.accounts.isNotEmpty() }
+                awaitStateThat { it.accounts.isNotEmpty() }
                 "0007".forEach(viewModel::appendDigit)
 
-                val state = awaitState { it.amountDigits.isNotEmpty() && it.amountDigits.last() == '7' }
+                val state = awaitStateThat { it.amountDigits.isNotEmpty() && it.amountDigits.last() == '7' }
                 assertEquals(Money(7, "EUR"), state.amount)
                 cancelAndIgnoreRemainingEvents()
             }
@@ -110,7 +98,7 @@ class AddTransactionViewModelTest {
             database.accountDao().insert(account())
 
             viewModel.uiState.test {
-                val state = awaitState { it.accounts.isNotEmpty() }
+                val state = awaitStateThat { it.accounts.isNotEmpty() }
                 assertFalse(state.canSave)
                 cancelAndIgnoreRemainingEvents()
             }
@@ -127,13 +115,13 @@ class AddTransactionViewModelTest {
             database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
 
             viewModel.uiState.test {
-                awaitState { it.categories.isNotEmpty() }
+                awaitStateThat { it.categories.isNotEmpty() }
                 viewModel.selectCategory(expenseCategory)
-                awaitState { it.selectedCategoryId == expenseCategory }
+                awaitStateThat { it.selectedCategoryId == expenseCategory }
 
                 viewModel.setKind(TransactionKind.INCOME)
 
-                val state = awaitState { it.kind == TransactionKind.INCOME }
+                val state = awaitStateThat { it.kind == TransactionKind.INCOME }
                 assertNull(state.selectedCategoryId)
                 assertEquals(listOf("Salary"), state.categories.map { it.name })
                 cancelAndIgnoreRemainingEvents()
@@ -147,15 +135,15 @@ class AddTransactionViewModelTest {
             val categoryId = database.categoryDao().insert(category(name = "Groceries"))
 
             viewModel.uiState.test {
-                awaitState { it.accounts.isNotEmpty() && it.categories.isNotEmpty() }
+                awaitStateThat { it.accounts.isNotEmpty() && it.categories.isNotEmpty() }
                 "4599".forEach(viewModel::appendDigit)
                 viewModel.selectCategory(categoryId)
                 viewModel.setNote("Weekly shop")
-                awaitState { it.amountDigits == "4599" && it.selectedCategoryId == categoryId }
+                awaitStateThat { it.amountDigits == "4599" && it.selectedCategoryId == categoryId }
 
                 viewModel.save()
 
-                assertTrue(awaitState { it.saved }.saved)
+                assertTrue(awaitStateThat { it.saved }.saved)
                 cancelAndIgnoreRemainingEvents()
             }
 

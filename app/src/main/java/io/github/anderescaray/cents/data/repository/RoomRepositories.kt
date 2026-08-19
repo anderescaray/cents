@@ -1,5 +1,7 @@
 package io.github.anderescaray.cents.data.repository
 
+import androidx.room.withTransaction
+import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
@@ -66,6 +68,7 @@ class RoomCategoryRepository
     @Inject
     constructor(
         private val categoryDao: CategoryDao,
+        private val database: CentsDatabase,
         private val clock: Clock,
     ) : CategoryRepository {
         override fun observeCategories(kind: CategoryKind): Flow<List<Category>> =
@@ -73,6 +76,8 @@ class RoomCategoryRepository
 
         override fun observeAllCategories(): Flow<List<Category>> =
             categoryDao.observeAll().map { categories -> categories.map { it.toDomain() } }
+
+        override suspend fun findById(id: Long): Category? = categoryDao.findById(id)?.toDomain()
 
         override suspend fun createCategory(category: Category): Long =
             categoryDao.insert(category.toEntity(createdAt = clock.instant()))
@@ -87,6 +92,18 @@ class RoomCategoryRepository
             archived: Boolean,
         ) {
             categoryDao.setArchived(id, archived)
+        }
+
+        override suspend fun deleteCategory(id: Long) {
+            categoryDao.deleteById(id)
+        }
+
+        override suspend fun reorder(orderedIds: List<Long>) {
+            // One transaction: a half-applied order would leave the list in a state the
+            // user never asked for.
+            database.withTransaction {
+                orderedIds.forEachIndexed { index, id -> categoryDao.updateSortOrder(id, index) }
+            }
         }
 
         override suspend fun countTransactions(id: Long): Int = categoryDao.countTransactions(id)

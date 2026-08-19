@@ -26,11 +26,15 @@
     <string name="settings_currency">Moneda principal</string>
     <string name="settings_data_footer">Todo se queda en este dispositivo. No se sube nada a ningún sitio.</string>
     <string name="settings_add_transaction">Añadir movimiento</string>
+    <string name="settings_categories">Categorías</string>
+    <string name="settings_categories_footer">Las categorías son tuyas: Cents no trae ninguna y nunca añade una por su cuenta.</string>
 
     <!-- Acciones -->
     <string name="action_add">+</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_save">Guardar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_archive">Archivar</string>
 
     <!-- Movimientos -->
     <string name="transactions_this_month">Este mes</string>
@@ -50,4 +54,31 @@
     <string name="field_account">Cuenta</string>
     <string name="field_category">Categoría</string>
     <string name="field_category_footer">Opcional. Los movimientos sin categoría se pueden clasificar más tarde.</string>
+    <string name="field_category_empty">Crea tu primera categoría</string>
+    <string name="field_category_empty_footer">Opcional: el movimiento se puede guardar sin categoría. Las categorías son las que tú crees.</string>
+
+    <!-- Categorías -->
+    <string name="categories_title">Categorías</string>
+    <string name="categories_section_header">Mis categorías</string>
+    <string name="categories_reorder_footer">Arrastra el asa de la derecha para cambiar el orden en que aparecen.</string>
+    <string name="categories_reorder">Reordenar</string>
+    <string name="categories_empty_expense">Todavía no hay categorías de gasto</string>
+    <string name="categories_empty_income">Todavía no hay categorías de ingreso</string>
+    <string name="categories_empty_footer">Pulsa + para crear una. Aquí no hay nada que se haya inventado la app.</string>
+    <string name="categories_archived_header">Archivadas</string>
+    <string name="categories_archived_footer">Las categorías archivadas no se ofrecen para movimientos nuevos, y los que ya clasifican las conservan.</string>
+
+    <!-- Una categoría -->
+    <string name="category_new_title">Nueva categoría</string>
+    <string name="category_edit_title">Categoría</string>
+    <string name="category_name_header">Nombre</string>
+    <string name="category_name_placeholder">Supermercado</string>
+    <string name="category_name_taken">Ya existe una categoría con ese nombre.</string>
+    <string name="category_color_header">Color</string>
+    <string name="category_delete">Eliminar categoría</string>
+    <string name="category_restore">Restaurar categoría</string>
+    <string name="category_delete_footer">Una categoría que no usa nadie se elimina. La que ya clasifica movimientos se archiva, para que tu historial siga como estaba.</string>
+    <string name="category_delete_title">¿Eliminar «%1$s»?</string>
+    <string name="category_delete_message">Ningún movimiento la usa, así que se puede borrar del todo.</string>
+    <string name="category_archive_title">¿Archivar «%1$s»?</string>
 </resources>

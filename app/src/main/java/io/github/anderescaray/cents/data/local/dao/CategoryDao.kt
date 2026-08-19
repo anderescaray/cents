@@ -36,6 +36,15 @@ interface CategoryDao {
     @Delete
     suspend fun delete(category: CategoryEntity)
 
+    @Query("DELETE FROM categories WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("UPDATE categories SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(
+        id: Long,
+        sortOrder: Int,
+    )
+
     @Query("UPDATE categories SET archived = :archived WHERE id = :id")
     suspend fun setArchived(
         id: Long,

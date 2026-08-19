@@ -30,6 +30,8 @@ interface CategoryRepository {
 
     fun observeAllCategories(): Flow<List<Category>>
 
+    suspend fun findById(id: Long): Category?
+
     suspend fun createCategory(category: Category): Long
 
     suspend fun updateCategory(category: Category)
@@ -38,6 +40,15 @@ interface CategoryRepository {
         id: Long,
         archived: Boolean,
     )
+
+    /**
+     * Removes the category outright. Only legitimate while [countTransactions] is zero:
+     * with transactions attached, archiving is the operation that keeps history intact.
+     */
+    suspend fun deleteCategory(id: Long)
+
+    /** Stores [orderedIds] as the order categories are listed and offered in. */
+    suspend fun reorder(orderedIds: List<Long>)
 
     /** Zero means the category can be deleted outright instead of archived. */
     suspend fun countTransactions(id: Long): Int

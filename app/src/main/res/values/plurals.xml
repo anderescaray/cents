@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="category_archive_message">
+        <item quantity="one">One movement uses it, so deleting it would change history that is already recorded. It will leave the pickers and that movement keeps it.</item>
+        <item quantity="other">%1$d movements use it, so deleting it would change history that is already recorded. It will leave the pickers and those movements keep it.</item>
+    </plurals>
+</resources>

@@ -49,6 +49,7 @@ fun CentsLargeTitleScaffold(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     bottomPadding: Dp = 0.dp,
+    leading: (@Composable RowScope.() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
@@ -84,6 +85,7 @@ fun CentsLargeTitleScaffold(
             title = title,
             alpha = barAlpha,
             topInset = topInset,
+            leading = leading,
             trailing = trailing,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -111,6 +113,7 @@ private fun CollapsingNavBar(
     title: String,
     alpha: Float,
     topInset: Dp,
+    leading: (@Composable RowScope.() -> Unit)?,
     trailing: (@Composable RowScope.() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -129,6 +132,11 @@ private fun CollapsingNavBar(
                     .padding(horizontal = CentsDimens.screenMargin),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // The back affordance stays legible while the large title is still on screen;
+            // only the compact title itself fades in.
+            if (leading != null) {
+                leading()
+            }
             Text(
                 text = title,
                 style = CentsTheme.typography.headline,

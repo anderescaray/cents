@@ -41,11 +41,15 @@ fun category(
     name: String = "Groceries",
     kind: CategoryKind = CategoryKind.EXPENSE,
     parentId: Long? = null,
+    archived: Boolean = false,
+    sortOrder: Int = 0,
 ) = CategoryEntity(
     name = name,
     kind = kind,
     colorArgb = 0xFFEF6C00.toInt(),
     parentId = parentId,
+    archived = archived,
+    sortOrder = sortOrder,
     createdAt = FIXED_INSTANT,
 )
 

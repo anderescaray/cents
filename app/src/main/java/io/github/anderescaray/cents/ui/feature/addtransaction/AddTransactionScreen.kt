@@ -1,11 +1,8 @@
 package io.github.anderescaray.cents.ui.feature.addtransaction
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +25,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsKeypad
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -37,6 +34,7 @@ import io.github.anderescaray.cents.ui.util.MoneyFormatter
 @Composable
 fun AddTransactionScreen(
     onDone: () -> Unit,
+    onManageCategories: () -> Unit,
     viewModel: AddTransactionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -52,9 +50,21 @@ fun AddTransactionScreen(
                 .background(CentsTheme.colors.groupedBackground)
                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
     ) {
-        ModalBar(canSave = state.canSave, onCancel = onDone, onSave = viewModel::save)
+        CentsModalBar(
+            title = stringResource(R.string.add_transaction_title),
+            cancelLabel = stringResource(R.string.action_cancel),
+            onCancel = onDone,
+            confirmLabel = stringResource(R.string.action_save),
+            onConfirm = viewModel::save,
+            confirmEnabled = state.canSave,
+        )
 
-        FormFields(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
+        FormFields(
+            state = state,
+            viewModel = viewModel,
+            onManageCategories = onManageCategories,
+            modifier = Modifier.weight(1f),
+        )
 
         CentsKeypad(
             onDigit = viewModel::appendDigit,
@@ -74,6 +84,7 @@ fun AddTransactionScreen(
 private fun FormFields(
     state: AddTransactionUiState,
     viewModel: AddTransactionViewModel,
+    onManageCategories: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -105,15 +116,31 @@ private fun FormFields(
         }
 
         item(key = "category") {
-            PickerSection(
-                header = stringResource(R.string.field_category),
-                footer = stringResource(R.string.field_category_footer),
-                options = state.categories.map { it.id to it.name },
-                selectedId = state.selectedCategoryId,
-                onSelect = { id ->
-                    viewModel.selectCategory(id.takeIf { it != state.selectedCategoryId })
-                },
-            )
+            if (state.categories.isEmpty()) {
+                // Nothing is seeded, so an empty list is the normal first-run state: the
+                // way out of it is creating a category, not staring at an empty box.
+                CentsListSection(
+                    header = stringResource(R.string.field_category),
+                    footer = stringResource(R.string.field_category_empty_footer),
+                ) {
+                    CentsListRow(
+                        title = stringResource(R.string.field_category_empty),
+                        showChevron = true,
+                        showSeparator = false,
+                        onClick = onManageCategories,
+                    )
+                }
+            } else {
+                PickerSection(
+                    header = stringResource(R.string.field_category),
+                    footer = stringResource(R.string.field_category_footer),
+                    options = state.categories.map { it.id to it.name },
+                    selectedId = state.selectedCategoryId,
+                    onSelect = { id ->
+                        viewModel.selectCategory(id.takeIf { it != state.selectedCategoryId })
+                    },
+                )
+            }
         }
     }
 }
@@ -156,44 +183,6 @@ private fun PickerSection(
                 onClick = { onSelect(id) },
             )
         }
-    }
-}
-
-/** Cancel on the left, Save on the right: the iOS modal convention. */
-@Composable
-private fun ModalBar(
-    canSave: Boolean,
-    onCancel: () -> Unit,
-    onSave: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CentsDimens.screenMargin, vertical = CentsDimens.spacingM),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.action_cancel),
-            style = CentsTheme.typography.body,
-            color = CentsTheme.colors.accent,
-            modifier = Modifier.clickable(onClick = onCancel),
-        )
-        Box(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.add_transaction_title),
-                style = CentsTheme.typography.headline,
-                color = CentsTheme.colors.label,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        Text(
-            text = stringResource(R.string.action_save),
-            style = CentsTheme.typography.headline,
-            color = if (canSave) CentsTheme.colors.accent else CentsTheme.colors.tertiaryLabel,
-            modifier = Modifier.clickable(enabled = canSave, onClick = onSave),
-        )
     }
 }
 

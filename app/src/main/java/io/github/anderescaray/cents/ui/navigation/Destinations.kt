@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.ui.navigation
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.CategoryKind
 import kotlinx.serialization.Serializable
 
 /**
@@ -24,6 +25,20 @@ sealed interface Destination {
 
     @Serializable
     data object AddTransaction : Destination
+
+    @Serializable
+    data object Categories : Destination
+
+    /** [categoryId] is [CategoryEdit.NEW] when the screen is creating one. */
+    @Serializable
+    data class CategoryEdit(
+        val categoryId: Long = NEW,
+        val kind: CategoryKind = CategoryKind.EXPENSE,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
 }
 
 /** A tab in the bottom bar, tying a destination to how it is presented. */

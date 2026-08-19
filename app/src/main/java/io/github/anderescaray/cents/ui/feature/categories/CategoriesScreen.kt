@@ -1,0 +1,308 @@
+package io.github.anderescaray.cents.ui.feature.categories
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.Category
+import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.ui.components.CentsBackButton
+import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
+import io.github.anderescaray.cents.ui.components.CentsListRow
+import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.theme.CentsDimens
+import io.github.anderescaray.cents.ui.theme.CentsTheme
+import kotlin.math.roundToInt
+
+/**
+ * The owner's own categories: one list per kind, dragged into the order they prefer.
+ *
+ * The app never puts anything here — an empty list on a fresh install is the correct
+ * state, not a missing feature (PRD §4.1).
+ */
+@Composable
+fun CategoriesScreen(
+    onBack: () -> Unit,
+    onNewCategory: (CategoryKind) -> Unit,
+    onEditCategory: (Long) -> Unit,
+    viewModel: CategoriesViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    CentsLargeTitleScaffold(
+        title = stringResource(R.string.categories_title),
+        bottomPadding = CentsDimens.sectionSpacing,
+        leading = {
+            CentsBackButton(label = stringResource(R.string.tab_settings), onClick = onBack)
+        },
+        trailing = {
+            Text(
+                text = stringResource(R.string.action_add),
+                style = CentsTheme.typography.title2,
+                color = CentsTheme.colors.accent,
+                modifier =
+                    Modifier
+                        .testTag(ADD_CATEGORY_TAG)
+                        .clickable { onNewCategory(state.kind) }
+                        .padding(horizontal = CentsDimens.spacingXs),
+            )
+        },
+    ) {
+        kindSelector(state.kind, viewModel::setKind)
+
+        if (state.active.isEmpty()) {
+            emptyState(state.kind)
+        } else {
+            activeCategories(
+                categories = state.active,
+                onOpen = onEditCategory,
+                onMove = viewModel::moveCategory,
+            )
+        }
+
+        if (state.archived.isNotEmpty()) {
+            archivedCategories(state.archived, onEditCategory)
+        }
+    }
+}
+
+private fun LazyListScope.kindSelector(
+    kind: CategoryKind,
+    onSelect: (CategoryKind) -> Unit,
+) {
+    item(key = "kind") {
+        val expenseLabel = stringResource(R.string.kind_expense)
+        val incomeLabel = stringResource(R.string.kind_income)
+        CentsSegmentedControl(
+            options = listOf(CategoryKind.EXPENSE, CategoryKind.INCOME),
+            selected = kind,
+            onSelect = onSelect,
+            label = { option -> if (option == CategoryKind.EXPENSE) expenseLabel else incomeLabel },
+            modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+        )
+    }
+}
+
+private fun LazyListScope.emptyState(kind: CategoryKind) {
+    item(key = "empty") {
+        CentsListSection(footer = stringResource(R.string.categories_empty_footer)) {
+            CentsListRow(
+                title =
+                    stringResource(
+                        if (kind == CategoryKind.EXPENSE) {
+                            R.string.categories_empty_expense
+                        } else {
+                            R.string.categories_empty_income
+                        },
+                    ),
+                showSeparator = false,
+            )
+        }
+    }
+}
+
+private fun LazyListScope.archivedCategories(
+    categories: List<Category>,
+    onOpen: (Long) -> Unit,
+) {
+    item(key = "archived") {
+        CentsListSection(
+            header = stringResource(R.string.categories_archived_header),
+            footer = stringResource(R.string.categories_archived_footer),
+        ) {
+            categories.forEachIndexed { index, category ->
+                CentsListRow(
+                    title = category.name,
+                    leading = { ColorDot(Color(category.colorArgb)) },
+                    showChevron = true,
+                    showSeparator = index != categories.lastIndex,
+                    onClick = { onOpen(category.id) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The active list, with a grip on each row that reorders it.
+ *
+ * Rows are all the same height, so the position a drag lands on is the start index plus
+ * the offset divided by that height — no per-row geometry to keep in sync.
+ */
+private fun LazyListScope.activeCategories(
+    categories: List<Category>,
+    onOpen: (Long) -> Unit,
+    onMove: (Int, Int) -> Unit,
+) {
+    item(key = "active") {
+        val reorder = remember { ReorderState() }
+
+        CentsListSection(
+            header = stringResource(R.string.categories_section_header),
+            footer = stringResource(R.string.categories_reorder_footer),
+        ) {
+            categories.forEachIndexed { index, category ->
+                CategoryRow(
+                    category = category,
+                    index = index,
+                    count = categories.size,
+                    reorder = reorder,
+                    onOpen = onOpen,
+                    onMove = onMove,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryRow(
+    category: Category,
+    index: Int,
+    count: Int,
+    reorder: ReorderState,
+    onOpen: (Long) -> Unit,
+    onMove: (Int, Int) -> Unit,
+) {
+    val isDragged = index == reorder.draggedIndex
+    val shift =
+        displacement(
+            index = index,
+            from = reorder.draggedIndex,
+            to = reorder.targetIndex(count),
+            rowHeight = reorder.rowHeight,
+        )
+    val animatedShift by animateFloatAsState(shift, label = "categoryShift")
+
+    Box(
+        modifier =
+            Modifier
+                .zIndex(if (isDragged) 1f else 0f)
+                .onSizeChanged { reorder.rowHeight = it.height }
+                .graphicsLayer { translationY = if (isDragged) reorder.offset else animatedShift },
+    ) {
+        CentsListRow(
+            title = category.name,
+            leading = { ColorDot(Color(category.colorArgb)) },
+            trailing = {
+                ReorderHandle(
+                    modifier =
+                        Modifier.pointerInput(count) {
+                            detectDragGestures(
+                                onDragStart = { reorder.start(index) },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    reorder.offset += amount.y
+                                },
+                                onDragEnd = {
+                                    val from = reorder.draggedIndex
+                                    val to = reorder.targetIndex(count)
+                                    if (from != null && to != null) onMove(from, to)
+                                    reorder.stop()
+                                },
+                                onDragCancel = reorder::stop,
+                            )
+                        },
+                )
+            },
+            showSeparator = index != count - 1,
+            onClick = { onOpen(category.id) },
+        )
+    }
+}
+
+/** Which row the finger is holding and how far it has travelled. */
+private class ReorderState {
+    var draggedIndex by mutableStateOf<Int?>(null)
+    var offset by mutableFloatStateOf(0f)
+    var rowHeight by mutableIntStateOf(0)
+
+    /** The position the dragged row would take if the finger let go now. */
+    fun targetIndex(count: Int): Int? {
+        val from = draggedIndex ?: return null
+        val movedRows = if (rowHeight == 0 || count == 0) 0 else (offset / rowHeight).roundToInt()
+        return (from + movedRows).coerceIn(0, (count - 1).coerceAtLeast(0))
+    }
+
+    fun start(index: Int) {
+        draggedIndex = index
+        offset = 0f
+    }
+
+    fun stop() {
+        draggedIndex = null
+        offset = 0f
+    }
+}
+
+/**
+ * How far a row that is not being dragged has to move so the gap follows the finger:
+ * everything between the row's old and new position shifts by exactly one row.
+ */
+private fun displacement(
+    index: Int,
+    from: Int?,
+    to: Int?,
+    rowHeight: Int,
+): Float {
+    if (from == null || to == null || from == to) return 0f
+    return when {
+        from < to && index in (from + 1)..to -> -rowHeight.toFloat()
+        from > to && index in to..<from -> rowHeight.toFloat()
+        else -> 0f
+    }
+}
+
+@Composable
+private fun ColorDot(color: Color) {
+    Box(
+        modifier =
+            Modifier
+                .size(DOT_SIZE.dp)
+                .clip(CircleShape)
+                .background(color),
+    )
+}
+
+@Composable
+private fun ReorderHandle(modifier: Modifier = Modifier) {
+    Icon(
+        painter = painterResource(R.drawable.ic_reorder_handle),
+        contentDescription = stringResource(R.string.categories_reorder),
+        tint = CentsTheme.colors.tertiaryLabel,
+        modifier = modifier.size(HANDLE_SIZE.dp),
+    )
+}
+
+private const val DOT_SIZE = 12
+private const val HANDLE_SIZE = 24
+internal const val ADD_CATEGORY_TAG = "addCategory"

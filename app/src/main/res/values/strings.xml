@@ -28,11 +28,15 @@
     <string name="settings_currency">Main currency</string>
     <string name="settings_data_footer">Everything stays on this device. Nothing is uploaded anywhere.</string>
     <string name="settings_add_transaction">Add transaction</string>
+    <string name="settings_categories">Categories</string>
+    <string name="settings_categories_footer">The categories are yours: Cents ships with none and never adds any.</string>
 
     <!-- Actions -->
     <string name="action_add">+</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_archive">Archive</string>
 
     <!-- Transactions -->
     <string name="transactions_this_month">This month</string>
@@ -52,4 +56,31 @@
     <string name="field_account">Account</string>
     <string name="field_category">Category</string>
     <string name="field_category_footer">Optional. Uncategorized transactions can be classified later.</string>
+    <string name="field_category_empty">Create your first category</string>
+    <string name="field_category_empty_footer">Optional: this movement can be saved without one. Categories are the ones you create.</string>
+
+    <!-- Categories -->
+    <string name="categories_title">Categories</string>
+    <string name="categories_section_header">My categories</string>
+    <string name="categories_reorder_footer">Drag the grip on the right to change the order they are offered in.</string>
+    <string name="categories_reorder">Reorder</string>
+    <string name="categories_empty_expense">No expense categories yet</string>
+    <string name="categories_empty_income">No income categories yet</string>
+    <string name="categories_empty_footer">Tap + to create one. Nothing here is invented by the app.</string>
+    <string name="categories_archived_header">Archived</string>
+    <string name="categories_archived_footer">Archived categories are not offered for new movements, and the ones they already classify keep them.</string>
+
+    <!-- One category -->
+    <string name="category_new_title">New category</string>
+    <string name="category_edit_title">Category</string>
+    <string name="category_name_header">Name</string>
+    <string name="category_name_placeholder">Groceries</string>
+    <string name="category_name_taken">There is already a category with that name.</string>
+    <string name="category_color_header">Colour</string>
+    <string name="category_delete">Delete category</string>
+    <string name="category_restore">Restore category</string>
+    <string name="category_delete_footer">A category nothing uses is deleted. One that already classifies movements is archived instead, so your history stays as it was.</string>
+    <string name="category_delete_title">Delete “%1$s”?</string>
+    <string name="category_delete_message">No movement uses it, so it can be removed for good.</string>
+    <string name="category_archive_title">Archive “%1$s”?</string>
 </resources>

@@ -19,6 +19,8 @@ import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
 import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionScreen
+import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
+import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
@@ -104,10 +106,25 @@ private fun CentsNavHost(navController: NavHostController) {
             )
         }
         composable<Destination.AddTransaction> {
-            AddTransactionScreen(onDone = { navController.popBackStack() })
+            AddTransactionScreen(
+                onDone = { navController.popBackStack() },
+                onManageCategories = { navController.navigate(Destination.Categories) },
+            )
         }
         composable<Destination.Accounts> { AccountsScreen() }
         composable<Destination.Reports> { ReportsScreen() }
-        composable<Destination.Settings> { SettingsScreen() }
+        composable<Destination.Settings> {
+            SettingsScreen(onOpenCategories = { navController.navigate(Destination.Categories) })
+        }
+        composable<Destination.Categories> {
+            CategoriesScreen(
+                onBack = { navController.popBackStack() },
+                onNewCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
+                onEditCategory = { id -> navController.navigate(Destination.CategoryEdit(categoryId = id)) },
+            )
+        }
+        composable<Destination.CategoryEdit> {
+            CategoryEditScreen(onDone = { navController.popBackStack() })
+        }
     }
 }

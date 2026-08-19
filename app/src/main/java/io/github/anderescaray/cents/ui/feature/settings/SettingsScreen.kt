@@ -21,10 +21,20 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
  * row, a disclosure row and the prominent button, so all of it can be judged on a device.
  */
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onOpenCategories: () -> Unit) {
     var biometricLock by remember { mutableStateOf(false) }
 
     CentsLargeTitleScaffold(title = stringResource(R.string.tab_settings)) {
+        item {
+            CentsListSection(footer = stringResource(R.string.settings_categories_footer)) {
+                CentsListRow(
+                    title = stringResource(R.string.settings_categories),
+                    showChevron = true,
+                    showSeparator = false,
+                    onClick = onOpenCategories,
+                )
+            }
+        }
         item {
             CentsListSection(header = stringResource(R.string.settings_section_security)) {
                 CentsListRow(

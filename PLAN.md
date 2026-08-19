@@ -4,7 +4,8 @@ Operational guide. **Part A**: what to install and configure. **Part B**: how th
 is run, first solo and then with several agents in parallel.
 
 Companion documents: [`CLAUDE.md`](CLAUDE.md) (technical rules) ·
-[`docs/PRD.md`](docs/PRD.md) (what we build and why).
+[`docs/PRD.md`](docs/PRD.md) (what we build and why) ·
+[`DECISIONS.md`](DECISIONS.md) (questions waiting on the owner).
 
 ---
 
@@ -441,6 +442,10 @@ git checkout main; git pull --ff-only        # start from what is merged
 ./gradlew spotlessCheck detekt testDebugUnitTest   # green before touching anything
 ```
 
+**Then read [`DECISIONS.md`](DECISIONS.md) before writing any code.** Anything answered there
+since the last session is an instruction: act on it first, then move that question to its
+*Answered* table with the date and what was done. See C6.
+
 Then take the first unchecked branch in C3 and work it end to end:
 `branch → implement → tests → gates → PR → wait for CI → hand back`.
 
@@ -546,6 +551,32 @@ else on the phone (rule 13). So these are always handed back:
 - Tapping through a flow to judge whether it feels right.
 - Anything needing a device setting, an unlock, or a permission dialog.
 - Reviewing and merging every PR.
+
+## C6. Questions waiting on the owner
+
+Open questions live in **[`DECISIONS.md`](DECISIONS.md)**, one per decision, each with what is
+at stake, the options, a recommendation and a default. It exists because the two documents
+either side of it answer different things: `PLAN.md` records what *is*, `docs/decisions/`
+records what *was decided and why*, and neither had a place for *what has not been decided
+yet* — so those questions used to end up buried in a pull request description, where they were
+read once and then lost.
+
+**The protocol, in both directions:**
+
+- **Agent → owner.** When a choice would change the app rather than the code — what it ships
+  with, what it is for, how it is built as a project — do not guess and do not stop. Write the
+  question in `DECISIONS.md` with a **default**, build everything the answer does not touch,
+  and say in the handoff that it is waiting.
+- **Owner → agent.** Answers are written on the `**Answer:**` line, in the file, in any form.
+  They do not have to be long: "A", or "no subcategories", is enough.
+- **Next session.** Read the file first (C1). For each newly answered question: do the work it
+  implies, then move the row to the *Answered* table at the bottom with the date and what was
+  actually done. An answer that turns out to shape the architecture graduates into an ADR in
+  `docs/decisions/`, and the table points at it.
+
+A question with no answer is never a reason to stall: the default is what the app does until
+the owner says otherwise, and that default is written down next to the question so nobody has
+to guess what "unanswered" currently means.
 
 ---
 

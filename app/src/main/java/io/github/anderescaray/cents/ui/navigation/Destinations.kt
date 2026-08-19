@@ -23,8 +23,19 @@ sealed interface Destination {
     @Serializable
     data object Settings : Destination
 
+    /**
+     * The movement form, adding when [transactionId] is [TransactionForm.NEW] and editing
+     * an existing movement otherwise. One screen for both: the fields are identical, and a
+     * second copy of them would be a second place for them to drift.
+     */
     @Serializable
-    data object AddTransaction : Destination
+    data class TransactionForm(
+        val transactionId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
 
     @Serializable
     data object Categories : Destination

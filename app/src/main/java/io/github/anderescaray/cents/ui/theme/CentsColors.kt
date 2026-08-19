@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 @Immutable
 data class CentsColors(
     val accent: Color,
+    /** Text and glyphs sitting on top of an accent fill. */
+    val onAccent: Color,
     val destructive: Color,
     val positive: Color,
     val warning: Color,
@@ -37,6 +39,7 @@ data class CentsColors(
 val LightColors =
     CentsColors(
         accent = Color(0xFF007AFF),
+        onAccent = Color(0xFFFFFFFF),
         destructive = Color(0xFFFF3B30),
         positive = Color(0xFF34C759),
         warning = Color(0xFFFF9500),
@@ -56,6 +59,7 @@ val LightColors =
 val DarkColors =
     CentsColors(
         accent = Color(0xFF0A84FF),
+        onAccent = Color(0xFFFFFFFF),
         destructive = Color(0xFFFF453A),
         positive = Color(0xFF30D158),
         warning = Color(0xFFFF9F0A),

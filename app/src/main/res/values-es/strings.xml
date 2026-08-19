@@ -35,6 +35,7 @@
     <string name="action_save">Guardar</string>
     <string name="action_delete">Eliminar</string>
     <string name="action_archive">Archivar</string>
+    <string name="action_undo">Deshacer</string>
 
     <!-- Movimientos -->
     <string name="transactions_this_month">Este mes</string>
@@ -46,9 +47,18 @@
     <string name="transactions_uncategorized">Sin categoría</string>
     <string name="date_today">Hoy</string>
     <string name="date_yesterday">Ayer</string>
+    <string name="date_previous_month">Mes anterior</string>
+    <string name="date_next_month">Mes siguiente</string>
+    <string name="transaction_deleted">Movimiento eliminado</string>
 
     <!-- Nuevo movimiento -->
     <string name="add_transaction_title">Nuevo movimiento</string>
+    <string name="edit_transaction_title">Editar movimiento</string>
+    <string name="field_date">Fecha</string>
+    <string name="field_note_placeholder">Nota</string>
+    <string name="transaction_delete">Eliminar movimiento</string>
+    <string name="transaction_delete_title">¿Eliminar este movimiento?</string>
+    <string name="transaction_delete_message">Desaparece de la lista y de los totales al momento. Puedes deshacerlo desde la lista durante unos segundos.</string>
     <string name="kind_expense">Gasto</string>
     <string name="kind_income">Ingreso</string>
     <string name="field_account">Cuenta</string>

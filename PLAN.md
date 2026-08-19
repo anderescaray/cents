@@ -453,9 +453,9 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
 | Design system | iOS-flavoured tokens and components — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
-| Transactions | List grouped by day with a monthly summary, and an entry form with a minor-unit keypad that writes to the database |
+| Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
-| Tests | 65, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 76, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -487,11 +487,14 @@ serial — this is still the single-agent phase.
         first-run step that asks for one account before anything else. Decide this when
         `feat/accounts` is planned.
 
-- [ ] **`feat/transaction-edit`** — tap a row to edit or delete it. Delete asks for
+- [x] **`feat/transaction-edit`** — tap a row to edit or delete it. Delete asks for
       confirmation and offers Undo (rule 7). Also add the two fields the entry form is
       missing: **date picker** (it is hardcoded to today) and **note input**.
       *Done when:* a wrong amount can be corrected and a mistake removed, without touching
-      the database by hand.
+      the database by hand. **Done.** Adding and editing are one screen
+      (`ui/feature/transactionform`), the date picker is an iOS-style month grid that
+      starts the week where the device locale says, and the undo lives in a banner on the
+      list, fed by an in-memory buffer that is deliberately not persisted.
 - [ ] **`feat/accounts`** — the Accounts tab for real: list with balances, create, edit,
       archive, and an account detail showing only its movements plus its own income and
       expenses.
@@ -505,8 +508,6 @@ before that, and do not parallelize before that.
 
 ## C4. Known gaps, so they are not mistaken for bugs
 
-- The entry form always uses **today's date** and does not expose the note field, although
-  the view model already supports both. First item of `feat/transaction-edit`.
 - **Installs made before `feat/categories` still hold the eleven categories the app used
   to seed.** Nothing removes them automatically, because deleting rows that may already
   classify movements is the owner's call: they can be deleted or archived one by one in
@@ -526,6 +527,13 @@ before that, and do not parallelize before that.
   appears.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
+- **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note
+  and classification are restored exactly; only the internal bookkeeping timestamp moves,
+  and nothing in the app reads it. It would take a repository method that carries the
+  original instant to preserve it.
+- **The undo window is six seconds and lives in memory.** Leaving the list or closing the
+  app forgets the deletion. That is the intent: an undo that survives a restart is a
+  recycle bin, which is a different feature.
 
 ## C5. What only the owner can do
 
@@ -540,7 +548,7 @@ else on the phone (rule 13). So these are always handed back:
 
 ## Next concrete action
 
-**`feat/transaction-edit`**, as described in C3: tapping a row opens it for editing or
-deletion, with a confirmation and an Undo, and the entry form finally gets its date picker
-and note field. It is next because a wrong amount currently cannot be corrected from
-inside the app at all.
+**`feat/accounts`**, as described in C3: the Accounts tab for real — list with balances,
+create, edit, archive, and an account detail showing only its movements. It is also where
+the seeded *Cash* account gets decided (see the note in the `feat/categories` entry), so
+plan that first-run question with it.

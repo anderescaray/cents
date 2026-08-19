@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,11 +19,11 @@ import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
-import io.github.anderescaray.cents.ui.feature.addtransaction.AddTransactionScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
+import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
@@ -100,35 +101,49 @@ private fun CentsNavHost(navController: NavHostController) {
             )
         },
     ) {
-        composable<Destination.Transactions> {
-            TransactionsScreen(
-                onAddTransaction = { navController.navigate(Destination.AddTransaction) },
-            )
-        }
-        composable<Destination.AddTransaction> {
-            AddTransactionScreen(
-                onDone = { navController.popBackStack() },
-                // Straight to the editor: with nothing to pick from, the list would be one
-                // more empty screen between the owner and their first category.
-                onCreateCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
-            )
-        }
+        transactionRoutes(navController)
+        categoryRoutes(navController)
+
         composable<Destination.Accounts> { AccountsScreen() }
         composable<Destination.Reports> { ReportsScreen() }
         composable<Destination.Settings> {
             SettingsScreen(onOpenCategories = { navController.navigate(Destination.Categories) })
         }
-        composable<Destination.Categories> {
-            CategoriesScreen(
-                onBack = { navController.popBackStack() },
-                onNewCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
-                onEditCategory = { id, kind ->
-                    navController.navigate(Destination.CategoryEdit(categoryId = id, kind = kind))
-                },
-            )
-        }
-        composable<Destination.CategoryEdit> {
-            CategoryEditScreen(onDone = { navController.popBackStack() })
-        }
+    }
+}
+
+/** The movement list and the form that adds to and edits it. */
+private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) {
+    composable<Destination.Transactions> {
+        TransactionsScreen(
+            onAddTransaction = { navController.navigate(Destination.TransactionForm()) },
+            onOpenTransaction = { id ->
+                navController.navigate(Destination.TransactionForm(transactionId = id))
+            },
+        )
+    }
+    composable<Destination.TransactionForm> {
+        TransactionFormScreen(
+            onDone = { navController.popBackStack() },
+            // Straight to the editor: with nothing to pick from, the list would be one
+            // more empty screen between the owner and their first category.
+            onCreateCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
+        )
+    }
+}
+
+/** Managing the owner's categories, and editing one of them. */
+private fun NavGraphBuilder.categoryRoutes(navController: NavHostController) {
+    composable<Destination.Categories> {
+        CategoriesScreen(
+            onBack = { navController.popBackStack() },
+            onNewCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
+            onEditCategory = { id, kind ->
+                navController.navigate(Destination.CategoryEdit(categoryId = id, kind = kind))
+            },
+        )
+    }
+    composable<Destination.CategoryEdit> {
+        CategoryEditScreen(onDone = { navController.popBackStack() })
     }
 }

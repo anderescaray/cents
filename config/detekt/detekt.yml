@@ -8,7 +8,10 @@ complexity:
   TooManyFunctions:
     # A @Dao is a query surface, not a class with responsibilities: one function per
     # query is the point of it. Composables aggregate other composables by design.
-    ignoreAnnotated: ['Composable', 'Dao']
+    # A view model is the same shape of thing: unidirectional data flow asks for one
+    # function per user intent, so a form with many fields has many of them without
+    # thereby having many responsibilities.
+    ignoreAnnotated: ['Composable', 'Dao', 'HiltViewModel']
 
 naming:
   FunctionNaming:

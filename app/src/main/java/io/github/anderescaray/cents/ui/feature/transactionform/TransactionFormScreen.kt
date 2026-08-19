@@ -1,7 +1,9 @@
-package io.github.anderescaray.cents.ui.feature.addtransaction
+package io.github.anderescaray.cents.ui.feature.transactionform
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -11,11 +13,14 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -23,25 +28,30 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.components.CentsAlert
+import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.relativeLabel
+import java.time.LocalDate
 
 @Composable
-fun AddTransactionScreen(
+fun TransactionFormScreen(
     onDone: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
-    viewModel: AddTransactionViewModel = hiltViewModel(),
+    viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(state.saved) {
-        if (state.saved) onDone()
+    LaunchedEffect(state.finished) {
+        if (state.finished) onDone()
     }
 
     Column(
@@ -52,7 +62,10 @@ fun AddTransactionScreen(
                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
     ) {
         CentsModalBar(
-            title = stringResource(R.string.add_transaction_title),
+            title =
+                stringResource(
+                    if (state.isEditing) R.string.edit_transaction_title else R.string.add_transaction_title,
+                ),
             cancelLabel = stringResource(R.string.action_cancel),
             onCancel = onDone,
             confirmLabel = stringResource(R.string.action_save),
@@ -78,13 +91,34 @@ fun AddTransactionScreen(
                 ),
         )
     }
+
+    if (state.pickingDate) {
+        CentsDatePicker(
+            selected = state.date,
+            today = LocalDate.now(),
+            onSelect = viewModel::setDate,
+            onDismiss = viewModel::dismissDatePicker,
+        )
+    }
+
+    if (state.confirmingDeletion) {
+        CentsAlert(
+            title = stringResource(R.string.transaction_delete_title),
+            message = stringResource(R.string.transaction_delete_message),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = viewModel::confirmDeletion,
+            dismissLabel = stringResource(R.string.action_cancel),
+            onDismiss = viewModel::cancelDeletion,
+            destructive = true,
+        )
+    }
 }
 
 /** Amount, direction, account and category: everything above the keypad. */
 @Composable
 private fun FormFields(
-    state: AddTransactionUiState,
-    viewModel: AddTransactionViewModel,
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
     onCreateCategory: (CategoryKind) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -116,30 +150,90 @@ private fun FormFields(
             )
         }
 
-        item(key = "category") {
-            if (state.categories.isEmpty()) {
-                // Nothing is seeded, so an empty list is the normal first-run state: the
-                // way out of it is creating a category, not staring at an empty box.
-                CentsListSection(
-                    header = stringResource(R.string.field_category),
-                    footer = stringResource(R.string.field_category_empty_footer),
-                ) {
-                    CentsListRow(
-                        title = stringResource(R.string.field_category_empty),
-                        showChevron = true,
-                        showSeparator = false,
-                        onClick = { onCreateCategory(state.kind.toCategoryKind()) },
-                    )
-                }
-            } else {
-                PickerSection(
-                    header = stringResource(R.string.field_category),
-                    footer = stringResource(R.string.field_category_footer),
-                    options = state.categories.map { it.id to it.name },
-                    selectedId = state.selectedCategoryId,
-                    onSelect = { id ->
-                        viewModel.selectCategory(id.takeIf { it != state.selectedCategoryId })
-                    },
+        details(state = state, viewModel = viewModel)
+
+        categorySection(state = state, viewModel = viewModel, onCreateCategory = onCreateCategory)
+
+        if (state.isEditing) {
+            deleteAction(onDelete = viewModel::requestDeletion)
+        }
+    }
+}
+
+/** When it happened and what it was for: the two fields the keypad cannot type. */
+private fun LazyListScope.details(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+) {
+    item(key = "details") {
+        CentsListSection {
+            CentsListRow(
+                title = stringResource(R.string.field_date),
+                value = state.date.relativeLabel(),
+                showChevron = true,
+                onClick = viewModel::openDatePicker,
+            )
+            CentsTextField(
+                value = state.note,
+                onValueChange = viewModel::setNote,
+                placeholder = stringResource(R.string.field_note_placeholder),
+                modifier = Modifier.testTag(NOTE_FIELD_TAG),
+            )
+        }
+    }
+}
+
+private fun LazyListScope.categorySection(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+    onCreateCategory: (CategoryKind) -> Unit,
+) {
+    item(key = "category") {
+        if (state.categories.isEmpty()) {
+            // Nothing is seeded, so an empty list is the normal first-run state: the way
+            // out of it is creating a category, not staring at an empty box.
+            CentsListSection(
+                header = stringResource(R.string.field_category),
+                footer = stringResource(R.string.field_category_empty_footer),
+            ) {
+                CentsListRow(
+                    title = stringResource(R.string.field_category_empty),
+                    showChevron = true,
+                    showSeparator = false,
+                    onClick = { onCreateCategory(state.kind.toCategoryKind()) },
+                )
+            }
+        } else {
+            PickerSection(
+                header = stringResource(R.string.field_category),
+                footer = stringResource(R.string.field_category_footer),
+                options = state.categories.map { it.id to it.name },
+                selectedId = state.selectedCategoryId,
+                onSelect = { id ->
+                    viewModel.selectCategory(id.takeIf { it != state.selectedCategoryId })
+                },
+            )
+        }
+    }
+}
+
+/** Removing a movement that should never have been recorded. */
+private fun LazyListScope.deleteAction(onDelete: () -> Unit) {
+    item(key = "delete") {
+        CentsListSection {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(CentsTheme.colors.groupedCard)
+                        .clickable(onClick = onDelete)
+                        .padding(vertical = CentsDimens.spacingM),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.transaction_delete),
+                    style = CentsTheme.typography.body,
+                    color = CentsTheme.colors.destructive,
                 )
             }
         }
@@ -147,7 +241,7 @@ private fun FormFields(
 }
 
 @Composable
-private fun AmountHeader(state: AddTransactionUiState) {
+private fun AmountHeader(state: TransactionFormUiState) {
     Text(
         text = MoneyFormatter.format(state.amount),
         style = CentsTheme.typography.largeTitle,
@@ -187,11 +281,5 @@ private fun PickerSection(
     }
 }
 
-/** The categories a movement of this direction can be classified with. */
-private fun TransactionKind.toCategoryKind(): CategoryKind =
-    when (this) {
-        TransactionKind.INCOME -> CategoryKind.INCOME
-        TransactionKind.EXPENSE -> CategoryKind.EXPENSE
-    }
-
 private const val SELECTED_MARK = "✓"
+internal const val NOTE_FIELD_TAG = "transactionNote"

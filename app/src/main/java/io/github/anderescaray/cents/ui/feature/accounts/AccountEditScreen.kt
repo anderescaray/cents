@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.ui.components.CentsActionRow
-import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsColorPicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -95,13 +93,7 @@ fun AccountEditScreen(
         )
     }
 
-    if (state.confirmingRemoval) {
-        RemovalAlert(
-            state = state,
-            onConfirm = viewModel::confirmRemoval,
-            onDismiss = viewModel::cancelRemoval,
-        )
-    }
+    RemovalDialogs(state = state, viewModel = viewModel)
 }
 
 @Composable
@@ -140,7 +132,12 @@ private fun AccountForm(
         colorSection(selected = state.colorArgb, onSelect = viewModel::setColor)
 
         if (!state.isNew) {
-            accountActions(state = state, onRestore = viewModel::restore, onRemove = viewModel::requestRemoval)
+            accountActions(
+                state = state,
+                onArchive = viewModel::archive,
+                onRestore = viewModel::restore,
+                onRemove = viewModel::requestRemoval,
+            )
         }
     }
 }
@@ -254,70 +251,36 @@ private fun LazyListScope.colorSection(
     }
 }
 
+/**
+ * The two different intentions, side by side rather than one hidden inside the other.
+ *
+ * Archive means keep everything and stop offering the account. Delete means the account
+ * goes — and if it holds movements, [RemovalDialogs] asks what should become of them.
+ * Delete is offered even for an archived account, because it is now genuinely able to
+ * finish the job rather than archive something twice.
+ */
 private fun LazyListScope.accountActions(
     state: AccountEditUiState,
+    onArchive: () -> Unit,
     onRestore: () -> Unit,
     onRemove: () -> Unit,
 ) {
     item(key = "actions") {
-        // An archived account that holds movements has nothing left for "delete" to do:
-        // archiving it again would change nothing at all.
-        val removable = !state.archived || state.removal == AccountRemoval.OUTRIGHT
-
-        CentsListSection(
-            footer =
-                stringResource(
-                    if (removable) R.string.account_delete_footer else R.string.accounts_archived_footer,
-                ),
-        ) {
-            if (state.archived) {
-                CentsActionRow(
-                    label = stringResource(R.string.account_restore),
-                    onClick = onRestore,
-                    showSeparator = removable,
-                )
-            }
-            if (removable) {
-                CentsActionRow(
-                    label = stringResource(R.string.account_delete),
-                    onClick = onRemove,
-                    destructive = true,
-                )
-            }
+        CentsListSection(footer = stringResource(R.string.account_delete_footer)) {
+            CentsActionRow(
+                label =
+                    stringResource(
+                        if (state.archived) R.string.account_restore else R.string.account_archive,
+                    ),
+                onClick = if (state.archived) onRestore else onArchive,
+            )
+            CentsActionRow(
+                label = stringResource(R.string.account_delete),
+                onClick = onRemove,
+                destructive = true,
+            )
         }
     }
-}
-
-/** Says whether the account is about to be deleted or archived, and why. */
-@Composable
-private fun RemovalAlert(
-    state: AccountEditUiState,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val outright = state.removal == AccountRemoval.OUTRIGHT
-    CentsAlert(
-        title =
-            stringResource(
-                if (outright) R.string.account_delete_title else R.string.account_archive_title,
-                state.name,
-            ),
-        message =
-            if (outright) {
-                stringResource(R.string.account_delete_message)
-            } else {
-                pluralStringResource(
-                    R.plurals.account_archive_message,
-                    state.transactionCount,
-                    state.transactionCount,
-                )
-            },
-        confirmLabel = stringResource(if (outright) R.string.action_delete else R.string.action_archive),
-        onConfirm = onConfirm,
-        dismissLabel = stringResource(R.string.action_cancel),
-        onDismiss = onDismiss,
-        destructive = outright,
-    )
 }
 
 /** A short list rather than every currency on earth: the device's, plus the usual ones. */

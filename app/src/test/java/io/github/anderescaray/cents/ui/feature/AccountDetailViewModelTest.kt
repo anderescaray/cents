@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,7 +51,13 @@ class AccountDetailViewModelTest {
 
     private fun detailFor(accountId: Long) =
         AccountDetailViewModel(
-            accountRepository = RoomAccountRepository(database.accountDao(), clock),
+            accountRepository =
+                RoomAccountRepository(
+                    database.accountDao(),
+                    database.transactionDao(),
+                    database,
+                    clock,
+                ),
             transactionRepository = RoomTransactionRepository(database.transactionDao(), clock),
             savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
             clock = clock,
@@ -152,6 +159,26 @@ class AccountDetailViewModelTest {
 
             detailFor(id).uiState.test {
                 assertEquals(true, awaitStateThat { !it.isLoading }.isEmpty)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an account that is deleted while open reports itself as gone`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Doomed"))
+            database.transactionDao().insert(transaction(accountId = id))
+            val viewModel = detailFor(id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.account != null }
+
+                database.transactionDao().deleteByAccount(id)
+                database.accountDao().deleteById(id)
+
+                // The screen watching this pops itself rather than sitting on a fallback
+                // title with no balance, waiting to be backed out of by hand.
+                assertTrue(awaitStateThat { it.isGone }.isGone)
                 cancelAndIgnoreRemainingEvents()
             }
         }

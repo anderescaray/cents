@@ -38,11 +38,15 @@
     <string name="account_held">Dinero disponible</string>
     <string name="account_owed">Dinero debido</string>
     <string name="account_delete">Eliminar cuenta</string>
+    <string name="account_archive">Archivar cuenta</string>
     <string name="account_restore">Restaurar cuenta</string>
-    <string name="account_delete_footer">Una cuenta sin movimientos se elimina. La que contiene movimientos se archiva, para que su historial siga como estaba.</string>
+    <string name="account_delete_footer">Archivar lo conserva todo y deja de ofrecer la cuenta. Eliminar la borra: si contiene movimientos, tú eliges qué pasa con ellos.</string>
+    <string name="account_delete_reassign">Mover los movimientos a otra cuenta</string>
+    <string name="account_delete_reassign_impossible">No hay otra cuenta en esta moneda a la que moverlos.</string>
+    <string name="account_reassign_title">¿A dónde los movemos?</string>
+    <string name="account_delete_everything_title">¿Eliminar «%1$s» y sus movimientos?</string>
     <string name="account_delete_title">¿Eliminar «%1$s»?</string>
     <string name="account_delete_message">No contiene ningún movimiento, así que se puede borrar del todo.</string>
-    <string name="account_archive_title">¿Archivar «%1$s»?</string>
     <string name="action_edit">Editar</string>
     <string name="field_account_empty">Crea tu primera cuenta</string>
     <string name="field_account_empty_footer">Un movimiento tiene que vivir en una cuenta, así que hay algo que hacer antes.</string>

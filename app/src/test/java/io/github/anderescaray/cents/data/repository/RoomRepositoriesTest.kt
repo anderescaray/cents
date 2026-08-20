@@ -10,10 +10,12 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,7 +37,7 @@ class RoomRepositoriesTest {
     @Before
     fun setUp() {
         database = createTestDatabase()
-        accounts = RoomAccountRepository(database.accountDao(), clock)
+        accounts = RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock)
         categories = RoomCategoryRepository(database.categoryDao(), database, clock)
         transactions = RoomTransactionRepository(database.transactionDao(), clock)
     }
@@ -185,6 +187,71 @@ class RoomRepositoriesTest {
             transactions.deleteTransaction(id)
 
             assertNull(transactions.findById(id))
+        }
+
+    @Test
+    fun `reassigning carries the movements over and lets the emptied account go`() =
+        runTest {
+            val from = database.accountDao().insert(account(name = "Old bank", openingBalanceMinor = 5_000))
+            val to = database.accountDao().insert(account(name = "New bank", openingBalanceMinor = 0))
+            transactions.addTransaction(newTransaction(from, TransactionKind.INCOME, 200_000))
+            transactions.addTransaction(newTransaction(from, TransactionKind.EXPENSE, 4_599))
+
+            accounts.reassignAndDelete(id = from, targetId = to)
+
+            assertEquals(listOf("New bank"), accounts.observeAccounts(includeArchived = true).first().map { it.name })
+            // Every movement is intact and now counted in the account that received them.
+            // The opening balance does not travel: it belonged to the account, not to them.
+            assertEquals(
+                Money(195_401, "EUR"),
+                accounts
+                    .observeAccountsWithBalances()
+                    .first()
+                    .single()
+                    .balance,
+            )
+        }
+
+    @Test
+    fun `reassigning refuses an account as its own destination`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Only account"))
+            transactions.addTransaction(newTransaction(id, TransactionKind.EXPENSE, 1_000))
+
+            assertThrows(IllegalArgumentException::class.java) {
+                runBlocking { accounts.reassignAndDelete(id = id, targetId = id) }
+            }
+
+            // The guard matters because the query would have deleted the account after
+            // pointing its movements at it: a foreign key violation, or worse, silence.
+            assertEquals(1, accounts.observeAccounts().first().size)
+            assertEquals(1, database.transactionDao().count())
+        }
+
+    @Test
+    fun `deleting an account with its movements takes only its own`() =
+        runTest {
+            val doomed = database.accountDao().insert(account(name = "Wrong account"))
+            val kept = database.accountDao().insert(account(name = "Real account"))
+            transactions.addTransaction(newTransaction(doomed, TransactionKind.EXPENSE, 3_000))
+            transactions.addTransaction(newTransaction(doomed, TransactionKind.INCOME, 8_000))
+            transactions.addTransaction(newTransaction(kept, TransactionKind.EXPENSE, 999))
+
+            accounts.deleteAccountWithTransactions(doomed)
+
+            assertEquals(
+                listOf("Real account"),
+                accounts.observeAccounts(includeArchived = true).first().map { it.name },
+            )
+            assertEquals(1, database.transactionDao().count())
+            assertEquals(
+                listOf(999L),
+                database
+                    .transactionDao()
+                    .observeByAccount(kept)
+                    .first()
+                    .map { it.amountMinor },
+            )
         }
 
     private fun newTransaction(

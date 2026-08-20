@@ -3,8 +3,20 @@
         <item quantity="one">La usa un movimiento, así que eliminarla cambiaría un historial ya registrado. Dejará de ofrecerse y ese movimiento la conserva.</item>
         <item quantity="other">La usan %1$d movimientos, así que eliminarla cambiaría un historial ya registrado. Dejará de ofrecerse y esos movimientos la conservan.</item>
     </plurals>
-    <plurals name="account_archive_message">
-        <item quantity="one">Contiene un movimiento, así que eliminarla se lo llevaría por delante. Deja de ofrecerse y lo conserva.</item>
-        <item quantity="other">Contiene %1$d movimientos, así que eliminarla se los llevaría por delante. Deja de ofrecerse y los conserva todos.</item>
+    <plurals name="account_delete_choice_message">
+        <item quantity="one">Contiene un movimiento, y un movimiento no puede existir sin cuenta. Elige qué pasa con él.</item>
+        <item quantity="other">Contiene %1$d movimientos, y un movimiento no puede existir sin cuenta. Elige qué pasa con ellos.</item>
+    </plurals>
+    <plurals name="account_delete_with_movements">
+        <item quantity="one">Eliminar la cuenta y su movimiento</item>
+        <item quantity="other">Eliminar la cuenta y sus %1$d movimientos</item>
+    </plurals>
+    <plurals name="account_reassign_message">
+        <item quantity="one">El movimiento pasa a esa cuenta y conserva todo lo demás: importe, fecha y categoría.</item>
+        <item quantity="other">Los %1$d movimientos pasan a esa cuenta y conservan todo lo demás: importes, fechas y categorías.</item>
+    </plurals>
+    <plurals name="account_delete_everything_message">
+        <item quantity="one">Un movimiento se va con ella, definitivamente. Dejará de contar en cualquier total o gráfico, y esto no se puede deshacer.</item>
+        <item quantity="other">%1$d movimientos se van con ella, definitivamente. Dejarán de contar en cualquier total o gráfico, y esto no se puede deshacer.</item>
     </plurals>
 </resources>

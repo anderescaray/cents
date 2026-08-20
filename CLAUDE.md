@@ -178,10 +178,13 @@ A full local run of what CI checks, worth doing before opening a PR:
 **Phase 1 — in progress.** Recording money works end to end: the Room schema, the domain
 and repository layers, the iOS-flavoured design system and navigation, a transaction list
 grouped by day with a monthly summary, one form that adds and edits movements (keypad,
-date picker, note, delete with undo), category management with nothing seeded — every
-category is one the owner created — and the Accounts tab with balances computed from the
-movements behind them.
-99 tests run on the JVM, so CI covers the database and the UI without a device.
+date picker, note, delete with undo), category management, and the Accounts tab with
+balances computed from the movements behind them.
+
+**Nothing is seeded.** A fresh install has no accounts and no categories: every row in the
+app is one the owner typed. Deleting an account that holds movements asks what should become
+of them — move them elsewhere, or delete them too — rather than quietly archiving it.
+107 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Open questions that only the owner can settle live in
 [`DECISIONS.md`](DECISIONS.md)** — read it at the start of every session, act on anything

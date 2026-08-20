@@ -40,11 +40,15 @@
     <string name="account_held">Money held</string>
     <string name="account_owed">Money owed</string>
     <string name="account_delete">Delete account</string>
+    <string name="account_archive">Archive account</string>
     <string name="account_restore">Restore account</string>
-    <string name="account_delete_footer">An account with no movements is deleted. One that holds movements is archived instead, so its history stays as it was.</string>
+    <string name="account_delete_footer">Archiving keeps everything and stops offering the account. Deleting removes it — and if it holds movements, you choose what becomes of them.</string>
     <string name="account_delete_title">Delete \u201c%1$s\u201d?</string>
     <string name="account_delete_message">It holds no movements, so it can be removed for good.</string>
-    <string name="account_archive_title">Archive \u201c%1$s\u201d?</string>
+    <string name="account_delete_reassign">Move the movements to another account</string>
+    <string name="account_delete_reassign_impossible">There is no other account in this currency to move them to.</string>
+    <string name="account_reassign_title">Move them where?</string>
+    <string name="account_delete_everything_title">Delete \u201c%1$s\u201d and its movements?</string>
     <string name="action_edit">Edit</string>
     <string name="field_account_empty">Create your first account</string>
     <string name="field_account_empty_footer">A movement has to live in an account, so there is one thing to do first.</string>

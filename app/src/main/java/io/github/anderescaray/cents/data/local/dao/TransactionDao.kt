@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Update
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 import java.time.LocalDate
 
 @Dao
@@ -121,6 +122,27 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
+
+    /**
+     * Moves every movement out of one account and into another, so the first one can then
+     * be deleted without taking its history with it.
+     *
+     * The caller is responsible for the two accounts sharing a currency. A movement carries
+     * its own [TransactionEntity.currency], denormalized from the account it was recorded
+     * in, and the balance query sums the amounts and labels the result with the *account's*
+     * currency — so moving euros into a dollar account would not convert anything, it would
+     * quietly make that account's balance a sum of two different currencies.
+     */
+    @Query("UPDATE transactions SET accountId = :toId, updatedAt = :updatedAt WHERE accountId = :fromId")
+    suspend fun reassignAccount(
+        fromId: Long,
+        toId: Long,
+        updatedAt: Instant,
+    ): Int
+
+    /** Every movement in one account, for the deletion that is meant to take them along. */
+    @Query("DELETE FROM transactions WHERE accountId = :accountId")
+    suspend fun deleteByAccount(accountId: Long): Int
 }
 
 /** A transaction joined with the names a list row needs, resolved in SQL. */

@@ -29,6 +29,8 @@ class RoomAccountRepository
     @Inject
     constructor(
         private val accountDao: AccountDao,
+        private val transactionDao: TransactionDao,
+        private val database: CentsDatabase,
         private val clock: Clock,
     ) : AccountRepository {
         override fun observeAccounts(includeArchived: Boolean): Flow<List<Account>> =
@@ -77,6 +79,28 @@ class RoomAccountRepository
 
         override suspend fun deleteAccount(id: Long) {
             accountDao.deleteById(id)
+        }
+
+        override suspend fun reassignAndDelete(
+            id: Long,
+            targetId: Long,
+        ) {
+            require(id != targetId) { "An account cannot be reassigned to itself" }
+            // One transaction: movements left pointing at a row that is already gone is
+            // exactly the state the RESTRICT foreign key exists to make impossible.
+            database.withTransaction {
+                transactionDao.reassignAccount(fromId = id, toId = targetId, updatedAt = clock.instant())
+                accountDao.deleteById(id)
+            }
+        }
+
+        override suspend fun deleteAccountWithTransactions(id: Long) {
+            // Same reason, opposite direction: the movements go first, because the foreign
+            // key refuses to let the account go while any of them still points at it.
+            database.withTransaction {
+                transactionDao.deleteByAccount(id)
+                accountDao.deleteById(id)
+            }
         }
 
         override suspend fun countTransactions(id: Long): Int = accountDao.countTransactions(id)

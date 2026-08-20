@@ -61,14 +61,30 @@ Understanding these seven entities is understanding the whole app.
   wrong and every statistic in the app is inflated.
 - **Categories can be archived but not deleted** once they have transactions. Deleting
   them would orphan history and break the charts for past months.
+- **An account that holds movements can be deleted, but only on purpose.** Unlike a
+  category, an account cannot be detached from a movement — `transactions.accountId` is
+  `RESTRICT`, and a movement with no account is not a movement. So the app asks which of two
+  things "delete" means: move the movements to another account and delete this one, or
+  delete both. The second removes recorded history and has no undo, so it is reached through
+  a sheet and then a second confirmation naming how many movements go with it
+  (`DECISIONS.md` D7). It is the one deliberate exception to "history is immutable", and it
+  exists because an account added by mistake and used before the mistake was noticed would
+  otherwise haunt every picker forever.
 - A **recurring rule is a template, not a movement.** Each period it generates a real
   `Transaction` carrying its `ruleId`. Deactivating the rule stops future ones and
   **never deletes past ones** (see §4.4).
 - An **account balance is a computed value** (opening balance + movements), not a stored
   mutable field. A mutable field drifts out of sync the moment you edit an old
   transaction. It is computed in SQL and, if performance demands it, cached derivatively.
-- Each account has **its own currency**. Totals across currencies require conversion and
-  are labelled as approximate.
+- **The app works in one currency: the device's.** Every account and every movement is
+  denominated in it, and the app never asks which — there is no picker (`DECISIONS.md` D2,
+  answered 2026-08-21). `Money` still carries an ISO-4217 code and still refuses to add
+  euros to dollars, but that is a guard rail against a wrong number, not support for a
+  second currency. **No conversion step is built**, so where two currencies somehow coexist
+  the app shows *no total at all* rather than an approximate one. An earlier version of this
+  document promised approximate cross-currency totals; that is no longer what gets built.
+  The one place conversion returns is §4.5, where a holding priced in dollars needs a rate
+  whatever the owner spends in.
 
 ## 4. Features
 
@@ -96,11 +112,13 @@ Priority: **P0** = required for the app to be worth using · **P1** = important 
 
 ### 4.2 Accounts and transfers — P0
 
-- Multiple accounts, each with its own type, currency and balance.
+- Multiple accounts, each with its own type, colour and balance, all in the one currency
+  the app works in (see §3).
 - Account detail view showing only its movements and its balance over time.
 - Transfers between my own accounts, with an optional fee, excluded from expense reports.
 - Global filter: view "all accounts" or one specific account.
-- Archive closed accounts without losing their history.
+- Archive closed accounts without losing their history — and, separately, delete one
+  outright, choosing what becomes of its movements (see §3).
 
 ### 4.3 Analytics and charts — P0
 
@@ -169,7 +187,11 @@ not only when they are charged — otherwise the budget flatters you early in th
 - Price refresh on app open, on pull-to-refresh, and in the background every N minutes
   (configurable, with a Wi-Fi-only option).
 - Portfolio value over time.
-- Currency conversion for USD-denominated holdings.
+- Currency conversion for USD-denominated holdings. **This is the one place conversion
+  comes back**, and it is not a reversal of §3: a share priced in dollars needs a rate no
+  matter what the owner spends in, which is a different problem from an account they spend
+  from. It gets designed here, with where the rate comes from and how an approximate total
+  is labelled, rather than being assumed everywhere else.
 - Buy and sell records, with average cost recalculation.
 
 **See the feasibility analysis in §5.1: "real time" carries important caveats.**

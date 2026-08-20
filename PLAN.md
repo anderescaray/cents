@@ -59,9 +59,9 @@ Move-Item "C:\Users\ander\OneDrive\Desktop\mi app" C:\dev\cents
 
 ## A2. Android Studio
 
-It bundles the **Android SDK**, the **emulator**, `adb` and **its own JDK 21** — which
-solves the problem of the locally installed Java 11 being too old for modern Android. Do
-not install a separate JDK.
+It bundles the **Android SDK**, the **emulator**, `adb` and **its own JDK** — the JetBrains
+Runtime, currently 25 — which solves the problem of the locally installed Java 11 being too
+old for modern Android. Do not install a separate JDK.
 
 ```powershell
 winget install --id Google.AndroidStudio

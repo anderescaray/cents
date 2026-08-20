@@ -124,23 +124,58 @@ class AccountEditViewModelTest {
         }
 
     @Test
-    fun `the currency is fixed once the account holds movements`() =
+    fun `an account keeps the currency it was created with, and nothing can change it`() =
         runTest {
-            val id = database.accountDao().insert(account(name = "Checking", currency = "EUR"))
-            database.transactionDao().insert(transaction(accountId = id))
+            // Predates D2: an install could once create an account in another currency, and
+            // the amounts recorded in it are real. The editor shows it and leaves it alone
+            // rather than restating a year of dollars as euros.
+            val id = database.accountDao().insert(account(name = "Old dollars", currency = "USD"))
+            database.transactionDao().insert(transaction(accountId = id, currency = "USD"))
             val editor = editorFor(id)
 
             editor.uiState.test {
-                val state = awaitStateThat { it.transactionCount > 0 }
-                assertTrue(state.currencyLocked)
+                assertEquals("USD", awaitStateThat { it.transactionCount > 0 }.currency)
 
-                // The movements are already denominated in euros: changing it here would
-                // restate every one of them, so the call does nothing at all.
-                editor.setCurrency("USD")
-                expectNoEvents()
-                assertEquals("EUR", editor.uiState.value.currency)
+                editor.setName("Renamed")
+                editor.save()
+                awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
+
+            assertEquals(
+                "USD",
+                accounts
+                    .observeAccounts()
+                    .first()
+                    .single()
+                    .currency,
+            )
+        }
+
+    @Test
+    fun `a new account takes the device currency, even when the name is typed first`() =
+        runTest {
+            val editor = editorFor()
+
+            editor.uiState.test {
+                // Typing immediately is the realistic order, and it used to be the bug:
+                // the currency was applied only if nothing had been edited yet, so a name
+                // typed before the accounts query returned left the account on the "EUR"
+                // fallback. With no picker left (D2), nothing could then correct it.
+                editor.setName("Checking")
+                editor.save()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                defaultDeviceCurrency(),
+                accounts
+                    .observeAccounts()
+                    .first()
+                    .single()
+                    .currency,
+            )
         }
 
     @Test
@@ -150,7 +185,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 assertEquals(RemovalStep.CONFIRM_EMPTY, awaitStateThat { it.removing }.removalStep)
 
@@ -171,7 +206,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 val state = awaitStateThat { it.removing }
 
@@ -197,7 +232,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
 
@@ -232,7 +267,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
 
@@ -270,7 +305,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 val state = awaitStateThat { it.removing }
                 assertEquals(RemovalStep.CHOOSE, state.removalStep)
@@ -294,7 +329,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 val state = awaitStateThat { it.removing }
 
@@ -314,7 +349,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.archive()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
@@ -353,4 +388,12 @@ class AccountEditViewModelTest {
 
             assertEquals(listOf("Reopened"), accounts.observeAccounts().first().map { it.name })
         }
+
+    /** What the app is denominated in on the machine running the test. */
+    private fun defaultDeviceCurrency(): String =
+        runCatching {
+            java.util.Currency
+                .getInstance(java.util.Locale.getDefault())
+                .currencyCode
+        }.getOrDefault("EUR")
 }

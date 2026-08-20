@@ -490,7 +490,7 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Tests | 107, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 108, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -579,6 +579,32 @@ serial — this is still the single-agent phase.
       the editor it pushed to — a page with a fallback title, no balance and no way out but
       the back button. It now leaves by itself when its account is gone.
 
+- [x] **`chore/single-currency`** — the app stops offering a choice it will never honour.
+      Asked 2026-08-21, on reading the branch above: *"so you are preparing it for more than
+      one currency? I'm only going to use EUR always."*
+      - The account form had a **currency picker** offering EUR, USD, GBP, CHF and JPY. It
+        was the only way to reach a state D2 says the app will never resolve: with two
+        currencies in play the accounts list shows no total at all, movements cannot move
+        between accounts, and no conversion is coming. Offering the choice was offering a
+        trapdoor. It is now a **read-only row** showing the device's currency.
+      - **What stays, and why it is not the same thing.** `Money` still carries an
+        ISO-4217 code and still refuses to add euros to dollars (rule 2); the `currency`
+        columns stay in the schema; the accounts list still shows no total when its accounts
+        disagree; reassignment still only offers same-currency accounts. None of that is
+        multi-currency *support* — it is a guard rail that costs nothing and catches a class
+        of bug that would otherwise produce a confidently wrong number. Removing the columns
+        would need a migration and buy nothing, which is the same argument that kept
+        `parentId` after D3.
+      - **An install that predates this keeps whatever it has.** An account created in
+        dollars stays in dollars and its movements are left exactly as recorded — they are
+        real amounts, and restating them as euros would be inventing a rate.
+      *Done when:* the app never asks which currency, and never has to guess one. **Done.**
+      Found on the way: a new account could be stored in the fallback `"EUR"` rather than the
+      device's currency, because the currency was applied by a suspending `load()` and a form
+      saved quickly enough was read before it arrived. Harmless while a picker could correct
+      it; not harmless once the picker is gone. The currency is now resolved synchronously at
+      construction, since it never needed the database — only the colour did.
+
 - [ ] **`feat/swipe-to-delete`** — swipe a row sideways to delete it, as an alternative to
       opening it and tapping Delete. Requested 2026-08-20.
       - A new `CentsSwipeableRow` in `ui/components`, following the iOS pattern: dragging
@@ -631,11 +657,26 @@ before that, and do not parallelize before that.
   option shows disabled with the reason, and restoring that account makes it available.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
   schema has no tables for them yet: they arrive with a tested migration.
-- **Cross-currency totals are not supported, and that is now a decision** (D2, 2026-08-20:
-  one currency in practice). `Money` refuses arithmetic between currencies and will keep
-  refusing; the accounts list shows no total rather than an invented one. No conversion step
-  gets built. If a second currency ever becomes real, that is a new question rather than a
-  gap to quietly fill.
+- **The app works in one currency, and no longer offers a choice** (D2, and
+  `chore/single-currency`). The device's currency is used, shown read-only on the account
+  form. `Money` still carries a code and still refuses to add euros to dollars, the schema
+  still has the columns, and the accounts list still shows no total when its accounts
+  disagree — those are guard rails, not a feature, and they cost nothing. **What is not
+  built, and is not coming, is conversion.** If a second currency ever becomes real, that is
+  a new question with a rate and an "approximately" behind it, not a gap to quietly fill.
+- **Phase 4 will reopen this, and that is expected.** A broker account holding US stocks is
+  priced in dollars whatever the owner spends in, so investments need a rate anyway. That is
+  a different problem from "an account you spend from", and it gets designed then rather
+  than half-supported now.
+- **View-model tests race Room unless their waits name what they expect.** Several build the
+  view model in `setUp`, before the test inserts its rows, so the flows it collects emit in
+  stages — two inserts are two emissions. A wait like `awaitStateThat { it.categories
+  .isNotEmpty() }` can therefore pass while only the first row has arrived, and the
+  assertion after it reads a list that has not settled. Worse, `awaitStateThat { !it.isNew }`
+  waits for nothing at all: `isNew` is already false at construction for an existing row.
+  Both patterns cost a green CI run on 2026-08-21 and were fixed by having each wait name
+  the state it expects. **Write the wait as the condition you are about to assert on**, not
+  as a proxy for it.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note
@@ -741,7 +782,7 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**`feat/swipe-to-delete`**, as described in C3: a `CentsSwipeableRow` in the design system,
+**`feat/swipe-to-delete`**, the first unticked item in C3: a `CentsSwipeableRow` in the design system,
 wired into the category list and the account list at once, coexisting with the vertical drag
 that already reorders categories.
 

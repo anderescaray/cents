@@ -184,7 +184,10 @@ balances computed from the movements behind them.
 **Nothing is seeded.** A fresh install has no accounts and no categories: every row in the
 app is one the owner typed. Deleting an account that holds movements asks what should become
 of them — move them elsewhere, or delete them too — rather than quietly archiving it.
-107 tests run on the JVM, so CI covers the database and the UI without a device.
+The app works in **one currency**, the device's, and does not offer a choice: `Money` still
+carries its ISO-4217 code and still refuses cross-currency arithmetic, but that is a guard
+rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
+108 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Open questions that only the owner can settle live in
 [`DECISIONS.md`](DECISIONS.md)** — read it at the start of every session, act on anything

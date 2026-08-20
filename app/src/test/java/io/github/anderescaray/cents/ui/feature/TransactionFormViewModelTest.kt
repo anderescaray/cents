@@ -137,15 +137,23 @@ class TransactionFormViewModelTest {
             database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
 
             viewModel.uiState.test {
-                awaitStateThat { it.categories.isNotEmpty() }
+                // Two inserts are two Room emissions, and the view model was built before
+                // either. "Not empty" can therefore be true while only the expense category
+                // has arrived, so each wait names the list it expects rather than settling
+                // for any list at all — otherwise the assertions below race the database.
+                awaitStateThat { it.categories.map { category -> category.name } == listOf("Groceries") }
                 viewModel.selectCategory(expenseCategory)
                 awaitStateThat { it.selectedCategoryId == expenseCategory }
 
                 viewModel.setKind(TransactionKind.INCOME)
 
-                val state = awaitStateThat { it.kind == TransactionKind.INCOME }
+                val state =
+                    awaitStateThat {
+                        it.kind == TransactionKind.INCOME &&
+                            it.categories.map { category -> category.name } == listOf("Salary")
+                    }
+                // The point of the test: the expense category did not survive the switch.
                 assertNull(state.selectedCategoryId)
-                assertEquals(listOf("Salary"), state.categories.map { it.name })
                 cancelAndIgnoreRemainingEvents()
             }
         }

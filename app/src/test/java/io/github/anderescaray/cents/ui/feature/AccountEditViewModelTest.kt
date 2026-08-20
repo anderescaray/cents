@@ -185,7 +185,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 assertEquals(RemovalStep.CONFIRM_EMPTY, awaitStateThat { it.removing }.removalStep)
 
@@ -206,7 +206,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 val state = awaitStateThat { it.removing }
 
@@ -232,7 +232,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
 
@@ -267,7 +267,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
 
@@ -305,7 +305,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 val state = awaitStateThat { it.removing }
                 assertEquals(RemovalStep.CHOOSE, state.removalStep)
@@ -329,7 +329,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
                 val state = awaitStateThat { it.removing }
 
@@ -349,7 +349,7 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                awaitStateThat { !it.isNew }
+                awaitStateThat { it.name.isNotEmpty() }
                 editor.archive()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()

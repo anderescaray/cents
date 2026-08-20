@@ -352,7 +352,12 @@ class AccountEditViewModel
          * silently make that balance a sum of two currencies (rule 2).
          */
         private suspend fun reassignTargets(id: Long): List<Account> {
-            val currency = form.value.currency
+            // The account's own currency, read from the database rather than from the form.
+            // The form carries the device's currency from construction until load() replaces
+            // it with the account's, so filtering on it can offer the wrong accounts — or,
+            // when the two differ, none at all, which reads as "there is nowhere to move
+            // these" when there plainly is.
+            val currency = accountRepository.findById(id)?.currency ?: return emptyList()
             return accountRepository
                 .observeAccounts()
                 .first()

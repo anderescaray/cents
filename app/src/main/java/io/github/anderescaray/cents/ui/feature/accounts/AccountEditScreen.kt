@@ -41,8 +41,6 @@ import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
-import java.util.Currency
-import java.util.Locale
 
 /**
  * Creating or editing one account: what it is called, what kind it is, what it is
@@ -128,7 +126,7 @@ private fun AccountForm(
         }
 
         typeSection(selected = state.type, onSelect = viewModel::setType)
-        currencySection(state = state, onSelect = viewModel::setCurrency)
+        currencySection(currency = state.currency)
         colorSection(selected = state.colorArgb, onSelect = viewModel::setColor)
 
         if (!state.isNew) {
@@ -205,37 +203,23 @@ private fun LazyListScope.typeSection(
 }
 
 /**
- * The currency is chosen once. Movements are stored denominated in it, so changing it
- * later would silently restate every amount the account holds (rule 2).
+ * Shown, not chosen. Every account is in the one currency the app works in, taken from the
+ * device (`DECISIONS.md` D2).
+ *
+ * There used to be a picker here. It was the only way to reach a state the app has decided
+ * it will never resolve: with two currencies in play, the accounts list can show no total
+ * at all, movements cannot move between accounts, and no conversion is coming, because
+ * conversion needs a rate and an "approximately" that does not belong in a ledger. Offering
+ * the choice was offering a trapdoor.
  */
-private fun LazyListScope.currencySection(
-    state: AccountEditUiState,
-    onSelect: (String) -> Unit,
-) {
+private fun LazyListScope.currencySection(currency: String) {
     item(key = "currency") {
-        val options = currencyOptions(state.currency)
-        CentsListSection(
-            header = stringResource(R.string.account_currency_header),
-            footer = stringResource(R.string.account_currency_locked).takeIf { state.currencyLocked },
-        ) {
-            if (state.currencyLocked) {
-                CentsListRow(
-                    title = stringResource(R.string.account_currency_header),
-                    value = state.currency,
-                    showSeparator = false,
-                )
-            } else {
-                options.forEachIndexed { index, code ->
-                    CentsListRow(
-                        title = code,
-                        subtitle = currencyName(code),
-                        value = if (code == state.currency) SELECTED_MARK else null,
-                        valueColor = CentsTheme.colors.accent,
-                        showSeparator = index != options.lastIndex,
-                        onClick = { onSelect(code) },
-                    )
-                }
-            }
+        CentsListSection(footer = stringResource(R.string.account_currency_footer)) {
+            CentsListRow(
+                title = stringResource(R.string.account_currency_header),
+                value = currency,
+                showSeparator = false,
+            )
         }
     }
 }
@@ -283,18 +267,6 @@ private fun LazyListScope.accountActions(
     }
 }
 
-/** A short list rather than every currency on earth: the device's, plus the usual ones. */
-internal fun currencyOptions(
-    selected: String,
-    locale: Locale = Locale.getDefault(),
-): List<String> {
-    val device = runCatching { Currency.getInstance(locale).currencyCode }.getOrNull()
-    return (listOfNotNull(device) + COMMON_CURRENCIES + selected).distinct()
-}
-
-private fun currencyName(code: String): String? = runCatching { Currency.getInstance(code).displayName }.getOrNull()
-
-private val COMMON_CURRENCIES = listOf("EUR", "USD", "GBP", "CHF", "JPY")
 private const val SELECTED_MARK = "✓"
 internal const val NAME_FIELD_TAG = "accountName"
 internal const val SIGN_TOGGLE_TAG = "accountSign"

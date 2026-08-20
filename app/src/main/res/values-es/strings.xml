@@ -32,7 +32,7 @@
     <string name="account_type_broker">Bróker</string>
     <string name="account_type_other">Otra</string>
     <string name="account_currency_header">Moneda</string>
-    <string name="account_currency_locked">Fija: los movimientos de esta cuenta ya están registrados en ella.</string>
+    <string name="account_currency_footer">Cents funciona en una sola moneda, la de tu dispositivo. Todas las cuentas y todos los movimientos van en ella.</string>
     <string name="account_color_header">Color</string>
     <string name="account_opening_balance">Saldo inicial</string>
     <string name="account_held">Dinero disponible</string>

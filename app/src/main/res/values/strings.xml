@@ -34,7 +34,7 @@
     <string name="account_type_broker">Broker</string>
     <string name="account_type_other">Other</string>
     <string name="account_currency_header">Currency</string>
-    <string name="account_currency_locked">Fixed: the movements in this account are already recorded in it.</string>
+    <string name="account_currency_footer">Cents works in one currency, taken from your device. Every account and every movement is in it.</string>
     <string name="account_color_header">Colour</string>
     <string name="account_opening_balance">Opening balance</string>
     <string name="account_held">Money held</string>

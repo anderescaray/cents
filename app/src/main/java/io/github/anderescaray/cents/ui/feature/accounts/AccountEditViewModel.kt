@@ -49,6 +49,10 @@ data class AccountEditUiState(
     val isNew: Boolean = true,
     val name: String = "",
     val type: AccountType = AccountType.BANK,
+    /**
+     * The one currency the app works in, from the device locale. Not chosen and not
+     * editable: see `DECISIONS.md` D2, and [defaultCurrency].
+     */
     val currency: String = "EUR",
     val colorArgb: Int = AccountPalette.first(),
     val openingDigits: String = "",
@@ -71,9 +75,6 @@ data class AccountEditUiState(
         }
 
     val canSave: Boolean get() = name.isNotBlank() && !nameTaken && !saving
-
-    /** The currency is fixed once movements exist: they are already denominated in it. */
-    val currencyLocked: Boolean get() = !isNew && transactionCount > 0
 
     /** True while the owner is being asked something about deleting this account. */
     val removing: Boolean get() = removalStep != RemovalStep.NONE
@@ -111,7 +112,14 @@ class AccountEditViewModel
                 .accountId
                 .takeIf { it != Destination.AccountEdit.NEW }
 
-        private val form = MutableStateFlow(AccountEditUiState(isNew = accountId == null))
+        // The currency is known without asking the database — it is the device's — so it is
+        // set here rather than in load(). Reaching it through a suspending load left a
+        // window where the form still held the fallback, and an account saved fast enough
+        // was stored in it. With no picker left (D2), nothing could then correct it.
+        private val form =
+            MutableStateFlow(
+                AccountEditUiState(isNew = accountId == null, currency = defaultCurrency()),
+            )
 
         val uiState: StateFlow<AccountEditUiState> = form.asStateFlow()
 
@@ -136,15 +144,10 @@ class AccountEditViewModel
             val id = accountId
             if (id == null) {
                 val used = accountRepository.observeAccounts(includeArchived = true).first()
+                // Only the colour needs the database: it is picked to differ from the ones
+                // already in use, which means knowing what those are.
                 form.update { state ->
-                    if (edited) {
-                        state
-                    } else {
-                        state.copy(
-                            currency = defaultCurrency(),
-                            colorArgb = nextAccountColor(used.map { it.colorArgb }),
-                        )
-                    }
+                    if (edited) state else state.copy(colorArgb = nextAccountColor(used.map { it.colorArgb }))
                 }
                 return
             }
@@ -181,11 +184,6 @@ class AccountEditViewModel
         fun setType(type: AccountType) {
             edited = true
             form.update { it.copy(type = type) }
-        }
-
-        fun setCurrency(currency: String) {
-            edited = true
-            form.update { if (it.currencyLocked) it else it.copy(currency = currency) }
         }
 
         fun setColor(colorArgb: Int) {
@@ -369,6 +367,11 @@ class AccountEditViewModel
                 .first()
                 .maxOfOrNull { it.sortOrder + 1 } ?: 0
 
+        /**
+         * What the device says money is called here. An existing account keeps whatever it
+         * was created with, so an install that predates D2 and holds a second currency is
+         * left exactly as it is rather than silently restated — the amounts in it are real.
+         */
         private fun defaultCurrency(locale: Locale = Locale.getDefault()): String =
             runCatching { Currency.getInstance(locale).currencyCode }.getOrDefault("EUR")
 

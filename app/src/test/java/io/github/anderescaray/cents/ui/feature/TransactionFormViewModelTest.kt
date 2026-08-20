@@ -65,7 +65,13 @@ class TransactionFormViewModelTest {
         TransactionFormViewModel(
             transactionRepository = transactions,
             deletedTransactions = deleted,
-            accountRepository = RoomAccountRepository(database.accountDao(), clock),
+            accountRepository =
+                RoomAccountRepository(
+                    database.accountDao(),
+                    database.transactionDao(),
+                    database,
+                    clock,
+                ),
             categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
             savedStateHandle = SavedStateHandle(mapOf("transactionId" to transactionId)),
             clock = clock,

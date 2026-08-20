@@ -488,8 +488,9 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
-| Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, delete when empty, and an account detail with its own month summary and movements |
-| Tests | 99, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too |
+| First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
+| Tests | 107, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -537,7 +538,7 @@ serial — this is still the single-agent phase.
       (they are already denominated in it), an account can open in the red for money owed
       on a card, and the accounts list shows **no total at all** when its accounts are in
       different currencies rather than adding them up at an invented rate.
-- [ ] **`feat/account-deletion`** — what the owner decided on 2026-08-20, applied to the
+- [x] **`feat/account-deletion`** — what the owner decided on 2026-08-20, applied to the
       Accounts tab that already exists. Two answers, one branch, because they meet at the
       same edge: with nothing seeded, deleting the last account becomes reachable.
       - **D1 — nothing is seeded.** `DefaultDataSeeder` stops creating *Cash*, so a fresh
@@ -566,7 +567,17 @@ serial — this is still the single-agent phase.
         more than two answers.
       *Done when:* a fresh install starts empty and walks you into your first account, and
       an account with movements in it can be emptied or destroyed on purpose, never by
-      accident.
+      accident. **Done.** Three things worth knowing beyond the plan above: reassignment is
+      offered only to accounts in the **same currency**, because a movement keeps the
+      currency it was recorded in and a balance sums its account's movements under that
+      account's currency — moving euros into a dollar account would not convert them, it
+      would silently make that balance a sum of two currencies. **Archive became its own
+      row** rather than something "delete" fell back to, since delete now has a real answer
+      for an account with history. And the design system gained a `CentsActionSheet`, which
+      is how iOS asks a question with more than two answers. One thing found on the way: the
+      account detail screen used to stay open on an account that had just been deleted from
+      the editor it pushed to — a page with a fallback title, no balance and no way out but
+      the back button. It now leaves by itself when its account is gone.
 
 - [ ] **`feat/swipe-to-delete`** — swipe a row sideways to delete it, as an alternative to
       opening it and tapping Delete. Requested 2026-08-20.
@@ -605,13 +616,19 @@ before that, and do not parallelize before that.
   because nothing can create a child.
 - **The Reports tab is still a placeholder.** It renders the design system with invented
   content and reads nothing from the database. Charts are PRD phase 2.
-- **The app still seeds a *Cash* account on first run** — for now. D1 was answered on
-  2026-08-20 (remove it), and it goes in `feat/account-deletion` together with D7, which is
-  the next branch. Until that merges, a fresh install still gets one account it did not ask
-  for.
-- **Deleting an account that holds movements only archives it** — also for now, and also
-  until `feat/account-deletion`. D7 replaces that single outcome with a choice between
-  reassigning the movements and deleting them along with the account.
+- **Installs made before `feat/account-deletion` still hold the seeded *Cash* account.**
+  Nothing removes it automatically, for the same reason the eleven seeded categories were
+  left alone: it may already hold movements, and deciding what happens to those is the
+  owner's. It can now be deleted from inside the app, whichever way is wanted. A fresh
+  install has no accounts at all.
+- **Deleting an account together with its movements cannot be undone.** It is the one
+  operation in the app that removes recorded history on purpose (D7), it asks twice and
+  names how many movements go, and after that they are gone — no undo banner, no recycle
+  bin. Reassigning is the path that keeps everything.
+- **Reassignment only offers active accounts in the same currency.** Archived ones are not
+  offered as a destination, because "where did my movements go?" should not be answered by
+  a row that is hidden from the list. If the only same-currency account is archived, the
+  option shows disabled with the reason, and restoring that account makes it available.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
   schema has no tables for them yet: they arrive with a tested migration.
 - **Cross-currency totals are not supported, and that is now a decision** (D2, 2026-08-20:
@@ -724,11 +741,16 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**`feat/account-deletion`**, as described in C3: the two answers from 2026-08-20 applied to
-the Accounts tab that already exists — nothing seeded on first run (D1), and an account that
-holds movements deleted by reassigning them or by taking them with it (D7).
+**`feat/swipe-to-delete`**, as described in C3: a `CentsSwipeableRow` in the design system,
+wired into the category list and the account list at once, coexisting with the vertical drag
+that already reorders categories.
 
-After it: `feat/swipe-to-delete`, then `feat/transaction-filters`.
+Before starting it, **walk a fresh install on the phone**: nothing is seeded any more, so the
+first thing the app now shows is an empty Accounts tab and a movement form that leads to
+creating an account. That path used to be an edge case and is now the front door, and it is
+exactly the kind of thing that reads fine in a test and wrong in the hand.
+
+After it: `feat/transaction-filters`.
 
 **`feat/transaction-filters` is the last piece of Phase 1.** When it lands, check the four
 exit criteria in Part B §2 and stop: how the parallel phase runs is answered (D5 — the

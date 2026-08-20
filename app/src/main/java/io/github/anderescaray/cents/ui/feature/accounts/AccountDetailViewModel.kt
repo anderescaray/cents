@@ -39,6 +39,16 @@ data class AccountDetailUiState(
     val isLoading: Boolean = true,
 ) {
     val isEmpty: Boolean get() = !isLoading && days.isEmpty()
+
+    /**
+     * The account this screen is about no longer exists — deleted from the editor this
+     * screen pushed to, most likely. The screen leaves rather than sitting there with a
+     * fallback title and no balance, waiting to be backed out of by hand.
+     *
+     * [isLoading] is only false once all three flows have emitted, so this cannot fire on
+     * the way in, while the account is merely not read yet.
+     */
+    val isGone: Boolean get() = !isLoading && account == null
 }
 
 /**

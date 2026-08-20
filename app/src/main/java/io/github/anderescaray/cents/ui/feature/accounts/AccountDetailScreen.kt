@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,10 @@ fun AccountDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val account = state.account
+
+    LaunchedEffect(state.isGone) {
+        if (state.isGone) onBack()
+    }
 
     CentsLargeTitleScaffold(
         title = account?.account?.name ?: stringResource(R.string.tab_accounts),

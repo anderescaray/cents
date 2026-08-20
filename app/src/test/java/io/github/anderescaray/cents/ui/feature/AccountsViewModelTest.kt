@@ -39,7 +39,8 @@ class AccountsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
-        viewModel = AccountsViewModel(RoomAccountRepository(database.accountDao(), clock))
+        viewModel =
+            AccountsViewModel(RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock))
     }
 
     @After

@@ -54,7 +54,13 @@ class TransactionsViewModelTest {
             TransactionsViewModel(
                 transactionRepository = transactions,
                 deletedTransactions = deleted,
-                accountRepository = RoomAccountRepository(database.accountDao(), clock),
+                accountRepository =
+                    RoomAccountRepository(
+                        database.accountDao(),
+                        database.transactionDao(),
+                        database,
+                        clock,
+                    ),
                 clock = clock,
             )
     }

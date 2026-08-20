@@ -2,28 +2,15 @@ package io.github.anderescaray.cents
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
-import io.github.anderescaray.cents.data.repository.DefaultDataSeeder
-import io.github.anderescaray.cents.di.ApplicationScope
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Application entry point. Annotating it with [HiltAndroidApp] is what generates the
  * dependency graph and makes injection available to every activity, view model and worker.
+ *
+ * **Nothing is seeded here.** A fresh install has no accounts and no categories: everything
+ * in the app is something the owner typed (`DECISIONS.md` D1, and PRD §4.1 design principle
+ * 3 for the categories). The movement form leads to creating an account when there are none,
+ * which is what makes an empty database a first run rather than a dead end.
  */
 @HiltAndroidApp
-class CentsApplication : Application() {
-    @Inject
-    lateinit var seeder: DefaultDataSeeder
-
-    @Inject
-    @ApplicationScope
-    lateinit var applicationScope: CoroutineScope
-
-    override fun onCreate() {
-        super.onCreate()
-        // First run only: gives the entry screen something to pick from.
-        applicationScope.launch { seeder.seedIfEmpty() }
-    }
-}
+class CentsApplication : Application()

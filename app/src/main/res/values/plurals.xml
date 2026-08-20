@@ -3,8 +3,20 @@
         <item quantity="one">One movement uses it, so deleting it would change history that is already recorded. It will leave the pickers and that movement keeps it.</item>
         <item quantity="other">%1$d movements use it, so deleting it would change history that is already recorded. It will leave the pickers and those movements keep it.</item>
     </plurals>
-    <plurals name="account_archive_message">
-        <item quantity="one">It holds one movement, so deleting it would take that movement with it. It leaves the pickers and keeps it.</item>
-        <item quantity="other">It holds %1$d movements, so deleting it would take them with it. It leaves the pickers and keeps every one of them.</item>
+    <plurals name="account_delete_choice_message">
+        <item quantity="one">It holds one movement, and a movement cannot exist without an account. Choose what happens to it.</item>
+        <item quantity="other">It holds %1$d movements, and a movement cannot exist without an account. Choose what happens to them.</item>
+    </plurals>
+    <plurals name="account_delete_with_movements">
+        <item quantity="one">Delete the account and its movement</item>
+        <item quantity="other">Delete the account and its %1$d movements</item>
+    </plurals>
+    <plurals name="account_reassign_message">
+        <item quantity="one">The movement moves there and keeps everything else: its amount, its date and its category.</item>
+        <item quantity="other">All %1$d movements move there and keep everything else: their amounts, dates and categories.</item>
+    </plurals>
+    <plurals name="account_delete_everything_message">
+        <item quantity="one">One movement goes with it, for good. It will no longer be counted in any total or chart, and this cannot be undone.</item>
+        <item quantity="other">%1$d movements go with it, for good. They will no longer be counted in any total or chart, and this cannot be undone.</item>
     </plurals>
 </resources>

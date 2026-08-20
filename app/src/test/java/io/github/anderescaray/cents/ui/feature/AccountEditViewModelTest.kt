@@ -10,7 +10,7 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.ui.feature.accounts.AccountEditViewModel
-import io.github.anderescaray.cents.ui.feature.accounts.AccountRemoval
+import io.github.anderescaray.cents.ui.feature.accounts.RemovalStep
 import io.github.anderescaray.cents.ui.navigation.Destination
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,7 +43,7 @@ class AccountEditViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
-        accounts = RoomAccountRepository(database.accountDao(), clock)
+        accounts = RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock)
     }
 
     @After
@@ -144,7 +144,7 @@ class AccountEditViewModelTest {
         }
 
     @Test
-    fun `an empty account is deleted outright`() =
+    fun `an empty account is deleted outright, with one yes or no`() =
         runTest {
             val id = database.accountDao().insert(account(name = "Mistake"))
             val editor = editorFor(id)
@@ -152,9 +152,9 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { !it.isNew }
                 editor.requestRemoval()
-                assertEquals(AccountRemoval.OUTRIGHT, awaitStateThat { it.confirmingRemoval }.removal)
+                assertEquals(RemovalStep.CONFIRM_EMPTY, awaitStateThat { it.removing }.removalStep)
 
-                editor.confirmRemoval()
+                editor.confirmEmptyRemoval()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
@@ -163,7 +163,151 @@ class AccountEditViewModelTest {
         }
 
     @Test
-    fun `an account holding movements is archived, and keeps every one of them`() =
+    fun `an account holding movements asks what should become of them`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Old bank"))
+            database.accountDao().insert(account(name = "New bank"))
+            database.transactionDao().insert(transaction(accountId = id, amountMinor = 3_000))
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { !it.isNew }
+                editor.requestRemoval()
+                val state = awaitStateThat { it.removing }
+
+                // Not a deletion and not an archive: a question, with both answers live.
+                assertEquals(RemovalStep.CHOOSE, state.removalStep)
+                assertEquals(1, state.transactionCount)
+                assertTrue(state.canReassign)
+                assertEquals(listOf("New bank"), state.reassignTargets.map { it.name })
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Nothing has happened yet: asking is not doing.
+            assertEquals(2, accounts.observeAccounts(includeArchived = true).first().size)
+        }
+
+    @Test
+    fun `reassigning moves every movement to the other account and then deletes this one`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Old bank"))
+            val target = database.accountDao().insert(account(name = "New bank"))
+            database.transactionDao().insert(transaction(accountId = id, amountMinor = 3_000))
+            database.transactionDao().insert(transaction(accountId = id, amountMinor = 1_500))
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { !it.isNew }
+                editor.requestRemoval()
+                awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
+
+                editor.chooseReassign()
+                awaitStateThat { it.removalStep == RemovalStep.PICK_TARGET }
+
+                editor.reassignTo(target)
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(listOf("New bank"), accounts.observeAccounts(includeArchived = true).first().map { it.name })
+            // The history survives whole, under its new account.
+            assertEquals(
+                listOf(3_000L, 1_500L).sorted(),
+                database
+                    .transactionDao()
+                    .observeByAccount(target)
+                    .first()
+                    .map { it.amountMinor }
+                    .sorted(),
+            )
+        }
+
+    @Test
+    fun `deleting an account with its movements takes both, and only when asked twice`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Wrong account"))
+            val kept = database.accountDao().insert(account(name = "Real account"))
+            database.transactionDao().insert(transaction(accountId = id, amountMinor = 3_000))
+            database.transactionDao().insert(transaction(accountId = kept, amountMinor = 999))
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { !it.isNew }
+                editor.requestRemoval()
+                awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
+
+                // Choosing the destructive path only opens the second question.
+                editor.chooseDestructive()
+                awaitStateThat { it.removalStep == RemovalStep.CONFIRM_DESTRUCTIVE }
+                assertEquals(2, database.transactionDao().count())
+
+                editor.confirmDestructiveRemoval()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                listOf("Real account"),
+                accounts.observeAccounts(includeArchived = true).first().map { it.name },
+            )
+            // Its movements went with it. Every other account's did not.
+            assertEquals(
+                emptyList<Long>(),
+                database
+                    .transactionDao()
+                    .observeByAccount(id)
+                    .first()
+                    .map { it.id },
+            )
+            assertEquals(1, database.transactionDao().count())
+        }
+
+    @Test
+    fun `reassigning is offered but disabled when there is nowhere to move the movements`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Only account"))
+            database.transactionDao().insert(transaction(accountId = id))
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { !it.isNew }
+                editor.requestRemoval()
+                val state = awaitStateThat { it.removing }
+                assertEquals(RemovalStep.CHOOSE, state.removalStep)
+                assertFalse(state.canReassign)
+
+                // Tapping it anyway is a no-op rather than a dead end to back out of.
+                editor.chooseReassign()
+                expectNoEvents()
+                assertEquals(RemovalStep.CHOOSE, editor.uiState.value.removalStep)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an account in another currency is not offered as somewhere to move movements`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Euro account", currency = "EUR"))
+            database.accountDao().insert(account(name = "Dollar account", currency = "USD"))
+            database.accountDao().insert(account(name = "Other euros", currency = "EUR"))
+            database.transactionDao().insert(transaction(accountId = id, currency = "EUR"))
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { !it.isNew }
+                editor.requestRemoval()
+                val state = awaitStateThat { it.removing }
+
+                // A movement keeps the currency it was recorded in, and a balance sums its
+                // account's movements under that account's currency: moving euros into a
+                // dollar account would not convert them, it would corrupt the total.
+                assertEquals(listOf("Other euros"), state.reassignTargets.map { it.name })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `archiving keeps the account and every movement in it`() =
         runTest {
             val id = database.accountDao().insert(account(name = "Old bank"))
             database.transactionDao().insert(transaction(accountId = id, amountMinor = 3_000))
@@ -171,12 +315,7 @@ class AccountEditViewModelTest {
 
             editor.uiState.test {
                 awaitStateThat { !it.isNew }
-                editor.requestRemoval()
-                val state = awaitStateThat { it.confirmingRemoval }
-                assertEquals(AccountRemoval.ARCHIVE, state.removal)
-                assertEquals(1, state.transactionCount)
-
-                editor.confirmRemoval()
+                editor.archive()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }

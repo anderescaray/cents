@@ -242,6 +242,12 @@ progress. They get written once, properly, one at a time.
 branch → implement → tests → ./gradlew detekt testDebugUnitTest → /code-review → PR → merge
 ```
 
+**When `/code-review` cannot run** — it is a separate agent and it costs session budget, so
+it does sometimes die mid-run — the answer is D6: review the diff yourself, **say in the PR
+that the review was not independent**, and carry on. A blocked branch helps nobody, but an
+unlabelled self-review quietly pretends to be a second reader, and that is the part that is
+not allowed.
+
 Even with a single agent. By the time there are five, the process is already worn in and
 does not have to be invented under pressure.
 
@@ -372,6 +378,28 @@ anything to fly is time that does not turn into an app. Once you reach Phase 2 w
 real workstreams and start feeling the friction of managing worktrees by hand, Orca saves
 real work — and by then you will know what you are asking it for.
 
+> **Superseded in part by D5 (2026-08-20).** The owner is not installing Orca: they are
+> building **their own harness**, taking Orca's orchestration model together with the ideas
+> in `xmihura/kanvas`, and running **at most 3 agents** at once. The reasoning above still
+> holds for *when* — not before Phase 1 exits — and the ceiling of three still comes from
+> review capacity rather than from the machine. What changes is the *what*: the control panel
+> is written rather than installed.
+>
+> Two constraints this plan already implies, and that a home-grown orchestrator has to encode
+> rather than assume, because it becomes the thing enforcing them:
+>
+> - **Two tasks may run side by side only if their write sets are disjoint** (§3.1). That is
+>   what makes the schedule a DAG, and it is the whole safety argument for running agents at
+>   once.
+> - **The Room schema, `ui/theme` and `libs.versions.toml` are global locks.** Anything
+>   touching them is a barrier: everything downstream waits, nothing runs beside it. An
+>   orchestrator that does not model that will cheerfully hand three agents their own
+>   migration.
+>
+> What stays off the DAG is what §3.2 already names: decomposing, arbitrating and accepting
+> the merge. A scheduler can fan out and gate on green CI. It cannot decide which of two
+> contradicting branches matches what the owner had in mind.
+
 ### Pi — no, and not because of quality
 
 [Pi](https://pi.dev/) is Mario Zechner's minimal harness: a small hackable core,
@@ -421,7 +449,7 @@ control panel once volume justifies it; it does not replace any of the above.
 |---|---|---|---|
 | **0. Foundations** | 1 | Install, approve the skeleton | The app builds and installs on your phone |
 | **1. Core** | 1 | Review every PR | You log transactions and balances add up |
-| **2. Analytics** | 2–3 + Orca | Decompose, arbitrate, accept merges | The charts answer your questions |
+| **2. Analytics** | 2–3, own harness (D5) | Decompose, arbitrate, accept merges | The charts answer your questions |
 | **3–4. Accounts and investments** | 3 | Same, with more judgement | Transfers and a portfolio with live prices |
 | **5–6. Automation and polish** | 2–3 | Decide what is worth building | You enjoy opening it every day |
 
@@ -509,6 +537,51 @@ serial — this is still the single-agent phase.
       (they are already denominated in it), an account can open in the red for money owed
       on a card, and the accounts list shows **no total at all** when its accounts are in
       different currencies rather than adding them up at an invented rate.
+- [ ] **`feat/account-deletion`** — what the owner decided on 2026-08-20, applied to the
+      Accounts tab that already exists. Two answers, one branch, because they meet at the
+      same edge: with nothing seeded, deleting the last account becomes reachable.
+      - **D1 — nothing is seeded.** `DefaultDataSeeder` stops creating *Cash*, so a fresh
+        install has no accounts and no categories: everything in the app is something the
+        owner typed. The class then seeds nothing at all and goes with it, along with its
+        injection in `CentsApplication` and its test.
+      - The movement form already leads to creating an account when there are none
+        (`field_account_empty`), which is what makes removing the seed safe rather than a
+        dead end. That path stops being an edge case and becomes the first run, so it is
+        worth walking it on the phone before the PR.
+      - **D7 — deleting an account that holds movements.** Today it can only be archived.
+        The decision replaces that with a choice, because an account is not a category:
+        `transactions.accountId` is `RESTRICT`, so a movement cannot be detached from it.
+        - **No movements** → deleted outright, as now.
+        - **Has movements** → an action sheet naming how many, offering **reassign** them
+          to another account and then delete, or **delete the account and its movements**
+          behind a second, explicit confirmation. Cancel is always there.
+        - Reassign needs a destination. When this is the only account, that option appears
+          disabled with a line saying why, rather than vanishing — an alert that changes
+          shape for invisible reasons is worse than one that explains itself.
+        - Both paths run inside one `withTransaction`: a half-finished reassignment would
+          leave movements pointing at an account that is already gone.
+      - **Archive stays**, unchanged and separate. Delete means gone; archive means keep
+        the history and stop offering it.
+      - New in the design system: an action sheet, which is how iOS asks a question with
+        more than two answers.
+      *Done when:* a fresh install starts empty and walks you into your first account, and
+      an account with movements in it can be emptied or destroyed on purpose, never by
+      accident.
+
+- [ ] **`feat/swipe-to-delete`** — swipe a row sideways to delete it, as an alternative to
+      opening it and tapping Delete. Requested 2026-08-20.
+      - A new `CentsSwipeableRow` in `ui/components`, following the iOS pattern: dragging
+        left reveals a red **Delete** action, and releasing past a threshold performs it.
+        Rule 7 still holds, and so does D7 — a swipe is a faster way to reach the same
+        question, not a way to skip it.
+      - It has to coexist with the vertical drag that reorders a category. The grip handle
+        keeps the vertical gesture; the row body takes the horizontal one, so neither
+        gesture steals the other's drag.
+      - Applied to categories and to accounts in the same branch: one component wired into
+        both lists at once, rather than written for one and retrofitted onto the other.
+      *Done when:* a category and an account can each be deleted by swiping, and reordering
+      still works with the same finger.
+
 - [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
       category, kind, amount, note text.
       *Done when:* "what did I spend on restaurants in July" is answerable in the app.
@@ -522,23 +595,30 @@ before that, and do not parallelize before that.
   to seed.** Nothing removes them automatically, because deleting rows that may already
   classify movements is the owner's call: they can be deleted or archived one by one in
   Settings → Categories. A fresh install has none.
-- **Category subcategories and icons are not built.** The schema has `parentId` and
-  `iconKey` columns and the PRD lists both as optional; the editor writes neither. One
+- **Category subcategories are not built, and will not be** (D3, 2026-08-20: the list stays
+  flat). `parentId` stays in the schema unused rather than being migrated away — removing a
+  column costs a migration and buys nothing. **Icons** are still unbuilt but undecided: the
+  schema has `iconKey` and the editor does not write it. One
   consequence to fix when subcategories arrive: deleting a category runs a bare `DELETE`,
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
 - **The Reports tab is still a placeholder.** It renders the design system with invented
   content and reads nothing from the database. Charts are PRD phase 2.
-- **The app still seeds a *Cash* account on first run.** Now that accounts can be created
-  in the app — and the movement form leads to creating one when there are none — nothing
-  depends on it any more. Removing it is a ten-line change to `DefaultDataSeeder` and its
-  test, waiting on the owner's word.
+- **The app still seeds a *Cash* account on first run** — for now. D1 was answered on
+  2026-08-20 (remove it), and it goes in `feat/account-deletion` together with D7, which is
+  the next branch. Until that merges, a fresh install still gets one account it did not ask
+  for.
+- **Deleting an account that holds movements only archives it** — also for now, and also
+  until `feat/account-deletion`. D7 replaces that single outcome with a choice between
+  reassigning the movements and deleting them along with the account.
 - **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
   schema has no tables for them yet: they arrive with a tested migration.
-- **Cross-currency totals are not supported.** `Money` refuses arithmetic between different
-  currencies on purpose; a conversion step has to be designed when a second currency
-  appears.
+- **Cross-currency totals are not supported, and that is now a decision** (D2, 2026-08-20:
+  one currency in practice). `Money` refuses arithmetic between currencies and will keep
+  refusing; the accounts list shows no total rather than an invented one. No conversion step
+  gets built. If a second currency ever becomes real, that is a new question rather than a
+  gap to quietly fill.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note
@@ -587,13 +667,70 @@ A question with no answer is never a reason to stall: the default is what the ap
 the owner says otherwise, and that default is written down next to the question so nobody has
 to guess what "unanswered" currently means.
 
+## C7. Requested, and where it lands
+
+Things the owner has asked for that are real and wanted, recorded here so they are neither
+lost nor smuggled into a branch that was supposed to be about something else.
+
+### Bubbles instead of a tab bar
+
+Requested 2026-08-20, decided the same day in D8. Instead of four fixed tabs, the app opens
+on a canvas of **four bubbles** — one per section — draggable anywhere, resizable, each
+drifting with a small continuous motion.
+
+**Yes, after Phase 1 exits, and as a launcher rather than a replacement.** The shape:
+
+- The canvas is the **home screen**. Tapping a bubble **expands it to fill the screen in
+  under 500 ms** — the bubble becomes the section rather than being replaced by it, so the
+  transition is one continuous shape and not a cross-fade.
+- **Inside a section the bottom tab bar shows by default** and can be collapsed. Collapsed,
+  back returns to the canvas. Every screen already built keeps working untouched, which is
+  exactly what makes the launcher model affordable and the full replacement expensive.
+- **State survives restart and process death**: bubble positions and sizes, whether the tab
+  bar is collapsed, and which section was last open. That is a DataStore schema plus a rule
+  for what a saved position means on a screen it no longer fits.
+
+What it costs, so the branch is sized honestly rather than as a coat of paint:
+
+- It **amends a decision already taken**:
+  [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md)
+  specifies a bottom tab bar, and `CLAUDE.md` rule 12 makes that ADR binding before any
+  composable is written. So the branch **ships ADR 0002** saying what changed and why.
+  Leaving the two to contradict each other is how the next session ends up guessing.
+- **Accessibility stops being free.** A tab bar tells TalkBack "tab 2 of 4" without being
+  asked. A canvas of draggable circles has no reading order at all, so it has to be given
+  one explicitly, and a continuously moving target is harder to hit for anyone with a motor
+  impairment. The drift has to honour the system "reduce motion" setting.
+
+### A customisable dashboard for the charts
+
+Decided in D4, alongside which two charts come first. Phase 2 builds **spending by category**
+and **income vs expenses per month**, properly, and that is the whole of the first reports
+branch — six charts at once is how a phase turns into a month.
+
+The longer-term shape is a **dashboard of cards**: every chart and KPI from PRD §4.3
+available as a card, reorderable and resizable, filtered smoothly by date range or month,
+and staying fast while doing it. Deliberately not the first branch, and deliberately noted
+next to the bubbles: it is the same interaction — drag, resize, persist a layout — and
+building that twice in two places would be the waste. Whichever lands first should leave
+behind something the other reuses.
+
+Two things to hold onto when it arrives, both already project rules rather than new
+constraints: chart aggregation belongs in SQL `GROUP BY`, not in a Kotlin loop over thousands
+of rows, and a resizable grid of live charts is exactly the screen where a missing `key` or a
+non-skippable `UiState` turns into visible jank.
+
 ---
 
 ## Next concrete action
 
-**`feat/transaction-filters`**, the last item in C3: search and filters on the movement
-list — date range, account, category, kind, amount, note text.
+**`feat/account-deletion`**, as described in C3: the two answers from 2026-08-20 applied to
+the Accounts tab that already exists — nothing seeded on first run (D1), and an account that
+holds movements deleted by reassigning them or by taking them with it (D7).
 
-**It is also the last piece of Phase 1.** When it lands, check the four exit criteria in
-Part B §2 and stop: the decision about whether and how to run several agents in parallel
-is the owner's, and it is taken deliberately rather than drifted into.
+After it: `feat/swipe-to-delete`, then `feat/transaction-filters`.
+
+**`feat/transaction-filters` is the last piece of Phase 1.** When it lands, check the four
+exit criteria in Part B §2 and stop: how the parallel phase runs is answered (D5 — the
+owner's own harness, at most three agents), but *starting* it is still a deliberate decision
+rather than something to drift into.

@@ -668,6 +668,15 @@ before that, and do not parallelize before that.
   priced in dollars whatever the owner spends in, so investments need a rate anyway. That is
   a different problem from "an account you spend from", and it gets designed then rather
   than half-supported now.
+- **View-model tests race Room unless their waits name what they expect.** Several build the
+  view model in `setUp`, before the test inserts its rows, so the flows it collects emit in
+  stages — two inserts are two emissions. A wait like `awaitStateThat { it.categories
+  .isNotEmpty() }` can therefore pass while only the first row has arrived, and the
+  assertion after it reads a list that has not settled. Worse, `awaitStateThat { !it.isNew }`
+  waits for nothing at all: `isNew` is already false at construction for an existing row.
+  Both patterns cost a green CI run on 2026-08-21 and were fixed by having each wait name
+  the state it expects. **Write the wait as the condition you are about to assert on**, not
+  as a proxy for it.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note

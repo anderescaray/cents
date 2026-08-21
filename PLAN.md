@@ -745,7 +745,10 @@ before that, and do not parallelize before that.
   waits for nothing at all: `isNew` is already false at construction for an existing row.
   Both patterns cost a green CI run on 2026-08-21 and were fixed by having each wait name
   the state it expects. **Write the wait as the condition you are about to assert on**, not
-  as a proxy for it.
+  as a proxy for it. It happened again the same day, on CI only: a wait for `name == "Salary"`
+  stood in for "the names of this kind have been reloaded", which is a *different* collector's
+  emission — green on every local run, red on the slower runner. The rule holds without
+  exception, and the failure mode is always a machine you are not testing on.
 - **Swiping does not close whatever other row was left open.** Each `CentsSwipeableRow`
   owns its own offset, so two rows can sit open at once. It is cosmetic — a tap on either
   closes it, and any deletion closes the row that asked — and coordinating them needs a

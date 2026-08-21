@@ -208,4 +208,89 @@ class TransactionFiltersViewModelTest {
             assertEquals("restaurants", filters.filter.value.query)
             assertEquals(TransactionKind.EXPENSE, filters.filter.value.kind)
         }
+
+    @Test
+    fun `show everything again means everything, search included`() =
+        runTest {
+            filters.setQuery("rent")
+            filters.apply(TransactionFilter(kind = TransactionKind.EXPENSE))
+            val form = viewModel()
+
+            form.clear()
+            form.apply()
+
+            // The row promises everything. A list still narrowed to what was typed in a
+            // field on another screen is not everything.
+            assertEquals(TransactionFilter.None, filters.filter.value)
+        }
+
+    @Test
+    fun `between two dates is reachable after a preset has been chosen`() =
+        runTest {
+            val form = viewModel()
+
+            form.uiState.test {
+                form.setPreset(DateRangePreset.THIS_MONTH)
+                awaitStateThat { it.preset == DateRangePreset.THIS_MONTH }
+
+                form.setPreset(DateRangePreset.CUSTOM)
+
+                // The dates are already non-null from the preset, so a form that worked out
+                // which preset they describe would answer THIS_MONTH here and never show the
+                // two calendars at all.
+                val custom = awaitStateThat { it.preset == DateRangePreset.CUSTOM }
+                assertEquals(LocalDate.of(2026, 8, 1), custom.draft.from)
+                assertEquals(LocalDate.of(2026, 8, 31), custom.draft.to)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a range that happens to match a preset still reads as custom once it was typed`() =
+        runTest {
+            val form = viewModel()
+
+            form.uiState.test {
+                form.setPreset(DateRangePreset.CUSTOM)
+                awaitStateThat { it.preset == DateRangePreset.CUSTOM }
+
+                form.openPicker(DateBound.TO)
+                form.setBound(LocalDate.of(2026, 8, 31))
+
+                // Aug 1 to Aug 31 is exactly "this month", and the form must not quietly
+                // re-badge it as one: the owner asked for these two dates.
+                assertEquals(
+                    DateRangePreset.CUSTOM,
+                    awaitStateThat { it.draft.to == LocalDate.of(2026, 8, 31) }.preset,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an absurdly long amount is capped rather than dropped`() =
+        runTest {
+            val form = viewModel()
+
+            form.uiState.test {
+                // Past Long.MAX_VALUE. Parsing this away to null would clear the bound and
+                // blank the field while the owner was still typing into it.
+                form.setMinAmount("9".repeat(30))
+
+                assertEquals(999_999_999_999L, awaitStateThat { it.draft.minAmountMinor != null }.draft.minAmountMinor)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the amount range is said back in the account currency, not the locale`() =
+        runTest {
+            database.accountDao().insert(account(name = "Old dollars", currency = "USD"))
+            val form = viewModel()
+
+            form.uiState.test {
+                assertEquals("USD", awaitStateThat { it.accounts.isNotEmpty() }.currency)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }

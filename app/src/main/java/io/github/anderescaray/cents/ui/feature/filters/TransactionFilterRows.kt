@@ -12,8 +12,6 @@ import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import java.time.LocalDate
-import java.util.Currency
-import java.util.Locale
 
 // The rows the filter form is built from, and the labels they say things with.
 
@@ -73,13 +71,16 @@ internal fun Account.displayName(): String = if (archived) stringResource(R.stri
 @Composable
 internal fun Category.displayName(): String = if (archived) stringResource(R.string.filters_archived, name) else name
 
-/** "From 10,00 € to 50,00 €", or whichever half of it was actually given. */
+/**
+ * "From 10,00 € to 50,00 €", or whichever half of it was actually given.
+ *
+ * The currency is passed in rather than read from the locale. Reading it here would name the
+ * device's currency for movements that may be stored in another, and
+ * `Currency.getInstance(Locale)` throws outright on a language-only locale — which Android
+ * allows, and which would take the whole screen down on recomposition.
+ */
 @Composable
-internal fun TransactionFilter.amountRangeLabel(): String? {
-    val currency =
-        java.util.Currency
-            .getInstance(java.util.Locale.getDefault())
-            .currencyCode
+internal fun TransactionFilter.amountRangeLabel(currency: String): String? {
     val min = minAmountMinor?.let { MoneyFormatter.format(Money(it, currency)) }
     val max = maxAmountMinor?.let { MoneyFormatter.format(Money(it, currency)) }
     return when {

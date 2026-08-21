@@ -111,6 +111,13 @@ fun CentsSearchField(
     }
 }
 
+/**
+ * An 18 dp dot with a 44 dp target around it.
+ *
+ * The glyph is the size iOS draws it; the thing a finger has to hit is not. This is the only
+ * way to empty the field short of holding backspace, which is exactly what it exists to save
+ * anyone from.
+ */
 @Composable
 private fun ClearButton(onClick: () -> Unit) {
     val label = stringResource(R.string.search_clear)
@@ -119,17 +126,24 @@ private fun ClearButton(onClick: () -> Unit) {
             Modifier
                 .semantics { contentDescription = label }
                 .testTag(SEARCH_CLEAR_TAG)
-                .size(GLYPH_SIZE.dp)
-                .clip(CircleShape)
-                .background(CentsTheme.colors.tertiaryLabel)
+                .size(CentsDimens.minRowHeight)
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = CLEAR_MARK,
-            style = CentsTheme.typography.footnote,
-            color = CentsTheme.colors.groupedCard,
-        )
+        Box(
+            modifier =
+                Modifier
+                    .size(GLYPH_SIZE.dp)
+                    .clip(CircleShape)
+                    .background(CentsTheme.colors.tertiaryLabel),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = CLEAR_MARK,
+                style = CentsTheme.typography.footnote,
+                color = CentsTheme.colors.groupedCard,
+            )
+        }
     }
 }
 

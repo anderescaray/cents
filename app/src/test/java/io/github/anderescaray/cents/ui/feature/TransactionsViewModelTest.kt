@@ -226,10 +226,14 @@ class TransactionsViewModelTest {
                 awaitStateThat { it.days.isNotEmpty() }
 
                 viewModel.setQuery("nothing like this")
+                // The field shows what was typed straight away; the filter catches up once
+                // the typing pauses. A field fed from the applied filter drops characters.
+                assertEquals("nothing like this", awaitStateThat { it.query.isNotEmpty() }.query)
                 awaitStateThat { it.isNarrowed && it.days.isEmpty() }
 
                 viewModel.clearFilter()
                 val restored = awaitStateThat { it.days.isNotEmpty() }
+                assertEquals("", restored.query)
                 assertEquals("", restored.filter.query)
                 assertEquals(false, restored.isNarrowed)
                 cancelAndIgnoreRemainingEvents()

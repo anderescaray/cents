@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
@@ -68,7 +69,11 @@ fun TransactionFiltersScreen(
             contentPadding =
                 PaddingValues(
                     top = CentsDimens.spacingL,
-                    bottom = CentsDimens.sectionSpacing,
+                    // The last row here is an action. Without the navigation-bar inset it
+                    // sits under the gesture bar, where it is hard to tap and easy to miss.
+                    bottom =
+                        CentsDimens.sectionSpacing +
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
                 ),
             verticalArrangement = Arrangement.spacedBy(CentsDimens.sectionSpacing),
         ) {
@@ -219,7 +224,7 @@ private fun LazyListScope.amountSection(
                 if (state.draft.amountRangeInverted) {
                     stringResource(R.string.filters_amount_inverted)
                 } else {
-                    state.draft.amountRangeLabel()
+                    state.draft.amountRangeLabel(state.currency)
                 },
         ) {
             AmountField(

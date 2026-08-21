@@ -36,8 +36,19 @@ class TransactionFilterStore
          */
         fun setQuery(query: String) = state.update { it.copy(query = query) }
 
-        /** Replaces everything except the search text, which the form does not own. */
-        fun apply(filter: TransactionFilter) = state.update { filter.copy(query = it.query) }
+        /**
+         * Replaces everything the form owns.
+         *
+         * The search text is normally left alone, because it is typed on the list and the
+         * form has no field for it — applying a filter must not silently empty something
+         * visible behind it. [clearQuery] is the one exception, and it is what "show
+         * everything again" means: that row promises everything, so it has to include the
+         * text too.
+         */
+        fun apply(
+            filter: TransactionFilter,
+            clearQuery: Boolean = false,
+        ) = state.update { filter.copy(query = if (clearQuery) "" else it.query) }
 
         /** Back to everything, search text included: one action, one obvious result. */
         fun clear() {

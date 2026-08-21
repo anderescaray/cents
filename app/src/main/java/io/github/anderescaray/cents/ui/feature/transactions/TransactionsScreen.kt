@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -89,7 +91,7 @@ private fun TransactionsList(
             )
         },
     ) {
-        searchField(query = state.filter.query, onQueryChange = onQueryChange)
+        searchField(query = state.query, onQueryChange = onQueryChange)
 
         // Two different headline numbers, because there are two different questions. With
         // nothing asked, the month is what the list is about; once something is asked, the
@@ -127,7 +129,15 @@ private fun RowScope.FiltersButton(
             },
         style = CentsTheme.typography.body,
         color = CentsTheme.colors.accent,
-        modifier = Modifier.testTag(FILTERS_BUTTON_TAG).clickable(onClick = onClick),
+        // A bare Text is a few points tall. The tap target is the row height, whatever the
+        // label happens to measure.
+        modifier =
+            Modifier
+                .testTag(FILTERS_BUTTON_TAG)
+                .clip(RoundedCornerShape(CentsDimens.spacingS))
+                .clickable(onClick = onClick)
+                .defaultMinSize(minHeight = CentsDimens.minRowHeight)
+                .wrapContentHeight(Alignment.CenterVertically),
     )
 }
 

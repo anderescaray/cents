@@ -490,7 +490,7 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Tests | 138, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 143, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -771,6 +771,16 @@ before that, and do not parallelize before that.
   recorded here rather than half-done.
 - **Filters do not survive closing the app**, by design — see the note in C3. If they should,
   that is a saved-views feature with a name and a list, not a flag.
+- **The date row the form shows ticked is held, not worked out from the dates.** Deriving it
+  reads as tidier and is a trap that cost a fix on this branch: "between two dates" becomes
+  unreachable the moment any preset has been chosen, because the range it produced keeps
+  reading back as that preset and the two calendars never appear. A pristine form opened on
+  the last day of a month walked into the same wall. **When a choice and its consequence can
+  both be observed, store the choice.**
+- **The search field is fed from the text as typed, not from the applied filter**, with a
+  250 ms debounce before the query runs. A value-based text field showing text that has been
+  to SQLite and back visibly drops characters, and every keystroke would otherwise cancel a
+  running full-table `LIKE` and start another.
 - **The amount filter is typed in minor units**, the way the movement keypad is: 2500 means
   25,00. The section footer says the range back in real money so the two cannot be confused,
   but it is a text field rather than the keypad the movement form uses.

@@ -14,9 +14,13 @@ import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -42,6 +46,13 @@ data class TransactionsUiState(
     val undoableDeletion: Transaction? = null,
     /** What the list is currently narrowed to. [TransactionFilter.None] is everything. */
     val filter: TransactionFilter = TransactionFilter.None,
+    /**
+     * What is in the search field right now, which is ahead of [filter] by up to one
+     * debounce. The field is fed from here rather than from the applied filter: a
+     * value-based text field showing text that has been to the database and back drops
+     * characters as fast as they are typed.
+     */
+    val query: String = "",
     /** How many movements the filter matched, which is half of any answer it gives. */
     val matchCount: Int = 0,
     /**
@@ -67,7 +78,20 @@ class TransactionsViewModel
         accountRepository: AccountRepository,
         clock: Clock,
     ) : ViewModel() {
-        @OptIn(ExperimentalCoroutinesApi::class)
+        /**
+         * The text as typed, updated on the keystroke and only pushed to the store once the
+         * typing pauses. Without the pause, every character cancels a running query and
+         * starts a full-table LIKE over the whole ledger.
+         */
+        private val typed = MutableStateFlow(filters.filter.value.query)
+
+        init {
+            viewModelScope.launch {
+                typed.debounce(SEARCH_DEBOUNCE_MS).distinctUntilChanged().collect(filters::setQuery)
+            }
+        }
+
+        @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
         val uiState: StateFlow<TransactionsUiState> =
             combine(
                 // The filter and the rows it produced travel together. Combined separately
@@ -90,7 +114,8 @@ class TransactionsViewModel
                     }
                 },
                 deletedTransactions.deleted,
-            ) { (filter, transactions), summary, deleted ->
+                typed,
+            ) { (filter, transactions), summary, deleted, query ->
                 TransactionsUiState(
                     days =
                         transactions
@@ -102,6 +127,7 @@ class TransactionsViewModel
                     today = LocalDate.now(clock),
                     undoableDeletion = deleted,
                     filter = filter,
+                    query = query,
                     matchCount = transactions.size,
                     matchSummary = transactions.summarise(),
                 )
@@ -111,9 +137,14 @@ class TransactionsViewModel
                 initialValue = TransactionsUiState(),
             )
 
-        fun setQuery(query: String) = filters.setQuery(query)
+        fun setQuery(query: String) {
+            typed.value = query
+        }
 
-        fun clearFilter() = filters.clear()
+        fun clearFilter() {
+            typed.value = ""
+            filters.clear()
+        }
 
         /**
          * Puts a deleted movement back, with the row id it had: an undo that returns a
@@ -128,6 +159,9 @@ class TransactionsViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+
+            /** Long enough to cover typing, short enough that the list feels immediate. */
+            const val SEARCH_DEBOUNCE_MS = 250L
         }
     }
 

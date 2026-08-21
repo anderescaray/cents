@@ -191,7 +191,7 @@ of them — move them elsewhere, or delete them too — rather than quietly arch
 The app works in **one currency**, the device's, and does not offer a choice: `Money` still
 carries its ISO-4217 code and still refuses cross-currency arithmetic, but that is a guard
 rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
-138 tests run on the JVM, so CI covers the database and the UI without a device.
+143 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Open questions that only the owner can settle live in
 [`DECISIONS.md`](DECISIONS.md)** — read it at the start of every session, act on anything

@@ -35,13 +35,21 @@ enum class DateRangePreset { ANY, THIS_MONTH, LAST_MONTH, THIS_YEAR, CUSTOM }
 data class TransactionFiltersUiState(
     /** Edited in place and only handed back on Apply, so Cancel really cancels. */
     val draft: TransactionFilter = TransactionFilter.None,
+    /**
+     * Which date row is ticked. **Held, not derived from the dates.** Deriving it looks
+     * tidier and is a trap: "between two dates" would be unreachable the moment a preset had
+     * been chosen, because the range it produced would keep reading back as that preset and
+     * the two calendars would never appear. A pristine form opened on the last day of a
+     * month walked into the same wall.
+     */
+    val preset: DateRangePreset = DateRangePreset.ANY,
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
+    /** The one currency the app works in, for saying the amount range back in money. */
+    val currency: String = "EUR",
     val today: LocalDate = LocalDate.now(),
     val openPicker: DateBound? = null,
 ) {
-    val preset: DateRangePreset get() = draft.presetFor(today)
-
     /** Nothing is narrowing the list, so there is nothing for Clear to do. */
     val isPristine: Boolean get() = draft.activeCount == 0
 }
@@ -67,8 +75,17 @@ class TransactionFiltersViewModel
 
         val uiState: StateFlow<TransactionFiltersUiState> = form.asStateFlow()
 
+        /**
+         * Set by "show everything again". Sticky until the form is left, because that row
+         * promises a reset and picking something afterwards is a new narrowing, not an undo.
+         */
+        private var clearsQuery = false
+
         init {
-            form.update { it.copy(draft = filters.filter.value) }
+            val current = filters.filter.value
+            form.update {
+                it.copy(draft = current, preset = current.presetFor(LocalDate.now(clock)))
+            }
             viewModelScope.launch {
                 // Archived ones are included: a filter is a question about history, and
                 // history recorded against an archived account or category is still there.
@@ -77,7 +94,18 @@ class TransactionFiltersViewModel
                     categoryRepository.observeAllCategories(),
                 ) { accounts, categories -> accounts to categories }
                     .collect { (accounts, categories) ->
-                        form.update { it.copy(accounts = accounts, categories = categories) }
+                        form.update {
+                            it.copy(
+                                accounts = accounts,
+                                categories = categories,
+                                // From the accounts rather than the locale: an account is
+                                // stamped with the currency in force when it was created, and
+                                // an install predating D2 may hold one that is not the
+                                // device's. Saying the range back in the wrong currency would
+                                // be a confidently wrong number.
+                                currency = accounts.firstOrNull()?.currency ?: it.currency,
+                            )
+                        }
                     }
             }
         }
@@ -88,9 +116,10 @@ class TransactionFiltersViewModel
 
         fun setCategory(category: CategoryFilter) = edit { it.copy(category = category) }
 
-        /** A preset writes both ends at once; [DateRangePreset.CUSTOM] leaves them alone. */
+        /** A preset writes both ends at once; [DateRangePreset.CUSTOM] opens the calendars. */
         fun setPreset(preset: DateRangePreset) {
             val today = LocalDate.now(clock)
+            form.update { it.copy(preset = preset) }
             edit { draft ->
                 when (preset) {
                     DateRangePreset.ANY -> {
@@ -137,7 +166,8 @@ class TransactionFiltersViewModel
                         DateBound.FROM -> state.draft.copy(from = date)
                         DateBound.TO -> state.draft.copy(to = date)
                     }
-                state.copy(draft = draft, openPicker = null)
+                // A hand-picked date is a custom range even if it lands on a preset's edges.
+                state.copy(draft = draft, preset = DateRangePreset.CUSTOM, openPicker = null)
             }
         }
 
@@ -146,23 +176,46 @@ class TransactionFiltersViewModel
 
         fun setMaxAmount(digits: String) = edit { it.copy(maxAmountMinor = digits.toMinorUnits()) }
 
-        /** Empties the form without leaving it: Apply is still what commits the change. */
-        fun clear() = edit { TransactionFilter.None }
+        /**
+         * Empties the form without leaving it: Apply is still what commits the change.
+         *
+         * The search text goes with it, because the row says "show everything again" and a
+         * list still narrowed to what was typed is not everything.
+         */
+        fun clear() {
+            clearsQuery = true
+            form.update { it.copy(draft = TransactionFilter.None, preset = DateRangePreset.ANY) }
+        }
 
-        fun apply() = filters.apply(form.value.draft)
+        fun apply() = filters.apply(form.value.draft, clearQuery = clearsQuery)
 
         private fun edit(change: (TransactionFilter) -> TransactionFilter) =
             form.update { it.copy(draft = change(it.draft)) }
     }
 
-/** Blank means "no bound", which is not the same number as zero. */
-private fun String.toMinorUnits(): Long? = filter { it.isDigit() }.takeIf { it.isNotEmpty() }?.toLongOrNull()
+/**
+ * Blank means "no bound", which is not the same number as zero.
+ *
+ * Capped at [MAX_AMOUNT_DIGITS], the same ceiling the movement keypad uses. Without it, a
+ * pasted or held-down run of digits overflows `Long` and `toLongOrNull` returns null — which
+ * this function already spends its meaning on, so the bound would silently vanish and the
+ * field would blank itself while the owner was still typing.
+ */
+private fun String.toMinorUnits(): Long? =
+    filter { it.isDigit() }
+        .take(MAX_AMOUNT_DIGITS)
+        .takeIf { it.isNotEmpty() }
+        ?.toLongOrNull()
+
+/** Twelve digits is 10 billion in major units: past any figure this app will ever hold. */
+private const val MAX_AMOUNT_DIGITS = 12
 
 private fun LocalDate.endOfMonth(): LocalDate = withDayOfMonth(lengthOfMonth())
 
 /**
- * Which preset these dates describe, so reopening the form shows "This month" selected
- * rather than a custom range that happens to be this month.
+ * Which preset these dates describe. Used **once**, when the form opens on a filter it did
+ * not build, so reopening it shows "This month" ticked rather than a custom range that
+ * happens to be this month. After that the choice is remembered rather than re-guessed.
  */
 private fun TransactionFilter.presetFor(today: LocalDate): DateRangePreset {
     if (from == null && to == null) return DateRangePreset.ANY

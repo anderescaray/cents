@@ -51,7 +51,7 @@ data class CategoryDeletionState(
 class CategoryDeletion(
     private val repository: CategoryRepository,
     private val scope: CoroutineScope,
-    private val onDeleted: () -> Unit = {},
+    private val onOutcome: (Result<Unit>) -> Unit = {},
 ) {
     private val question = MutableStateFlow(CategoryDeletionState())
     val state: StateFlow<CategoryDeletionState> = question.asStateFlow()
@@ -73,17 +73,26 @@ class CategoryDeletion(
         question.value = CategoryDeletionState()
     }
 
-    /** Deletes an unused category, archives one that has history behind it. */
+    /**
+     * Deletes an unused category, archives one that has history behind it.
+     *
+     * The delete is caught rather than trusted. `transactions.categoryId` is `RESTRICT`, so a
+     * movement classified between counting and confirming turns a legitimate delete into a
+     * constraint violation — and an exception escaping the scope here takes the app with it.
+     */
     fun confirm() {
         val asked = question.value
         val id = asked.categoryId ?: return
         scope.launch {
-            when (asked.kind) {
-                DeletionKind.OUTRIGHT -> repository.deleteCategory(id)
-                DeletionKind.ARCHIVE -> repository.setArchived(id, archived = true)
-            }
+            val done =
+                runCatching {
+                    when (asked.kind) {
+                        DeletionKind.OUTRIGHT -> repository.deleteCategory(id)
+                        DeletionKind.ARCHIVE -> repository.setArchived(id, archived = true)
+                    }
+                }
             question.value = CategoryDeletionState()
-            onDeleted()
+            onOutcome(done)
         }
     }
 }

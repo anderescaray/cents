@@ -714,10 +714,12 @@ before that, and do not parallelize before that.
 - **The swipe assumes a left-to-right layout.** Dragging left reveals the action, with no
   mirroring for RTL. The app ships English and Spanish, both left-to-right; a right-to-left
   translation would have to revisit it.
-- **A removal refused on the Accounts list is reported in the section footer**, in place of
-  the total, and clears the next time one is asked for. It is the rare case where a movement
-  lands in the account between counting it and confirming, and the foreign key refuses. On
-  the editor the same failure still shows under the name field.
+- **A deletion the database refuses is reported in the list's section footer**, in place of
+  the total or the reorder hint, and clears the next time one is asked for. Both foreign keys
+  are `RESTRICT`, so a movement recorded between counting and confirming turns a legitimate
+  delete into a constraint violation. The account path always caught that; the category path
+  did not, and an exception escaping the view-model scope would have taken the app with it —
+  it now reports instead, under the name field on the editor and in the footer on the list.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note

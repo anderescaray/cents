@@ -96,10 +96,11 @@ fun CategoriesScreen(
             emptyState(state.kind)
         } else if (state.active.isNotEmpty()) {
             activeCategories(
+                failed = state.deletionFailed,
                 categories = state.active,
                 onOpen = onEditCategory,
                 onMove = viewModel::moveCategory,
-                onDelete = viewModel.deletion::request,
+                onDelete = viewModel::requestDeletion,
             )
         }
 
@@ -186,6 +187,7 @@ private fun LazyListScope.archivedCategories(
  * only stay archived (rule 8) — or the same button the editor already offers.
  */
 private fun LazyListScope.activeCategories(
+    failed: Boolean,
     categories: List<Category>,
     onOpen: (Long, CategoryKind) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -196,7 +198,10 @@ private fun LazyListScope.activeCategories(
 
         CentsListSection(
             header = stringResource(R.string.categories_section_header),
-            footer = stringResource(R.string.categories_reorder_footer),
+            footer =
+                stringResource(
+                    if (failed) R.string.delete_failed else R.string.categories_reorder_footer,
+                ),
         ) {
             categories.forEachIndexed { index, category ->
                 CategoryRow(

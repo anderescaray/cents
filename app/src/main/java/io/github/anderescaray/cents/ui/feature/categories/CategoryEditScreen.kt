@@ -104,7 +104,12 @@ private fun CategoryForm(
     ) {
         CentsListSection(
             header = stringResource(R.string.category_name_header),
-            footer = stringResource(R.string.category_name_taken).takeIf { state.nameTaken },
+            footer =
+                when {
+                    state.nameTaken -> stringResource(R.string.category_name_taken)
+                    state.writeFailed -> stringResource(R.string.delete_failed)
+                    else -> null
+                },
         ) {
             CentsTextField(
                 value = state.name,

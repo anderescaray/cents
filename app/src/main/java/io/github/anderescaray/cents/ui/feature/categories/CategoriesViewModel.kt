@@ -19,6 +19,12 @@ data class CategoriesUiState(
     val active: List<Category> = emptyList(),
     val archived: List<Category> = emptyList(),
     val isLoading: Boolean = true,
+    /**
+     * The last deletion asked for from this screen did not happen — a movement was
+     * classified with the category between counting it and confirming, and the foreign key
+     * refused. Rare, but a swipe that ends with the row still there has to say why.
+     */
+    val deletionFailed: Boolean = false,
 ) {
     /**
      * Nothing to list for this kind. False while loading, so opening the screen does not
@@ -41,6 +47,7 @@ class CategoriesViewModel
         private val categoryRepository: CategoryRepository,
     ) : ViewModel() {
         private val selectedKind = MutableStateFlow(CategoryKind.EXPENSE)
+        private val failed = MutableStateFlow(false)
 
         /**
          * The same delete question the editor asks, reachable here by swiping a row.
@@ -48,19 +55,24 @@ class CategoriesViewModel
          * Swiping is a shortcut to the question, never past it: whether "delete" removes the
          * category or archives it is decided in one place (see [CategoryDeletion]).
          */
-        val deletion = CategoryDeletion(categoryRepository, viewModelScope)
+        val deletion =
+            CategoryDeletion(categoryRepository, viewModelScope) { outcome ->
+                failed.value = outcome.isFailure
+            }
 
         val uiState: StateFlow<CategoriesUiState> =
             combine(
                 selectedKind,
                 categoryRepository.observeAllCategories(),
-            ) { kind, categories ->
+                failed,
+            ) { kind, categories, deletionFailed ->
                 val ofKind = categories.filter { it.kind == kind }
                 CategoriesUiState(
                     kind = kind,
                     active = ofKind.filterNot { it.archived },
                     archived = ofKind.filter { it.archived },
                     isLoading = false,
+                    deletionFailed = deletionFailed,
                 )
             }.stateIn(
                 scope = viewModelScope,
@@ -70,6 +82,12 @@ class CategoriesViewModel
 
         fun setKind(kind: CategoryKind) {
             selectedKind.value = kind
+        }
+
+        /** Asks about [category], clearing whatever the previous attempt had to say. */
+        fun requestDeletion(category: Category) {
+            failed.value = false
+            deletion.request(category)
         }
 
         /**

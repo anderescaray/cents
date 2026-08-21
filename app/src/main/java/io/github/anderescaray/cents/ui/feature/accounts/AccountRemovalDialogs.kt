@@ -14,34 +14,37 @@ import io.github.anderescaray.cents.ui.components.CentsSheetAction
  * An empty account is a yes/no. One with movements in it is a real question, so it gets a
  * sheet with the two things "delete" could mean — and the answer that destroys history is
  * asked for twice, on its own, naming what goes (`DECISIONS.md` D7).
+ *
+ * It renders an [AccountRemoval] and nothing else, so the editor and a swipe on the list
+ * put the same question on screen.
  */
 @Composable
 internal fun RemovalDialogs(
-    state: AccountEditUiState,
-    viewModel: AccountEditViewModel,
+    state: AccountRemovalState,
+    removal: AccountRemoval,
 ) {
-    when (state.removalStep) {
+    when (state.step) {
         RemovalStep.NONE -> Unit
-        RemovalStep.CONFIRM_EMPTY -> ConfirmEmptyAlert(state, viewModel)
-        RemovalStep.CHOOSE -> RemovalChoiceSheet(state, viewModel)
-        RemovalStep.PICK_TARGET -> ReassignTargetSheet(state, viewModel)
-        RemovalStep.CONFIRM_DESTRUCTIVE -> ConfirmDestructiveAlert(state, viewModel)
+        RemovalStep.CONFIRM_EMPTY -> ConfirmEmptyAlert(state, removal)
+        RemovalStep.CHOOSE -> RemovalChoiceSheet(state, removal)
+        RemovalStep.PICK_TARGET -> ReassignTargetSheet(state, removal)
+        RemovalStep.CONFIRM_DESTRUCTIVE -> ConfirmDestructiveAlert(state, removal)
     }
 }
 
 /** Nothing lives in it, so there is only one thing deleting it could mean. */
 @Composable
 private fun ConfirmEmptyAlert(
-    state: AccountEditUiState,
-    viewModel: AccountEditViewModel,
+    state: AccountRemovalState,
+    removal: AccountRemoval,
 ) {
     CentsAlert(
         title = stringResource(R.string.account_delete_title, state.name),
         message = stringResource(R.string.account_delete_message),
         confirmLabel = stringResource(R.string.action_delete),
-        onConfirm = viewModel::confirmEmptyRemoval,
+        onConfirm = removal::confirmEmpty,
         dismissLabel = stringResource(R.string.action_cancel),
-        onDismiss = viewModel::cancelRemoval,
+        onDismiss = removal::cancel,
         destructive = true,
     )
 }
@@ -49,8 +52,8 @@ private fun ConfirmEmptyAlert(
 /** The two honest meanings of "delete" for an account that holds movements. */
 @Composable
 private fun RemovalChoiceSheet(
-    state: AccountEditUiState,
-    viewModel: AccountEditViewModel,
+    state: AccountRemovalState,
+    removal: AccountRemoval,
 ) {
     CentsActionSheet(
         title = stringResource(R.string.account_delete_title, state.name),
@@ -64,7 +67,7 @@ private fun RemovalChoiceSheet(
             listOf(
                 CentsSheetAction(
                     label = stringResource(R.string.account_delete_reassign),
-                    onClick = viewModel::chooseReassign,
+                    onClick = removal::chooseReassign,
                     enabled = state.canReassign,
                     // Disabled rather than hidden: an option that vanishes for reasons the
                     // owner cannot see reads as the app having forgotten it.
@@ -79,20 +82,20 @@ private fun RemovalChoiceSheet(
                             state.transactionCount,
                             state.transactionCount,
                         ),
-                    onClick = viewModel::chooseDestructive,
+                    onClick = removal::chooseDestructive,
                     destructive = true,
                 ),
             ),
         cancelLabel = stringResource(R.string.action_cancel),
-        onDismiss = viewModel::cancelRemoval,
+        onDismiss = removal::cancel,
     )
 }
 
 /** Where the movements go before this account does. */
 @Composable
 private fun ReassignTargetSheet(
-    state: AccountEditUiState,
-    viewModel: AccountEditViewModel,
+    state: AccountRemovalState,
+    removal: AccountRemoval,
 ) {
     CentsActionSheet(
         title = stringResource(R.string.account_reassign_title),
@@ -104,18 +107,18 @@ private fun ReassignTargetSheet(
             ),
         actions =
             state.reassignTargets.map { target ->
-                CentsSheetAction(label = target.name, onClick = { viewModel.reassignTo(target.id) })
+                CentsSheetAction(label = target.name, onClick = { removal.reassignTo(target.id) })
             },
         cancelLabel = stringResource(R.string.action_cancel),
-        onDismiss = viewModel::cancelRemoval,
+        onDismiss = removal::cancel,
     )
 }
 
 /** The one place in the app that destroys recorded history, asked alone and by name. */
 @Composable
 private fun ConfirmDestructiveAlert(
-    state: AccountEditUiState,
-    viewModel: AccountEditViewModel,
+    state: AccountRemovalState,
+    removal: AccountRemoval,
 ) {
     CentsAlert(
         title = stringResource(R.string.account_delete_everything_title, state.name),
@@ -126,9 +129,9 @@ private fun ConfirmDestructiveAlert(
                 state.transactionCount,
             ),
         confirmLabel = stringResource(R.string.action_delete),
-        onConfirm = viewModel::confirmDestructiveRemoval,
+        onConfirm = removal::confirmDestructive,
         dismissLabel = stringResource(R.string.action_cancel),
-        onDismiss = viewModel::cancelRemoval,
+        onDismiss = removal::cancel,
         destructive = true,
     )
 }

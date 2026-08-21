@@ -20,15 +20,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** What "delete" is actually able to do to this category, which is what the alert says. */
-enum class DeletionKind {
-    /** Nothing references it: it can go for good. */
-    OUTRIGHT,
-
-    /** It classifies transactions, so it can only leave the pickers (rule 8). */
-    ARCHIVE,
-}
-
 data class CategoryEditUiState(
     val isNew: Boolean = true,
     val kind: CategoryKind = CategoryKind.EXPENSE,
@@ -37,7 +28,6 @@ data class CategoryEditUiState(
     val archived: Boolean = false,
     val transactionCount: Int = 0,
     val nameTaken: Boolean = false,
-    val confirmingDeletion: Boolean = false,
     val saving: Boolean = false,
     val finished: Boolean = false,
 ) {
@@ -75,6 +65,15 @@ class CategoryEditViewModel
             )
 
         val uiState: StateFlow<CategoryEditUiState> = form.asStateFlow()
+
+        /**
+         * The confirmation, shared with the swipe on the list so both reach the same
+         * question rather than two implementations of it (see [CategoryDeletion]).
+         */
+        val deletion =
+            CategoryDeletion(categoryRepository, viewModelScope) {
+                form.update { it.copy(finished = true) }
+            }
 
         /** Names already in use by the other categories of this kind, lowercased. */
         private var takenNames: Set<String> = emptySet()
@@ -172,27 +171,13 @@ class CategoryEditViewModel
             }
         }
 
-        /** Opens the confirmation, after re-reading how many transactions are at stake. */
+        /**
+         * Opens the confirmation. The name comes from the form rather than from disk, so an
+         * alert raised over a renamed-but-unsaved category names what is on screen.
+         */
         fun requestDeletion() {
             val id = categoryId ?: return
-            viewModelScope.launch {
-                val count = categoryRepository.countTransactions(id)
-                form.update { it.copy(transactionCount = count, confirmingDeletion = true) }
-            }
-        }
-
-        fun cancelDeletion() = form.update { it.copy(confirmingDeletion = false) }
-
-        /** Deletes an unused category, archives one that has history behind it. */
-        fun confirmDeletion() {
-            val id = categoryId ?: return
-            viewModelScope.launch {
-                when (form.value.deletionKind) {
-                    DeletionKind.OUTRIGHT -> categoryRepository.deleteCategory(id)
-                    DeletionKind.ARCHIVE -> categoryRepository.setArchived(id, archived = true)
-                }
-                form.update { it.copy(confirmingDeletion = false, finished = true) }
-            }
+            deletion.request(id, form.value.name)
         }
 
         fun restore() {

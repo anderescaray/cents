@@ -73,6 +73,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_archive">Archive</string>
     <string name="action_undo">Undo</string>
+    <string name="delete_failed">That could not be deleted. Try again.</string>
 
     <!-- Transactions -->
     <string name="transactions_this_month">This month</string>

@@ -20,31 +20,6 @@ import java.util.Currency
 import java.util.Locale
 import javax.inject.Inject
 
-/**
- * Where the owner is in deciding what "delete" means for this account.
- *
- * A category can be detached from a movement and the movement survives, unclassified. An
- * account cannot: `transactions.accountId` is `RESTRICT`, and a movement with no account is
- * not a movement. So deleting an account that holds history is not one operation with an
- * obvious meaning — it is a question, and this is the shape of asking it (`DECISIONS.md` D7).
- */
-enum class RemovalStep {
-    /** Nothing is being asked. */
-    NONE,
-
-    /** No movements live in it, so one yes/no is the whole question. */
-    CONFIRM_EMPTY,
-
-    /** It holds movements: the sheet offers the two things delete could honestly mean. */
-    CHOOSE,
-
-    /** Which account the movements move into before this one goes. */
-    PICK_TARGET,
-
-    /** The only path in the app that destroys recorded history, asked again on its own. */
-    CONFIRM_DESTRUCTIVE,
-}
-
 data class AccountEditUiState(
     val isNew: Boolean = true,
     val name: String = "",
@@ -60,9 +35,6 @@ data class AccountEditUiState(
     val archived: Boolean = false,
     val transactionCount: Int = 0,
     val nameTaken: Boolean = false,
-    val removalStep: RemovalStep = RemovalStep.NONE,
-    /** Accounts the movements could move into: active, not this one, same currency. */
-    val reassignTargets: List<Account> = emptyList(),
     val saving: Boolean = false,
     val writeFailed: Boolean = false,
     val finished: Boolean = false,
@@ -75,15 +47,6 @@ data class AccountEditUiState(
         }
 
     val canSave: Boolean get() = name.isNotBlank() && !nameTaken && !saving
-
-    /** True while the owner is being asked something about deleting this account. */
-    val removing: Boolean get() = removalStep != RemovalStep.NONE
-
-    /**
-     * Reassignment needs somewhere to reassign to. When there is nowhere, the choice is
-     * still shown — disabled, with the reason — rather than quietly dropped.
-     */
-    val canReassign: Boolean get() = reassignTargets.isNotEmpty()
 }
 
 /**
@@ -122,6 +85,17 @@ class AccountEditViewModel
             )
 
         val uiState: StateFlow<AccountEditUiState> = form.asStateFlow()
+
+        /**
+         * The delete question, shared with the swipe on the list so both reach the same
+         * sequence of confirmations rather than two implementations of it.
+         */
+        val removal =
+            AccountRemoval(accountRepository, viewModelScope) { outcome ->
+                form.update {
+                    it.copy(writeFailed = outcome.isFailure, finished = outcome.isSuccess)
+                }
+            }
 
         private var takenNames: Set<String> = emptySet()
         private var edited = false
@@ -259,58 +233,12 @@ class AccountEditViewModel
         }
 
         /**
-         * Opens the question, after re-reading how many movements are actually at stake and
-         * which accounts could take them. Both are read now rather than trusted from load:
-         * the difference between them is the difference between deleting an empty account
-         * and deleting a year of history.
+         * Opens the question. The name comes from the form, so an alert raised over a
+         * renamed-but-unsaved account names what is on screen.
          */
         fun requestRemoval() {
             val id = accountId ?: return
-            viewModelScope.launch {
-                val count = accountRepository.countTransactions(id)
-                val targets = reassignTargets(id)
-                form.update { state ->
-                    state.copy(
-                        transactionCount = count,
-                        reassignTargets = targets,
-                        removalStep =
-                            if (count == 0) RemovalStep.CONFIRM_EMPTY else RemovalStep.CHOOSE,
-                    )
-                }
-            }
-        }
-
-        fun cancelRemoval() = form.update { it.copy(removalStep = RemovalStep.NONE) }
-
-        /** Deletes an account nothing lives in. */
-        fun confirmEmptyRemoval() {
-            val id = accountId ?: return
-            // A movement could have landed in the account between counting and confirming,
-            // and the foreign key would refuse the delete: report that rather than letting
-            // it escape the coroutine.
-            finishRemoval { accountRepository.deleteAccount(id) }
-        }
-
-        /** Step two of the harmless path: which account the movements move into. */
-        fun chooseReassign() {
-            if (!form.value.canReassign) return
-            form.update { it.copy(removalStep = RemovalStep.PICK_TARGET) }
-        }
-
-        /** Step two of the destructive path: ask again, alone, naming what is lost. */
-        fun chooseDestructive() = form.update { it.copy(removalStep = RemovalStep.CONFIRM_DESTRUCTIVE) }
-
-        /** Moves every movement into [targetId] and then deletes this account. */
-        fun reassignTo(targetId: Long) {
-            val id = accountId ?: return
-            if (targetId == id) return
-            finishRemoval { accountRepository.reassignAndDelete(id = id, targetId = targetId) }
-        }
-
-        /** Deletes the account and the movements in it. There is no undo behind this. */
-        fun confirmDestructiveRemoval() {
-            val id = accountId ?: return
-            finishRemoval { accountRepository.deleteAccountWithTransactions(id) }
+            removal.request(id, form.value.name)
         }
 
         fun archive() {
@@ -327,41 +255,6 @@ class AccountEditViewModel
                 accountRepository.setArchived(id, archived = false)
                 form.update { it.copy(finished = true) }
             }
-        }
-
-        /** Runs one of the three removals and reports what happened, without throwing. */
-        private fun finishRemoval(removal: suspend () -> Unit) {
-            viewModelScope.launch {
-                val removed = runCatching { removal() }
-                form.update {
-                    it.copy(
-                        removalStep = RemovalStep.NONE,
-                        writeFailed = removed.isFailure,
-                        finished = removed.isSuccess,
-                    )
-                }
-            }
-        }
-
-        /**
-         * Where the movements could go: another account, still active, in the same currency.
-         *
-         * The currency filter is not fussiness. A movement keeps the currency it was
-         * recorded in, and an account's balance sums its movements under the account's own
-         * currency — so moving euros into a dollar account would not convert them, it would
-         * silently make that balance a sum of two currencies (rule 2).
-         */
-        private suspend fun reassignTargets(id: Long): List<Account> {
-            // The account's own currency, read from the database rather than from the form.
-            // The form carries the device's currency from construction until load() replaces
-            // it with the account's, so filtering on it can offer the wrong accounts — or,
-            // when the two differ, none at all, which reads as "there is nowhere to move
-            // these" when there plainly is.
-            val currency = accountRepository.findById(id)?.currency ?: return emptyList()
-            return accountRepository
-                .observeAccounts()
-                .first()
-                .filter { it.id != id && it.currency == currency }
         }
 
         private fun isNameTaken(name: String): Boolean = name.trim().lowercase() in takenNames

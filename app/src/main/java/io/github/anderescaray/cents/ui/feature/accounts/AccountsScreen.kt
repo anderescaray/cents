@@ -22,10 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -41,6 +43,7 @@ fun AccountsScreen(
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val removal by viewModel.removal.state.collectAsStateWithLifecycle()
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_accounts),
@@ -74,6 +77,7 @@ fun AccountsScreen(
                 accounts = state.active,
                 footer = { totalFooter(state) },
                 onOpenAccount = onOpenAccount,
+                onDeleteAccount = viewModel::requestRemoval,
             )
         }
 
@@ -84,52 +88,72 @@ fun AccountsScreen(
                 accounts = state.archived,
                 footer = { stringResource(R.string.accounts_archived_footer) },
                 onOpenAccount = onOpenAccount,
+                onDeleteAccount = viewModel::requestRemoval,
             )
         }
     }
+
+    RemovalDialogs(state = removal, removal = viewModel.removal)
 }
 
 /**
  * The total, or an explanation instead of one: accounts in different currencies cannot be
  * added up without a conversion rate the app does not have, and inventing one would be a
  * number that lies.
+ *
+ * A removal that was refused takes the line instead. It is rare and it is transient, but a
+ * swipe that ends with the row still there has to account for itself somewhere.
  */
 @Composable
 private fun totalFooter(state: AccountsUiState): String? {
     val total = state.total
     return when {
+        state.removalFailed -> stringResource(R.string.delete_failed)
         state.active.isEmpty() -> null
         total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))
         else -> stringResource(R.string.accounts_total_mixed_currencies)
     }
 }
 
+/**
+ * Both sections swipe to delete, archived ones included: what "delete an account" means is
+ * the same question wherever the account is listed, and an archived account is exactly the
+ * one somebody is most likely to want gone for good.
+ */
 private fun LazyListScope.accountSection(
     key: String,
     @StringRes headerRes: Int,
     accounts: List<AccountWithBalance>,
     footer: @Composable () -> String?,
     onOpenAccount: (Long) -> Unit,
+    onDeleteAccount: (Account) -> Unit,
 ) {
     item(key = "section-$key") {
+        val deleteLabel = stringResource(R.string.action_delete)
         CentsListSection(header = stringResource(headerRes), footer = footer()) {
             accounts.forEachIndexed { index, item ->
                 val account = item.account
-                CentsListRow(
-                    title = account.name,
-                    subtitle = stringResource(account.type.labelRes()),
-                    value = MoneyFormatter.format(item.balance),
-                    valueColor =
-                        if (item.balance.isNegative) {
-                            CentsTheme.colors.destructive
-                        } else {
-                            CentsTheme.colors.label
-                        },
-                    leading = { AccountDot(Color(account.colorArgb)) },
-                    showChevron = true,
-                    showSeparator = index != accounts.lastIndex,
-                    onClick = { onOpenAccount(account.id) },
-                )
+                CentsSwipeableRow(
+                    onDelete = { onDeleteAccount(account) },
+                    deleteLabel = deleteLabel,
+                ) { rowModifier ->
+                    CentsListRow(
+                        modifier = rowModifier,
+                        title = account.name,
+                        subtitle = stringResource(account.type.labelRes()),
+                        value = MoneyFormatter.format(item.balance),
+                        valueColor =
+                            if (item.balance.isNegative) {
+                                CentsTheme.colors.destructive
+                            } else {
+                                CentsTheme.colors.label
+                            },
+                        leading = { AccountDot(Color(account.colorArgb)) },
+                        showChevron = true,
+                        showSeparator = index != accounts.lastIndex,
+                        onClick = { onOpenAccount(account.id) },
+                    )
+                }
             }
         }
     }

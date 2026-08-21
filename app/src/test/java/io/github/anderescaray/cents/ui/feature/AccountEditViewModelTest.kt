@@ -187,9 +187,14 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
-                assertEquals(RemovalStep.CONFIRM_EMPTY, awaitStateThat { it.removing }.removalStep)
+                assertEquals(
+                    RemovalStep.CONFIRM_EMPTY,
+                    editor.removal.state
+                        .first { it.asking }
+                        .step,
+                )
 
-                editor.confirmEmptyRemoval()
+                editor.removal.confirmEmpty()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
@@ -208,10 +213,10 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
-                val state = awaitStateThat { it.removing }
+                val state = editor.removal.state.first { it.asking }
 
                 // Not a deletion and not an archive: a question, with both answers live.
-                assertEquals(RemovalStep.CHOOSE, state.removalStep)
+                assertEquals(RemovalStep.CHOOSE, state.step)
                 assertEquals(1, state.transactionCount)
                 assertTrue(state.canReassign)
                 assertEquals(listOf("New bank"), state.reassignTargets.map { it.name })
@@ -234,12 +239,12 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
-                awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
+                editor.removal.state.first { it.step == RemovalStep.CHOOSE }
 
-                editor.chooseReassign()
-                awaitStateThat { it.removalStep == RemovalStep.PICK_TARGET }
+                editor.removal.chooseReassign()
+                editor.removal.state.first { it.step == RemovalStep.PICK_TARGET }
 
-                editor.reassignTo(target)
+                editor.removal.reassignTo(target)
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
@@ -269,14 +274,14 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
-                awaitStateThat { it.removalStep == RemovalStep.CHOOSE }
+                editor.removal.state.first { it.step == RemovalStep.CHOOSE }
 
                 // Choosing the destructive path only opens the second question.
-                editor.chooseDestructive()
-                awaitStateThat { it.removalStep == RemovalStep.CONFIRM_DESTRUCTIVE }
+                editor.removal.chooseDestructive()
+                editor.removal.state.first { it.step == RemovalStep.CONFIRM_DESTRUCTIVE }
                 assertEquals(2, database.transactionDao().count())
 
-                editor.confirmDestructiveRemoval()
+                editor.removal.confirmDestructive()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
@@ -307,14 +312,14 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
-                val state = awaitStateThat { it.removing }
-                assertEquals(RemovalStep.CHOOSE, state.removalStep)
+                val state = editor.removal.state.first { it.asking }
+                assertEquals(RemovalStep.CHOOSE, state.step)
                 assertFalse(state.canReassign)
 
                 // Tapping it anyway is a no-op rather than a dead end to back out of.
-                editor.chooseReassign()
+                editor.removal.chooseReassign()
                 expectNoEvents()
-                assertEquals(RemovalStep.CHOOSE, editor.uiState.value.removalStep)
+                assertEquals(RemovalStep.CHOOSE, editor.removal.state.value.step)
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -331,7 +336,7 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 awaitStateThat { it.name.isNotEmpty() }
                 editor.requestRemoval()
-                val state = awaitStateThat { it.removing }
+                val state = editor.removal.state.first { it.asking }
 
                 // A movement keeps the currency it was recorded in, and a balance sums its
                 // account's movements under that account's currency: moving euros into a

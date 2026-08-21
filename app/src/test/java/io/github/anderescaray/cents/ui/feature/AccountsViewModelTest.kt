@@ -9,8 +9,10 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsViewModel
+import io.github.anderescaray.cents.ui.feature.accounts.RemovalStep
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -128,5 +130,55 @@ class AccountsViewModelTest {
                 assertTrue(awaitStateThat { !it.isLoading }.showEmptyState)
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `swiping an empty account asks once before it goes`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Mistake"))
+
+            viewModel.uiState.test {
+                val listed = awaitStateThat { it.active.isNotEmpty() }
+                viewModel.requestRemoval(listed.active.single().account)
+
+                // One yes or no, because there is only one thing delete could mean here.
+                assertEquals(
+                    RemovalStep.CONFIRM_EMPTY,
+                    viewModel.removal.state
+                        .first { it.asking }
+                        .step,
+                )
+
+                viewModel.removal.confirmEmpty()
+                awaitStateThat { it.active.isEmpty() }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(null, database.accountDao().findById(id))
+        }
+
+    @Test
+    fun `swiping an account with movements opens the same choice the editor does`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Old bank"))
+            database.accountDao().insert(account(name = "New bank"))
+            database.transactionDao().insert(transaction(accountId = id, amountMinor = 3_000))
+
+            viewModel.uiState.test {
+                val listed = awaitStateThat { it.active.size == 2 }
+                viewModel.requestRemoval(listed.active.first { it.account.id == id }.account)
+
+                val asked = viewModel.removal.state.first { it.asking }
+                // A swipe is a faster way to the question, never a way past it (D7).
+                assertEquals(RemovalStep.CHOOSE, asked.step)
+                assertEquals(1, asked.transactionCount)
+                assertTrue(asked.canReassign)
+                assertEquals(listOf("New bank"), asked.reassignTargets.map { it.name })
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Nothing has happened yet: asking is not doing.
+            assertEquals(2, database.accountDao().countAll())
+            assertEquals(1, database.transactionDao().count())
         }
 }

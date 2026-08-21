@@ -22,14 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.components.CentsActionRow
-import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsColorPicker
 import io.github.anderescaray.cents.ui.components.CentsListScreen
 import io.github.anderescaray.cents.ui.components.CentsListSection
@@ -49,6 +47,7 @@ fun CategoryEditScreen(
     viewModel: CategoryEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val deletion by viewModel.deletion.state.collectAsStateWithLifecycle()
     val nameFocus = remember { FocusRequester() }
 
     LaunchedEffect(state.finished) {
@@ -81,11 +80,11 @@ fun CategoryEditScreen(
         CategoryForm(state = state, viewModel = viewModel, nameFocus = nameFocus)
     }
 
-    if (state.confirmingDeletion) {
-        DeletionAlert(
-            state = state,
-            onConfirm = viewModel::confirmDeletion,
-            onDismiss = viewModel::cancelDeletion,
+    if (deletion.asking) {
+        CategoryDeletionAlert(
+            state = deletion,
+            onConfirm = viewModel.deletion::confirm,
+            onDismiss = viewModel.deletion::cancel,
         )
     }
 }
@@ -168,42 +167,6 @@ private fun CategoryActions(
             )
         }
     }
-}
-
-/**
- * Says which of the two things the button is about to do, and why, before it happens —
- * an unused category is removed, one with history behind it can only be archived.
- */
-@Composable
-private fun DeletionAlert(
-    state: CategoryEditUiState,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val outright = state.deletionKind == DeletionKind.OUTRIGHT
-    CentsAlert(
-        title =
-            stringResource(
-                if (outright) R.string.category_delete_title else R.string.category_archive_title,
-                state.name,
-            ),
-        message =
-            if (outright) {
-                stringResource(R.string.category_delete_message)
-            } else {
-                pluralStringResource(
-                    R.plurals.category_archive_message,
-                    state.transactionCount,
-                    state.transactionCount,
-                )
-            },
-        confirmLabel =
-            stringResource(if (outright) R.string.action_delete else R.string.action_archive),
-        onConfirm = onConfirm,
-        dismissLabel = stringResource(R.string.action_cancel),
-        onDismiss = onDismiss,
-        destructive = outright,
-    )
 }
 
 internal const val NAME_FIELD_TAG = "categoryName"

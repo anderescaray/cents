@@ -175,7 +175,7 @@ A full local run of what CI checks, worth doing before opening a PR:
 
 ## 8. Current status
 
-**Phase 1 — every branch merged; the exit criteria still need the phone.** Recording money
+**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics) is next.** Recording money
 works end to end: the Room schema, the domain and repository layers, the iOS-flavoured design
 system and navigation, a transaction list grouped by day with a monthly summary, one form that
 adds and edits movements (keypad, date picker, note, delete with undo), category management,
@@ -197,6 +197,11 @@ rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
 [`DECISIONS.md`](DECISIONS.md)** — read it at the start of every session, act on anything
 answered since last time, and add any new question there with a default rather than guessing
 or stalling. The protocol is [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
+
+**Phase 2 is the first phase that may run several agents at once — and starting that is the
+owner's deliberate decision, not a default.** D5 settled how it would run; `DECISIONS.md` D9
+asks whether it starts now, and until it is answered the work stays serial. Do not open
+worktrees because the phase number changed.
 
 **Where to start a session and what is left to build is
 [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session

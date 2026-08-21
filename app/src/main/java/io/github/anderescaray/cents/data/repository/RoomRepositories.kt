@@ -8,11 +8,13 @@ import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Category
+import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
+import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
@@ -159,8 +161,19 @@ class RoomTransactionRepository
         private val transactionDao: TransactionDao,
         private val clock: Clock,
     ) : TransactionRepository {
-        override fun observeTransactions(): Flow<List<TransactionDetails>> =
-            transactionDao.observeAllWithNames().map { rows -> rows.map { it.toDomain() } }
+        override fun observeTransactions(filter: TransactionFilter): Flow<List<TransactionDetails>> =
+            transactionDao
+                .observeFilteredWithNames(
+                    accountId = filter.accountId,
+                    categoryId = (filter.category as? CategoryFilter.One)?.id,
+                    uncategorized = filter.category == CategoryFilter.Uncategorized,
+                    kind = filter.kind,
+                    from = filter.from,
+                    to = filter.to,
+                    minAmountMinor = filter.minAmountMinor,
+                    maxAmountMinor = filter.maxAmountMinor,
+                    query = filter.query.toLikeArgument(),
+                ).map { rows -> rows.map { it.toDomain() } }
 
         override fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>> =
             transactionDao.observeByAccount(accountId).map { rows -> rows.map { it.toDomain() } }
@@ -198,3 +211,21 @@ class RoomTransactionRepository
             transactionDao.deleteById(id)
         }
     }
+
+/**
+ * Turns typed text into a LIKE pattern, or null when there is nothing to search for.
+ *
+ * The wildcards are escaped before the surrounding ones are added, so a note containing
+ * "50%" is found by searching for "50%" rather than matching every note starting with 50.
+ * The backslash is escaped first, or it would go on to escape the escapes.
+ */
+private fun String.toLikeArgument(): String? {
+    val trimmed = trim()
+    if (trimmed.isEmpty()) return null
+    val escaped =
+        trimmed
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+    return "%$escaped%"
+}

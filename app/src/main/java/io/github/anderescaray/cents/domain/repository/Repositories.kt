@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
+import io.github.anderescaray.cents.domain.model.TransactionFilter
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -94,7 +95,12 @@ interface CategoryRepository {
 }
 
 interface TransactionRepository {
-    fun observeTransactions(): Flow<List<TransactionDetails>>
+    /**
+     * The list, narrowed by [filter] — and [TransactionFilter.None], the default, is every
+     * movement. One method rather than two, so "the list" and "the filtered list" cannot
+     * drift into disagreeing about what a movement's row looks like.
+     */
+    fun observeTransactions(filter: TransactionFilter = TransactionFilter.None): Flow<List<TransactionDetails>>
 
     fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>>
 

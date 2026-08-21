@@ -484,13 +484,13 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Toolchain | Gradle KTS + version catalog, Hilt + KSP, detekt (`dev.detekt` 2.x), Spotless/ktlint, GitHub Actions running build + tests + lint on every PR |
 | Database | Room v1: `accounts`, `categories`, `transactions`. Balances computed in SQL, foreign keys `RESTRICT`, schema exported to `app/schemas/` |
 | Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
-| Design system | iOS-flavoured tokens and components, including a row that swipes sideways to delete — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
+| Design system | iOS-flavoured tokens and components, including a row that swipes sideways to delete and a search field — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
-| Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
+| Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list. Searchable, and filterable by date range, account, category, kind and amount |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Tests | 120, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 138, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -660,9 +660,37 @@ serial — this is still the single-agent phase.
         `CentsAlert` gained an optional `dismissLabel` for it: with nothing to decide, a
         "Cancel" beside "OK" offers a choice that does not exist.
 
-- [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
+- [x] **`feat/transaction-filters`** — search and filters on the list: date range, account,
       category, kind, amount, note text.
       *Done when:* "what did I spend on restaurants in July" is answerable in the app.
+      **Done** — that sentence is the name of a test in `TransactionFilterTest`. Five things
+      worth knowing beyond the line above.
+      - **The narrowing happens in SQLite**, in one query whose every clause is written
+        `:x IS NULL OR column = :x`, so an unset filter costs nothing and the set ones use
+        the indices already on `accountId`, `categoryId` and `date`. The same argument that
+        puts chart aggregation in `GROUP BY` puts this there: the alternative is pulling
+        every movement into Kotlin and walking it.
+      - **The search text is escaped before it becomes a LIKE pattern.** `%` and `_` are
+        wildcards, so an unescaped search for "50%" would quietly mean "50 followed by
+        anything" — it now finds the note that says 50%. It matches the note, the category
+        name and the account name, which is what makes typing "restaurants" work without
+        opening the filter form at all.
+      - **The filter lives in a `TransactionFilterStore`**, a singleton beside
+        `DeletedTransactionBuffer`, because it is chosen on one screen and obeyed on another.
+        Deliberately in memory only: a filter that survived a restart would be a saved view,
+        and until that exists, reopening the app to a list quietly hiding most of the
+        movements would read as data loss rather than as a filter still being on.
+      - **The form edits a draft and writes it once, on Apply**, so Cancel means something
+        and the query underneath does not churn while a half-built filter is assembled. It
+        offers archived accounts and categories, because history recorded against them is
+        still history. It does not own the search field — that stays on the list — so
+        applying a filter never silently empties something visible behind it.
+      - **A filtered list says what it found.** The month summary is replaced by a Matches
+        section with the count and the totals of exactly the rows on screen, summed in Kotlin
+        from the rows already in memory rather than by a second query that could disagree
+        with the list above it. And "nothing matched" is a different empty state from "you
+        have no movements", with a way out on it — the two look identical and mean opposite
+        things.
 
 **Phase 1 is finished when the four exit criteria in Part B §2 hold.** Do not start Phase 2
 before that, and do not parallelize before that.
@@ -737,6 +765,18 @@ before that, and do not parallelize before that.
   category path did not, and an exception escaping the view-model scope would have taken the
   app with it. Both now end in a one-button alert instead, and nothing is retried
   automatically — the owner asks again if they still want to.
+- **Search folds case for ASCII only.** SQLite's `LIKE` lowercases A–Z and nothing else, so
+  searching "cafe" does not find "Café" and vice versa. Fixing it properly means storing a
+  normalised copy of the searchable text, which is a schema change and a migration; it is
+  recorded here rather than half-done.
+- **Filters do not survive closing the app**, by design — see the note in C3. If they should,
+  that is a saved-views feature with a name and a list, not a flag.
+- **The amount filter is typed in minor units**, the way the movement keypad is: 2500 means
+  25,00. The section footer says the range back in real money so the two cannot be confused,
+  but it is a text field rather than the keypad the movement form uses.
+- **A filter narrows the Transactions tab only.** The account detail screen has its own list
+  and ignores it, which is the intent — that screen is already filtered, by the account it is
+  about.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note
@@ -842,21 +882,32 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**`feat/transaction-filters`**, the last unticked item in C3 and **the last piece of Phase 1**:
-search and filters on the transaction list — date range, account, category, kind, amount, note
-text — so that "what did I spend on restaurants in July" is answerable in the app.
+**Every branch in C3 is built and merged. What is left of Phase 1 is not code — it is the
+four exit criteria in Part B §2, and three of them can only be checked on the phone.**
 
-Before starting it, two things are still waiting on the phone, and neither reads wrong in a
-test:
+```powershell
+./gradlew installDebug     # the agent can do this much
+```
 
-- **Walk a fresh install.** Nothing is seeded any more, so the first thing the app shows is an
-  empty Accounts tab and a movement form that leads to creating an account. That path used to
-  be an edge case and is now the front door.
-- **Try the swipe.** No device was attached when `feat/swipe-to-delete` was built, so its
-  thresholds — half the button to park open, 60% of the row to fire — have been measured by
-  tests and never by a thumb. They are two constants at the bottom of `CentsSwipeableRow.kt`
-  if they feel wrong.
+- [ ] **The app installs and runs on the real phone.** No device has been attached for the
+      last three branches, so nothing since `feat/accounts` has been seen outside a test.
+- [ ] **Accounts, categories and movements can be created, and survive a restart.** Walk a
+      *fresh install*: nothing is seeded, so the front door is an empty Accounts tab and a
+      movement form that leads to creating an account.
+- [ ] **Balances are correct.** Type a few movements and check the accounts list against
+      them by hand. Every balance in the app is computed from its movements, never stored,
+      so if one is wrong the query is wrong rather than the data.
+- [x] **CI is green on every PR** — build, tests and lint, on every one so far.
 
-When `feat/transaction-filters` lands, check the four exit criteria in Part B §2 and stop: how
-the parallel phase runs is answered (D5 — the owner's own harness, at most three agents), but
-*starting* it is still a deliberate decision rather than something to drift into.
+Two things built without a thumb ever touching them, worth trying deliberately:
+
+- **The swipe to delete.** Its thresholds — half the revealed button to park open, 60% of the
+  row to fire — are two constants at the bottom of `CentsSwipeableRow.kt`.
+- **Search and filters.** In particular whether the filter form is the right shape at six
+  sections, and whether the Matches summary says what you actually want to know.
+
+**Then Phase 1 is closed, and the next decision is the owner's, not the agent's.** How the
+parallel phase runs is already answered (D5 — the owner's own harness, at most three agents,
+from roadmap Phase 2 onward), but *starting* it is a deliberate choice. Phase 2 itself is
+charts: **spending by category**, then **income vs expenses per month** (D4), and nothing
+else in the first reports branch.

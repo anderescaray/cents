@@ -6,10 +6,13 @@ import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
+import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
+import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsViewModel
+import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +25,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,6 +41,7 @@ class TransactionsViewModelTest {
     private lateinit var database: CentsDatabase
     private lateinit var transactions: RoomTransactionRepository
     private lateinit var deleted: DeletedTransactionBuffer
+    private lateinit var filters: TransactionFilterStore
     private lateinit var viewModel: TransactionsViewModel
 
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
@@ -50,10 +55,12 @@ class TransactionsViewModelTest {
         // works, which would expire the undo window mid-test. Its expiry has its
         // own test, with a scheduler it controls.
         deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
+        filters = TransactionFilterStore()
         viewModel =
             TransactionsViewModel(
                 transactionRepository = transactions,
                 deletedTransactions = deleted,
+                filters = filters,
                 accountRepository =
                     RoomAccountRepository(
                         database.accountDao(),
@@ -160,5 +167,72 @@ class TransactionsViewModelTest {
             }
 
             assertNull(transactions.findById(id))
+        }
+
+    @Test
+    fun `a filter narrows the list and the list says what it found`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking"))
+            movement(accountId = id, date = LocalDate.of(2026, 7, 4), minor = 3_450)
+            movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.size == 2 }
+
+                filters.apply(
+                    TransactionFilter(
+                        from = LocalDate.of(2026, 7, 1),
+                        to = LocalDate.of(2026, 7, 31),
+                    ),
+                )
+
+                val narrowed = awaitStateThat { it.isNarrowed && it.matchCount == 1 }
+                assertEquals(1, narrowed.days.size)
+                // The headline number is the answer to the question, not the month it
+                // happens to sit in.
+                assertEquals(Money(3_450, "EUR"), narrowed.matchSummary?.expenses)
+                assertEquals(Money(0, "EUR"), narrowed.matchSummary?.income)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an empty result is told apart from an empty ledger`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking"))
+            movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+
+                filters.apply(TransactionFilter(category = CategoryFilter.Uncategorized, minAmountMinor = 900_000))
+
+                val nothing = awaitStateThat { it.isEmpty }
+                // Both are "no rows on screen", and they need different words: one says
+                // "start recording", the other says "you asked for something too narrow".
+                assertTrue(nothing.isNarrowed)
+                assertEquals(0, nothing.matchCount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the search field is part of the filter, and clearing takes it with everything else`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking"))
+            movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+
+                viewModel.setQuery("nothing like this")
+                awaitStateThat { it.isNarrowed && it.days.isEmpty() }
+
+                viewModel.clearFilter()
+                val restored = awaitStateThat { it.days.isNotEmpty() }
+                assertEquals("", restored.filter.query)
+                assertEquals(false, restored.isNarrowed)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 }

@@ -23,6 +23,7 @@ import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
+import io.github.anderescaray.cents.ui.feature.filters.TransactionFiltersScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
@@ -128,7 +129,13 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
                     launchSingleTop = true
                 }
             },
+            onOpenFilters = {
+                navController.navigate(Destination.TransactionFilters) { launchSingleTop = true }
+            },
         )
+    }
+    composable<Destination.TransactionFilters> {
+        TransactionFiltersScreen(onDone = { navController.popBackStack() })
     }
     composable<Destination.TransactionForm> {
         TransactionFormScreen(

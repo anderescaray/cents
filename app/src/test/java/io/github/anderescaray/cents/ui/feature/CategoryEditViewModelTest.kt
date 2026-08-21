@@ -253,8 +253,17 @@ class CategoryEditViewModelTest {
             val movement =
                 database
                     .transactionDao()
-                    .observeAllWithNames()
-                    .first()
+                    .observeFilteredWithNames(
+                        accountId = null,
+                        categoryId = null,
+                        uncategorized = false,
+                        kind = null,
+                        from = null,
+                        to = null,
+                        minAmountMinor = null,
+                        maxAmountMinor = null,
+                        query = null,
+                    ).first()
                     .single()
             assertEquals(id, movement.categoryId)
             assertEquals("Restaurants", movement.categoryName)

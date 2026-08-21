@@ -134,4 +134,46 @@
     <string name="category_delete_message">No movement uses it, so it can be removed for good.</string>
     <string name="category_archive_title">Archive “%1$s”?</string>
     <string name="category_archived_footer">This category classifies movements already recorded, so it cannot be deleted. Restore it to use it again.</string>
+
+    <!-- Search and filters -->
+    <string name="search_placeholder">Search movements</string>
+    <string name="search_clear">Clear the search</string>
+    <string name="filters_title">Filters</string>
+    <string name="filters_open">Filters</string>
+    <string name="filters_open_active">Filters (%1$d)</string>
+    <string name="filters_apply">Apply</string>
+    <string name="filters_all">All</string>
+    <string name="filters_clear">Show everything again</string>
+    <string name="filters_clear_footer">Clears every filter and the search, so the list goes back to every movement.</string>
+    <string name="filters_date_header">Date</string>
+    <string name="filters_date_any">Any time</string>
+    <string name="filters_date_this_month">This month</string>
+    <string name="filters_date_last_month">Last month</string>
+    <string name="filters_date_this_year">This year</string>
+    <string name="filters_date_custom">Between two dates</string>
+    <string name="filters_date_from">From</string>
+    <string name="filters_date_to">To</string>
+    <string name="filters_date_pick">Choose</string>
+    <string name="filters_date_inverted">The first date is after the second, so nothing can match.</string>
+    <string name="filters_account_header">Account</string>
+    <string name="filters_all_accounts">Every account</string>
+    <string name="filters_category_header">Category</string>
+    <string name="filters_all_categories">Every category</string>
+    <string name="filters_archived">%1$s (archived)</string>
+    <string name="filters_amount_header">Amount</string>
+    <string name="filters_amount_min">No minimum</string>
+    <string name="filters_amount_max">No maximum</string>
+    <string name="filters_amount_between">Between %1$s and %2$s.</string>
+    <string name="filters_amount_from">%1$s or more.</string>
+    <string name="filters_amount_up_to">%1$s or less.</string>
+    <string name="filters_amount_inverted">The minimum is above the maximum, so nothing can match.</string>
+    <string name="filters_results_header">Matches</string>
+    <string name="filters_no_matches_title">No movement matches</string>
+    <string name="filters_no_matches_footer">Nothing recorded fits what you asked for. Widen a filter, or show everything again.</string>
+    <string name="filters_show_everything">Show everything</string>
+
+    <plurals name="filters_match_count">
+        <item quantity="one">%1$d movement</item>
+        <item quantity="other">%1$d movements</item>
+    </plurals>
 </resources>

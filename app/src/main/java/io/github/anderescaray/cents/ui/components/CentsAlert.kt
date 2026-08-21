@@ -30,6 +30,10 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
  * by side under a hairline — never Material's text buttons pushed to the bottom right.
  *
  * The confirming action is the one on the right, in red when it destroys something.
+ *
+ * With no [dismissLabel] it becomes the one-button alert iOS uses to report something that
+ * has already happened: there is nothing to decide, only something to acknowledge, and a
+ * "Cancel" next to it would offer a choice that does not exist.
  */
 @Composable
 fun CentsAlert(
@@ -37,8 +41,8 @@ fun CentsAlert(
     message: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
-    dismissLabel: String,
     onDismiss: () -> Unit,
+    dismissLabel: String? = null,
     destructive: Boolean = false,
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -97,24 +101,26 @@ private fun AlertText(
 private fun AlertActions(
     confirmLabel: String,
     onConfirm: () -> Unit,
-    dismissLabel: String,
+    dismissLabel: String?,
     onDismiss: () -> Unit,
     destructive: Boolean,
 ) {
     Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-        AlertAction(
-            label = dismissLabel,
-            onClick = onDismiss,
-            emphasised = false,
-            modifier = Modifier.weight(1f),
-        )
-        Box(
-            modifier =
-                Modifier
-                    .width(CentsDimens.separatorThickness)
-                    .fillMaxHeight()
-                    .background(CentsTheme.colors.separator),
-        )
+        if (dismissLabel != null) {
+            AlertAction(
+                label = dismissLabel,
+                onClick = onDismiss,
+                emphasised = false,
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                modifier =
+                    Modifier
+                        .width(CentsDimens.separatorThickness)
+                        .fillMaxHeight()
+                        .background(CentsTheme.colors.separator),
+            )
+        }
         AlertAction(
             label = confirmLabel,
             onClick = onConfirm,

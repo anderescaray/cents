@@ -134,7 +134,8 @@ class AccountEditViewModelTest {
             val editor = editorFor(id)
 
             editor.uiState.test {
-                assertEquals("USD", awaitStateThat { it.transactionCount > 0 }.currency)
+                // Wait for the row itself to arrive, not for a side effect of loading it.
+                assertEquals("USD", awaitStateThat { it.name == "Old dollars" }.currency)
 
                 editor.setName("Renamed")
                 editor.save()

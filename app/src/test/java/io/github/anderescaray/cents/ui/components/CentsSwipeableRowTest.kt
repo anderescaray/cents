@@ -1,9 +1,12 @@
 package io.github.anderescaray.cents.ui.components
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,23 +27,30 @@ class CentsSwipeableRowTest {
     private var deletions = 0
     private var taps = 0
 
-    private fun setContent() {
+    private fun setContent(rows: Int = 1) {
         composeRule.setContent {
             CentsTheme {
                 CentsListSection {
-                    CentsSwipeableRow(
-                        onDelete = { deletions++ },
-                        deleteLabel = "Delete",
-                        modifier = Modifier.testTag(ROW_TAG),
-                    ) { rowModifier ->
-                        CentsListRow(
-                            modifier = rowModifier,
-                            title = "Groceries",
-                            onClick = { taps++ },
-                        )
+                    repeat(rows) { index ->
+                        SwipeableRow(index)
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun SwipeableRow(index: Int) {
+        CentsSwipeableRow(
+            onDelete = { deletions++ },
+            deleteLabel = "Delete",
+            modifier = Modifier.testTag(ROW_TAG + index),
+        ) { rowModifier ->
+            CentsListRow(
+                modifier = rowModifier,
+                title = rowTitle(index),
+                onClick = { taps++ },
+            )
         }
     }
 
@@ -48,7 +58,7 @@ class CentsSwipeableRowTest {
     fun `carrying the swipe across the row deletes without asking again`() {
         setContent()
 
-        composeRule.onNodeWithTag(ROW_TAG).performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag(ROW_TAG + 0).performTouchInput { swipeLeft() }
         composeRule.waitForIdle()
 
         assertEquals(1, deletions)
@@ -61,7 +71,7 @@ class CentsSwipeableRowTest {
     fun `a swipe that stops short does nothing at all`() {
         setContent()
 
-        composeRule.onNodeWithTag(ROW_TAG).performTouchInput {
+        composeRule.onNodeWithTag(ROW_TAG + 0).performTouchInput {
             swipeLeft(startX = right, endX = right - width * SHORT)
         }
         composeRule.waitForIdle()
@@ -74,7 +84,7 @@ class CentsSwipeableRowTest {
     fun `a partial swipe parks the row open, and the button it reveals deletes`() {
         setContent()
 
-        composeRule.onNodeWithTag(ROW_TAG).performTouchInput {
+        composeRule.onNodeWithTag(ROW_TAG + 0).performTouchInput {
             swipeLeft(startX = right, endX = right - width * PARTIAL)
         }
         composeRule.waitForIdle()
@@ -89,12 +99,12 @@ class CentsSwipeableRowTest {
     fun `tapping an open row closes it instead of opening what it points at`() {
         setContent()
 
-        composeRule.onNodeWithTag(ROW_TAG).performTouchInput {
+        composeRule.onNodeWithTag(ROW_TAG + 0).performTouchInput {
             swipeLeft(startX = right, endX = right - width * PARTIAL)
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Groceries").performClick()
+        composeRule.onNodeWithText(rowTitle(0)).performClick()
         composeRule.waitForIdle()
 
         // Changing your mind about a swipe must not be the same gesture as opening the row.
@@ -102,7 +112,7 @@ class CentsSwipeableRowTest {
         assertEquals(0, deletions)
 
         // And once closed, a tap means what it always meant.
-        composeRule.onNodeWithText("Groceries").performClick()
+        composeRule.onNodeWithText(rowTitle(0)).performClick()
         assertEquals(1, taps)
     }
 
@@ -113,7 +123,7 @@ class CentsSwipeableRowTest {
         // TalkBack has no gesture to make, so the same action is announced on the row.
         val actions =
             composeRule
-                .onNodeWithText("Groceries")
+                .onNodeWithText(rowTitle(0))
                 .fetchSemanticsNode()
                 .config[SemanticsActions.CustomActions]
 
@@ -123,6 +133,26 @@ class CentsSwipeableRowTest {
 
         assertEquals(1, deletions)
     }
+
+    @Test
+    fun `a closed row keeps its Delete out of the accessibility tree`() {
+        setContent(rows = 3)
+
+        // Composed for its width, but not published: left reachable, TalkBack would read a
+        // "Delete" button between every pair of rows, and D-pad focus would land on buttons
+        // nobody can see — for exactly the users the custom action was added for.
+        composeRule.onAllNodesWithTag(DELETE_ACTION_TAG).assertCountEquals(0)
+
+        composeRule.onNodeWithTag(ROW_TAG + 1).performTouchInput {
+            swipeLeft(startX = right, endX = right - width * PARTIAL)
+        }
+        composeRule.waitForIdle()
+
+        // Only the row that was actually opened offers one.
+        composeRule.onAllNodesWithTag(DELETE_ACTION_TAG).assertCountEquals(1)
+    }
+
+    private fun rowTitle(index: Int) = "Row $index"
 
     private companion object {
         const val ROW_TAG = "swipeable"

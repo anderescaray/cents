@@ -490,7 +490,7 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Tests | 118, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 120, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -641,7 +641,24 @@ serial — this is still the single-agent phase.
         row it builds. That is not decoration: the first attempt put the action on a
         wrapper around the row, and because `CentsListRow` merges its own semantics, the
         node a screen reader actually focuses never carried it. An action announced to
-        nobody is not an action, and a unit test caught it.
+        nobody is not an action, and a unit test caught it. The mirror image cost a second
+        fix — the revealed button is always composed, because its width is what the drag
+        settles against, so every *closed* row was publishing a clickable "Delete" hidden
+        only by the row sitting on top of it. TalkBack read one between every pair of rows,
+        which is precisely the noise the custom action exists to avoid. It is now cleared
+        from the semantics tree while closed, and there is a test that counts them.
+      - **A deletion the database refuses is a one-button alert**, not a line in a footer.
+        Both foreign keys are `RESTRICT`, so a row counted as free and then referenced
+        before the confirmation lands turns a legitimate delete into a constraint violation.
+        The first attempt reported it as a flag on the list's state rendered into a section
+        footer, which was wrong three ways: it never appeared when every account was
+        archived, an archived row's failure was reported under the *active* section's
+        header, and nothing cleared the flag, so one refusal replaced the accounts total
+        with an error message indefinitely. The failure now lives on the question that was
+        being asked — `RemovalStep.FAILED`, `CategoryDeletionState.failed` — so it is shown
+        by whichever screen asked, and it goes when the alert acknowledging it goes.
+        `CentsAlert` gained an optional `dismissLabel` for it: with nothing to decide, a
+        "Cancel" beside "OK" offers a choice that does not exist.
 
 - [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
       category, kind, amount, note text.
@@ -714,12 +731,12 @@ before that, and do not parallelize before that.
 - **The swipe assumes a left-to-right layout.** Dragging left reveals the action, with no
   mirroring for RTL. The app ships English and Spanish, both left-to-right; a right-to-left
   translation would have to revisit it.
-- **A deletion the database refuses is reported in the list's section footer**, in place of
-  the total or the reorder hint, and clears the next time one is asked for. Both foreign keys
-  are `RESTRICT`, so a movement recorded between counting and confirming turns a legitimate
-  delete into a constraint violation. The account path always caught that; the category path
-  did not, and an exception escaping the view-model scope would have taken the app with it —
-  it now reports instead, under the name field on the editor and in the footer on the list.
+- **A deletion the database refuses reports itself and stops there.** Both foreign keys are
+  `RESTRICT`, so a row counted as free and then referenced before the confirmation lands turns
+  a legitimate delete into a constraint violation. The account path always caught that; the
+  category path did not, and an exception escaping the view-model scope would have taken the
+  app with it. Both now end in a one-button alert instead, and nothing is retried
+  automatically — the owner asks again if they still want to.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note

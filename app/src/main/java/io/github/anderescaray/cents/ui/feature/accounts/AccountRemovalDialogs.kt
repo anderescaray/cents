@@ -29,6 +29,7 @@ internal fun RemovalDialogs(
         RemovalStep.CHOOSE -> RemovalChoiceSheet(state, removal)
         RemovalStep.PICK_TARGET -> ReassignTargetSheet(state, removal)
         RemovalStep.CONFIRM_DESTRUCTIVE -> ConfirmDestructiveAlert(state, removal)
+        RemovalStep.FAILED -> DeletionFailedAlert(removal::cancel)
     }
 }
 
@@ -43,8 +44,8 @@ private fun ConfirmEmptyAlert(
         message = stringResource(R.string.account_delete_message),
         confirmLabel = stringResource(R.string.action_delete),
         onConfirm = removal::confirmEmpty,
-        dismissLabel = stringResource(R.string.action_cancel),
         onDismiss = removal::cancel,
+        dismissLabel = stringResource(R.string.action_cancel),
         destructive = true,
     )
 }
@@ -130,8 +131,25 @@ private fun ConfirmDestructiveAlert(
             ),
         confirmLabel = stringResource(R.string.action_delete),
         onConfirm = removal::confirmDestructive,
-        dismissLabel = stringResource(R.string.action_cancel),
         onDismiss = removal::cancel,
+        dismissLabel = stringResource(R.string.action_cancel),
         destructive = true,
+    )
+}
+
+/**
+ * Nothing to decide, only something to acknowledge — so one button, and it says OK.
+ *
+ * Shared with the category list, because "the database would not let that go" is the same
+ * sentence whichever row it was.
+ */
+@Composable
+internal fun DeletionFailedAlert(onDismiss: () -> Unit) {
+    CentsAlert(
+        title = stringResource(R.string.delete_failed_title),
+        message = stringResource(R.string.delete_failed_message),
+        confirmLabel = stringResource(R.string.action_ok),
+        onConfirm = onDismiss,
+        onDismiss = onDismiss,
     )
 }

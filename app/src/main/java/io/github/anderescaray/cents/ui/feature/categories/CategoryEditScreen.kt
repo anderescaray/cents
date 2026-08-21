@@ -33,6 +33,7 @@ import io.github.anderescaray.cents.ui.components.CentsListScreen
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.feature.accounts.DeletionFailedAlert
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
@@ -87,6 +88,9 @@ fun CategoryEditScreen(
             onDismiss = viewModel.deletion::cancel,
         )
     }
+    if (deletion.failed) {
+        DeletionFailedAlert(onDismiss = viewModel.deletion::cancel)
+    }
 }
 
 /** Name, colour, and the way out of an existing category. */
@@ -104,12 +108,7 @@ private fun CategoryForm(
     ) {
         CentsListSection(
             header = stringResource(R.string.category_name_header),
-            footer =
-                when {
-                    state.nameTaken -> stringResource(R.string.category_name_taken)
-                    state.writeFailed -> stringResource(R.string.delete_failed)
-                    else -> null
-                },
+            footer = stringResource(R.string.category_name_taken).takeIf { state.nameTaken },
         ) {
             CentsTextField(
                 value = state.name,

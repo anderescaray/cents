@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,7 +78,7 @@ fun AccountsScreen(
                 accounts = state.active,
                 footer = { totalFooter(state) },
                 onOpenAccount = onOpenAccount,
-                onDeleteAccount = viewModel::requestRemoval,
+                onDeleteAccount = viewModel.removal::request,
             )
         }
 
@@ -88,7 +89,7 @@ fun AccountsScreen(
                 accounts = state.archived,
                 footer = { stringResource(R.string.accounts_archived_footer) },
                 onOpenAccount = onOpenAccount,
-                onDeleteAccount = viewModel::requestRemoval,
+                onDeleteAccount = viewModel.removal::request,
             )
         }
     }
@@ -100,15 +101,11 @@ fun AccountsScreen(
  * The total, or an explanation instead of one: accounts in different currencies cannot be
  * added up without a conversion rate the app does not have, and inventing one would be a
  * number that lies.
- *
- * A removal that was refused takes the line instead. It is rare and it is transient, but a
- * swipe that ends with the row still there has to account for itself somewhere.
  */
 @Composable
 private fun totalFooter(state: AccountsUiState): String? {
     val total = state.total
     return when {
-        state.removalFailed -> stringResource(R.string.delete_failed)
         state.active.isEmpty() -> null
         total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))
         else -> stringResource(R.string.accounts_total_mixed_currencies)
@@ -133,26 +130,31 @@ private fun LazyListScope.accountSection(
         CentsListSection(header = stringResource(headerRes), footer = footer()) {
             accounts.forEachIndexed { index, item ->
                 val account = item.account
-                CentsSwipeableRow(
-                    onDelete = { onDeleteAccount(account) },
-                    deleteLabel = deleteLabel,
-                ) { rowModifier ->
-                    CentsListRow(
-                        modifier = rowModifier,
-                        title = account.name,
-                        subtitle = stringResource(account.type.labelRes()),
-                        value = MoneyFormatter.format(item.balance),
-                        valueColor =
-                            if (item.balance.isNegative) {
-                                CentsTheme.colors.destructive
-                            } else {
-                                CentsTheme.colors.label
-                            },
-                        leading = { AccountDot(Color(account.colorArgb)) },
-                        showChevron = true,
-                        showSeparator = index != accounts.lastIndex,
-                        onClick = { onOpenAccount(account.id) },
-                    )
+                // Keyed by identity, not by position: a row's swipe offset is remembered
+                // against its key, and without one, deleting or reordering hands an open
+                // offset to whatever account moves into that slot.
+                key(account.id) {
+                    CentsSwipeableRow(
+                        onDelete = { onDeleteAccount(account) },
+                        deleteLabel = deleteLabel,
+                    ) { rowModifier ->
+                        CentsListRow(
+                            modifier = rowModifier,
+                            title = account.name,
+                            subtitle = stringResource(account.type.labelRes()),
+                            value = MoneyFormatter.format(item.balance),
+                            valueColor =
+                                if (item.balance.isNegative) {
+                                    CentsTheme.colors.destructive
+                                } else {
+                                    CentsTheme.colors.label
+                                },
+                            leading = { AccountDot(Color(account.colorArgb)) },
+                            showChevron = true,
+                            showSeparator = index != accounts.lastIndex,
+                            onClick = { onOpenAccount(account.id) },
+                        )
+                    }
                 }
             }
         }

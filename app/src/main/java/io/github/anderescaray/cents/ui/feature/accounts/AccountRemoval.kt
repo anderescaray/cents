@@ -33,6 +33,14 @@ enum class RemovalStep {
 
     /** The only path in the app that destroys recorded history, asked again on its own. */
     CONFIRM_DESTRUCTIVE,
+
+    /**
+     * The database refused. Both foreign keys are `RESTRICT`, so a movement recorded
+     * between counting and confirming turns a legitimate delete into a constraint
+     * violation — rare, and worth saying out loud rather than leaving the row sitting
+     * there as if the gesture had missed.
+     */
+    FAILED,
 }
 
 /** The account being asked about, and how far the question has got. */
@@ -73,7 +81,7 @@ data class AccountRemovalState(
 class AccountRemoval(
     private val repository: AccountRepository,
     private val scope: CoroutineScope,
-    private val onOutcome: (Result<Unit>) -> Unit = {},
+    private val onRemoved: () -> Unit = {},
 ) {
     private val question = MutableStateFlow(AccountRemovalState())
     val state: StateFlow<AccountRemovalState> = question.asStateFlow()
@@ -139,12 +147,22 @@ class AccountRemoval(
         finish { repository.deleteAccountWithTransactions(id) }
     }
 
-    /** Runs one of the three removals and reports what happened, without throwing. */
+    /**
+     * Runs one of the three removals and says what happened, without throwing.
+     *
+     * A failure stays in this state rather than being handed to the screen: it belongs to
+     * the question that was being asked, it is answered by acknowledging it, and it goes
+     * when the alert does. A flag on a list's state would outlive all three.
+     */
     private fun finish(removal: suspend () -> Unit) {
         scope.launch {
             val removed = runCatching { removal() }
-            question.value = AccountRemovalState()
-            onOutcome(removed)
+            if (removed.isSuccess) {
+                question.value = AccountRemovalState()
+                onRemoved()
+            } else {
+                question.update { it.copy(step = RemovalStep.FAILED) }
+            }
         }
     }
 

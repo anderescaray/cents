@@ -187,6 +187,40 @@ class CategoriesViewModelTest {
             assertEquals(listOf("Rent"), categoriesInDatabase())
         }
 
+    @Test
+    fun `a delete the foreign key refuses says so instead of taking the app with it`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val id = database.categoryDao().insert(category(name = "Restaurants"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.active.isNotEmpty() }
+
+                // Counted while nothing used it, which is what makes the delete outright.
+                viewModel.deletion.request(id, "Restaurants")
+                assertEquals(
+                    DeletionKind.OUTRIGHT,
+                    viewModel.deletion.state
+                        .first { it.asking }
+                        .kind,
+                )
+
+                // Then a movement is classified with it, and RESTRICT refuses the delete.
+                database.transactionDao().insert(transaction(accountId = accountId, categoryId = id))
+                viewModel.deletion.confirm()
+
+                assertTrue(
+                    viewModel.deletion.state
+                        .first { it.failed }
+                        .failed,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // The category is still there, and so is the app.
+            assertEquals(listOf("Restaurants"), categoriesInDatabase())
+        }
+
     private suspend fun categoriesInDatabase(): List<String> =
         database
             .categoryDao()

@@ -28,7 +28,6 @@ data class CategoryEditUiState(
     val archived: Boolean = false,
     val transactionCount: Int = 0,
     val nameTaken: Boolean = false,
-    val writeFailed: Boolean = false,
     val saving: Boolean = false,
     val finished: Boolean = false,
 ) {
@@ -72,10 +71,8 @@ class CategoryEditViewModel
          * question rather than two implementations of it (see [CategoryDeletion]).
          */
         val deletion =
-            CategoryDeletion(categoryRepository, viewModelScope) { outcome ->
-                form.update {
-                    it.copy(writeFailed = outcome.isFailure, finished = outcome.isSuccess)
-                }
+            CategoryDeletion(categoryRepository, viewModelScope) {
+                form.update { it.copy(finished = true) }
             }
 
         /** Names already in use by the other categories of this kind, lowercased. */
@@ -131,7 +128,7 @@ class CategoryEditViewModel
 
         fun setName(name: String) {
             edited = true
-            form.update { it.copy(name = name, nameTaken = isNameTaken(name), writeFailed = false) }
+            form.update { it.copy(name = name, nameTaken = isNameTaken(name)) }
         }
 
         fun setColor(colorArgb: Int) {

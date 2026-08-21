@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.feature.accounts.DeletionFailedAlert
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import kotlin.math.roundToInt
@@ -96,11 +98,10 @@ fun CategoriesScreen(
             emptyState(state.kind)
         } else if (state.active.isNotEmpty()) {
             activeCategories(
-                failed = state.deletionFailed,
                 categories = state.active,
                 onOpen = onEditCategory,
                 onMove = viewModel::moveCategory,
-                onDelete = viewModel::requestDeletion,
+                onDelete = viewModel.deletion::request,
             )
         }
 
@@ -115,6 +116,9 @@ fun CategoriesScreen(
             onConfirm = viewModel.deletion::confirm,
             onDismiss = viewModel.deletion::cancel,
         )
+    }
+    if (deletion.failed) {
+        DeletionFailedAlert(onDismiss = viewModel.deletion::cancel)
     }
 }
 
@@ -187,7 +191,6 @@ private fun LazyListScope.archivedCategories(
  * only stay archived (rule 8) — or the same button the editor already offers.
  */
 private fun LazyListScope.activeCategories(
-    failed: Boolean,
     categories: List<Category>,
     onOpen: (Long, CategoryKind) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -198,21 +201,23 @@ private fun LazyListScope.activeCategories(
 
         CentsListSection(
             header = stringResource(R.string.categories_section_header),
-            footer =
-                stringResource(
-                    if (failed) R.string.delete_failed else R.string.categories_reorder_footer,
-                ),
+            footer = stringResource(R.string.categories_reorder_footer),
         ) {
             categories.forEachIndexed { index, category ->
-                CategoryRow(
-                    category = category,
-                    index = index,
-                    count = categories.size,
-                    reorder = reorder,
-                    onOpen = onOpen,
-                    onMove = onMove,
-                    onDelete = onDelete,
-                )
+                // Keyed by identity, not by position: a row's swipe offset is remembered
+                // against its key, and without one, dragging a row into this slot would
+                // bring the open offset of whatever used to be here.
+                key(category.id) {
+                    CategoryRow(
+                        category = category,
+                        index = index,
+                        count = categories.size,
+                        reorder = reorder,
+                        onOpen = onOpen,
+                        onMove = onMove,
+                        onDelete = onDelete,
+                    )
+                }
             }
         }
     }

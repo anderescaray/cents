@@ -139,7 +139,7 @@ class AccountsViewModelTest {
 
             viewModel.uiState.test {
                 val listed = awaitStateThat { it.active.isNotEmpty() }
-                viewModel.requestRemoval(listed.active.single().account)
+                viewModel.removal.request(listed.active.single().account)
 
                 // One yes or no, because there is only one thing delete could mean here.
                 assertEquals(
@@ -166,7 +166,7 @@ class AccountsViewModelTest {
 
             viewModel.uiState.test {
                 val listed = awaitStateThat { it.active.size == 2 }
-                viewModel.requestRemoval(listed.active.first { it.account.id == id }.account)
+                viewModel.removal.request(listed.active.first { it.account.id == id }.account)
 
                 val asked = viewModel.removal.state.first { it.asking }
                 // A swipe is a faster way to the question, never a way past it (D7).

@@ -33,7 +33,6 @@ data class AccountEditUiState(
     val openingDigits: String = "",
     val openingNegative: Boolean = false,
     val archived: Boolean = false,
-    val transactionCount: Int = 0,
     val nameTaken: Boolean = false,
     val saving: Boolean = false,
     val writeFailed: Boolean = false,
@@ -91,10 +90,8 @@ class AccountEditViewModel
          * sequence of confirmations rather than two implementations of it.
          */
         val removal =
-            AccountRemoval(accountRepository, viewModelScope) { outcome ->
-                form.update {
-                    it.copy(writeFailed = outcome.isFailure, finished = outcome.isSuccess)
-                }
+            AccountRemoval(accountRepository, viewModelScope) {
+                form.update { it.copy(finished = true) }
             }
 
         private var takenNames: Set<String> = emptySet()
@@ -127,7 +124,6 @@ class AccountEditViewModel
             }
 
             val account = accountRepository.findById(id) ?: return
-            val count = accountRepository.countTransactions(id)
             form.update { state ->
                 state.copy(
                     isNew = false,
@@ -145,7 +141,6 @@ class AccountEditViewModel
                     openingNegative =
                         if (edited) state.openingNegative else account.openingBalance.minorUnits < 0,
                     archived = account.archived,
-                    transactionCount = count,
                 )
             }
         }

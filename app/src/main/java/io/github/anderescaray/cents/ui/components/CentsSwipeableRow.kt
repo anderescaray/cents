@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
@@ -79,18 +81,12 @@ fun CentsSwipeableRow(
     }
 
     Box(modifier = modifier.onSizeChanged { rowWidth = it.width }) {
-        // matchParentSize keeps the action out of the measurement: the row decides how tall
-        // the pair is, and the action simply fills whatever that turns out to be.
-        Row(
-            modifier = Modifier.matchParentSize(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            DeleteAction(
-                label = deleteLabel,
-                onClick = ::fire,
-                modifier = Modifier.onSizeChanged { actionWidth = it.width },
-            )
-        }
+        RevealedDelete(
+            label = deleteLabel,
+            onClick = ::fire,
+            reachable = open,
+            onWidth = { actionWidth = it },
+        )
 
         Box(
             modifier =
@@ -139,6 +135,37 @@ fun CentsSwipeableRow(
 }
 
 /**
+ * What the swipe uncovers.
+ *
+ * `matchParentSize` keeps it out of the measurement: the row decides how tall the pair is,
+ * and this fills whatever that turns out to be. The colour is on the strip rather than on
+ * the button, because a full swipe carries the row much further than the button is wide and
+ * would otherwise open a card-coloured gap behind it.
+ */
+@Composable
+private fun BoxScope.RevealedDelete(
+    label: String,
+    onClick: () -> Unit,
+    reachable: Boolean,
+    onWidth: (Int) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .matchParentSize()
+                .background(CentsTheme.colors.destructive),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        DeleteAction(
+            label = label,
+            onClick = onClick,
+            reachable = reachable,
+            modifier = Modifier.onSizeChanged { onWidth(it.width) },
+        )
+    }
+}
+
+/**
  * Where the row comes to rest, and whether letting go counted as deleting.
  *
  * Past [FULL_SWIPE_FRACTION] of the row the gesture is unambiguous — nobody drags a row
@@ -159,19 +186,31 @@ private suspend fun settle(
     }
 }
 
+/**
+ * The revealed button. It is always composed — its width is what the drag settles against —
+ * but while the row is closed it is not [reachable]: no click, and no semantics.
+ *
+ * That second half matters more than it looks. Left alone, every closed row publishes a
+ * clickable "Delete" node hidden only by the row sitting on top of it, so TalkBack reads one
+ * between every pair of rows and D-pad focus lands on buttons nobody can see — duplicating,
+ * for exactly those users, the custom action this component went out of its way to provide.
+ */
 @Composable
 private fun DeleteAction(
     label: String,
     onClick: () -> Unit,
+    reachable: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier =
             modifier
+                // First in the chain, because it clears what comes after it: the tag, the
+                // click and the label all have to go while the row is closed.
+                .then(if (reachable) Modifier else Modifier.clearAndSetSemantics { })
                 .testTag(DELETE_ACTION_TAG)
                 .fillMaxHeight()
-                .background(CentsTheme.colors.destructive)
-                .clickable(onClick = onClick)
+                .clickable(enabled = reachable, onClick = onClick)
                 .defaultMinSize(minWidth = ACTION_MIN_WIDTH.dp)
                 .padding(horizontal = CentsDimens.spacingL),
         contentAlignment = Alignment.Center,

@@ -253,10 +253,15 @@ does not have to be invented under pressure.
 
 **Exit criteria for this phase** — do not parallelize until all four hold:
 
-- [ ] The app installs and runs on your real phone
-- [ ] You can create accounts, categories and transactions, and they survive a restart
-- [ ] Balances are correct
-- [ ] CI is green on every PR (build + tests + lint)
+- [x] The app installs and runs on your real phone
+- [x] You can create accounts, categories and transactions, and they survive a restart
+- [x] Balances are correct
+- [x] CI is green on every PR (build + tests + lint)
+
+**Closed 2026-08-21.** The fourth is the agent's own observation — every PR of Phase 1 went
+green. **The first three are the owner's sign-off, not the agent's:** no device was attached
+for the last four branches, so the app has been seen running only in tests. That is what these
+three criteria exist for, and why they are the owner's to tick (C5).
 
 ## 3. Multi-agent phase (roadmap phases 2+)
 
@@ -477,7 +482,14 @@ since the last session is an instruction: act on it first, then move that questi
 Then take the first unchecked branch in C3 and work it end to end:
 `branch → implement → tests → gates → PR → wait for CI → hand back`.
 
+**Phase 1 closed on 2026-08-21 and C3 now lists Phase 2.** One thing is different about that
+list: from here on, the work *may* be run by several agents at once, and whether it is is the
+owner's decision rather than a default (D5, and D9 in `DECISIONS.md`). Do not open three
+worktrees because the phase changed.
+
 ## C2. What is built and merged
+
+**Phase 1 is complete.** Everything in this table is on `main`, reviewed and green.
 
 | Area | State |
 |---|---|
@@ -492,10 +504,14 @@ Then take the first unchecked branch in C3 and work it end to end:
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Tests | 143, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
-## C3. Remaining Phase 1 work
+## C3. The work, branch by branch
 
-One branch and one PR each, in this order. They touch overlapping files, so they stay
-serial — this is still the single-agent phase.
+One branch and one PR each, in order.
+
+### Phase 1 — complete
+
+Kept rather than deleted: each entry records what was actually built and what was found on the
+way, which is the part that is expensive to rediscover. All merged, in this order.
 
 - [x] **`feat/categories`** — **the owner's categories, created by the owner.** Merged. Requested
       2026-08-18, and first in the queue because the app currently imposes a taxonomy that
@@ -692,8 +708,43 @@ serial — this is still the single-agent phase.
         have no movements", with a way out on it — the two look identical and mean opposite
         things.
 
-**Phase 1 is finished when the four exit criteria in Part B §2 hold.** Do not start Phase 2
-before that, and do not parallelize before that.
+**Phase 1 finished on 2026-08-21**, with the four exit criteria in Part B §2 signed off.
+
+### Phase 2 — next: understanding the money
+
+PRD §4.3 lists six views. **The first branch builds two of them properly** (D4), because six
+charts at once is how a phase turns into a month.
+
+- [ ] **`feat/reports-charts`** — the Reports tab stops being a placeholder rendering invented
+      content and starts reading the database.
+      - **Spending by category**, then **income vs expenses per month** — in that order, and
+        nothing else in this branch (D4).
+      - A **period selector**: week / month / quarter / year / custom. The filter work of
+        Phase 1 already models a date range; reuse `TransactionFilter` rather than inventing a
+        second idea of "a period".
+      - **Aggregation happens in SQL** (`GROUP BY`), not in a Kotlin loop over the rows — the
+        rule that made `feat/transaction-filters` a single query applies here with more force,
+        because a chart summarises everything rather than showing it.
+      - **Adds Vico** to `libs.versions.toml`, which is a shared bottleneck (`CLAUDE.md` §7):
+        it lands once, in this branch, before anything runs in parallel.
+      - Both charts must read well in **light and dark**, and the aggregation must not
+        re-run on every recomposition.
+      *Done when:* "where did my money go last month" is answered by a chart, from real data,
+      and the Reports tab no longer invents anything.
+
+- [ ] **`feat/reports-drilldown`** — tapping a segment of a chart opens the movements behind
+      it. This is nearly free now and was not before: the segment names a category and a date
+      range, which is exactly a `TransactionFilter`, so the drill-down is "apply this filter
+      and show the list" rather than a second filtered screen.
+      *Done when:* tapping "Restaurants" on the donut lands on the movements that make it up.
+
+- [ ] **The remaining PRD §4.3 views** — balance over time, spending by weekday, period
+      comparison, single-category detail. These are genuinely separable and are the first
+      honest candidate for running in parallel (D9).
+
+**Before any of it, `DECISIONS.md` D9 has to be answered: one agent or three.** The default is
+one for `feat/reports-charts`, because that branch touches the version catalog and creates the
+reports package — the same shared foundations `CLAUDE.md` §7 says to build serially first.
 
 ## C4. Known gaps, so they are not mistaken for bugs
 
@@ -849,6 +900,12 @@ Requested 2026-08-20, decided the same day in D8. Instead of four fixed tabs, th
 on a canvas of **four bubbles** — one per section — draggable anywhere, resizable, each
 drifting with a small continuous motion.
 
+> **The gate on this opened on 2026-08-21**, when Phase 1 closed. It is no longer blocked; it
+> is unscheduled. The default is that it waits until after `feat/reports-charts`, for one
+> reason: it amends the ADR that governs navigation, and every chart screen is built inside
+> that navigation. Doing it first means building the charts twice, or building them against a
+> shell that is about to change. Say so if it should jump the queue.
+
 **Yes, after Phase 1 exits, and as a launcher rather than a replacement.** The shape:
 
 - The canvas is the **home screen**. Tapping a bubble **expands it to fill the screen in
@@ -895,32 +952,25 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**Every branch in C3 is built and merged. What is left of Phase 1 is not code — it is the
-four exit criteria in Part B §2, and three of them can only be checked on the phone.**
+**Answer [`DECISIONS.md`](DECISIONS.md) D9 — one agent or three — and then build
+`feat/reports-charts`.**
 
-```powershell
-./gradlew installDebug     # the agent can do this much
-```
+Phase 1 closed on 2026-08-21. Phase 2 is the first phase that *may* be run in parallel, and
+`PLAN.md` has said from the beginning that starting that is a deliberate decision rather than
+something to drift into. D5 already settled *how* it runs (the owner's own harness, at most
+three agents); D9 is *whether it starts now*, and its default is **one agent for the first
+reports branch**, because that branch adds Vico to the version catalog and creates
+`ui/feature/reports` — shared foundations that `CLAUDE.md` §7 says are built once, serially,
+before anything forks.
 
-- [ ] **The app installs and runs on the real phone.** No device has been attached for the
-      last three branches, so nothing since `feat/accounts` has been seen outside a test.
-- [ ] **Accounts, categories and movements can be created, and survive a restart.** Walk a
-      *fresh install*: nothing is seeded, so the front door is an empty Accounts tab and a
-      movement form that leads to creating an account.
-- [ ] **Balances are correct.** Type a few movements and check the accounts list against
-      them by hand. Every balance in the app is computed from its movements, never stored,
-      so if one is wrong the query is wrong rather than the data.
-- [x] **CI is green on every PR** — build, tests and lint, on every one so far.
+Then: **spending by category**, then **income vs expenses per month**, and nothing else in that
+branch (D4).
 
-Two things built without a thumb ever touching them, worth trying deliberately:
+**Two things carried over from Phase 1 that no test can settle.** Neither blocks Phase 2, and
+both are worth a few minutes with the phone in hand, because the last four branches were built
+without a device attached:
 
 - **The swipe to delete.** Its thresholds — half the revealed button to park open, 60% of the
   row to fire — are two constants at the bottom of `CentsSwipeableRow.kt`.
-- **Search and filters.** In particular whether the filter form is the right shape at six
-  sections, and whether the Matches summary says what you actually want to know.
-
-**Then Phase 1 is closed, and the next decision is the owner's, not the agent's.** How the
-parallel phase runs is already answered (D5 — the owner's own harness, at most three agents,
-from roadmap Phase 2 onward), but *starting* it is a deliberate choice. Phase 2 itself is
-charts: **spending by category**, then **income vs expenses per month** (D4), and nothing
-else in the first reports branch.
+- **Search and filters.** Whether the filter form is the right shape at six sections, and
+  whether the Matches summary says what you actually want to know.

@@ -7,11 +7,13 @@ spending analytics, and an investment portfolio priced from live market data.
 Built with Kotlin and Jetpack Compose. All data stays on the device — no backend, no user
 accounts, no telemetry.
 
-> **Status: Phase 1 of 6, nearly complete.** Recording money works end to end on a real
-> phone: accounts, categories, transactions, balances, and an account detail that traces
-> every balance back to the movements behind it. What is left in this phase is search and
-> filtering. 108 tests run on the JVM, so CI covers the database and the UI without a
-> device. The roadmap below tracks progress honestly.
+> **Status: Phase 1 of 6 complete.** Recording money works end to end: accounts, categories,
+> transactions and balances that trace back to the movements behind them; a list grouped by
+> day that can be searched and filtered by date range, account, category, kind and amount; and
+> deletion that asks the right question — including what should become of the movements inside
+> an account you are removing. Nothing is seeded: every row in the app is one the owner typed.
+> **Phase 2, analytics, is next.** 143 tests run on the JVM, so CI covers the database and the
+> UI without a device. The roadmap below tracks progress honestly.
 
 ---
 
@@ -94,8 +96,8 @@ parallel work demand it.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Project skeleton, CI, theme, navigation | **Done** |
-| 1 | Room schema, accounts, categories, transactions, balances | **Nearly done** — search and filters remain |
-| 2 | Analytics: by category, income vs expenses, by weekday, period comparison | Planned |
+| 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
+| 2 | Analytics: by category, income vs expenses, by weekday, period comparison | **Next** |
 | 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | Planned |
 | 4 | Investment portfolio with live prices and P&L | Planned |
 | 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | Planned |

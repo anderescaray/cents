@@ -24,9 +24,38 @@ that default is what the app does until the answer changes it.
 
 ## Open
 
-*Nothing open right now.* Every question asked so far was answered on 2026-08-20 and moved to
-the table below. New ones get added here as they come up, each with a default so that an
-unanswered question never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
+### D9 — Phase 1 is closed. Does Phase 2 start with one agent, or three?
+
+**What is at stake.** This is the boundary the whole project plan has been pointing at.
+`PLAN.md` Part B §3 and the PRD both say parallel work becomes worthwhile from Phase 2, because
+clear module boundaries finally exist. D5 already settled *how* it would run — the owner's own
+harness, Orca-like orchestration plus the ideas from `xmihura/kanvas`, at most three agents.
+What was deliberately left open is *when to start*, because "the phase number changed" is not a
+reason and drifting into it is exactly what Part B §1 warns against: the bottleneck is not how
+fast code is produced, it is how much of it can be read and reviewed.
+
+**The options.**
+
+- **A — one agent for `feat/reports-charts`, then reconsider.** That branch adds Vico to
+  `libs.versions.toml` and creates `ui/feature/reports` from a placeholder. Both are shared
+  foundations, and `CLAUDE.md` §7 is explicit that those are built once, serially, before
+  anything forks. Parallelising across them is how three agents each invent their own chart
+  setup.
+- **B — three agents now.** Genuinely possible later in Phase 2, once the reports package
+  exists: the remaining PRD §4.3 views are separable, and so are `feat/price-provider` and
+  `feat/csv-export`. Starting there today means three agents editing the same new package.
+- **C — one agent for all of Phase 2**, and revisit at Phase 3.
+
+**Recommendation: A.** It costs one branch and removes the only real overlap. After it merges,
+the remaining charts are the first honest three-way split.
+
+**Answer:**
+
+---
+
+Older questions were answered on 2026-08-20 and 2026-08-21 and moved to the table below. New
+ones get added here as they come up, each with a default so that an unanswered question never
+stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
 
 ---
 

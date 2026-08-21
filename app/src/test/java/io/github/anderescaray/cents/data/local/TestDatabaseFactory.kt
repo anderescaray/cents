@@ -60,6 +60,7 @@ fun transaction(
     amountMinor: Long = 1_000,
     currency: String = "EUR",
     date: LocalDate = LocalDate.of(2026, 8, 18),
+    note: String? = null,
 ) = TransactionEntity(
     accountId = accountId,
     categoryId = categoryId,
@@ -67,6 +68,7 @@ fun transaction(
     amountMinor = amountMinor,
     currency = currency,
     date = date,
+    note = note,
     createdAt = FIXED_INSTANT,
     updatedAt = FIXED_INSTANT,
 )

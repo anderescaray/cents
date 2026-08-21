@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
@@ -56,8 +57,19 @@ interface TransactionDao {
     suspend fun deleteById(id: Long)
 
     /**
-     * The list the transactions screen shows: every movement with its account and category
-     * names resolved by the database, so the UI never issues a query per row.
+     * The list, narrowed by whatever the owner asked for.
+     *
+     * Every parameter is optional, and each clause is written so that an unset one costs
+     * nothing: `:x IS NULL OR column = :x`. The narrowing happens in SQLite, against the
+     * indices on `accountId`, `categoryId` and `date`, rather than by pulling every movement
+     * into Kotlin and walking it — the same reason chart aggregation belongs in `GROUP BY`.
+     *
+     * Two parameters describe the category, because one cannot. `categoryId IS NULL` already
+     * means "never classified", so [uncategorized] carries the question that a null id would
+     * otherwise swallow.
+     *
+     * [query] arrives already wrapped in `%` and with LIKE's own wildcards escaped, so a
+     * search for "50%" looks for that text and not for "50 followed by anything".
      */
     @Query(
         """
@@ -70,12 +82,37 @@ interface TransactionDao {
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
+        WHERE (:accountId IS NULL OR t.accountId = :accountId)
+          AND (:categoryId IS NULL OR t.categoryId = :categoryId)
+          AND (:uncategorized = 0 OR t.categoryId IS NULL)
+          AND (:kind IS NULL OR t.kind = :kind)
+          AND (:from IS NULL OR t.date >= :from)
+          AND (:to IS NULL OR t.date <= :to)
+          AND (:minAmountMinor IS NULL OR t.amountMinor >= :minAmountMinor)
+          AND (:maxAmountMinor IS NULL OR t.amountMinor <= :maxAmountMinor)
+          AND (
+            :query IS NULL
+            OR t.note LIKE :query ESCAPE '\'
+            OR c.name LIKE :query ESCAPE '\'
+            OR a.name LIKE :query ESCAPE '\'
+          )
         ORDER BY t.date DESC, t.id DESC
         """,
     )
-    fun observeAllWithNames(): Flow<List<TransactionWithNames>>
+    @Suppress("LongParameterList")
+    fun observeFilteredWithNames(
+        accountId: Long?,
+        categoryId: Long?,
+        uncategorized: Boolean,
+        kind: TransactionKind?,
+        from: LocalDate?,
+        to: LocalDate?,
+        minAmountMinor: Long?,
+        maxAmountMinor: Long?,
+        query: String?,
+    ): Flow<List<TransactionWithNames>>
 
-    /** The same rows as [observeAllWithNames], for one account. */
+    /** The same rows as [observeFilteredWithNames], for one account. */
     @Query(
         """
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,

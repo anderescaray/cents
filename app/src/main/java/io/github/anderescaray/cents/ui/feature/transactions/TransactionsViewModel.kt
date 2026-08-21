@@ -7,13 +7,20 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
+import io.github.anderescaray.cents.domain.model.TransactionFilter
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
+import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -37,7 +44,27 @@ data class TransactionsUiState(
     val today: LocalDate = LocalDate.now(),
     /** A movement just deleted on the form, still restorable from here (rule 7). */
     val undoableDeletion: Transaction? = null,
+    /** What the list is currently narrowed to. [TransactionFilter.None] is everything. */
+    val filter: TransactionFilter = TransactionFilter.None,
+    /**
+     * What is in the search field right now, which is ahead of [filter] by up to one
+     * debounce. The field is fed from here rather than from the applied filter: a
+     * value-based text field showing text that has been to the database and back drops
+     * characters as fast as they are typed.
+     */
+    val query: String = "",
+    /** How many movements the filter matched, which is half of any answer it gives. */
+    val matchCount: Int = 0,
+    /**
+     * Income and expenses across the matched movements, and null when they do not share a
+     * currency — the same refusal the accounts list makes rather than adding up a rate the
+     * app does not have.
+     */
+    val matchSummary: PeriodSummary? = null,
 ) {
+    val isNarrowed: Boolean get() = filter.isNarrowed
+
+    /** Nothing to show. Which of the two things that means is [isNarrowed]. */
     val isEmpty: Boolean get() = !isLoading && days.isEmpty()
 }
 
@@ -47,13 +74,32 @@ class TransactionsViewModel
     constructor(
         private val transactionRepository: TransactionRepository,
         private val deletedTransactions: DeletedTransactionBuffer,
+        private val filters: TransactionFilterStore,
         accountRepository: AccountRepository,
         clock: Clock,
     ) : ViewModel() {
-        @OptIn(ExperimentalCoroutinesApi::class)
+        /**
+         * The text as typed, updated on the keystroke and only pushed to the store once the
+         * typing pauses. Without the pause, every character cancels a running query and
+         * starts a full-table LIKE over the whole ledger.
+         */
+        private val typed = MutableStateFlow(filters.filter.value.query)
+
+        init {
+            viewModelScope.launch {
+                typed.debounce(SEARCH_DEBOUNCE_MS).distinctUntilChanged().collect(filters::setQuery)
+            }
+        }
+
+        @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
         val uiState: StateFlow<TransactionsUiState> =
             combine(
-                transactionRepository.observeTransactions(),
+                // The filter and the rows it produced travel together. Combined separately
+                // they can disagree for a frame — a new filter beside the previous list —
+                // and the summary underneath would then be a total of the wrong movements.
+                filters.filter.flatMapLatest { filter ->
+                    transactionRepository.observeTransactions(filter).map { filter to it }
+                },
                 accountRepository.observeAccounts().flatMapLatest { accounts ->
                     val currency = accounts.firstOrNull()?.currency
                     if (currency == null) {
@@ -68,7 +114,8 @@ class TransactionsViewModel
                     }
                 },
                 deletedTransactions.deleted,
-            ) { transactions, summary, deleted ->
+                typed,
+            ) { (filter, transactions), summary, deleted, query ->
                 TransactionsUiState(
                     days =
                         transactions
@@ -79,12 +126,25 @@ class TransactionsViewModel
                     isLoading = false,
                     today = LocalDate.now(clock),
                     undoableDeletion = deleted,
+                    filter = filter,
+                    query = query,
+                    matchCount = transactions.size,
+                    matchSummary = transactions.summarise(),
                 )
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = TransactionsUiState(),
             )
+
+        fun setQuery(query: String) {
+            typed.value = query
+        }
+
+        fun clearFilter() {
+            typed.value = ""
+            filters.clear()
+        }
 
         /**
          * Puts a deleted movement back, with the row id it had: an undo that returns a
@@ -99,8 +159,35 @@ class TransactionsViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+
+            /** Long enough to cover typing, short enough that the list feels immediate. */
+            const val SEARCH_DEBOUNCE_MS = 250L
         }
     }
+
+/**
+ * What the matched movements add up to, summed here rather than by a second query.
+ *
+ * The rows are already in memory — they are the ones on screen — so a `GROUP BY` would be a
+ * second read of the same thing, and one that could disagree with the list it sits above if
+ * a write landed between the two. The rule about aggregating in SQL is about not walking
+ * thousands of rows the UI never asked for; these are exactly the rows it asked for.
+ *
+ * Null when the matched movements do not share a currency: adding euros to dollars needs a
+ * rate the app does not have (rule 2, `DECISIONS.md` D2).
+ */
+private fun List<TransactionDetails>.summarise(): PeriodSummary? {
+    val currency = map { it.transaction.amount.currency }.distinct().singleOrNull() ?: return null
+    val zero = Money.zero(currency)
+    return PeriodSummary(
+        income =
+            filter { it.transaction.kind == TransactionKind.INCOME }
+                .fold(zero) { total, details -> total + details.transaction.amount },
+        expenses =
+            filter { it.transaction.kind == TransactionKind.EXPENSE }
+                .fold(zero) { total, details -> total + details.transaction.amount },
+    )
+}
 
 /** Convenience for screens: the sum of a day's movements, signed. */
 fun TransactionDay.total(currency: String): Money =

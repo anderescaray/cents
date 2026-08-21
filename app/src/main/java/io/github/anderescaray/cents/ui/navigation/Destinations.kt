@@ -37,6 +37,15 @@ sealed interface Destination {
         }
     }
 
+    /**
+     * The filter form. It carries no arguments: what is being filtered lives in
+     * `TransactionFilterStore`, because a filter is edited on this screen and obeyed on the
+     * one behind it, and serialising a growing object into a route would be a lot of
+     * machinery for state that only has to survive a push and a pop.
+     */
+    @Serializable
+    data object TransactionFilters : Destination
+
     @Serializable
     data class AccountDetail(
         val accountId: Long,

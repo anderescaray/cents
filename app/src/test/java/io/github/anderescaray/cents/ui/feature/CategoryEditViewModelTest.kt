@@ -154,9 +154,15 @@ class CategoryEditViewModelTest {
                 awaitStateThat { it.kind == CategoryKind.INCOME }
 
                 viewModel.setName("Salary")
-                assertTrue(awaitStateThat { it.name == "Salary" }.nameTaken)
+                // The wait names the clash rather than the typing that leads to it. The
+                // names to check against are rebuilt when the kind changes, in a collector
+                // of its own, so a state carrying the new name can still be carrying the
+                // previous kind's names — and on a slow machine, usually is.
+                assertTrue(awaitStateThat { it.name == "Salary" && it.nameTaken }.nameTaken)
 
                 // "Rent" is an expense category, so it says nothing about this income one.
+                // Safe to wait on the name alone now: the assertion above proved the income
+                // names have arrived, and setName recomputes the clash without suspending.
                 viewModel.setName("Rent")
                 assertFalse(awaitStateThat { it.name == "Rent" }.nameTaken)
                 cancelAndIgnoreRemainingEvents()
@@ -253,8 +259,17 @@ class CategoryEditViewModelTest {
             val movement =
                 database
                     .transactionDao()
-                    .observeAllWithNames()
-                    .first()
+                    .observeFilteredWithNames(
+                        accountId = null,
+                        categoryId = null,
+                        uncategorized = false,
+                        kind = null,
+                        from = null,
+                        to = null,
+                        minAmountMinor = null,
+                        maxAmountMinor = null,
+                        query = null,
+                    ).first()
                     .single()
             assertEquals(id, movement.categoryId)
             assertEquals("Restaurants", movement.categoryName)

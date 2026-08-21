@@ -132,4 +132,46 @@
     <string name="category_delete_message">Ningún movimiento la usa, así que se puede borrar del todo.</string>
     <string name="category_archive_title">¿Archivar «%1$s»?</string>
     <string name="category_archived_footer">Esta categoría clasifica movimientos ya registrados, así que no se puede eliminar. Restáurala para volver a usarla.</string>
+
+    <!-- Búsqueda y filtros -->
+    <string name="search_placeholder">Buscar movimientos</string>
+    <string name="search_clear">Borrar la búsqueda</string>
+    <string name="filters_title">Filtros</string>
+    <string name="filters_open">Filtros</string>
+    <string name="filters_open_active">Filtros (%1$d)</string>
+    <string name="filters_apply">Aplicar</string>
+    <string name="filters_all">Todo</string>
+    <string name="filters_clear">Volver a mostrarlo todo</string>
+    <string name="filters_clear_footer">Quita todos los filtros y la búsqueda, así que la lista vuelve a mostrar todos los movimientos.</string>
+    <string name="filters_date_header">Fecha</string>
+    <string name="filters_date_any">Cualquier fecha</string>
+    <string name="filters_date_this_month">Este mes</string>
+    <string name="filters_date_last_month">El mes pasado</string>
+    <string name="filters_date_this_year">Este año</string>
+    <string name="filters_date_custom">Entre dos fechas</string>
+    <string name="filters_date_from">Desde</string>
+    <string name="filters_date_to">Hasta</string>
+    <string name="filters_date_pick">Elegir</string>
+    <string name="filters_date_inverted">La primera fecha es posterior a la segunda, así que nada puede coincidir.</string>
+    <string name="filters_account_header">Cuenta</string>
+    <string name="filters_all_accounts">Todas las cuentas</string>
+    <string name="filters_category_header">Categoría</string>
+    <string name="filters_all_categories">Todas las categorías</string>
+    <string name="filters_archived">%1$s (archivada)</string>
+    <string name="filters_amount_header">Importe</string>
+    <string name="filters_amount_min">Sin mínimo</string>
+    <string name="filters_amount_max">Sin máximo</string>
+    <string name="filters_amount_between">Entre %1$s y %2$s.</string>
+    <string name="filters_amount_from">%1$s o más.</string>
+    <string name="filters_amount_up_to">%1$s o menos.</string>
+    <string name="filters_amount_inverted">El mínimo es mayor que el máximo, así que nada puede coincidir.</string>
+    <string name="filters_results_header">Coincidencias</string>
+    <string name="filters_no_matches_title">Ningún movimiento coincide</string>
+    <string name="filters_no_matches_footer">Nada de lo registrado encaja con lo que has pedido. Amplía un filtro o vuelve a mostrarlo todo.</string>
+    <string name="filters_show_everything">Mostrarlo todo</string>
+
+    <plurals name="filters_match_count">
+        <item quantity="one">%1$d movimiento</item>
+        <item quantity="other">%1$d movimientos</item>
+    </plurals>
 </resources>

@@ -193,10 +193,18 @@ carries its ISO-4217 code and still refuses cross-currency arithmetic, but that 
 rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
 143 tests run on the JVM, so CI covers the database and the UI without a device.
 
-**Open questions that only the owner can settle live in
-[`DECISIONS.md`](DECISIONS.md)** — read it at the start of every session, act on anything
-answered since last time, and add any new question there with a default rather than guessing
-or stalling. The protocol is [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
+**Two files carry everything that passes between the owner and the agent, and both are read
+at the start of every session, before any code:**
+
+- **[`DECISIONS.md`](DECISIONS.md)** — questions only the owner can settle. Act on anything
+  answered since last time, and add any new question there with a default rather than guessing
+  or stalling.
+- **[`FEEDBACK.md`](FEEDBACK.md)** — what the owner found on the phone. The agent cannot use
+  the app, so this is the only channel for "this is broken" or "this feels wrong". **Anything
+  under *Open* there outranks the next planned branch:** fix it first, then move the entry down
+  to *Fixed* with the date and what was done.
+
+The protocol for both is [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
 
 **Phase 2 is the first phase that may run several agents at once — and starting that is the
 owner's deliberate decision, not a default.** D5 settled how it would run; `DECISIONS.md` D9

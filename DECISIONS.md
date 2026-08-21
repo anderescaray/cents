@@ -20,6 +20,11 @@ that default is what the app does until the answer changes it.
 > year. This file is the inbox that feeds it: an answer here that turns out to shape the
 > codebase graduates into an ADR there.
 
+**This file runs one way: agent → owner.** Things going the other way — a bug you hit, a
+gesture that feels wrong, a screen you want changed — belong in [`FEEDBACK.md`](FEEDBACK.md),
+which the agent also reads before writing any code. Keeping them apart is what stops either
+one from turning into a general notes file that nobody trusts.
+
 ---
 
 ## Open

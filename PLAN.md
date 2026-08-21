@@ -864,7 +864,8 @@ reports package — the same shared foundations `CLAUDE.md` §7 says to build se
 ## C5. What only the owner can do
 
 The agent may install the APK, launch the app, read logcat and take screenshots — nothing
-else on the phone (rule 13). So these are always handed back:
+else on the phone (rule 13). So these are always handed back, and
+[`docs/device-check.md`](docs/device-check.md) is the walk that collects them:
 
 - Tapping through a flow to judge whether it feels right.
 - Anything needing a device setting, an unlock, or a permission dialog.
@@ -967,8 +968,9 @@ non-skippable `UiState` turns into visible jank.
 ## Next concrete action
 
 **Read [`FEEDBACK.md`](FEEDBACK.md) first, and fix whatever is under *Open* there.** The device
-pass happened on 2026-08-21, after four branches had been built with no phone attached; what it
-turned up comes before any Phase 2 code. One branch per problem, so each is reviewable on its
+pass — [`docs/device-check.md`](docs/device-check.md) — happened on 2026-08-21, after four
+branches had been built with no phone attached; what it turned up comes before any Phase 2
+code. One branch per problem, so each is reviewable on its
 own and revertible on its own.
 
 **Then answer [`DECISIONS.md`](DECISIONS.md) D9 — one agent or three — and build

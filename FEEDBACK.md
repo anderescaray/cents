@@ -44,44 +44,11 @@ and what was actually done — so this file stays short and the history stays so
 
 ---
 
-## Reference — the numbers from the device checklist
+## Where the numbers come from
 
-Only here so you can write "05 was wrong" instead of describing the whole step. There is no
-need to fill this in; it is a lookup table.
-
-**Walk 1 — the exit criteria**
-
-| # | Check |
-|---|---|
-| 01 | First screen is empty — no seeded account, no seeded categories |
-| 02 | Tapping + with no account leads into creating one |
-| 03 | The account form never asks which currency; it shows EUR, not tappable |
-| 04 | Categories can be created, coloured and dragged into order |
-| 05 | The keypad counts in cents — `2 5 0 0` reads 25,00 € |
-| 06 | Balances add up by hand: opening + income − expenses |
-| 07 | Everything survives swiping the app away from recents |
-
-**Walk 2 — features built without a device**
-
-| # | Check |
-|---|---|
-| d1 | Swiping a row left reveals Delete; parks open; fires on a long swipe |
-| d2 | The grip still reorders vertically while the body swipes sideways |
-| d3 | Deleting an account with movements asks what becomes of them |
-| d4 | Search finds by category name and by note |
-| d5 | Filters → This month → Between two dates shows the From/To rows |
-| d6 | A filtered list shows Matches with a count and totals |
-| d7 | "Show everything again" clears the search text too |
-| d8 | A deleted movement can be undone from the list |
-
-**Walk 3 — judgement calls**
-
-| # | Check |
-|---|---|
-| e1 | Both light and dark themes hold up |
-| e2 | It reads as iOS rather than Material |
-| e3 | The filter form is the right shape at six sections |
-| e4 | The amount filter typed in cents makes sense |
+Items like `05` and `d5` are the steps of [`docs/device-check.md`](docs/device-check.md) — the
+walk through the app on a real phone. Quoting the number saves describing the whole step, so
+*"05: the keypad showed 2.500,00"* is a complete entry.
 
 ---
 

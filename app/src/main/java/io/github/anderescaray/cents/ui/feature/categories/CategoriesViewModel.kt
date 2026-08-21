@@ -29,10 +29,10 @@ data class CategoriesUiState(
 }
 
 /**
- * The category list: which kind is on screen, and the order the owner dragged it into.
+ * The category list: which kind is on screen, the order the owner dragged it into, and the
+ * deletion a swipe asks about.
  *
- * Creating, renaming, archiving and deleting belong to the edit screen; this one only
- * lists and reorders.
+ * Creating and renaming still belong to the edit screen; this one lists, reorders, and asks.
  */
 @HiltViewModel
 class CategoriesViewModel
@@ -41,6 +41,14 @@ class CategoriesViewModel
         private val categoryRepository: CategoryRepository,
     ) : ViewModel() {
         private val selectedKind = MutableStateFlow(CategoryKind.EXPENSE)
+
+        /**
+         * The same delete question the editor asks, reachable here by swiping a row.
+         *
+         * Swiping is a shortcut to the question, never past it: whether "delete" removes the
+         * category or archives it is decided in one place (see [CategoryDeletion]).
+         */
+        val deletion = CategoryDeletion(categoryRepository, viewModelScope)
 
         val uiState: StateFlow<CategoriesUiState> =
             combine(

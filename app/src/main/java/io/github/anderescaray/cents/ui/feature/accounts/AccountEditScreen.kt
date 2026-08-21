@@ -52,6 +52,7 @@ fun AccountEditScreen(
     viewModel: AccountEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val removal by viewModel.removal.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.finished) {
         if (state.finished) onDone()
@@ -91,7 +92,7 @@ fun AccountEditScreen(
         )
     }
 
-    RemovalDialogs(state = state, viewModel = viewModel)
+    RemovalDialogs(state = removal, removal = viewModel.removal)
 }
 
 @Composable

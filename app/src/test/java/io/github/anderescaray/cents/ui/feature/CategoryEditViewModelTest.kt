@@ -211,10 +211,10 @@ class CategoryEditViewModelTest {
             viewModel.uiState.test {
                 viewModel.requestDeletion()
 
-                val state = awaitStateThat { it.confirmingDeletion }
-                assertEquals(DeletionKind.OUTRIGHT, state.deletionKind)
+                val state = viewModel.deletion.state.first { it.asking }
+                assertEquals(DeletionKind.OUTRIGHT, state.kind)
 
-                viewModel.confirmDeletion()
+                viewModel.deletion.confirm()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
@@ -233,11 +233,11 @@ class CategoryEditViewModelTest {
             viewModel.uiState.test {
                 viewModel.requestDeletion()
 
-                val state = awaitStateThat { it.confirmingDeletion }
-                assertEquals(DeletionKind.ARCHIVE, state.deletionKind)
+                val state = viewModel.deletion.state.first { it.asking }
+                assertEquals(DeletionKind.ARCHIVE, state.kind)
                 assertEquals(1, state.transactionCount)
 
-                viewModel.confirmDeletion()
+                viewModel.deletion.confirm()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }

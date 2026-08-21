@@ -73,6 +73,9 @@
     <string name="action_delete">Delete</string>
     <string name="action_archive">Archive</string>
     <string name="action_undo">Undo</string>
+    <string name="action_ok">OK</string>
+    <string name="delete_failed_title">That could not be deleted</string>
+    <string name="delete_failed_message">Something was recorded against it while you were deciding, so it is still in use. Try again.</string>
 
     <!-- Transactions -->
     <string name="transactions_this_month">This month</string>

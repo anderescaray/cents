@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,10 +23,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -41,6 +44,7 @@ fun AccountsScreen(
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val removal by viewModel.removal.state.collectAsStateWithLifecycle()
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_accounts),
@@ -74,6 +78,7 @@ fun AccountsScreen(
                 accounts = state.active,
                 footer = { totalFooter(state) },
                 onOpenAccount = onOpenAccount,
+                onDeleteAccount = viewModel.removal::request,
             )
         }
 
@@ -84,9 +89,12 @@ fun AccountsScreen(
                 accounts = state.archived,
                 footer = { stringResource(R.string.accounts_archived_footer) },
                 onOpenAccount = onOpenAccount,
+                onDeleteAccount = viewModel.removal::request,
             )
         }
     }
+
+    RemovalDialogs(state = removal, removal = viewModel.removal)
 }
 
 /**
@@ -104,32 +112,50 @@ private fun totalFooter(state: AccountsUiState): String? {
     }
 }
 
+/**
+ * Both sections swipe to delete, archived ones included: what "delete an account" means is
+ * the same question wherever the account is listed, and an archived account is exactly the
+ * one somebody is most likely to want gone for good.
+ */
 private fun LazyListScope.accountSection(
     key: String,
     @StringRes headerRes: Int,
     accounts: List<AccountWithBalance>,
     footer: @Composable () -> String?,
     onOpenAccount: (Long) -> Unit,
+    onDeleteAccount: (Account) -> Unit,
 ) {
     item(key = "section-$key") {
+        val deleteLabel = stringResource(R.string.action_delete)
         CentsListSection(header = stringResource(headerRes), footer = footer()) {
             accounts.forEachIndexed { index, item ->
                 val account = item.account
-                CentsListRow(
-                    title = account.name,
-                    subtitle = stringResource(account.type.labelRes()),
-                    value = MoneyFormatter.format(item.balance),
-                    valueColor =
-                        if (item.balance.isNegative) {
-                            CentsTheme.colors.destructive
-                        } else {
-                            CentsTheme.colors.label
-                        },
-                    leading = { AccountDot(Color(account.colorArgb)) },
-                    showChevron = true,
-                    showSeparator = index != accounts.lastIndex,
-                    onClick = { onOpenAccount(account.id) },
-                )
+                // Keyed by identity, not by position: a row's swipe offset is remembered
+                // against its key, and without one, deleting or reordering hands an open
+                // offset to whatever account moves into that slot.
+                key(account.id) {
+                    CentsSwipeableRow(
+                        onDelete = { onDeleteAccount(account) },
+                        deleteLabel = deleteLabel,
+                    ) { rowModifier ->
+                        CentsListRow(
+                            modifier = rowModifier,
+                            title = account.name,
+                            subtitle = stringResource(account.type.labelRes()),
+                            value = MoneyFormatter.format(item.balance),
+                            valueColor =
+                                if (item.balance.isNegative) {
+                                    CentsTheme.colors.destructive
+                                } else {
+                                    CentsTheme.colors.label
+                                },
+                            leading = { AccountDot(Color(account.colorArgb)) },
+                            showChevron = true,
+                            showSeparator = index != accounts.lastIndex,
+                            onClick = { onOpenAccount(account.id) },
+                        )
+                    }
+                }
             }
         }
     }

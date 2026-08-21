@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,8 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.feature.accounts.DeletionFailedAlert
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import kotlin.math.roundToInt
@@ -61,6 +64,7 @@ fun CategoriesScreen(
     viewModel: CategoriesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val deletion by viewModel.deletion.state.collectAsStateWithLifecycle()
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.categories_title),
@@ -97,12 +101,24 @@ fun CategoriesScreen(
                 categories = state.active,
                 onOpen = onEditCategory,
                 onMove = viewModel::moveCategory,
+                onDelete = viewModel.deletion::request,
             )
         }
 
         if (state.archived.isNotEmpty()) {
             archivedCategories(state.archived, onEditCategory)
         }
+    }
+
+    if (deletion.asking) {
+        CategoryDeletionAlert(
+            state = deletion,
+            onConfirm = viewModel.deletion::confirm,
+            onDismiss = viewModel.deletion::cancel,
+        )
+    }
+    if (deletion.failed) {
+        DeletionFailedAlert(onDismiss = viewModel.deletion::cancel)
     }
 }
 
@@ -164,15 +180,21 @@ private fun LazyListScope.archivedCategories(
 }
 
 /**
- * The active list, with a grip on each row that reorders it.
+ * The active list, with a grip on each row that reorders it and a sideways swipe on the
+ * row itself that deletes it.
  *
  * Rows are all the same height, so the position a drag lands on is the start index plus
  * the offset divided by that height — no per-row geometry to keep in sync.
+ *
+ * Only the active list swipes. The archived section below it is where a category goes to
+ * be restored, and "delete" there is either impossible — one with history behind it can
+ * only stay archived (rule 8) — or the same button the editor already offers.
  */
 private fun LazyListScope.activeCategories(
     categories: List<Category>,
     onOpen: (Long, CategoryKind) -> Unit,
     onMove: (Int, Int) -> Unit,
+    onDelete: (Category) -> Unit,
 ) {
     item(key = "active") {
         val reorder = remember { ReorderState() }
@@ -182,14 +204,20 @@ private fun LazyListScope.activeCategories(
             footer = stringResource(R.string.categories_reorder_footer),
         ) {
             categories.forEachIndexed { index, category ->
-                CategoryRow(
-                    category = category,
-                    index = index,
-                    count = categories.size,
-                    reorder = reorder,
-                    onOpen = onOpen,
-                    onMove = onMove,
-                )
+                // Keyed by identity, not by position: a row's swipe offset is remembered
+                // against its key, and without one, dragging a row into this slot would
+                // bring the open offset of whatever used to be here.
+                key(category.id) {
+                    CategoryRow(
+                        category = category,
+                        index = index,
+                        count = categories.size,
+                        reorder = reorder,
+                        onOpen = onOpen,
+                        onMove = onMove,
+                        onDelete = onDelete,
+                    )
+                }
             }
         }
     }
@@ -203,6 +231,7 @@ private fun CategoryRow(
     reorder: ReorderState,
     onOpen: (Long, CategoryKind) -> Unit,
     onMove: (Int, Int) -> Unit,
+    onDelete: (Category) -> Unit,
 ) {
     val isDragged = index == reorder.draggedIndex
     // Derived, not computed inline: a drag emits an offset per frame, but the displacement
@@ -226,33 +255,39 @@ private fun CategoryRow(
                 .onSizeChanged { reorder.rowHeight = it.height }
                 .graphicsLayer { translationY = if (isDragged) reorder.offset else animatedShift },
     ) {
-        CentsListRow(
-            title = category.name,
-            leading = { ColorDot(Color(category.colorArgb)) },
-            trailing = {
-                ReorderHandle(
-                    modifier =
-                        Modifier.pointerInput(count) {
-                            detectDragGestures(
-                                onDragStart = { reorder.start(index) },
-                                onDrag = { change, amount ->
-                                    change.consume()
-                                    reorder.offset += amount.y
-                                },
-                                onDragEnd = {
-                                    val from = reorder.draggedIndex
-                                    val to = reorder.targetIndex(count)
-                                    if (from != null && to != null) onMove(from, to)
-                                    reorder.stop()
-                                },
-                                onDragCancel = reorder::stop,
-                            )
-                        },
-                )
-            },
-            showSeparator = index != count - 1,
-            onClick = { onOpen(category.id, category.kind) },
-        )
+        CentsSwipeableRow(
+            onDelete = { onDelete(category) },
+            deleteLabel = stringResource(R.string.action_delete),
+        ) { rowModifier ->
+            CentsListRow(
+                modifier = rowModifier,
+                title = category.name,
+                leading = { ColorDot(Color(category.colorArgb)) },
+                trailing = {
+                    ReorderHandle(
+                        modifier =
+                            Modifier.pointerInput(count) {
+                                detectDragGestures(
+                                    onDragStart = { reorder.start(index) },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        reorder.offset += amount.y
+                                    },
+                                    onDragEnd = {
+                                        val from = reorder.draggedIndex
+                                        val to = reorder.targetIndex(count)
+                                        if (from != null && to != null) onMove(from, to)
+                                        reorder.stop()
+                                    },
+                                    onDragCancel = reorder::stop,
+                                )
+                            },
+                    )
+                },
+                showSeparator = index != count - 1,
+                onClick = { onOpen(category.id, category.kind) },
+            )
+        }
     }
 }
 

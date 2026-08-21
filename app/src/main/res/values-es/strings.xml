@@ -70,6 +70,9 @@
     <string name="action_save">Guardar</string>
     <string name="action_delete">Eliminar</string>
     <string name="action_archive">Archivar</string>
+    <string name="action_ok">Aceptar</string>
+    <string name="delete_failed_title">No se ha podido eliminar</string>
+    <string name="delete_failed_message">Se registró algo con ello mientras decidías, así que sigue en uso. Inténtalo de nuevo.</string>
     <string name="action_undo">Deshacer</string>
 
     <!-- Movimientos -->

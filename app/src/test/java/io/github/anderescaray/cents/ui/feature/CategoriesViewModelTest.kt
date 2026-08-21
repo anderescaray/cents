@@ -2,19 +2,24 @@ package io.github.anderescaray.cents.ui.feature
 
 import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesViewModel
+import io.github.anderescaray.cents.ui.feature.categories.DeletionKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -108,4 +113,118 @@ class CategoriesViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
+
+    @Test
+    fun `swiping a category nobody uses reaches the same question, and deletes it`() =
+        runTest {
+            val id = database.categoryDao().insert(category(name = "Typo"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.active.isNotEmpty() }
+
+                viewModel.deletion.request(id, "Typo")
+                // Swiping asks; it does not delete. The alert names what it is about to do.
+                val asked = viewModel.deletion.state.first { it.asking }
+                assertEquals(DeletionKind.OUTRIGHT, asked.kind)
+                assertEquals(
+                    1,
+                    database
+                        .categoryDao()
+                        .observeAll()
+                        .first()
+                        .size,
+                )
+
+                viewModel.deletion.confirm()
+                awaitStateThat { it.active.isEmpty() }
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `swiping a category that classifies movements archives it, exactly as the editor would`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val id = database.categoryDao().insert(category(name = "Restaurants"))
+            database.transactionDao().insert(transaction(accountId = accountId, categoryId = id))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.active.isNotEmpty() }
+
+                viewModel.deletion.request(id, "Restaurants")
+                val asked = viewModel.deletion.state.first { it.asking }
+                // History is not rewritten by a gesture any more than by a button (rule 8).
+                assertEquals(DeletionKind.ARCHIVE, asked.kind)
+                assertEquals(1, asked.transactionCount)
+
+                viewModel.deletion.confirm()
+                val state = awaitStateThat { it.archived.isNotEmpty() }
+                assertEquals(listOf("Restaurants"), state.archived.map { it.name })
+                assertTrue(state.active.isEmpty())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(1, database.transactionDao().count())
+        }
+
+    @Test
+    fun `cancelling the question leaves the category exactly where it was`() =
+        runTest {
+            val id = database.categoryDao().insert(category(name = "Rent"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.active.isNotEmpty() }
+
+                viewModel.deletion.request(id, "Rent")
+                viewModel.deletion.state.first { it.asking }
+                viewModel.deletion.cancel()
+
+                assertEquals(false, viewModel.deletion.state.value.asking)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(listOf("Rent"), categoriesInDatabase())
+        }
+
+    @Test
+    fun `a delete the foreign key refuses says so instead of taking the app with it`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val id = database.categoryDao().insert(category(name = "Restaurants"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.active.isNotEmpty() }
+
+                // Counted while nothing used it, which is what makes the delete outright.
+                viewModel.deletion.request(id, "Restaurants")
+                assertEquals(
+                    DeletionKind.OUTRIGHT,
+                    viewModel.deletion.state
+                        .first { it.asking }
+                        .kind,
+                )
+
+                // Then a movement is classified with it, and RESTRICT refuses the delete.
+                database.transactionDao().insert(transaction(accountId = accountId, categoryId = id))
+                viewModel.deletion.confirm()
+
+                assertTrue(
+                    viewModel.deletion.state
+                        .first { it.failed }
+                        .failed,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // The category is still there, and so is the app.
+            assertEquals(listOf("Restaurants"), categoriesInDatabase())
+        }
+
+    private suspend fun categoriesInDatabase(): List<String> =
+        database
+            .categoryDao()
+            .observeAll()
+            .first()
+            .map { it.name }
 }

@@ -484,13 +484,13 @@ Then take the first unchecked branch in C3 and work it end to end:
 | Toolchain | Gradle KTS + version catalog, Hilt + KSP, detekt (`dev.detekt` 2.x), Spotless/ktlint, GitHub Actions running build + tests + lint on every PR |
 | Database | Room v1: `accounts`, `categories`, `transactions`. Balances computed in SQL, foreign keys `RESTRICT`, schema exported to `app/schemas/` |
 | Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
-| Design system | iOS-flavoured tokens and components — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
+| Design system | iOS-flavoured tokens and components, including a row that swipes sideways to delete — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
 | Navigation | Four tabs, type-safe routes, push/pop transitions |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list |
-| Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories |
-| Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too |
+| Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
+| Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Tests | 108, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 120, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. Remaining Phase 1 work
 
@@ -605,7 +605,7 @@ serial — this is still the single-agent phase.
       it; not harmless once the picker is gone. The currency is now resolved synchronously at
       construction, since it never needed the database — only the colour did.
 
-- [ ] **`feat/swipe-to-delete`** — swipe a row sideways to delete it, as an alternative to
+- [x] **`feat/swipe-to-delete`** — swipe a row sideways to delete it, as an alternative to
       opening it and tapping Delete. Requested 2026-08-20.
       - A new `CentsSwipeableRow` in `ui/components`, following the iOS pattern: dragging
         left reveals a red **Delete** action, and releasing past a threshold performs it.
@@ -617,7 +617,48 @@ serial — this is still the single-agent phase.
       - Applied to categories and to accounts in the same branch: one component wired into
         both lists at once, rather than written for one and retrofitted onto the other.
       *Done when:* a category and an account can each be deleted by swiping, and reordering
-      still works with the same finger.
+      still works with the same finger. **Done**, with four things worth knowing beyond the
+      plan above.
+      - **The question moved out of the editors before the swipe was wired to it.** Both
+        deletion flows lived inside `CategoryEditViewModel` and `AccountEditViewModel`,
+        reachable only from a screen that had loaded one row. Copying either into a list
+        view model would have meant two implementations of "what does delete mean here",
+        and the one thing that must not drift between them is exactly that. They are now
+        `CategoryDeletion` and `AccountRemoval` — small state holders taking a repository
+        and a scope, owning the count, the step machine and the writes — and both the
+        editor and the list hold one. The alerts and the action sheet render that state and
+        nothing else, so there is literally one sequence of confirmations in the app.
+      - **The swipe ends in a question, never in a write.** A full swipe fires `onDelete`,
+        which opens the same alert or action sheet the button opens, and the row closes
+        itself immediately so the answer is given to the dialog rather than to a row left
+        hanging open behind it. Deleting an account with its movements still asks twice.
+      - **Two thresholds, because one is not enough.** Past half the revealed button the
+        row parks open with **Delete** tappable; past 60% of the row's width, letting go
+        performs it. An open row closes on a tap anywhere on it, which is what iOS does and
+        what stops "I changed my mind" from opening the editor instead.
+      - **TalkBack has no swipe to make**, so `CentsSwipeableRow` hands its content a
+        modifier carrying a custom accessibility action, and the caller must put it on the
+        row it builds. That is not decoration: the first attempt put the action on a
+        wrapper around the row, and because `CentsListRow` merges its own semantics, the
+        node a screen reader actually focuses never carried it. An action announced to
+        nobody is not an action, and a unit test caught it. The mirror image cost a second
+        fix — the revealed button is always composed, because its width is what the drag
+        settles against, so every *closed* row was publishing a clickable "Delete" hidden
+        only by the row sitting on top of it. TalkBack read one between every pair of rows,
+        which is precisely the noise the custom action exists to avoid. It is now cleared
+        from the semantics tree while closed, and there is a test that counts them.
+      - **A deletion the database refuses is a one-button alert**, not a line in a footer.
+        Both foreign keys are `RESTRICT`, so a row counted as free and then referenced
+        before the confirmation lands turns a legitimate delete into a constraint violation.
+        The first attempt reported it as a flag on the list's state rendered into a section
+        footer, which was wrong three ways: it never appeared when every account was
+        archived, an archived row's failure was reported under the *active* section's
+        header, and nothing cleared the flag, so one refusal replaced the accounts total
+        with an error message indefinitely. The failure now lives on the question that was
+        being asked — `RemovalStep.FAILED`, `CategoryDeletionState.failed` — so it is shown
+        by whichever screen asked, and it goes when the alert acknowledging it goes.
+        `CentsAlert` gained an optional `dismissLabel` for it: with nothing to decide, a
+        "Cancel" beside "OK" offers a choice that does not exist.
 
 - [ ] **`feat/transaction-filters`** — search and filters on the list: date range, account,
       category, kind, amount, note text.
@@ -677,6 +718,25 @@ before that, and do not parallelize before that.
   Both patterns cost a green CI run on 2026-08-21 and were fixed by having each wait name
   the state it expects. **Write the wait as the condition you are about to assert on**, not
   as a proxy for it.
+- **Swiping does not close whatever other row was left open.** Each `CentsSwipeableRow`
+  owns its own offset, so two rows can sit open at once. It is cosmetic — a tap on either
+  closes it, and any deletion closes the row that asked — and coordinating them needs a
+  controller shared across the list, which is more machinery than the annoyance is worth
+  today.
+- **The archived category section does not swipe; the archived account section does.** They
+  are not inconsistent by accident: what "delete" means for an account is the same question
+  wherever it is listed, while an archived category with history behind it cannot be deleted
+  at all (rule 8), so a swipe there would have to do nothing and explain why. The editor
+  still offers delete for an archived category that nothing uses.
+- **The swipe assumes a left-to-right layout.** Dragging left reveals the action, with no
+  mirroring for RTL. The app ships English and Spanish, both left-to-right; a right-to-left
+  translation would have to revisit it.
+- **A deletion the database refuses reports itself and stops there.** Both foreign keys are
+  `RESTRICT`, so a row counted as free and then referenced before the confirmation lands turns
+  a legitimate delete into a constraint violation. The account path always caught that; the
+  category path did not, and an exception escaping the view-model scope would have taken the
+  app with it. Both now end in a one-button alert instead, and nothing is retried
+  automatically — the owner asks again if they still want to.
 - **Only schema v1 exists**, so there is no migration test yet. The first schema change must
   ship one (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note
@@ -782,18 +842,21 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**`feat/swipe-to-delete`**, the first unticked item in C3: a `CentsSwipeableRow` in the design system,
-wired into the category list and the account list at once, coexisting with the vertical drag
-that already reorders categories.
+**`feat/transaction-filters`**, the last unticked item in C3 and **the last piece of Phase 1**:
+search and filters on the transaction list — date range, account, category, kind, amount, note
+text — so that "what did I spend on restaurants in July" is answerable in the app.
 
-Before starting it, **walk a fresh install on the phone**: nothing is seeded any more, so the
-first thing the app now shows is an empty Accounts tab and a movement form that leads to
-creating an account. That path used to be an edge case and is now the front door, and it is
-exactly the kind of thing that reads fine in a test and wrong in the hand.
+Before starting it, two things are still waiting on the phone, and neither reads wrong in a
+test:
 
-After it: `feat/transaction-filters`.
+- **Walk a fresh install.** Nothing is seeded any more, so the first thing the app shows is an
+  empty Accounts tab and a movement form that leads to creating an account. That path used to
+  be an edge case and is now the front door.
+- **Try the swipe.** No device was attached when `feat/swipe-to-delete` was built, so its
+  thresholds — half the button to park open, 60% of the row to fire — have been measured by
+  tests and never by a thumb. They are two constants at the bottom of `CentsSwipeableRow.kt`
+  if they feel wrong.
 
-**`feat/transaction-filters` is the last piece of Phase 1.** When it lands, check the four
-exit criteria in Part B §2 and stop: how the parallel phase runs is answered (D5 — the
-owner's own harness, at most three agents), but *starting* it is still a deliberate decision
-rather than something to drift into.
+When `feat/transaction-filters` lands, check the four exit criteria in Part B §2 and stop: how
+the parallel phase runs is answered (D5 — the owner's own harness, at most three agents), but
+*starting* it is still a deliberate decision rather than something to drift into.

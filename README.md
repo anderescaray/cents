@@ -112,6 +112,8 @@ parallel work demand it.
 - [`PLAN.md`](PLAN.md) — environment setup, the development process, and **Part C: where
   the project stands right now**, which is where a new session starts
 - [`DECISIONS.md`](DECISIONS.md) — questions only the owner can answer, and what was decided
+- [`FEEDBACK.md`](FEEDBACK.md) — the other direction: what the owner found while using the app
+  on a real phone, which is the one thing the test suite cannot catch
 - [`docs/decisions/`](docs/decisions/) — architecture decision records: what was decided,
   and why, written to be read in a year
 

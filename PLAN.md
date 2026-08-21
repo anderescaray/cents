@@ -475,9 +475,16 @@ git checkout main; git pull --ff-only        # start from what is merged
 ./gradlew spotlessCheck detekt testDebugUnitTest   # green before touching anything
 ```
 
-**Then read [`DECISIONS.md`](DECISIONS.md) before writing any code.** Anything answered there
-since the last session is an instruction: act on it first, then move that question to its
-*Answered* table with the date and what was done. See C6.
+**Then read [`FEEDBACK.md`](FEEDBACK.md) and [`DECISIONS.md`](DECISIONS.md) before writing any
+code.** Both are instructions rather than reading material:
+
+- **`FEEDBACK.md` first.** Anything under *Open* is something the owner saw go wrong on a real
+  phone, which is the one thing no test in this repo can catch. It **outranks the next planned
+  branch**. Fix it, then move the entry to *Fixed* with the date and what was done.
+- **`DECISIONS.md` next.** Anything answered since the last session is an instruction: act on
+  it, then move that question to its *Answered* table with the date and what was done.
+
+See C6.
 
 Then take the first unchecked branch in C3 and work it end to end:
 `branch → implement → tests → gates → PR → wait for CI → hand back`.
@@ -863,16 +870,23 @@ else on the phone (rule 13). So these are always handed back:
 - Anything needing a device setting, an unlock, or a permission dialog.
 - Reviewing and merging every PR.
 
-## C6. Questions waiting on the owner
+## C6. The two files that pass work between owner and agent
 
-Open questions live in **[`DECISIONS.md`](DECISIONS.md)**, one per decision, each with what is
+**[`FEEDBACK.md`](FEEDBACK.md) runs owner → agent**, and holds what the owner found on the
+phone. It exists because of the hole this project has had since the beginning: the agent can
+build, install, read logcat and screenshot, but it cannot use the app. It cannot tell that a
+swipe fires too early, that a balance is off by two cents, or that a screen is confusing.
+Before it existed, that kind of thing was said once in a chat and then lost. Anything under
+*Open* there is fixed before the next planned branch, and moves to *Fixed* when it is.
+
+**[`DECISIONS.md`](DECISIONS.md) runs agent → owner**, one entry per decision, each with what is
 at stake, the options, a recommendation and a default. It exists because the two documents
 either side of it answer different things: `PLAN.md` records what *is*, `docs/decisions/`
 records what *was decided and why*, and neither had a place for *what has not been decided
 yet* — so those questions used to end up buried in a pull request description, where they were
 read once and then lost.
 
-**The protocol, in both directions:**
+**The protocol for `DECISIONS.md`, in both directions:**
 
 - **Agent → owner.** When a choice would change the app rather than the code — what it ships
   with, what it is for, how it is built as a project — do not guess and do not stop. Write the
@@ -952,7 +966,12 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**Answer [`DECISIONS.md`](DECISIONS.md) D9 — one agent or three — and then build
+**Read [`FEEDBACK.md`](FEEDBACK.md) first, and fix whatever is under *Open* there.** The device
+pass happened on 2026-08-21, after four branches had been built with no phone attached; what it
+turned up comes before any Phase 2 code. One branch per problem, so each is reviewable on its
+own and revertible on its own.
+
+**Then answer [`DECISIONS.md`](DECISIONS.md) D9 — one agent or three — and build
 `feat/reports-charts`.**
 
 Phase 1 closed on 2026-08-21. Phase 2 is the first phase that *may* be run in parallel, and

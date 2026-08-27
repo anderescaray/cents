@@ -14,6 +14,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.reports.PeriodPreset
 import io.github.anderescaray.cents.ui.feature.reports.ReportsViewModel
 import io.github.anderescaray.cents.ui.feature.reports.periodFor
+import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -51,6 +52,7 @@ class ReportsViewModelTest {
             ReportsViewModel(
                 RoomReportsRepository(database.transactionDao()),
                 RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                TransactionFilterStore(),
                 clock,
             )
     }

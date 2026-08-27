@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.reports
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,7 +11,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,12 +36,15 @@ import com.patrykandpatrick.vico.compose.pie.PieSize
 import com.patrykandpatrick.vico.compose.pie.data.PieChartModelProducer
 import com.patrykandpatrick.vico.compose.pie.data.pieSeries
 import com.patrykandpatrick.vico.compose.pie.rememberPieChart
+import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.atan2
+import kotlin.math.hypot
 
 /**
  * Spending by category, as a ring.
@@ -53,6 +59,7 @@ import java.util.Locale
 fun SpendingDonut(
     breakdown: SpendingBreakdown,
     modifier: Modifier = Modifier,
+    onSliceClick: (CategorySpending) -> Unit = {},
 ) {
     val fallback = CentsTheme.colors.tertiaryLabel
     val producer = remember { PieChartModelProducer() }
@@ -86,8 +93,55 @@ fun SpendingDonut(
                 innerSize = PieSize.Inner.fixed(DONUT_HOLE),
             ),
         modelProducer = producer,
-        modifier = modifier.fillMaxWidth().height(DONUT_HEIGHT),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(DONUT_HEIGHT)
+                .pointerInput(breakdown) {
+                    detectTapGestures { tap ->
+                        breakdown
+                            .sliceAt(tap, size.width.toFloat(), size.height.toFloat())
+                            ?.let(onSliceClick)
+                    }
+                },
     )
+}
+
+/**
+ * Which slice a tap landed on, or null for a tap that missed the ring.
+ *
+ * Vico draws the pie but hands back no hit testing, so this reconstructs the geometry it
+ * used: [PieSize.Outer.Fill] means a circle centred in the box with the smaller side as its
+ * diameter, and slices are laid out clockwise from twelve o'clock — the -90° start angle.
+ *
+ * A tap in the hole or outside the ring returns null **on purpose**. Guessing at a nearby
+ * slice would open a list of the wrong category's movements, and a mistap that does nothing
+ * is far better than one that quietly answers a different question. The rows beneath the
+ * ring reach the same place and are the reliable way in.
+ */
+internal fun SpendingBreakdown.sliceAt(
+    tap: Offset,
+    width: Float,
+    height: Float,
+): CategorySpending? {
+    val radius = minOf(width, height) / 2f
+    val fromCentre = Offset(tap.x - width / 2f, tap.y - height / 2f)
+    val distance = hypot(fromCentre.x, fromCentre.y)
+    val holeRadius = radius * HOLE_FRACTION
+    if (distance < holeRadius || distance > radius) return null
+
+    // atan2 measures from three o'clock counter-clockwise; the chart starts at twelve and
+    // runs clockwise, so the angle is rotated a quarter turn and wrapped into 0..360.
+    val degrees = Math.toDegrees(atan2(fromCentre.y.toDouble(), fromCentre.x.toDouble())).toFloat()
+    val clockwiseFromTop = (degrees + QUARTER_TURN + FULL_TURN) % FULL_TURN
+
+    // Where each slice ends, in degrees clockwise from twelve.
+    val edges = slices.runningFold(0f) { swept, slice -> swept + slice.share * FULL_TURN }.drop(1)
+    val index = edges.indexOfFirst { clockwiseFromTop <= it }
+
+    // Rounding in the shares can leave the last hair of the circle unclaimed, and it belongs
+    // to the slice that was drawn there.
+    return slices.getOrNull(if (index >= 0) index else slices.lastIndex)
 }
 
 /**
@@ -182,6 +236,11 @@ fun EmptyChart(
 
 private val DONUT_HEIGHT = 220.dp
 private val DONUT_HOLE = 104.dp
+
+/** [DONUT_HOLE] as a fraction of the diameter, which is what the hit test works in. */
+internal const val HOLE_FRACTION = 104f / 220f
+private const val QUARTER_TURN = 90f
+private const val FULL_TURN = 360f
 private val SLICE_SPACING = 2.dp
 private val COLUMN_CHART_HEIGHT = 180.dp
 private val COLUMN_WIDTH = 10.dp

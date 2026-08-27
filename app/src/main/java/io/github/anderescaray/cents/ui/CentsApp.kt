@@ -59,16 +59,17 @@ fun CentsApp(navController: NavHostController = rememberNavController()) {
         CentsTabBar(
             items = tabs,
             selectedKey = currentTab.name,
-            onSelect = { key ->
-                val tab = TopLevelTab.valueOf(key)
-                navController.navigate(tab.destination) {
-                    // Tabs switch, they do not stack: one entry per tab, state preserved.
-                    popUpTo(Destination.Transactions) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
+            onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
         )
+    }
+}
+
+/** Tabs switch, they do not stack: one entry per tab, state preserved. */
+private fun NavHostController.switchToTab(destination: Destination) {
+    navigate(destination) {
+        popUpTo(Destination.Transactions) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 
@@ -108,7 +109,14 @@ private fun CentsNavHost(navController: NavHostController) {
         accountRoutes(navController)
         categoryRoutes(navController)
 
-        composable<Destination.Reports> { ReportsScreen() }
+        composable<Destination.Reports> {
+            ReportsScreen(
+                // The same move the tab bar makes, because a drill-down *is* switching to
+                // the movements tab — with the filter already applied. Pushing the list on
+                // top instead would leave two of it on the stack, one filtered and one not.
+                onOpenMovements = { navController.switchToTab(Destination.Transactions) },
+            )
+        }
         composable<Destination.Settings> {
             SettingsScreen(onOpenCategories = { navController.navigate(Destination.Categories) })
         }

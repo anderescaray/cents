@@ -258,6 +258,7 @@ class RoomReportsRepository
                                 )
                             },
                         total = Money(totalMinor, currency),
+                        kind = kind,
                     )
                 }
 

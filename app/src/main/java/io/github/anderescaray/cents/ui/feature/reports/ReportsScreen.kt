@@ -45,13 +45,22 @@ private enum class RangeBound { FROM, TO }
  * a comparison of August's spending against the whole year's income.
  */
 @Composable
-fun ReportsScreen(viewModel: ReportsViewModel = hiltViewModel()) {
+fun ReportsScreen(
+    onOpenMovements: () -> Unit,
+    viewModel: ReportsViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     ReportsScreen(
         state = state,
         onSelectPreset = viewModel::selectPreset,
         onSetRange = viewModel::setCustomRange,
+        onDrillDown = { slice ->
+            // The filter is applied first and the tab switched second, so the list is
+            // already narrowed by the time it slides in — no frame of every movement.
+            viewModel.drillDown(slice)
+            onOpenMovements()
+        },
     )
 }
 
@@ -60,6 +69,7 @@ fun ReportsScreen(
     state: ReportsUiState,
     onSelectPreset: (PeriodPreset) -> Unit,
     onSetRange: (LocalDate, LocalDate) -> Unit,
+    onDrillDown: (CategorySpending) -> Unit,
 ) {
     var openPicker by remember { mutableStateOf<RangeBound?>(null) }
 
@@ -72,7 +82,7 @@ fun ReportsScreen(
         if (state.hasNoAccounts) {
             item(key = "no-accounts") { NoAccountsSection() }
         } else {
-            spendingSection(state.spending)
+            spendingSection(state.spending, onDrillDown)
             item(key = "gap") { Spacer(Modifier.height(CentsDimens.sectionSpacing)) }
             flowSection(state)
         }
@@ -164,19 +174,28 @@ private fun RangePicker(
  * share, so putting the swatch on that row means one place to read rather than a key beside
  * the chart to match colours up against.
  */
-private fun LazyListScope.spendingSection(breakdown: SpendingBreakdown?) {
+private fun LazyListScope.spendingSection(
+    breakdown: SpendingBreakdown?,
+    onDrillDown: (CategorySpending) -> Unit,
+) {
     item(key = "spending") {
         CentsListSection(header = stringResource(R.string.reports_spending_header)) {
             if (breakdown == null || breakdown.isEmpty) {
                 EmptyChart(stringResource(R.string.reports_spending_empty))
             } else {
-                Box(Modifier.padding(vertical = CentsDimens.spacingM)) { SpendingDonut(breakdown) }
+                Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
+                    SpendingDonut(breakdown, onSliceClick = onDrillDown)
+                }
                 CentsListRow(
                     title = stringResource(R.string.reports_spending_total),
                     value = MoneyFormatter.format(breakdown.total),
                 )
                 breakdown.slices.forEachIndexed { index, slice ->
-                    CategoryRow(slice, last = index == breakdown.slices.lastIndex)
+                    CategoryRow(
+                        slice = slice,
+                        last = index == breakdown.slices.lastIndex,
+                        onClick = { onDrillDown(slice) },
+                    )
                 }
             }
         }

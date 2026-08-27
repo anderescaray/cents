@@ -3,11 +3,13 @@ package io.github.anderescaray.cents.ui.feature.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.ReportsRepository
+import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,6 +73,7 @@ class ReportsViewModel
     constructor(
         private val reportsRepository: ReportsRepository,
         accountRepository: AccountRepository,
+        private val filters: TransactionFilterStore,
         private val clock: Clock,
     ) : ViewModel() {
         private val selection = MutableStateFlow(defaultSelection())
@@ -137,6 +140,22 @@ class ReportsViewModel
             val start = minOf(from, to)
             val end = maxOf(from, to)
             selection.value = Selection(PeriodPreset.CUSTOM, ReportPeriod.Custom(start, end))
+        }
+
+        /**
+         * Narrows the transaction list to the movements one slice is made of.
+         *
+         * The list is not handed a copy of anything: it is handed the same filter it would
+         * have got from the filter form, so the drill-down is the feature that already
+         * exists rather than a second filtered screen. The caller navigates afterwards.
+         *
+         * The search text is cleared along with it. This row promises "the movements behind
+         * this slice", and a word still sitting in the search field from ten minutes ago
+         * would quietly narrow that promise further with nothing on the chart saying so.
+         */
+        fun drillDown(slice: CategorySpending) {
+            val breakdown = uiState.value.spending ?: return
+            filters.apply(breakdown.filterFor(slice), clearQuery = true)
         }
 
         private fun defaultSelection(): Selection {

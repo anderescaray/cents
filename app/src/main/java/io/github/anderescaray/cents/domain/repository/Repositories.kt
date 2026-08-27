@@ -4,10 +4,14 @@ import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodSummary
+import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -128,4 +132,38 @@ interface TransactionRepository {
     suspend fun updateTransaction(transaction: Transaction)
 
     suspend fun deleteTransaction(id: Long)
+}
+
+/**
+ * The charts, read from the database rather than computed over it.
+ *
+ * Reports are their own repository and not more methods on [TransactionRepository] because
+ * they answer a different question: the transaction list is about rows, and every one of
+ * these is about a total. They also share one rule — **the aggregation happens in SQL**.
+ * Anything here that ends up looping over transactions in Kotlin is a bug, not a style
+ * preference: a chart summarises the whole history, so the cost grows with every movement
+ * ever recorded (`CLAUDE.md` §5).
+ */
+interface ReportsRepository {
+    /**
+     * Where the money went: one slice per category over [period], largest first, including
+     * an unnamed slice for whatever was never categorized.
+     *
+     * [kind] is a parameter because the same shape answers "what did I spend on" and
+     * "where did the money come from"; the first chart asks for expenses (D4).
+     */
+    fun observeSpendingByCategory(
+        period: ReportPeriod,
+        currency: String,
+        kind: TransactionKind = TransactionKind.EXPENSE,
+    ): Flow<SpendingBreakdown>
+
+    /**
+     * Income against expenses, one entry per calendar month touched by [period], in order
+     * and with empty months present as zeros rather than missing.
+     */
+    fun observeMonthlyFlow(
+        period: ReportPeriod,
+        currency: String,
+    ): Flow<List<MonthlyFlow>>
 }

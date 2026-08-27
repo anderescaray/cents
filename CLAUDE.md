@@ -34,7 +34,7 @@ investment portfolio with prices pulled from the internet.
 | Database | Room (with KSP) | Typed SQLite, returns `Flow`, versioned migrations |
 | DI | Hilt | De facto standard, integrates with Compose and WorkManager |
 | Navigation | Navigation Compose (type-safe routes) | |
-| Charts | Vico | Compose-native charting library, actively maintained |
+| Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
 | Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only |
 | Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences |
 | Background work | WorkManager | Periodic price refresh, recurring reminders |
@@ -217,9 +217,16 @@ checklist, the ordered list of remaining Phase 1 branches, and the list of known
 keep it updated at the end of every session, because it is the only place that records
 what is deliberately unfinished rather than broken.
 
-Note on tool versions: detekt is on the `dev.detekt` 2.x line rather than the older
-`io.gitlab.arturbosch.detekt` 1.23.x, because 1.23.x embeds an IntelliJ core that cannot
-parse a JDK 25 version string and crashes when run on the current toolchain.
+Notes on pinned versions — both are pins with a reason, not staleness to tidy up:
+
+- **detekt** is on the `dev.detekt` 2.x line rather than the older `io.gitlab.arturbosch.detekt`
+  1.23.x, because 1.23.x embeds an IntelliJ core that cannot parse a JDK 25 version string and
+  crashes on the current toolchain.
+- **Vico is pinned to 3.2.3, not 3.3.0.** 3.3.0 is compiled with Kotlin 2.4, and this project
+  is on Kotlin 2.2.10, whose compiler reads metadata up to 2.3.0 — every Vico symbol fails to
+  resolve. 3.2.3 is built with Kotlin 2.3.21 and carries the same pie and cartesian API. Moving
+  to 3.3.0 means upgrading Kotlin, the Compose compiler plugin and KSP together, which is a
+  toolchain decision and not something a chart library should drag behind it.
 
 ## 9. Things not to do
 

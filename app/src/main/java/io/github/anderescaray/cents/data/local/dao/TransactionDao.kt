@@ -157,6 +157,67 @@ interface TransactionDao {
         to: LocalDate,
     ): Flow<PeriodTotals>
 
+    /**
+     * What each category accounts for over a period, summed in SQL.
+     *
+     * This is the donut. A chart summarises every row rather than showing them, so pulling
+     * the rows into Kotlin to add them up is the one shape that gets slower the longer the
+     * app is used (`CLAUDE.md` §5): the work belongs in `GROUP BY`, against the index on
+     * `date`.
+     *
+     * The join is a LEFT join and the grouping is on `t.categoryId`, so **uncategorized
+     * movements survive as their own group** with a null id and a null name. They are money
+     * that was spent, and dropping them would make the slices add up to less than the total
+     * with nothing on screen saying why. Naming that group is the UI's job.
+     */
+    @Query(
+        """
+        SELECT t.categoryId AS categoryId,
+               c.name AS categoryName,
+               c.colorArgb AS categoryColorArgb,
+               SUM(t.amountMinor) AS totalMinor,
+               COUNT(*) AS transactionCount
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.categoryId
+        WHERE t.kind = :kind AND t.date BETWEEN :from AND :to
+        GROUP BY t.categoryId
+        ORDER BY totalMinor DESC, categoryName ASC
+        """,
+    )
+    fun observeTotalsByCategory(
+        kind: TransactionKind,
+        from: LocalDate,
+        to: LocalDate,
+    ): Flow<List<CategoryTotal>>
+
+    /**
+     * Income and expenses per calendar month, summed in SQL.
+     *
+     * `date` is stored as an **epoch day** (see `Converters`), which is why the month key
+     * is `date * 86400` read back as a Unix timestamp: seconds are what `strftime`
+     * understands, and epoch days are UTC-anchored so the multiplication is exact rather
+     * than a timezone guess.
+     *
+     * Months with no movements do not come back at all — SQL groups what exists. Filling
+     * those gaps with zeros is done in the repository, where it costs one pass over the
+     * months in the range rather than one over the rows.
+     */
+    @Query(
+        """
+        SELECT strftime('%Y-%m', t.date * 86400, 'unixepoch') AS month,
+               COALESCE(SUM(CASE WHEN t.kind = 'INCOME' THEN t.amountMinor ELSE 0 END), 0) AS incomeMinor,
+               COALESCE(SUM(CASE WHEN t.kind = 'EXPENSE' THEN t.amountMinor ELSE 0 END), 0) AS expenseMinor
+        FROM transactions t
+        WHERE t.date BETWEEN :from AND :to
+        GROUP BY month
+        ORDER BY month
+        """,
+    )
+    fun observeMonthlyTotals(
+        from: LocalDate,
+        to: LocalDate,
+    ): Flow<List<MonthTotals>>
+
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
 
@@ -199,6 +260,25 @@ data class TransactionWithNames(
 
 /** Income and expense totals for a period, summed in SQL. */
 data class PeriodTotals(
+    val incomeMinor: Long,
+    val expenseMinor: Long,
+)
+
+/**
+ * One category's share of a period, as SQL returns it. A null [categoryId] is the
+ * uncategorized group rather than a missing row.
+ */
+data class CategoryTotal(
+    val categoryId: Long?,
+    val categoryName: String?,
+    val categoryColorArgb: Int?,
+    val totalMinor: Long,
+    val transactionCount: Int,
+)
+
+/** One calendar month's totals. [month] is `YYYY-MM`, as produced by `strftime`. */
+data class MonthTotals(
+    val month: String,
     val incomeMinor: Long,
     val expenseMinor: Long,
 )

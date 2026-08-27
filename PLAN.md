@@ -722,22 +722,17 @@ way, which is the part that is expensive to rediscover. All merged, in this orde
 PRD §4.3 lists six views. **The first branch builds two of them properly** (D4), because six
 charts at once is how a phase turns into a month.
 
-- [ ] **`feat/reports-charts`** — the Reports tab stops being a placeholder rendering invented
-      content and starts reading the database.
-      - **Spending by category**, then **income vs expenses per month** — in that order, and
-        nothing else in this branch (D4).
-      - A **period selector**: week / month / quarter / year / custom. The filter work of
-        Phase 1 already models a date range; reuse `TransactionFilter` rather than inventing a
-        second idea of "a period".
-      - **Aggregation happens in SQL** (`GROUP BY`), not in a Kotlin loop over the rows — the
-        rule that made `feat/transaction-filters` a single query applies here with more force,
-        because a chart summarises everything rather than showing it.
-      - **Adds Vico** to `libs.versions.toml`, which is a shared bottleneck (`CLAUDE.md` §7):
-        it lands once, in this branch, before anything runs in parallel.
-      - Both charts must read well in **light and dark**, and the aggregation must not
-        re-run on every recomposition.
-      *Done when:* "where did my money go last month" is answered by a chart, from real data,
-      and the Reports tab no longer invents anything.
+- [x] **`feat/reports-charts`** — **built, not yet merged.** The Reports tab reads the
+      database: spending by category as a ring and income against expenses per month, in that
+      order and nothing else (D4). One period governs both charts — week / month / quarter /
+      year / custom — and `ReportPeriod` hands back a `TransactionFilter` rather than being a
+      second idea of a period. Both aggregations are `GROUP BY` queries; Kotlin's share of the
+      work is bounded by the size of the answer, not by how many movements exist. Uncategorized
+      spending is its own slice rather than a dropped row, and empty months are zeros rather
+      than gaps. 19 tests, 143 → 162.
+      **Vico is pinned to 3.2.3 rather than 3.3.0** — see the note at the end of `CLAUDE.md` §8.
+      *Left for the phone:* whether the ring reads at 220 dp, whether "Custom" is discoverable
+      as the fifth segment, and both themes. Nothing in this branch has been seen on hardware.
 
 - [ ] **`feat/reports-drilldown`** — tapping a segment of a chart opens the movements behind
       it. This is nearly free now and was not before: the segment names a category and a date
@@ -749,9 +744,11 @@ charts at once is how a phase turns into a month.
       comparison, single-category detail. These are genuinely separable and are the first
       honest candidate for running in parallel (D9).
 
-**Before any of it, `DECISIONS.md` D9 has to be answered: one agent or three.** The default is
-one for `feat/reports-charts`, because that branch touches the version catalog and creates the
-reports package — the same shared foundations `CLAUDE.md` §7 says to build serially first.
+**`DECISIONS.md` D9 — one agent or three — is still open, and `feat/reports-charts` was built
+under its recorded default: one agent.** That was the cheap half either way, because the branch
+adds Vico to the version catalog and creates `ui/feature/reports`, the shared foundations
+`CLAUDE.md` §7 says to build serially first. Those now exist, so D9 is a live question again
+rather than a deferred one: the remaining §4.3 views are the first honest three-way split.
 
 ## C4. Known gaps, so they are not mistaken for bugs
 
@@ -767,8 +764,10 @@ reports package — the same shared foundations `CLAUDE.md` §7 says to build se
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **The Reports tab is still a placeholder.** It renders the design system with invented
-  content and reads nothing from the database. Charts are PRD phase 2.
+- **The Reports tab now reads the database, but only two of the six PRD §4.3 views exist.**
+  Balance over time, spending by weekday, period comparison and single-category detail are
+  unbuilt, and tapping a slice does not yet open the movements behind it — that is
+  `feat/reports-drilldown`. The two that exist have never been seen on a phone.
 - **Installs made before `feat/account-deletion` still hold the seeded *Cash* account.**
   Nothing removes it automatically, for the same reason the eleven seeded categories were
   left alone: it may already hold movements, and deciding what happens to those is the

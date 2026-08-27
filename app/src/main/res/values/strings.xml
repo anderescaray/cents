@@ -52,8 +52,6 @@
     <string name="action_edit">Edit</string>
     <string name="field_account_empty">Create your first account</string>
     <string name="field_account_empty_footer">A movement has to live in an account, so there is one thing to do first.</string>
-    <string name="reports_placeholder_title">Charts arrive in phase 2</string>
-    <string name="reports_placeholder_footer">Spending by category, income versus expenses, and balance over time.</string>
 
     <!-- Settings -->
     <string name="settings_section_security">Security</string>
@@ -176,4 +174,24 @@
         <item quantity="one">%1$d movement</item>
         <item quantity="other">%1$d movements</item>
     </plurals>
+
+    <!-- Reports -->
+    <string name="reports_period_week">Week</string>
+    <string name="reports_period_month">Month</string>
+    <string name="reports_period_quarter">Quarter</string>
+    <string name="reports_period_year">Year</string>
+    <string name="reports_period_custom">Custom</string>
+    <string name="reports_range_from">From</string>
+    <string name="reports_range_to">To</string>
+    <string name="reports_spending_header">Where the money went</string>
+    <string name="reports_spending_total">Total spent</string>
+    <string name="reports_spending_empty">Nothing was spent in this period.</string>
+    <string name="reports_uncategorized">Uncategorized</string>
+    <string name="reports_share">%1$d%%</string>
+    <string name="reports_flow_header">Income and expenses</string>
+    <string name="reports_flow_empty">No movements in this period.</string>
+    <string name="reports_flow_legend_income">Income</string>
+    <string name="reports_flow_legend_expenses">Expenses</string>
+    <string name="reports_no_accounts_title">No accounts yet</string>
+    <string name="reports_no_accounts_footer">Charts read the movements in your accounts. Add an account and record something, and this tab fills itself in.</string>
 </resources>

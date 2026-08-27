@@ -734,11 +734,19 @@ charts at once is how a phase turns into a month.
       *Left for the phone:* whether the ring reads at 220 dp, whether "Custom" is discoverable
       as the fifth segment, and both themes. Nothing in this branch has been seen on hardware.
 
-- [ ] **`feat/reports-drilldown`** — tapping a segment of a chart opens the movements behind
-      it. This is nearly free now and was not before: the segment names a category and a date
-      range, which is exactly a `TransactionFilter`, so the drill-down is "apply this filter
-      and show the list" rather than a second filtered screen.
-      *Done when:* tapping "Restaurants" on the donut lands on the movements that make it up.
+- [x] **`feat/reports-drilldown`** — **built, not yet merged, and stacked on
+      `feat/reports-charts`.** Tapping a slice of the ring, or its row underneath, narrows the
+      transaction list to the movements behind it and switches to that tab. It hands over the
+      same `TransactionFilter` the filter form produces — period, category and kind together —
+      so nothing new shows the movements. The unnamed slice opens the uncategorized inbox
+      rather than everything, and a search word left in the field is cleared.
+      Vico offers no hit testing for pie charts, so the ring tap reconstructs the geometry and
+      a tap in the hole or off the ring deliberately does nothing; `SpendingDonutHitTest`
+      covers that arithmetic, because it is wrong in a way nobody notices until it opens the
+      wrong category. 11 tests, 162 → 173.
+      *Not in this branch:* tapping a **month column** to see that month's movements. The
+      cartesian chart does support markers, so it is cheap, but the branch's scope was the
+      donut and it is not worth widening before either of these has been on a phone.
 
 - [ ] **The remaining PRD §4.3 views** — balance over time, spending by weekday, period
       comparison, single-category detail. These are genuinely separable and are the first

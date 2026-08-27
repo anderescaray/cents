@@ -192,3 +192,62 @@ underneath says the range back in real money.
 
 > If that reads as a trap rather than a convention, it should become a keypad like the movement
 > form has.
+
+---
+
+## Walk 4 — the charts (`feat/reports-charts`)
+
+Added 2026-08-27. **Nothing in this section has ever been on a phone**: the branch was built
+with no device attached, and every judgement below is one a test cannot make. Walk it with at
+least three expenses in two different categories, and one income, so the charts have something
+to draw.
+
+### r1 · The ring is legible, not a colour wheel
+
+Reports opens on **Month**. The ring should read at a glance: distinct slices, a hole big
+enough that thin slices are still visible, and the rows beneath it in the same colours.
+
+> **Wrong looks like** slices too thin to see, two categories you cannot tell apart, or a row
+> whose swatch does not match its slice. The ring is 220 dp tall with a 104 dp hole — two
+> constants at the bottom of `ReportCharts.kt`.
+
+### r2 · The percentages and the total agree with each other
+
+Add the slice amounts by hand: they must come to the **Total spent** row, and the percentages
+to 100.
+
+> **Wrong looks like** them not adding up. Uncategorized spending is deliberately its own
+> slice; if you have any, it is the grey one with no name of its own.
+
+### r3 · The period selector actually re-asks the question
+
+Move through **Week → Month → Quarter → Year**. Both charts must change together, and Year
+should show twelve month columns, including empty ones as gaps in the bars rather than as
+missing months.
+
+> **Wrong looks like** one chart updating and the other not, or a year with only the months
+> that had movements in them.
+
+### r4 · Custom opens on the period you were already looking at
+
+From **Month**, tap **Custom**. The two date rows must show the month you were just looking at
+— not today twice, and not blank. Then change one of them and watch both charts follow.
+
+> **Wrong looks like** the d5 dead end one screen over: dates that cannot be reached, or a
+> range that resets every time you touch it.
+
+### r5 · Green is money in, red is money out — in both themes
+
+Switch the phone to dark and back. The two column colours must stay the same two colours the
+transaction list uses for amounts, and the axis labels must stay readable.
+
+> **Wrong looks like** a purple or teal column, which would mean Vico's Material defaults
+> leaked through (ADR 0001, and check e2).
+
+### r6 · Scrolling the tab stays smooth
+
+Scroll Reports up and down a few times with a year selected.
+
+> **Wrong looks like** the charts stuttering or visibly re-animating on every scroll — that
+> would mean the chart model is being rebuilt during recomposition rather than only when the
+> totals change. Remember the debug-build caveat at the top of this file before judging.

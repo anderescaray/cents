@@ -54,6 +54,12 @@ fast code is produced, it is how much of it can be read and reviewed.
 **Recommendation: A.** It costs one branch and removes the only real overlap. After it merges,
 the remaining charts are the first honest three-way split.
 
+**Update, 2026-08-27:** `feat/reports-charts` was built under option A's default while this
+question stayed open, so the shared foundations now exist — Vico is in the version catalog and
+`ui/feature/reports` is a real package. That was the half of the answer that is the same under
+every option. What is left is genuinely open, and is now the *next* branch rather than this one:
+the remaining PRD §4.3 views split three ways cleanly, and `feat/reports-drilldown` does not.
+
 **Answer:**
 
 ---

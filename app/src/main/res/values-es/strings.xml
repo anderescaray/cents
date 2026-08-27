@@ -50,8 +50,6 @@
     <string name="action_edit">Editar</string>
     <string name="field_account_empty">Crea tu primera cuenta</string>
     <string name="field_account_empty_footer">Un movimiento tiene que vivir en una cuenta, así que hay algo que hacer antes.</string>
-    <string name="reports_placeholder_title">Los gráficos llegan en la fase 2</string>
-    <string name="reports_placeholder_footer">Gasto por categoría, ingresos frente a gastos y evolución del saldo.</string>
 
     <!-- Ajustes -->
     <string name="settings_section_security">Seguridad</string>
@@ -174,4 +172,24 @@
         <item quantity="one">%1$d movimiento</item>
         <item quantity="other">%1$d movimientos</item>
     </plurals>
+
+    <!-- Informes -->
+    <string name="reports_period_week">Semana</string>
+    <string name="reports_period_month">Mes</string>
+    <string name="reports_period_quarter">Trimestre</string>
+    <string name="reports_period_year">Año</string>
+    <string name="reports_period_custom">Personalizado</string>
+    <string name="reports_range_from">Desde</string>
+    <string name="reports_range_to">Hasta</string>
+    <string name="reports_spending_header">A dónde fue el dinero</string>
+    <string name="reports_spending_total">Total gastado</string>
+    <string name="reports_spending_empty">No se gastó nada en este periodo.</string>
+    <string name="reports_uncategorized">Sin categoría</string>
+    <string name="reports_share">%1$d%%</string>
+    <string name="reports_flow_header">Ingresos y gastos</string>
+    <string name="reports_flow_empty">No hay movimientos en este periodo.</string>
+    <string name="reports_flow_legend_income">Ingresos</string>
+    <string name="reports_flow_legend_expenses">Gastos</string>
+    <string name="reports_no_accounts_title">Todavía no hay cuentas</string>
+    <string name="reports_no_accounts_footer">Los gráficos leen los movimientos de tus cuentas. Crea una cuenta y registra algo, y esta pestaña se llena sola.</string>
 </resources>

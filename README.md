@@ -114,6 +114,8 @@ parallel work demand it.
 - [`DECISIONS.md`](DECISIONS.md) — questions only the owner can answer, and what was decided
 - [`FEEDBACK.md`](FEEDBACK.md) — the other direction: what the owner found while using the app
   on a real phone, which is the one thing the test suite cannot catch
+- [`docs/device-check.md`](docs/device-check.md) — the walk that finds it: what to tap, and what
+  a failure would look like
 - [`docs/decisions/`](docs/decisions/) — architecture decision records: what was decided,
   and why, written to be read in a year
 

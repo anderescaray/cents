@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,7 +72,7 @@ fun ReportsScreen(
     onSetRange: (LocalDate, LocalDate) -> Unit,
     onDrillDown: (CategorySpending) -> Unit,
 ) {
-    var openPicker by remember { mutableStateOf<RangeBound?>(null) }
+    var openPicker by rememberSaveable { mutableStateOf<RangeBound?>(null) }
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_reports),

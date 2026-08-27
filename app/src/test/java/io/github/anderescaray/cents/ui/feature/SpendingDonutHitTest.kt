@@ -5,7 +5,6 @@ import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
-import io.github.anderescaray.cents.ui.feature.reports.HOLE_FRACTION
 import io.github.anderescaray.cents.ui.feature.reports.sliceAt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -39,7 +38,7 @@ class SpendingDonutHitTest {
     fun `each quarter of the ring belongs to the slice drawn there`() {
         // A point at 45°, on a radius halfway between the hole and the outer edge. Both
         // legs are that radius times cos 45°, or the point lands outside the circle.
-        val leg = RADIUS * (1f + HOLE_FRACTION) / 2f * ROOT2_OVER_2
+        val leg = (RADIUS + HOLE / 2f) / 2f * ROOT2_OVER_2
 
         assertEquals("North-east", nameAt(Offset(CENTRE + leg, CENTRE - leg)))
         assertEquals("South-east", nameAt(Offset(CENTRE + leg, CENTRE + leg)))
@@ -79,8 +78,20 @@ class SpendingDonutHitTest {
         // Eleven o'clock is 330°, inside the last 36°.
         val elevenOClock = Offset(CENTRE - RADIUS * MID_RING * HALF, CENTRE - RADIUS * MID_RING * ROOT3_OVER_2)
 
-        assertEquals("Most of it", uneven.sliceAt(fiveOClock, SIDE, SIDE)?.name)
-        assertEquals("The rest", uneven.sliceAt(elevenOClock, SIDE, SIDE)?.name)
+        assertEquals("Most of it", uneven.sliceAt(fiveOClock, SIDE, SIDE, HOLE)?.name)
+        assertEquals("The rest", uneven.sliceAt(elevenOClock, SIDE, SIDE, HOLE)?.name)
+    }
+
+    @Test
+    fun `the hole stays its own size when the ring shrinks`() {
+        // Vico takes the hole as an absolute diameter, so on a box too narrow for the full
+        // ring the ring shrinks and the hole does not. Treating the hole as a fraction of
+        // the ring would start counting hole as ring here.
+        val narrow = 140f
+        val justOutsideTheHole = Offset(narrow / 2f, CENTRE - HOLE / 2f - NUDGE)
+
+        assertEquals("North-east", breakdown.sliceAt(justOutsideTheHole, narrow, SIDE, HOLE)?.name)
+        assertNull(breakdown.sliceAt(Offset(narrow / 2f, CENTRE - HOLE / 2f + NUDGE), narrow, SIDE, HOLE))
     }
 
     @Test
@@ -92,15 +103,15 @@ class SpendingDonutHitTest {
 
         val leg = RADIUS * MID_RING * ROOT2_OVER_2
 
-        assertNull(breakdown.sliceAt(Offset(NUDGE, CENTRE), wide, SIDE))
-        assertNull(breakdown.sliceAt(centre, wide, SIDE))
+        assertNull(breakdown.sliceAt(Offset(NUDGE, CENTRE), wide, SIDE, HOLE))
+        assertNull(breakdown.sliceAt(centre, wide, SIDE, HOLE))
         assertEquals(
             "North-east",
-            breakdown.sliceAt(Offset(wide / 2f + leg, CENTRE - leg), wide, SIDE)?.name,
+            breakdown.sliceAt(Offset(wide / 2f + leg, CENTRE - leg), wide, SIDE, HOLE)?.name,
         )
     }
 
-    private fun nameAt(tap: Offset) = breakdown.sliceAt(tap, SIDE, SIDE)?.name
+    private fun nameAt(tap: Offset) = breakdown.sliceAt(tap, SIDE, SIDE, HOLE)?.name
 
     private fun slice(
         name: String,
@@ -118,6 +129,9 @@ class SpendingDonutHitTest {
         const val SIDE = 220f
         const val CENTRE = SIDE / 2f
         const val RADIUS = SIDE / 2f
+
+        /** The hole's diameter, the way the composable measures and passes it. */
+        const val HOLE = 104f
 
         /** A radius safely inside the ring band, as a fraction of the outer radius. */
         const val MID_RING = 0.85f

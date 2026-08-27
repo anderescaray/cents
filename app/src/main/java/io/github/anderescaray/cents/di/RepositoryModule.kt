@@ -7,9 +7,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
+import io.github.anderescaray.cents.data.repository.RoomReportsRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
+import io.github.anderescaray.cents.domain.repository.ReportsRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import java.time.Clock
 import javax.inject.Singleton
@@ -25,6 +27,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindTransactionRepository(impl: RoomTransactionRepository): TransactionRepository
+
+    @Binds
+    abstract fun bindReportsRepository(impl: RoomReportsRepository): ReportsRepository
 
     companion object {
         /**

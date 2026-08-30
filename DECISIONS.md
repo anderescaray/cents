@@ -29,44 +29,13 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D9 — Phase 1 is closed. Does Phase 2 start with one agent, or three?
+**Nothing is waiting on the owner right now.** D9 was the last one, answered 2026-08-30.
 
-**What is at stake.** This is the boundary the whole project plan has been pointing at.
-`PLAN.md` Part B §3 and the PRD both say parallel work becomes worthwhile from Phase 2, because
-clear module boundaries finally exist. D5 already settled *how* it would run — the owner's own
-harness, Orca-like orchestration plus the ideas from `xmihura/kanvas`, at most three agents.
-What was deliberately left open is *when to start*, because "the phase number changed" is not a
-reason and drifting into it is exactly what Part B §1 warns against: the bottleneck is not how
-fast code is produced, it is how much of it can be read and reviewed.
-
-**The options.**
-
-- **A — one agent for `feat/reports-charts`, then reconsider.** That branch adds Vico to
-  `libs.versions.toml` and creates `ui/feature/reports` from a placeholder. Both are shared
-  foundations, and `CLAUDE.md` §7 is explicit that those are built once, serially, before
-  anything forks. Parallelising across them is how three agents each invent their own chart
-  setup.
-- **B — three agents now.** Genuinely possible later in Phase 2, once the reports package
-  exists: the remaining PRD §4.3 views are separable, and so are `feat/price-provider` and
-  `feat/csv-export`. Starting there today means three agents editing the same new package.
-- **C — one agent for all of Phase 2**, and revisit at Phase 3.
-
-**Recommendation: A.** It costs one branch and removes the only real overlap. After it merges,
-the remaining charts are the first honest three-way split.
-
-**Update, 2026-08-27:** `feat/reports-charts` was built under option A's default while this
-question stayed open, so the shared foundations now exist — Vico is in the version catalog and
-`ui/feature/reports` is a real package. That was the half of the answer that is the same under
-every option. What is left is genuinely open, and is now the *next* branch rather than this one:
-the remaining PRD §4.3 views split three ways cleanly, and `feat/reports-drilldown` does not.
-
-**Answer:**
-
----
-
-Older questions were answered on 2026-08-20 and 2026-08-21 and moved to the table below. New
-ones get added here as they come up, each with a default so that an unanswered question never
-stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
+New questions get added here as they come up, each with a default so that an unanswered one
+never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty
+inbox is the normal state, not a sign the agent stopped asking: what goes here is only the
+choices that are genuinely the owner's, and things going the other way belong in
+[`FEEDBACK.md`](FEEDBACK.md).
 
 ---
 
@@ -81,7 +50,8 @@ stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner)
 | D2 | More than one currency, genuinely? | **One, always — EUR.** Confirmed 2026-08-21: the currency picker is gone and the device's currency is used, shown read-only. Totals and charts stay single-currency and no conversion step is built. `Money` keeps carrying a code and refusing cross-currency arithmetic, as a guard rail rather than a feature. | 2026-08-20, sharpened 2026-08-21 · `chore/single-currency`, `PLAN.md` C4 |
 | D3 | Subcategories? | **No, flat.** The `parentId` column stays unused rather than being removed. | 2026-08-20 · `PLAN.md` C4 |
 | D4 | Which two charts first? | **Spending by category**, then **income vs expenses per month**. Long term they become cards on a customisable dashboard — reorderable, resizable, filterable by date range. | 2026-08-20 · `PLAN.md` C7 |
-| D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. | 2026-08-20 · `PLAN.md` Part B §4 |
+| D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D9 | Phase 2 with one agent, or three? | **Three.** The reason to wait was that Vico and `ui/feature/reports` were shared foundations, and `CLAUDE.md` §7 builds those once and serially; #20 merged them, so that argument is spent. The four remaining PRD §4.3 views — balance over time, spending by weekday, period comparison, single-category detail — split three ways cleanly. Run on Claude Code's worktree parallelism rather than waiting for the harness, which amends D5's *how* and nothing else. | 2026-08-30 · `PLAN.md` Part B §3, D5 above |
 | D8 | Bubbles instead of a tab bar? | **Yes, after Phase 1 exits**, as a launcher: tapping a bubble expands it to fill the screen in under 500 ms, the tab bar shows inside a section but can be collapsed, and every piece of that state survives a restart. | 2026-08-20 · `PLAN.md` C7, future ADR 0002 |

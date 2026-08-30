@@ -73,6 +73,17 @@ private fun NavHostController.switchToTab(destination: Destination) {
     }
 }
 
+/**
+ * A drill-down arrives at the movements list itself, never at whatever was left open on top
+ * of it. `switchToTab` restores the tab's saved stack, and that stack can be holding the
+ * filters screen — which is precisely where you go to read the filter a previous drill-down
+ * applied. Restoring it would answer "show me this category" with the filter form.
+ */
+private fun NavHostController.openMovementsList() {
+    switchToTab(Destination.Transactions)
+    popBackStack(Destination.Transactions, inclusive = false)
+}
+
 /** The navigation stack, with iOS push and pop transitions. */
 @Composable
 private fun CentsNavHost(navController: NavHostController) {
@@ -114,7 +125,7 @@ private fun CentsNavHost(navController: NavHostController) {
                 // The same move the tab bar makes, because a drill-down *is* switching to
                 // the movements tab — with the filter already applied. Pushing the list on
                 // top instead would leave two of it on the stack, one filtered and one not.
-                onOpenMovements = { navController.switchToTab(Destination.Transactions) },
+                onOpenMovements = { navController.openMovementsList() },
             )
         }
         composable<Destination.Settings> {

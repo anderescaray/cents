@@ -39,13 +39,16 @@ internal fun RangeRow(
 internal fun CategoryRow(
     slice: CategorySpending,
     last: Boolean,
+    onClick: () -> Unit,
 ) {
     CentsListRow(
         title = slice.name ?: stringResource(R.string.reports_uncategorized),
         subtitle = stringResource(R.string.reports_share, (slice.share * PERCENT).toInt()),
         value = MoneyFormatter.format(slice.total),
         leading = { Swatch(slice.colorArgb?.let { Color(it) } ?: CentsTheme.colors.tertiaryLabel) },
+        showChevron = true,
         showSeparator = !last,
+        onClick = onClick,
     )
 }
 

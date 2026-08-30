@@ -78,8 +78,26 @@ data class SpendingBreakdown(
     val period: ReportPeriod,
     val slices: List<CategorySpending>,
     val total: Money,
+    /** Which direction the slices are, so a drill-down asks for the same movements. */
+    val kind: TransactionKind = TransactionKind.EXPENSE,
 ) {
     val isEmpty: Boolean get() = slices.isEmpty()
+
+    /**
+     * The movements one slice is made of, expressed as a filter.
+     *
+     * All three parts matter and each one is a way the list could disagree with the chart:
+     * the **period**, or the list would show every month; the **category**, which is the
+     * slice itself and is [CategoryFilter.Uncategorized] rather than "any" for the unnamed
+     * one; and the **kind**, or an income movement filed under Groceries would appear in a
+     * list that claims to add up to an expense slice.
+     */
+    fun filterFor(slice: CategorySpending): TransactionFilter =
+        period.asFilter().copy(
+            category =
+                slice.categoryId?.let(CategoryFilter::One) ?: CategoryFilter.Uncategorized,
+            kind = kind,
+        )
 }
 
 /**

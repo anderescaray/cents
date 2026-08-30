@@ -59,17 +59,29 @@ fun CentsApp(navController: NavHostController = rememberNavController()) {
         CentsTabBar(
             items = tabs,
             selectedKey = currentTab.name,
-            onSelect = { key ->
-                val tab = TopLevelTab.valueOf(key)
-                navController.navigate(tab.destination) {
-                    // Tabs switch, they do not stack: one entry per tab, state preserved.
-                    popUpTo(Destination.Transactions) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
+            onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
         )
     }
+}
+
+/** Tabs switch, they do not stack: one entry per tab, state preserved. */
+private fun NavHostController.switchToTab(destination: Destination) {
+    navigate(destination) {
+        popUpTo(Destination.Transactions) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/**
+ * A drill-down arrives at the movements list itself, never at whatever was left open on top
+ * of it. `switchToTab` restores the tab's saved stack, and that stack can be holding the
+ * filters screen — which is precisely where you go to read the filter a previous drill-down
+ * applied. Restoring it would answer "show me this category" with the filter form.
+ */
+private fun NavHostController.openMovementsList() {
+    switchToTab(Destination.Transactions)
+    popBackStack(Destination.Transactions, inclusive = false)
 }
 
 /** The navigation stack, with iOS push and pop transitions. */
@@ -108,7 +120,14 @@ private fun CentsNavHost(navController: NavHostController) {
         accountRoutes(navController)
         categoryRoutes(navController)
 
-        composable<Destination.Reports> { ReportsScreen() }
+        composable<Destination.Reports> {
+            ReportsScreen(
+                // The same move the tab bar makes, because a drill-down *is* switching to
+                // the movements tab — with the filter already applied. Pushing the list on
+                // top instead would leave two of it on the stack, one filtered and one not.
+                onOpenMovements = { navController.openMovementsList() },
+            )
+        }
         composable<Destination.Settings> {
             SettingsScreen(onOpenCategories = { navController.navigate(Destination.Categories) })
         }

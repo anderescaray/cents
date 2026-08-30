@@ -251,3 +251,22 @@ Scroll Reports up and down a few times with a year selected.
 > **Wrong looks like** the charts stuttering or visibly re-animating on every scroll — that
 > would mean the chart model is being rebuilt during recomposition rather than only when the
 > totals change. Remember the debug-build caveat at the top of this file before judging.
+
+### r7 · A slice opens the movements behind it, and they add up
+
+Tap a category **row** under the ring. The Movements tab should open already narrowed, and
+the amounts on it should add up to the amount that row showed. Then come back and tap the
+**ring itself**, on the same slice.
+
+> **Wrong looks like** the row and the ring disagreeing about which category you tapped —
+> that would mean the hand-rolled hit test is off, since Vico does no hit testing of its own.
+> Also wrong: a list that includes another month, another category, or an income among the
+> expenses. Tapping the middle of the ring or outside it is *meant* to do nothing.
+
+### r8 · Coming back from a drill-down leaves the app somewhere sensible
+
+After r7, tap **Reports** again, then **Movements** again.
+
+> **Wrong looks like** two copies of the movements list on the back stack — one filtered, one
+> not — or the filter silently still applied when you did not expect it. The filter is
+> deliberately in memory only, so it survives moving between tabs but not restarting the app.

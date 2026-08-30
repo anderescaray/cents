@@ -26,6 +26,7 @@ a technical constraint and not an accident of the toolkit.
 | Controls | iOS-style switch, segmented control, plain-text buttons with a tint colour | Filled tonal buttons, FABs, chips |
 | Feedback | Selection changes and confirmations produce a light haptic | Ripples as the primary feedback |
 | Motion | Push/pop horizontal slide, spring physics, interactive swipe-back from the left edge | Material shared-axis or fade-through transitions |
+| Swipe to delete | A swipe that carries most of the way across fires; anything shorter springs back | Parking the row open with a tappable button, which is what iOS itself does — see Consequences |
 | Colour | The iOS system palette (systemBlue tint, grouped background greys), fixed in light and dark | Material You dynamic colour from the wallpaper |
 | Type | One SF-like family across an iOS text scale (large title → caption) | The Material type scale |
 
@@ -51,6 +52,21 @@ every weight costs one 880 KB asset. Licence in `docs/licenses/Inter-OFL.txt`.
 Compose's Material icon artifacts are frozen at 1.7.8 and no longer part of the Compose
 BOM — so the app carries its own stroke-based vector drawables in `res/drawable`. They are
 thin, rounded and geometric, which is what makes an icon read as iOS rather than Material.
+
+**Swipe-to-delete does not park the row open, which iOS does.** Added 2026-08-30, after the
+first device walk. On iOS a short drag leaves the row open with a tappable **Delete**, and the
+component was built that way. On the phone the owner read the parked row as the row getting
+stuck rather than as an offer, and asked for it removed: a swipe now either carries far enough
+to fire or springs back, with nothing in between.
+
+This is the first deliberate departure from iOS in this document, so it is recorded rather
+than quietly made. What it costs is real — deleting by gesture now always takes a confident
+swipe across most of the row, and the revealed strip is feedback during the drag rather than a
+button. What it does not cost is the non-gesture path: that was never the strip, it is the
+custom accessibility action on the row itself, which is unchanged and is now the only way to
+delete without a gesture. The rule in the table above still holds everywhere else; a look
+borrowed from another platform is a starting point, and the owner using the app is the thing
+that settles it.
 
 **Android platform behaviour is still respected.** This is about appearance and flow, not
 about fighting the operating system. The system back gesture keeps working (the swipe-back

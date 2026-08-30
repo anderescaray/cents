@@ -81,22 +81,23 @@ class CentsSwipeableRowTest {
     }
 
     @Test
-    fun `a partial swipe parks the row open, and the button it reveals deletes`() {
+    fun `a swipe that stops in the middle springs back rather than staying open`() {
         setContent()
 
+        // Far enough that the old component would have parked the row here with Delete
+        // showing. The owner read that as the row getting stuck, so it no longer happens.
         composeRule.onNodeWithTag(ROW_TAG + 0).performTouchInput {
             swipeLeft(startX = right, endX = right - width * PARTIAL)
         }
         composeRule.waitForIdle()
+
         assertEquals(0, deletions)
-
-        composeRule.onNodeWithTag(DELETE_ACTION_TAG).performClick()
-
-        assertEquals(1, deletions)
+        // Nothing is left open behind, so there is no button to find.
+        composeRule.onAllNodesWithTag(DELETE_ACTION_TAG).assertCountEquals(0)
     }
 
     @Test
-    fun `tapping an open row closes it instead of opening what it points at`() {
+    fun `a tap after a swipe that came back means what a tap always meant`() {
         setContent()
 
         composeRule.onNodeWithTag(ROW_TAG + 0).performTouchInput {
@@ -105,15 +106,11 @@ class CentsSwipeableRowTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText(rowTitle(0)).performClick()
-        composeRule.waitForIdle()
 
-        // Changing your mind about a swipe must not be the same gesture as opening the row.
-        assertEquals(0, taps)
-        assertEquals(0, deletions)
-
-        // And once closed, a tap means what it always meant.
-        composeRule.onNodeWithText(rowTitle(0)).performClick()
+        // With no parked state there is nothing for a tap to dismiss, so it opens the row
+        // rather than being swallowed — which is what the interceptor used to do.
         assertEquals(1, taps)
+        assertEquals(0, deletions)
     }
 
     @Test
@@ -135,10 +132,10 @@ class CentsSwipeableRowTest {
     }
 
     @Test
-    fun `a closed row keeps its Delete out of the accessibility tree`() {
+    fun `the strip a swipe reveals is never in the accessibility tree`() {
         setContent(rows = 3)
 
-        // Composed for its width, but not published: left reachable, TalkBack would read a
+        // Composed for its colour, never published. Left reachable, TalkBack would read a
         // "Delete" button between every pair of rows, and D-pad focus would land on buttons
         // nobody can see — for exactly the users the custom action was added for.
         composeRule.onAllNodesWithTag(DELETE_ACTION_TAG).assertCountEquals(0)
@@ -148,8 +145,8 @@ class CentsSwipeableRowTest {
         }
         composeRule.waitForIdle()
 
-        // Only the row that was actually opened offers one.
-        composeRule.onAllNodesWithTag(DELETE_ACTION_TAG).assertCountEquals(1)
+        // Still none: the strip is feedback during a drag, not a button that outlives it.
+        composeRule.onAllNodesWithTag(DELETE_ACTION_TAG).assertCountEquals(0)
     }
 
     private fun rowTitle(index: Int) = "Row $index"
@@ -157,10 +154,10 @@ class CentsSwipeableRowTest {
     private companion object {
         const val ROW_TAG = "swipeable"
 
-        /** Short of half the revealed button, so the row springs back. */
+        /** Barely a nudge. */
         const val SHORT = 0.10f
 
-        /** Past the button but well short of the full swipe, so the row parks open. */
+        /** The middle: far enough to reveal the strip, short of the swipe that fires. */
         const val PARTIAL = 0.35f
     }
 }

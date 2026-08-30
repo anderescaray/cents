@@ -39,16 +39,23 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
- * A row that slides sideways to reveal a destructive action, the way iOS deletes things.
+ * A row that slides sideways to reveal a destructive action.
  *
- * Two gestures reach the same place. A short drag parks the row open with **Delete**
- * showing, to be tapped or dismissed with a tap anywhere on the row; carrying the drag most
- * of the way across and letting go fires it directly.
+ * **The row never stays open.** Carrying the drag past [FULL_SWIPE_FRACTION] of the row and
+ * letting go fires; anything shorter springs back. There is no middle, which is a deliberate
+ * departure from iOS, where a short drag parks the row with a tappable **Delete** showing —
+ * see `docs/decisions/0001-ios-flavored-ui.md`. The owner found the parked state on the
+ * phone and read it as the row getting stuck rather than as an offer.
  *
- * Either way [onDelete] is what happens next — and [onDelete] is expected to *ask*, not to
- * delete: a swipe is a faster way to reach the question the app already asks (rule 7, and
- * `DECISIONS.md` D7), never a way around it. The row closes itself as soon as it has
- * asked, so the answer is given to a dialog rather than to a row left open behind it.
+ * The cost of that is real and worth naming here: deleting by gesture now always takes a
+ * confident swipe across most of the row, and the revealed strip is feedback during the
+ * drag rather than a button. What it is *not* is a loss of the non-gesture path — that was
+ * never the strip, it is the custom accessibility action below, which is unaffected.
+ *
+ * [onDelete] is expected to *ask*, not to delete: a swipe is a faster way to reach the
+ * question the app already asks (rule 7, and `DECISIONS.md` D7), never a way around it. The
+ * row closes itself as soon as it has asked, so the answer is given to a dialog rather than
+ * to a row left open behind it.
  *
  * The gesture is horizontal only, so it does not fight the vertical drag that reorders a
  * list, nor the scroll of the list it sits in.
@@ -69,10 +76,6 @@ fun CentsSwipeableRow(
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
     var rowWidth by remember { mutableIntStateOf(0) }
-    var actionWidth by remember { mutableIntStateOf(0) }
-
-    /** Derived so the flag flips once, not on every frame the drag produces. */
-    val open by remember { derivedStateOf { offsetX.value < 0f } }
 
     /** Ask, then tidy up after ourselves: the dialog owns the screen from here. */
     fun fire() {
@@ -81,12 +84,7 @@ fun CentsSwipeableRow(
     }
 
     Box(modifier = modifier.onSizeChanged { rowWidth = it.width }) {
-        RevealedDelete(
-            label = deleteLabel,
-            onClick = ::fire,
-            reachable = open,
-            onWidth = { actionWidth = it },
-        )
+        RevealedDelete(label = deleteLabel)
 
         Box(
             modifier =
@@ -101,7 +99,7 @@ fun CentsSwipeableRow(
                                 }
                             },
                         orientation = Orientation.Horizontal,
-                        onDragStopped = { settle(offsetX, rowWidth, actionWidth, ::fire) },
+                        onDragStopped = { settle(offsetX, rowWidth, ::fire) },
                     ),
         ) {
             content(
@@ -115,21 +113,6 @@ fun CentsSwipeableRow(
                         )
                 },
             )
-
-            // An open row answers a tap by closing, the way iOS does — otherwise changing
-            // your mind about a swipe opens the editor you were trying not to reach. It
-            // does not swallow the drag: a press that turns into one still slides the row.
-            if (open) {
-                Box(
-                    modifier =
-                        Modifier
-                            .matchParentSize()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                            ) { scope.launch { offsetX.animateTo(0f) } },
-                )
-            }
         }
     }
 }
@@ -143,12 +126,7 @@ fun CentsSwipeableRow(
  * would otherwise open a card-coloured gap behind it.
  */
 @Composable
-private fun BoxScope.RevealedDelete(
-    label: String,
-    onClick: () -> Unit,
-    reachable: Boolean,
-    onWidth: (Int) -> Unit,
-) {
+private fun BoxScope.RevealedDelete(label: String) {
     Row(
         modifier =
             Modifier
@@ -156,61 +134,52 @@ private fun BoxScope.RevealedDelete(
                 .background(CentsTheme.colors.destructive),
         horizontalArrangement = Arrangement.End,
     ) {
-        DeleteAction(
-            label = label,
-            onClick = onClick,
-            reachable = reachable,
-            modifier = Modifier.onSizeChanged { onWidth(it.width) },
-        )
+        DeleteAction(label = label)
     }
 }
 
 /**
  * Where the row comes to rest, and whether letting go counted as deleting.
  *
- * Past [FULL_SWIPE_FRACTION] of the row the gesture is unambiguous — nobody drags a row
- * two thirds of the way across by accident — so it fires. Short of that it either parks
- * open, once the finger has passed half the button, or springs back.
+ * Past [FULL_SWIPE_FRACTION] of the row the gesture is unambiguous — nobody drags a row two
+ * thirds of the way across by accident — so it fires. Everything short of that springs back,
+ * including the drag that used to park the row open.
  */
 private suspend fun settle(
     offsetX: Animatable<Float, *>,
     rowWidth: Int,
-    actionWidth: Int,
     onFire: () -> Unit,
 ) {
-    val open = -actionWidth.toFloat()
-    when {
-        rowWidth > 0 && offsetX.value <= -rowWidth * FULL_SWIPE_FRACTION -> onFire()
-        offsetX.value <= open / 2 -> offsetX.animateTo(open)
-        else -> offsetX.animateTo(0f)
+    if (rowWidth > 0 && offsetX.value <= -rowWidth * FULL_SWIPE_FRACTION) {
+        onFire()
+    } else {
+        offsetX.animateTo(0f)
     }
 }
 
 /**
- * The revealed button. It is always composed — its width is what the drag settles against —
- * but while the row is closed it is not [reachable]: no click, and no semantics.
+ * What the drag uncovers. Now that the row never stays open this is feedback and nothing
+ * else: it is never clickable and never in the semantics tree, in either state.
  *
- * That second half matters more than it looks. Left alone, every closed row publishes a
- * clickable "Delete" node hidden only by the row sitting on top of it, so TalkBack reads one
- * between every pair of rows and D-pad focus lands on buttons nobody can see — duplicating,
- * for exactly those users, the custom action this component went out of its way to provide.
+ * The second half still matters, and for the reason it always did. Left reachable, every
+ * closed row publishes a "Delete" node hidden only by the row sitting on top of it, so
+ * TalkBack reads one between every pair of rows and D-pad focus lands on buttons nobody can
+ * see — duplicating, for exactly those users, the custom action this component provides on
+ * the row itself. That action is now the only way to delete without a gesture.
  */
 @Composable
 private fun DeleteAction(
     label: String,
-    onClick: () -> Unit,
-    reachable: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier =
             modifier
-                // First in the chain, because it clears what comes after it: the tag, the
-                // click and the label all have to go while the row is closed.
-                .then(if (reachable) Modifier else Modifier.clearAndSetSemantics { })
+                // First in the chain, because it clears what comes after it: the tag and the
+                // label both have to go.
+                .clearAndSetSemantics { }
                 .testTag(DELETE_ACTION_TAG)
                 .fillMaxHeight()
-                .clickable(enabled = reachable, onClick = onClick)
                 .defaultMinSize(minWidth = ACTION_MIN_WIDTH.dp)
                 .padding(horizontal = CentsDimens.spacingL),
         contentAlignment = Alignment.Center,

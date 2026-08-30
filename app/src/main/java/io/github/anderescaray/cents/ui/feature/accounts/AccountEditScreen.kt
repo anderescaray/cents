@@ -23,6 +23,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +33,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AccountType
+import io.github.anderescaray.cents.ui.components.AmountKeypadState
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsColorPicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
@@ -38,6 +41,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -53,6 +57,8 @@ fun AccountEditScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val removal by viewModel.removal.state.collectAsStateWithLifecycle()
+    val keypad = rememberAmountKeypadState(shownInitially = state.isNew)
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(state.finished) {
         if (state.finished) onDone()
@@ -78,18 +84,31 @@ fun AccountEditScreen(
             confirmEnabled = state.canSave,
         )
 
-        AccountForm(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
-
-        CentsKeypad(
-            onDigit = viewModel::appendDigit,
-            onDelete = viewModel::deleteDigit,
-            modifier =
-                Modifier.padding(
-                    bottom =
-                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-                            CentsDimens.spacingS,
-                ),
+        AccountForm(
+            state = state,
+            viewModel = viewModel,
+            keypad = keypad,
+            onAmountTapped = {
+                // Clearing focus is what lowers the system keyboard; without it the two
+                // would be stacked on each other.
+                focusManager.clearFocus()
+                keypad.showForAmount()
+            },
+            modifier = Modifier.weight(1f),
         )
+
+        if (keypad.isShown) {
+            CentsKeypad(
+                onDigit = viewModel::appendDigit,
+                onDelete = viewModel::deleteDigit,
+                modifier =
+                    Modifier.padding(
+                        bottom =
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                                CentsDimens.spacingS,
+                    ),
+            )
+        }
     }
 
     RemovalDialogs(state = removal, removal = viewModel.removal)
@@ -99,13 +118,21 @@ fun AccountEditScreen(
 private fun AccountForm(
     state: AccountEditUiState,
     viewModel: AccountEditViewModel,
+    keypad: AmountKeypadState,
+    onAmountTapped: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
     ) {
-        item(key = "opening") { OpeningBalanceHeader(state = state, onToggleSign = viewModel::toggleSign) }
+        item(key = "opening") {
+            OpeningBalanceHeader(
+                state = state,
+                onToggleSign = viewModel::toggleSign,
+                onAmountTapped = onAmountTapped,
+            )
+        }
 
         item(key = "name") {
             CentsListSection(
@@ -121,7 +148,10 @@ private fun AccountForm(
                     value = state.name,
                     onValueChange = viewModel::setName,
                     placeholder = stringResource(R.string.account_name_placeholder),
-                    modifier = Modifier.testTag(NAME_FIELD_TAG),
+                    modifier =
+                        Modifier
+                            .testTag(NAME_FIELD_TAG)
+                            .onFocusChanged { keypad.onTextFieldFocus(it.isFocused) },
                 )
             }
         }
@@ -146,6 +176,7 @@ private fun AccountForm(
 private fun OpeningBalanceHeader(
     state: AccountEditUiState,
     onToggleSign: () -> Unit,
+    onAmountTapped: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = CentsDimens.spacingL),
@@ -162,6 +193,12 @@ private fun OpeningBalanceHeader(
                     CentsTheme.colors.label
                 },
             textAlign = TextAlign.Center,
+            // The balance is how you ask for the keypad back once the name has taken it away.
+            modifier =
+                Modifier
+                    .testTag(OPENING_BALANCE_TAG)
+                    .clickable(onClick = onAmountTapped)
+                    .padding(CentsDimens.spacingXs),
         )
         Text(
             text = stringResource(R.string.account_opening_balance),
@@ -271,3 +308,4 @@ private fun LazyListScope.accountActions(
 private const val SELECTED_MARK = "✓"
 internal const val NAME_FIELD_TAG = "accountName"
 internal const val SIGN_TOGGLE_TAG = "accountSign"
+internal const val OPENING_BALANCE_TAG = "accountOpeningBalance"

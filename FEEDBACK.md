@@ -24,23 +24,57 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-> Write here. Delete this line when you do.
->
-> A template, if a blank page is annoying — none of the fields are required:
->
-> ```
-> ### Short name for the problem
-> **Where:** which screen, and what you had done just before
-> **What happened:** what you saw
-> **What you expected:** what should have happened
-> **How much it matters:** blocks me / annoying / cosmetic
-> ```
+Walked on a Pixel 8 on 2026-08-30, on the branch build `d7a51a3` (main + PR #20 + PR #21),
+after a genuine fresh install. Everything not listed below passed. Written down by the agent
+from what the owner reported out loud, in English to keep to rule 10 — the content is his.
 
-### 1.
+### 1. The account name field brings up the number keypad
 
-### 2.
+**Where:** 03 — creating an account, tapping the Name field.
+**What happened:** the numeric keypad opened instead of the letter keyboard.
+**What you expected:** letters, since the field is a name.
+**How much it matters:** annoying. The rest of 03 passed — no currency picker, `EUR` fixed.
 
-### 3.
+### 2. The number keypad is visible when you only wanted to look at a movement
+
+**Where:** d8 — opening an existing movement from the list to view it.
+**What happened:** the numeric keypad shows on entry.
+**What you expected:** nothing to open until the amount is actually tapped.
+**How much it matters:** annoying. Undo itself worked.
+
+### 3. The Filters screen is still there when you come back from a second drill-down
+
+**Where:** r7/r8 — tap a category row on Reports, land on Movements filtered, open Filters to
+see what got applied, switch to Reports, tap a different category.
+**What happened:** it lands on the Filters screen instead of on the filtered list.
+**What you expected:** leaving the Movements tab should leave Filters behind, so a drill-down
+always arrives at the list.
+**How much it matters:** annoying. The drill-down itself is right — the ring and the row agree
+about which category was tapped, and both filter correctly.
+
+### 4. Clearing the filters is buried
+
+**Where:** r8 — a filter is applied and you want it gone.
+**What happened:** the only way is Filters, then scroll to the bottom, then clear.
+**What you expected:** something reachable from the list itself.
+**How much it matters:** annoying, and it is the action you reach for most often.
+
+### 5. A half-swiped row stays parked open
+
+**Where:** d1 — swipe a row sideways and let go before the delete threshold.
+**What happened:** the row stays where it was released, with Delete showing.
+**What you expected:** it should spring back and cover Delete again. It should only stay open
+when the swipe was far enough to actually mean deleting.
+**How much it matters:** annoying. Deleting by swiping all the way across works.
+
+### 6. Amounts should be typed in euros, with a comma, not counted up in cents
+
+**Where:** 05 (the movement keypad) and e4 (the amount filter). Both are correct as specified —
+`2` `5` `0` `0` reads 25,00 €, and the filter says its range back in real money.
+**What happened:** every round number costs two extra taps on `0`.
+**What you expected:** typing starts in euros, and a comma is typed only when cents are wanted:
+`2` `5` is 25 €, and `2` `,` `5` is 2,50 €.
+**How much it matters:** not a bug — a change of convention, and the same one in both places.
 
 ---
 

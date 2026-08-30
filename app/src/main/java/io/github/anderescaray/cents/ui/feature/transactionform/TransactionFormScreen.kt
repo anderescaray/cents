@@ -21,6 +21,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.components.AmountKeypadState
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
@@ -37,6 +40,7 @@ import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -50,6 +54,8 @@ fun TransactionFormScreen(
     viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val keypad = rememberAmountKeypadState(shownInitially = !state.isEditing)
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(state.finished) {
         if (state.finished) onDone()
@@ -81,21 +87,30 @@ fun TransactionFormScreen(
         FormFields(
             state = state,
             viewModel = viewModel,
+            keypad = keypad,
+            onAmountTapped = {
+                // Clearing focus is what lowers the system keyboard; without it the two
+                // would be stacked on each other.
+                focusManager.clearFocus()
+                keypad.showForAmount()
+            },
             onCreateCategory = onCreateCategory,
             onCreateAccount = onCreateAccount,
             modifier = Modifier.weight(1f),
         )
 
-        CentsKeypad(
-            onDigit = viewModel::appendDigit,
-            onDelete = viewModel::deleteDigit,
-            modifier =
-                Modifier.padding(
-                    bottom =
-                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-                            CentsDimens.spacingS,
-                ),
-        )
+        if (keypad.isShown) {
+            CentsKeypad(
+                onDigit = viewModel::appendDigit,
+                onDelete = viewModel::deleteDigit,
+                modifier =
+                    Modifier.padding(
+                        bottom =
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                                CentsDimens.spacingS,
+                    ),
+            )
+        }
     }
 
     FormDialogs(state = state, viewModel = viewModel)
@@ -134,6 +149,8 @@ private fun FormDialogs(
 private fun FormFields(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
+    keypad: AmountKeypadState,
+    onAmountTapped: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
     onCreateAccount: () -> Unit,
     modifier: Modifier = Modifier,
@@ -142,7 +159,7 @@ private fun FormFields(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
     ) {
-        item(key = "amount") { AmountHeader(state) }
+        item(key = "amount") { AmountHeader(state, onClick = onAmountTapped) }
 
         if (state.writeFailed) {
             item(key = "error") {
@@ -174,7 +191,7 @@ private fun FormFields(
 
         accountSection(state = state, viewModel = viewModel, onCreateAccount = onCreateAccount)
 
-        details(state = state, viewModel = viewModel)
+        details(state = state, viewModel = viewModel, keypad = keypad)
 
         categorySection(state = state, viewModel = viewModel, onCreateCategory = onCreateCategory)
 
@@ -218,6 +235,7 @@ private fun LazyListScope.accountSection(
 private fun LazyListScope.details(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
+    keypad: AmountKeypadState,
 ) {
     item(key = "details") {
         CentsListSection {
@@ -231,7 +249,10 @@ private fun LazyListScope.details(
                 value = state.note,
                 onValueChange = viewModel::setNote,
                 placeholder = stringResource(R.string.field_note_placeholder),
-                modifier = Modifier.testTag(NOTE_FIELD_TAG),
+                modifier =
+                    Modifier
+                        .testTag(NOTE_FIELD_TAG)
+                        .onFocusChanged { keypad.onTextFieldFocus(it.isFocused) },
             )
         }
     }
@@ -295,7 +316,10 @@ private fun LazyListScope.deleteAction(onDelete: () -> Unit) {
 }
 
 @Composable
-private fun AmountHeader(state: TransactionFormUiState) {
+private fun AmountHeader(
+    state: TransactionFormUiState,
+    onClick: () -> Unit,
+) {
     Text(
         text = MoneyFormatter.format(state.amount),
         style = CentsTheme.typography.largeTitle,
@@ -306,9 +330,12 @@ private fun AmountHeader(state: TransactionFormUiState) {
                 CentsTheme.colors.label
             },
         textAlign = TextAlign.Center,
+        // The amount is how you ask for the keypad back once a text field has taken it away.
         modifier =
             Modifier
                 .fillMaxWidth()
+                .testTag(AMOUNT_HEADER_TAG)
+                .clickable(onClick = onClick)
                 .padding(vertical = CentsDimens.spacingL),
     )
 }
@@ -337,3 +364,4 @@ private fun PickerSection(
 
 private const val SELECTED_MARK = "✓"
 internal const val NOTE_FIELD_TAG = "transactionNote"
+internal const val AMOUNT_HEADER_TAG = "transactionAmount"

@@ -1,0 +1,288 @@
+CENTS — WHAT TO DO NEXT
+Written 2026-08-27. Do these in order; each one unblocks the next.
+
+Two things are already done and waiting on you:
+  - PR #20  feat/reports-charts    -> main                  CI green
+  - PR #21  feat/reports-drilldown -> feat/reports-charts   CI green
+Nothing is merged. main is untouched.
+
+*******************************************************************************
+UPDATE 2026-08-27, later: STEPS 0, 1 AND 2 ARE DONE. START AT STEP 3.
+
+  - Pixel 8 attached and authorised.
+  - The app's database on the phone was EMPTY: zero accounts, zero categories,
+    zero movements. So wiping it cost nothing, which is why I went ahead with
+    the fresh install rather than asking — there was nothing to lose. If you
+    were expecting data to be on there, tell me, because that is itself a
+    finding.
+  - Uninstalled, then installed the branch build d7a51a3 (main + PR #20 +
+    PR #21). Genuine first run: install time 21:57 today.
+  - I checked the new database directly: still zero rows in all three tables,
+    so first-run seeding has NOT regressed (DECISIONS.md D1).
+
+  That last point does NOT complete check 01. I can see the tables are empty;
+  I cannot see whether the SCREENS say so in words, which is the actual check.
+  Walk it.
+*******************************************************************************
+
+
+-------------------------------------------------------------------------------
+STEP 0 — Plug the phone in                                          [DONE]
+-------------------------------------------------------------------------------
+
+No device was attached when I checked, so this is the actual first blocker.
+Connect it, unlock it, and accept the USB debugging prompt if it appears.
+
+In a Bash shell (Git Bash, or Android Studio's terminal):
+
+    export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
+    export PATH="$JAVA_HOME/bin:$PATH:/c/Users/ander/AppData/Local/Android/Sdk/platform-tools:/c/Program Files/GitHub CLI"
+    adb devices
+
+You want a line with your device and the word "device". If it says
+"unauthorized", look at the phone — there is a dialog waiting.
+
+WHY: nothing below works without it, and neither do I. I can build the app,
+install it and read logcat, but I cannot use it. That is the whole reason the
+device check exists.
+
+
+-------------------------------------------------------------------------------
+STEP 1 — Decide whether you are wiping the app's data               [DONE]
+-------------------------------------------------------------------------------
+
+Check 01 in the device walk ("the first screen is empty, and says so in words")
+only means anything on a FRESH install. If the app is already on the phone with
+data in it, you have to choose:
+
+  (a) Uninstall first, and get a real answer to 01.
+          adb uninstall io.github.anderescaray.cents
+      You lose every account, category and movement currently on the phone.
+
+  (b) Keep the data, and SKIP check 01. Everything else still works.
+
+RECOMMENDATION: (a), if what is on the phone is test data. Check 01 is
+specifically guarding that first-run seeding stays removed (DECISIONS.md D1),
+and it is the one check that cannot be faked later. But it is your data, so it
+is your call — that is why this is a step and not an instruction.
+
+
+-------------------------------------------------------------------------------
+STEP 2 — Install ONE build: the branch build, not main              [DONE]
+-------------------------------------------------------------------------------
+
+    cd /c/dev/cents-reports
+    ./gradlew installDebug
+
+WHY THE BRANCH AND NOT main: the branch build is main plus the charts. If you
+install from C:\dev\cents you get main, which has NO Reports tab worth testing
+— walk 4 (r1-r8) would be untestable. Installing the branch build once lets you
+walk everything in a single pass instead of building, walking, rebuilding and
+walking again.
+
+THE ONE CAVEAT: because you are testing branch code, a problem you hit in walks
+1-3 could in principle be mine rather than pre-existing. Only one shared thing
+changed — I refactored tab switching into a helper (switchToTab) that every tab
+now uses. So if tab switching itself misbehaves, suspect me. Anything else in
+walks 1-3 is almost certainly pre-existing. Either way, write it down and I can
+tell you which in seconds by checking the diff.
+
+NOTE: C:\dev\cents stays parked on a clean main the whole time. Nothing you do
+here touches it.
+
+
+-------------------------------------------------------------------------------
+STEP 3 — Walk the app, with FEEDBACK.md open beside you        <-- START HERE
+-------------------------------------------------------------------------------
+
+Read the walk from the BRANCH copy, not the main copy:
+
+    C:\dev\cents-reports\docs\device-check.md
+
+The main copy only has walks 1-3. Walk 4 (the charts) exists only on the branch,
+because the charts do.
+
+Go in this order:
+
+  Walk 1  (01-07)  The exit criteria. In order — each leaves the state the
+                   next one needs. This is where the keypad check lives (05),
+                   which is the single most important line in the document:
+                   tapping 2 5 0 0 must read 25,00 EUR and not 2.500,00 EUR.
+
+  Walk 2  (d1-d8)  Four Phase 1 branches were built with no phone attached.
+                   This is where a problem is most likely hiding.
+
+  Walk 3  (e1-e4)  Judgement calls, no right answers. Design decisions I made
+                   alone. Far cheaper to reopen now than after Phase 2 is
+                   built on top of them.
+
+  Walk 4  (r1-r8)  The charts. NOTHING here has ever been on a phone.
+                   r7 is the one I most need you to actually do: tap a category
+                   ROW under the ring, then tap the RING itself on the same
+                   slice. They must agree about which category you tapped.
+                   Vico does no hit testing for pie charts, so the ring's tap
+                   maths is mine, reconstructed from how Vico draws. I tested
+                   the arithmetic, but I could not verify one assumption about
+                   how Vico sizes the circle. If those two disagree, that is
+                   the reason.
+
+WRITE AS YOU GO, not afterwards. Under "Open" in:
+
+    C:\dev\cents-reports\FEEDBACK.md
+
+Quoting the number is a complete entry: "05: the keypad showed 2.500,00" is
+enough. Bullet points are fine. One line is fine. Spanish is fine. Do not try
+to guess the cause — "the balance was wrong after I deleted something" is more
+useful to me than a guess at which query is broken.
+
+WHY THIS COMES BEFORE MERGING: anything you find in walk 4 is cheaper to fix
+inside PR #20/#21 than after they are merged. And CLAUDE.md is explicit that
+open feedback outranks planned work.
+
+
+-------------------------------------------------------------------------------
+STEP 4 — Tell me what you found, and let me sort it
+-------------------------------------------------------------------------------
+
+Just say "read FEEDBACK.md" and I will. What happens then depends on where the
+problem is, and I will split them for you:
+
+  - Problems in walk 4 (r1-r8)        -> I fix them inside PR #20 or #21,
+                                         before you merge anything.
+  - Problems in walks 1-3             -> separate fix branches. They do NOT
+                                         block merging #20 and #21.
+  - Judgement calls in walk 3         -> we talk about them; some may become
+                                         DECISIONS.md entries rather than fixes.
+
+If you found nothing, say that too — "nothing to report" is a real result and I
+will record it in FEEDBACK.md and PLAN.md as the device pass having happened.
+
+
+-------------------------------------------------------------------------------
+STEP 5 — Merge PR #20 (feat/reports-charts)
+-------------------------------------------------------------------------------
+
+    https://github.com/anderescaray/cents/pull/20
+
+Squash merge, per CLAUDE.md section 7.
+
+WHAT IS IN IT: the SQL aggregation, the two charts, the period selector, and
+Vico added to the version catalog. CI is green. Review was mine and therefore
+not independent — DECISIONS.md D6 says that is acceptable but must be said out
+loud, so consider it said.
+
+WORTH KNOWING BEFORE YOU CLICK: Vico is pinned to 3.2.3, not the newer 3.3.0.
+3.3.0 is compiled with Kotlin 2.4 and this project is on 2.2.10, which cannot
+read it. Moving to 3.3.0 means upgrading Kotlin, the Compose compiler plugin
+and KSP together. That is a toolchain decision and should not ride in behind a
+chart library. It is written down in CLAUDE.md section 8 so it does not read as
+staleness in six months.
+
+
+-------------------------------------------------------------------------------
+STEP 6 — Ask me to rebase PR #21
+-------------------------------------------------------------------------------
+
+Say: "rebase 21".
+
+WHY THIS IS NEEDED: #21 is stacked on #20 — its base is feat/reports-charts,
+not main, so its diff shows only the drill-down and is reviewable on its own.
+But a squash merge replaces those three commits with one new commit, so the
+base #21 sits on stops existing. It has to be rebased onto main before it can
+go in. This is not a mistake, it is the cost of stacking, and it is why the
+diff on #21 is readable.
+
+I will rebase, force-push, re-point the base to main, and confirm CI is green
+again before you touch it.
+
+
+-------------------------------------------------------------------------------
+STEP 7 — Merge PR #21 (feat/reports-drilldown)
+-------------------------------------------------------------------------------
+
+    https://github.com/anderescaray/cents/pull/21
+
+Squash merge. Only after I have confirmed the rebase is green.
+
+WHAT IS IN IT: tapping a slice or its row opens the movements behind it, the
+Compose tests for the Reports screen, and one bug my own review caught (the
+ring's hole was being treated as a fraction when Vico treats it as an absolute
+size). Read the comment on the PR if you want that story.
+
+
+-------------------------------------------------------------------------------
+STEP 8 — Answer DECISIONS.md D9: one agent, or three?
+-------------------------------------------------------------------------------
+
+    C:\dev\cents\DECISIONS.md   (write on the "Answer:" line)
+
+THIS IS THE ONE THAT IS GENUINELY YOURS AND I WILL NOT DECIDE FOR YOU.
+
+The question: the four remaining PRD 4.3 views — balance over time, spending by
+weekday, period comparison, single-category detail. Do they get built by one
+agent, or three in parallel?
+
+WHY IT IS LIVE NOW AND WAS NOT BEFORE: the reason to wait was that Vico and the
+ui/feature/reports package are shared foundations, and CLAUDE.md section 7 says
+those get built once, serially, before anything forks. After step 5 they exist.
+So the argument for waiting has been spent, and the four remaining views are
+genuinely separable — the first honest three-way split in this project.
+
+I built #20 and #21 under D9's recorded default (one agent), which was the half
+of the answer that is the same whichever way you go. The rest is yours.
+
+D5 already settled HOW it would run if you say three: your own harness, Orca-
+style orchestration plus the ideas from xmihura/kanvas, at most three agents.
+
+Nothing stalls if you leave it: the default is one agent, and that is what
+happens until you say otherwise.
+
+
+-------------------------------------------------------------------------------
+STEP 9 — Optional: decide about the lint findings
+-------------------------------------------------------------------------------
+
+I ran ./gradlew lint, which CI does NOT run despite CLAUDE.md section 2 listing
+lint as a gate. It found 26 pre-existing issues. None are from the reports work.
+
+  - 1 error:  app_name "is not translated" in Spanish. It is a brand name, so
+              the fix is translatable="false", not a translation.
+  - purple_200, purple_500, teal_200, teal_700 and friends sit unused in
+              colors.xml, left over from the Android Studio template. Mildly
+              ironic given ADR 0001 bans a purple accent.
+  - Spanish plurals are missing the "many" quantity in six places.
+  - Several dependency-update suggestions, including the Vico one you should
+              ignore for the reason in step 5.
+
+I deliberately did NOT fix any of this. It is unrelated to charts and would
+have been scope creep smuggled into a reports PR.
+
+YOUR CALL: worth a chore/ branch, or leave it? If you want it, say so and I
+will do it — including deciding whether CI should actually start running lint,
+which is the more interesting half of the question.
+
+
+-------------------------------------------------------------------------------
+AFTERWARDS — things I will clean up, not you
+-------------------------------------------------------------------------------
+
+Once both PRs are merged I will: delete the two remote branches, remove the
+C:\dev\cents-reports worktree, pull main in C:\dev\cents, and update PLAN.md
+part C so the next session knows what landed and what is still open. You do not
+need to do any of that.
+
+
+-------------------------------------------------------------------------------
+SHORT VERSION
+-------------------------------------------------------------------------------
+
+  0. [DONE] Phone attached — Pixel 8
+  1. [DONE] Database was empty, so wiping cost nothing
+  2. [DONE] Fresh install of the branch build d7a51a3
+  3. <-- YOU ARE HERE. Walk 1, 2, 3, 4 — writing into FEEDBACK.md as you go
+  4. Tell me to read FEEDBACK.md
+  5. Merge PR #20
+  6. Ask me to rebase #21
+  7. Merge PR #21
+  8. Answer D9 in DECISIONS.md
+  9. Optional: say whether the lint findings get a branch

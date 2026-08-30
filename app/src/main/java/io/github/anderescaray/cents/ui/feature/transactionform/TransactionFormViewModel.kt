@@ -94,7 +94,16 @@ class TransactionFormViewModel
 
         private val today = LocalDate.now(clock)
 
-        private val form = MutableStateFlow(TransactionFormUiState(date = today, today = today))
+        // `isEditing` is settled here rather than when the row arrives from disk: the screen
+        // decides whether to open with the keypad up, and it decides on its first frame.
+        private val form =
+            MutableStateFlow(
+                TransactionFormUiState(
+                    date = today,
+                    today = today,
+                    isEditing = transactionId != null,
+                ),
+            )
 
         val uiState: StateFlow<TransactionFormUiState> = form.asStateFlow()
 

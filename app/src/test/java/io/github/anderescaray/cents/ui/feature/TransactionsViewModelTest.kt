@@ -216,6 +216,33 @@ class TransactionsViewModelTest {
             }
         }
 
+    /**
+     * What the row on the list itself is wired to. The screen test proves the row is there
+     * only when something is narrowing the list; this proves that taking it puts every
+     * movement back, whichever of the two kinds of narrowing was on.
+     */
+    @Test
+    fun `clearing from the list puts back the movements a form filter was hiding`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking"))
+            movement(accountId = id, date = LocalDate.of(2026, 7, 4), minor = 3_450)
+            movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.size == 2 }
+
+                filters.apply(TransactionFilter(minAmountMinor = 4_000))
+                awaitStateThat { it.isNarrowed && it.days.size == 1 }
+
+                viewModel.clearFilter()
+
+                val restored = awaitStateThat { it.days.size == 2 }
+                assertEquals(TransactionFilter.None, restored.filter)
+                assertEquals(false, restored.isNarrowed)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     @Test
     fun `the search field is part of the filter, and clearing takes it with everything else`() =
         runTest {

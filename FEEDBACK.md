@@ -28,14 +28,7 @@ Walked on a Pixel 8 on 2026-08-30, on the branch build `d7a51a3` (main + PR #20 
 after a genuine fresh install. Everything not listed below passed. Written down by the agent
 from what the owner reported out loud, in English to keep to rule 10 — the content is his.
 
-### 1. Clearing the filters is buried
-
-**Where:** r8 — a filter is applied and you want it gone.
-**What happened:** the only way is Filters, then scroll to the bottom, then clear.
-**What you expected:** something reachable from the list itself.
-**How much it matters:** annoying, and it is the action you reach for most often.
-
-### 2. A half-swiped row stays parked open
+### 1. A half-swiped row stays parked open
 
 **Where:** d1 — swipe a row sideways and let go before the delete threshold.
 **What happened:** the row stays where it was released, with Delete showing.
@@ -43,7 +36,7 @@ from what the owner reported out loud, in English to keep to rule 10 — the con
 when the swipe was far enough to actually mean deleting.
 **How much it matters:** annoying. Deleting by swiping all the way across works.
 
-### 3. Amounts should be typed in euros, with a comma, not counted up in cents
+### 2. Amounts should be typed in euros, with a comma, not counted up in cents
 
 **Where:** 05 (the movement keypad) and e4 (the amount filter). Both are correct as specified —
 `2` `5` `0` `0` reads 25,00 €, and the filter says its range back in real money.
@@ -72,4 +65,5 @@ is still outstanding.
 |---|---|---|
 | 2026-08-30 | **03** — the number keypad came up on the account *name* field | `CentsKeypad` was mounted unconditionally at the bottom of both forms. It is now shown only when the amount is the field being answered, and a text field taking focus puts it away. `fix/keypad-only-for-amounts` |
 | 2026-08-30 | **d8** — the number keypad was up when a movement was opened only to be read | Same fix. A form now opens with the keypad up when it is *creating* a record and without it when it is opening one that exists; tapping the amount asks for it back. `fix/keypad-only-for-amounts` |
+| 2026-08-30 | **r8** — clearing a filter meant opening Filters and scrolling to its foot | The Matches card on the list now ends in **Show everything**, so the most frequent action is one tap from where the filter is felt. It appears only when something is narrowing the list, so an unfiltered list is unchanged, and it clears the search box too — spelled out in a footer when there is text to lose. `feat/clear-filters-from-the-list` |
 | 2026-08-30 | **r7/r8** — a second drill-down landed on the filter form instead of the list | `switchToTab` restores a tab's saved back stack, and that stack was holding the filters screen — which is exactly where you go to read the filter the previous drill-down applied. A drill-down now pops back to the list. #21 |

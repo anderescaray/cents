@@ -54,7 +54,7 @@ fun TransactionFormScreen(
     viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val keypad = rememberAmountKeypadState(shownInitially = !state.isEditing)
+    val keypad = rememberAmountKeypadState(shownInitially = viewModel.isNewRecord)
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(state.finished) {

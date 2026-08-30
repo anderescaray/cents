@@ -94,16 +94,19 @@ class TransactionFormViewModel
 
         private val today = LocalDate.now(clock)
 
-        // `isEditing` is settled here rather than when the row arrives from disk: the screen
-        // decides whether to open with the keypad up, and it decides on its first frame.
-        private val form =
-            MutableStateFlow(
-                TransactionFormUiState(
-                    date = today,
-                    today = today,
-                    isEditing = transactionId != null,
-                ),
-            )
+        /**
+         * Whether this screen is recording a movement or opening one that already exists.
+         *
+         * Deliberately not in [TransactionFormUiState], where `isEditing` means something
+         * narrower and later: *the row has arrived from disk*. This is known in the
+         * constructor and never changes, and the screen needs it on its first frame to decide
+         * whether to open with the keypad up. Folding the two into one field made `isEditing`
+         * true before the movement had loaded, which is a thing several tests reasonably
+         * relied on it not being.
+         */
+        val isNewRecord: Boolean = transactionId == null
+
+        private val form = MutableStateFlow(TransactionFormUiState(date = today, today = today))
 
         val uiState: StateFlow<TransactionFormUiState> = form.asStateFlow()
 

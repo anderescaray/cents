@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -37,10 +39,7 @@ private const val PUSH_DURATION_MS = 320
 @Composable
 fun CentsApp(navController: NavHostController = rememberNavController()) {
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentTab =
-        TopLevelTab.entries.firstOrNull { tab ->
-            backStackEntry?.destination?.hasRoute(tab.destination::class) == true
-        } ?: TopLevelTab.TRANSACTIONS
+    val currentTab = backStackEntry?.destination?.topLevelTab() ?: TopLevelTab.TRANSACTIONS
 
     val tabs =
         TopLevelTab.entries.map { tab ->
@@ -63,6 +62,47 @@ fun CentsApp(navController: NavHostController = rememberNavController()) {
         )
     }
 }
+
+/** The tab a destination *is*, or null when it is a screen pushed inside one. */
+private fun NavDestination.topLevelTab(): TopLevelTab? =
+    TopLevelTab.entries.firstOrNull { hasRoute(it.destination::class) }
+
+/**
+ * Which way this navigation is travelling, so the slide agrees with it.
+ *
+ * Every `navigate()` is a push as far as the `NavHost` is concerned, and a tab switch is a
+ * `navigate()` — so with a single direction the animation said "forward" even when the tab
+ * bar had moved you *left*, which reads as wrong every time and is the animation seen most.
+ * `TopLevelTab` already orders the tabs, so the sign is knowable: moving to a lower tab is
+ * travelling back, and the screen should arrive from the side it went out to.
+ *
+ * Anything that is not tab-to-tab keeps the forward slide, which is what pushing a screen
+ * inside a tab should look like. **One case still slides forward when it should not:**
+ * switching to a tab whose saved stack has a detail screen on top arrives at that screen
+ * rather than at the tab's root, and a pushed screen carries no record of the tab it belongs
+ * to — so there is nothing here to compare. Fixing that needs the selected tab tracked as
+ * state rather than read back out of the back stack, which is a larger change than this bug
+ * is worth on its own.
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.travelDirection() =
+    slideDirectionFor(
+        from = initialState.destination.topLevelTab(),
+        to = targetState.destination.topLevelTab(),
+    )
+
+/**
+ * Separated from the transition so it can be tested: reading a slide direction off a running
+ * animation is not something a JVM test can do, but the rule deciding it is arithmetic.
+ */
+internal fun slideDirectionFor(
+    from: TopLevelTab?,
+    to: TopLevelTab?,
+): AnimatedContentTransitionScope.SlideDirection =
+    if (from != null && to != null && to.ordinal < from.ordinal) {
+        AnimatedContentTransitionScope.SlideDirection.End
+    } else {
+        AnimatedContentTransitionScope.SlideDirection.Start
+    }
 
 /** Tabs switch, they do not stack: one entry per tab, state preserved. */
 private fun NavHostController.switchToTab(destination: Destination) {
@@ -92,16 +132,10 @@ private fun CentsNavHost(navController: NavHostController) {
         startDestination = Destination.Transactions,
         // Horizontal push and pop, the way an iOS navigation stack moves.
         enterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(PUSH_DURATION_MS),
-            )
+            slideIntoContainer(travelDirection(), animationSpec = tween(PUSH_DURATION_MS))
         },
         exitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start,
-                animationSpec = tween(PUSH_DURATION_MS),
-            )
+            slideOutOfContainer(travelDirection(), animationSpec = tween(PUSH_DURATION_MS))
         },
         popEnterTransition = {
             slideIntoContainer(

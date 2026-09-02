@@ -192,4 +192,7 @@
     <string name="reports_flow_legend_expenses">Gastos</string>
     <string name="reports_no_accounts_title">Todavía no hay cuentas</string>
     <string name="reports_no_accounts_footer">Los gráficos leen los movimientos de tus cuentas. Crea una cuenta y registra algo, y esta pestaña se llena sola.</string>
+
+    <string name="keypad_decimal_separator">Separador decimal</string>
+    <string name="keypad_delete">Borrar</string>
 </resources>

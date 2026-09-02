@@ -132,25 +132,70 @@ class TransactionFiltersViewModelTest {
         }
 
     @Test
-    fun `amounts are typed as minor units, and blank is not zero`() =
+    fun `amounts are typed in euros, and blank is not zero`() =
         runTest {
             val form = viewModel()
 
             form.uiState.test {
-                form.setMinAmount("2500")
+                form.setMinAmount("25")
                 assertEquals(2_500L, awaitStateThat { it.draft.minAmountMinor != null }.draft.minAmountMinor)
 
-                form.setMaxAmount("1000")
+                form.setMaxAmount("10")
                 val inverted = awaitStateThat { it.draft.maxAmountMinor != null }
-                // 25,00 € to 10,00 € can never match, and the form has to say so rather than
+                // 25 € to 10 € can never match, and the form has to say so rather than
                 // showing an empty list that looks like an answer.
                 assertTrue(inverted.draft.amountRangeInverted)
 
                 form.setMinAmount("")
                 val cleared = awaitStateThat { it.draft.minAmountMinor == null }
                 assertEquals(false, cleared.draft.amountRangeInverted)
+                assertEquals("", cleared.minAmountInput)
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `the filter obeys the keypad's comma rules, and keeps a half-typed one on screen`() =
+        runTest {
+            val form = viewModel()
+
+            form.uiState.test {
+                // Typed one character at a time, as a text field delivers it. The comma has
+                // to survive the round trip through the view model, or it would vanish under
+                // the owner's finger the moment it was typed.
+                form.setMinAmount("2")
+                form.setMinAmount("2,")
+                val half = awaitStateThat { it.minAmountInput == "2." }
+                assertEquals(200L, half.draft.minAmountMinor)
+
+                form.setMinAmount("2,5")
+                assertEquals(250L, awaitStateThat { it.minAmountInput == "2.5" }.draft.minAmountMinor)
+
+                // A third decimal, a second comma and a stray euro sign are all refused
+                // without taking the rest of the field with them.
+                form.setMinAmount("2,509")
+                assertEquals("2.50", awaitStateThat { it.minAmountInput == "2.50" }.minAmountInput)
+
+                form.setMaxAmount(",5")
+                assertEquals(50L, awaitStateThat { it.maxAmountInput == "0.5" }.draft.maxAmountMinor)
+
+                // A dot from an English keyboard means the same thing as a comma.
+                form.setMaxAmount("12.34 €")
+                assertEquals(1_234L, awaitStateThat { it.maxAmountInput == "12.34" }.draft.maxAmountMinor)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `reopening the form shows the bounds it is already narrowed to`() =
+        runTest {
+            filters.apply(TransactionFilter(minAmountMinor = 2_500, maxAmountMinor = 999))
+
+            val form = viewModel()
+
+            // As they would have been typed: a round bound without cents it never had.
+            assertEquals("25", form.uiState.value.minAmountInput)
+            assertEquals("9.99", form.uiState.value.maxAmountInput)
         }
 
     @Test
@@ -277,7 +322,11 @@ class TransactionFiltersViewModelTest {
                 // blank the field while the owner was still typing into it.
                 form.setMinAmount("9".repeat(30))
 
-                assertEquals(999_999_999_999L, awaitStateThat { it.draft.minAmountMinor != null }.draft.minAmountMinor)
+                // Twelve digits of euros, which is what the keypad allows too.
+                assertEquals(
+                    99_999_999_999_900L,
+                    awaitStateThat { it.draft.minAmountMinor != null }.draft.minAmountMinor,
+                )
                 cancelAndIgnoreRemainingEvents()
             }
         }

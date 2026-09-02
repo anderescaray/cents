@@ -9,8 +9,8 @@ It cannot use it. Everything below is a thing no test in this repo can catch, wh
 is a document and not a test.
 
 **How to use it.** Walk it with the phone in your hand. Anything that goes wrong gets written
-in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *"05: the keypad
-showed 2.500,00"* is a complete entry.
+in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *"05: the third
+decimal went in anyway"* is a complete entry.
 
 **When to run it.** After any run of branches built without a device attached, and before
 closing a phase. First run: 2026-08-21, closing Phase 1, after four branches had been built
@@ -53,8 +53,14 @@ On Transactions, tap **+** with no account existing. It should walk you into cre
 Name, type, colour, opening balance on the keypad. The currency row shows `EUR` and is **not
 tappable**.
 
-> **Wrong looks like** a currency picker offering USD and GBP, or a currency that is not EUR.
-> Either means the single-currency change did not take (D2).
+The opening balance is the app's **second** keypad, and since 2026-08-30 it obeys the same
+rules as the movement one: type `1` `2` `5` `,` `5` `0` and it must read 125,50 €, not
+1.255,00 €. Give the account a negative opening balance too — the sign toggle in front of a
+half-typed amount must read `−125,5 €`, with nothing lost when the sign flips.
+
+> **Wrong looks like** a currency picker offering USD and GBP, or a currency that is not EUR —
+> either means the single-currency change did not take (D2) — or the two keypads disagreeing
+> about what a digit means, which is worse than either of them being wrong on its own.
 
 ### 04 · Categories are yours to make
 
@@ -64,14 +70,30 @@ by its grip to reorder it.
 > **Wrong looks like** the drag not picking up, or the order not surviving leaving the screen
 > and coming back.
 
-### 05 · The keypad counts in cents
+### 05 · The keypad is typed in euros, and the comma is what asks for cents
 
-Record a movement. Tapping `2` `5` `0` `0` must read **25,00 €**. Set a date that is not today,
-and write a note.
+Changed 2026-08-30. It used to count in minor units — `2` `5` `0` `0` for 25,00 € — which cost
+two taps on `0` for every round number. The owner asked for euros instead (`FEEDBACK.md`), so
+this step now checks the opposite convention.
 
-> **Wrong looks like 2.500,00 €.** This is the single most important line in this document.
-> Every amount in the app is an integer number of cents (rule 1), and this is where that
-> assumption would visibly break.
+Record a movement. Tapping `2` `5` must read **25 €**, and saving it must produce a movement of
+25,00 € in the list. Then start again and tap `2` `,` `5`: it must read **2,5 €** and save as
+**2,50 €**. Now try each of these, which are the rules that are easy to get wrong:
+
+- `1` `2` `,` `5` `0` `9` — the third decimal must **not** go in. The screen stays on 12,50 €.
+- `2` `,` `5` `,` `0` — the second comma must do nothing; the `0` lands after the first, giving
+  2,50 €.
+- `,` `5` `0` on an empty amount — must read 0,50 €.
+- Backspace over `1` `2` `,` `5` — one tap must remove one character: 12,5 then 12, then 12.
+  Typing `3` at that point must give 123 €, not 12,53 €.
+
+Set a date that is not today, and write a note.
+
+> **Wrong looks like 2.500,00 € from `2` `5` `0` `0`** — the old convention still in force — or
+> a third decimal being swallowed and rounded rather than refused, or backspace clearing more
+> than the one character it removed on screen. This is the single most important line in this
+> document: every amount in the app is an integer number of cents (rule 1), and this is where a
+> hundredfold error would enter it.
 
 ### 06 · Balances add up, checked by hand
 
@@ -185,13 +207,20 @@ transitions sliding sideways (ADR 0001).
 Six sections on one screen: kind, date, account, category, amount, clear. Is that one question,
 or does it feel like a settings screen?
 
-### e4 · The amount filter makes sense to a human
+### e4 · The amount filter agrees with the keypad
 
-Filters → Amount is typed in **cents**, like the keypad: 2500 means 25,00 €. The line
-underneath says the range back in real money.
+Changed 2026-08-30, with `05`. Filters → Amount is typed in **euros with a comma**, exactly like
+the movement keypad: `25` means 25 €, `2,5` means 2,50 €. The line underneath still says the
+range back in full — "Between 25,00 € and 50,00 €" — so a half-typed bound is readable.
 
-> If that reads as a trap rather than a convention, it should become a keypad like the movement
-> form has.
+Type `2`: the footer reads "2,00 € or more". Now type the comma — it must stay on screen
+rather than vanishing under your finger — and then `5`, which must take the footer to
+"2,50 € or more". A third decimal must be refused here too, exactly as on the keypad.
+
+> **Wrong looks like** the comma disappearing the instant it is typed — the field is a text
+> field rather than the keypad, and a bound derived back from the stored number would erase a
+> separator with nothing behind it yet. Also wrong: 25 in this field meaning 0,25 € while 25 on
+> the keypad means 25 €. The two must agree, which is the whole point of the change.
 
 ---
 

@@ -84,17 +84,138 @@ class TransactionFormViewModelTest {
     }
 
     @Test
-    fun `typed digits are minor units, so 1250 means twelve euros fifty`() =
+    fun `typed digits are euros, so 25 means twenty-five euros and costs two taps`() =
         runTest {
             database.accountDao().insert(account())
 
             viewModel.uiState.test {
                 awaitStateThat { it.accounts.isNotEmpty() }
-                "1250".forEach(viewModel::appendDigit)
+                "25".forEach(viewModel::appendDigit)
 
-                val state = awaitStateThat { it.amountDigits == "1250" }
-                assertEquals(Money(1_250, "EUR"), state.amount)
+                val state = awaitStateThat { it.amountInput == "25" }
+                assertEquals(Money(2_500, "EUR"), state.amount)
                 assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the comma is what asks for cents, so 12 comma 50 is twelve euros fifty`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                "12".forEach(viewModel::appendDigit)
+                viewModel.appendDecimalSeparator()
+                "50".forEach(viewModel::appendDigit)
+
+                val state = awaitStateThat { it.amountInput == "12.50" }
+                assertEquals(Money(1_250, "EUR"), state.amount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `one digit after the comma is tenths, not cents`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                viewModel.appendDigit('2')
+                viewModel.appendDecimalSeparator()
+                viewModel.appendDigit('5')
+
+                // 2,5 € is 2,50 € — the missing cent digit is a zero, not a five.
+                val state = awaitStateThat { it.amountInput == "2.5" }
+                assertEquals(Money(250, "EUR"), state.amount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a third digit after the comma does not go in`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                "12".forEach(viewModel::appendDigit)
+                viewModel.appendDecimalSeparator()
+                "509".forEach(viewModel::appendDigit)
+
+                // Refused rather than accepted and rounded away: a key that changes nothing
+                // must not look like it was taken.
+                val state = awaitStateThat { it.amountInput == "12.50" }
+                assertEquals(Money(1_250, "EUR"), state.amount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a second comma is refused, because it would move the one already typed`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                viewModel.appendDigit('2')
+                viewModel.appendDecimalSeparator()
+                viewModel.appendDigit('5')
+                viewModel.appendDecimalSeparator()
+                viewModel.appendDigit('0')
+
+                // Not 25,0: the second comma is ignored and the 0 lands after the first.
+                val state = awaitStateThat { it.amountInput == "2.50" }
+                assertEquals(Money(250, "EUR"), state.amount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a leading comma reads as nought comma, so fifty cents is reachable`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                viewModel.appendDecimalSeparator()
+                "50".forEach(viewModel::appendDigit)
+
+                val state = awaitStateThat { it.amountInput == "0.50" }
+                assertEquals(Money(50, "EUR"), state.amount)
+                assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `delete peels off one character at a time, comma included`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                "12".forEach(viewModel::appendDigit)
+                viewModel.appendDecimalSeparator()
+                "50".forEach(viewModel::appendDigit)
+                awaitStateThat { it.amountInput == "12.50" }
+
+                viewModel.deleteDigit()
+                assertEquals(Money(1_250, "EUR"), awaitStateThat { it.amountInput == "12.5" }.amount)
+
+                // Crossing back over the comma: 12,5 becomes 12, and then 12 — one tap is
+                // one character, so a correction never swallows more than it shows.
+                viewModel.deleteDigit()
+                assertEquals(Money(1_200, "EUR"), awaitStateThat { it.amountInput == "12." }.amount)
+
+                viewModel.deleteDigit()
+                assertEquals(Money(1_200, "EUR"), awaitStateThat { it.amountInput == "12" }.amount)
+
+                // And typing a digit now is euros again, not cents.
+                viewModel.appendDigit('3')
+                assertEquals(Money(12_300, "EUR"), awaitStateThat { it.amountInput == "123" }.amount)
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -108,8 +229,8 @@ class TransactionFormViewModelTest {
                 awaitStateThat { it.accounts.isNotEmpty() }
                 "0007".forEach(viewModel::appendDigit)
 
-                val state = awaitStateThat { it.amountDigits.isNotEmpty() && it.amountDigits.last() == '7' }
-                assertEquals(Money(7, "EUR"), state.amount)
+                val state = awaitStateThat { it.amountInput == "7" }
+                assertEquals(Money(700, "EUR"), state.amount)
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -166,10 +287,12 @@ class TransactionFormViewModelTest {
 
             viewModel.uiState.test {
                 awaitStateThat { it.accounts.isNotEmpty() && it.categories.isNotEmpty() }
-                "4599".forEach(viewModel::appendDigit)
+                "45".forEach(viewModel::appendDigit)
+                viewModel.appendDecimalSeparator()
+                "99".forEach(viewModel::appendDigit)
                 viewModel.selectCategory(categoryId)
                 viewModel.setNote("Weekly shop")
-                awaitStateThat { it.amountDigits == "4599" && it.selectedCategoryId == categoryId }
+                awaitStateThat { it.amountInput == "45.99" && it.selectedCategoryId == categoryId }
 
                 viewModel.save()
 
@@ -205,8 +328,9 @@ class TransactionFormViewModelTest {
             val editor = formFor(id)
 
             editor.uiState.test {
-                val state = awaitStateThat { it.isEditing && it.amountDigits.isNotEmpty() }
-                assertEquals("4599", state.amountDigits)
+                val state = awaitStateThat { it.isEditing && it.amountInput.isNotEmpty() }
+                // Loaded as it would have been typed, so backspace peels off what is shown.
+                assertEquals("45.99", state.amountInput)
                 assertEquals(accountId, state.selectedAccountId)
                 assertEquals(categoryId, state.selectedCategoryId)
                 assertEquals(LocalDate.of(2026, 7, 4), state.date)
@@ -234,12 +358,15 @@ class TransactionFormViewModelTest {
             val editor = formFor(id)
 
             editor.uiState.test {
-                awaitStateThat { it.amountDigits == "9999" }
-                repeat(4) { editor.deleteDigit() }
-                "1250".forEach(editor::appendDigit)
+                // 99,99 € comes back as the five characters that would have typed it.
+                awaitStateThat { it.amountInput == "99.99" }
+                repeat(5) { editor.deleteDigit() }
+                "12".forEach(editor::appendDigit)
+                editor.appendDecimalSeparator()
+                "50".forEach(editor::appendDigit)
                 editor.setDate(LocalDate.of(2026, 8, 1))
                 editor.setNote("Fixed")
-                awaitStateThat { it.amountDigits == "1250" && it.note == "Fixed" }
+                awaitStateThat { it.amountInput == "12.50" && it.note == "Fixed" }
 
                 editor.save()
                 awaitStateThat { it.finished }
@@ -290,8 +417,8 @@ class TransactionFormViewModelTest {
 
             viewModel.uiState.test {
                 awaitStateThat { it.accounts.isNotEmpty() }
-                "2500".forEach(viewModel::appendDigit)
-                awaitStateThat { it.amountDigits == "2500" }
+                "25".forEach(viewModel::appendDigit)
+                awaitStateThat { it.amountInput == "25" }
 
                 viewModel.save()
                 awaitStateThat { it.finished }
@@ -333,7 +460,7 @@ class TransactionFormViewModelTest {
                 assertEquals("USD", loaded.currency)
 
                 editor.appendDigit('0')
-                awaitStateThat { it.amountDigits == "25000" }
+                awaitStateThat { it.amountInput == "250" }
                 editor.save()
                 awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()

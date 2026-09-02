@@ -10,6 +10,7 @@ import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,8 @@ data class AccountEditUiState(
      */
     val currency: String = "EUR",
     val colorArgb: Int = AccountPalette.first(),
-    val openingDigits: String = "",
+    /** Typed in euros, comma and all — the rules are [AmountEntry]'s. */
+    val openingInput: String = AmountEntry.EMPTY,
     val openingNegative: Boolean = false,
     val archived: Boolean = false,
     val nameTaken: Boolean = false,
@@ -38,10 +40,10 @@ data class AccountEditUiState(
     val writeFailed: Boolean = false,
     val finished: Boolean = false,
 ) {
-    /** Typed as minor units, like every amount in the app (rule 1). */
+    /** Typed in euros, but stored as minor units like every amount in the app (rule 1). */
     val openingBalance: Money
         get() {
-            val magnitude = openingDigits.toLongOrNull() ?: 0L
+            val magnitude = AmountEntry.toMinorUnits(openingInput)
             return Money(if (openingNegative) -magnitude else magnitude, currency)
         }
 
@@ -131,12 +133,11 @@ class AccountEditViewModel
                     type = if (edited) state.type else account.type,
                     currency = if (edited) state.currency else account.currency,
                     colorArgb = if (edited) state.colorArgb else account.colorArgb,
-                    openingDigits =
+                    openingInput =
                         if (edited) {
-                            state.openingDigits
+                            state.openingInput
                         } else {
-                            account.openingBalance.minorUnits
-                                .let { if (it == 0L) "" else kotlin.math.abs(it).toString() }
+                            AmountEntry.fromMinorUnits(account.openingBalance.minorUnits)
                         },
                     openingNegative =
                         if (edited) state.openingNegative else account.openingBalance.minorUnits < 0,
@@ -163,15 +164,18 @@ class AccountEditViewModel
         fun appendDigit(digit: Char) {
             if (!digit.isDigit()) return
             edited = true
-            form.update { state ->
-                val next = (state.openingDigits + digit).trimStart('0')
-                if (next.length > MAX_DIGITS) state else state.copy(openingDigits = next)
-            }
+            form.update { it.copy(openingInput = AmountEntry.append(it.openingInput, digit)) }
+        }
+
+        /** The comma key. A second one, or a third digit behind it, simply does not go in. */
+        fun appendDecimalSeparator() {
+            edited = true
+            form.update { it.copy(openingInput = AmountEntry.append(it.openingInput, AmountEntry.SEPARATOR)) }
         }
 
         fun deleteDigit() {
             edited = true
-            form.update { it.copy(openingDigits = it.openingDigits.dropLast(1)) }
+            form.update { it.copy(openingInput = AmountEntry.delete(it.openingInput)) }
         }
 
         /** An account can start in the red: a card with a balance owed, for instance. */
@@ -267,8 +271,4 @@ class AccountEditViewModel
          */
         private fun defaultCurrency(locale: Locale = Locale.getDefault()): String =
             runCatching { Currency.getInstance(locale).currencyCode }.getOrDefault("EUR")
-
-        private companion object {
-            const val MAX_DIGITS = 12
-        }
     }

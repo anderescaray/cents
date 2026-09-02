@@ -210,8 +210,8 @@ private fun LazyListScope.categorySection(
 }
 
 /**
- * Both bounds are typed in minor units, the way the movement keypad works, and the footer
- * says back what that means in money so nobody has to guess whether 25 was euros or cents.
+ * Both bounds are typed in euros with a comma, the way the movement keypad works, and the
+ * footer says the range back as money so a half-typed bound is still readable.
  */
 private fun LazyListScope.amountSection(
     state: TransactionFiltersUiState,
@@ -228,18 +228,12 @@ private fun LazyListScope.amountSection(
                 },
         ) {
             AmountField(
-                digits =
-                    state.draft.minAmountMinor
-                        ?.toString()
-                        .orEmpty(),
+                input = state.minAmountInput,
                 placeholder = stringResource(R.string.filters_amount_min),
                 onChange = viewModel::setMinAmount,
             )
             AmountField(
-                digits =
-                    state.draft.maxAmountMinor
-                        ?.toString()
-                        .orEmpty(),
+                input = state.maxAmountInput,
                 placeholder = stringResource(R.string.filters_amount_max),
                 onChange = viewModel::setMaxAmount,
                 last = true,

@@ -44,7 +44,7 @@ import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
-import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.AmountEntry
 
 /**
  * Creating or editing one account: what it is called, what kind it is, what it is
@@ -100,6 +100,7 @@ fun AccountEditScreen(
         if (keypad.isShown) {
             CentsKeypad(
                 onDigit = viewModel::appendDigit,
+                onDecimalSeparator = viewModel::appendDecimalSeparator,
                 onDelete = viewModel::deleteDigit,
                 modifier =
                     Modifier.padding(
@@ -184,7 +185,8 @@ private fun OpeningBalanceHeader(
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingXs),
     ) {
         Text(
-            text = MoneyFormatter.format(state.openingBalance),
+            // The entry, not the balance: see the note on the movement form's amount header.
+            text = AmountEntry.format(state.openingInput, state.currency, state.openingNegative),
             style = CentsTheme.typography.largeTitle,
             color =
                 if (state.openingBalance.isNegative) {

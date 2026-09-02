@@ -59,15 +59,17 @@ class AccountEditViewModelTest {
         )
 
     @Test
-    fun `a new account is stored with the opening balance typed in minor units`() =
+    fun `a new account is stored with the opening balance typed in euros`() =
         runTest {
             val editor = editorFor()
 
             editor.uiState.test {
                 editor.setName("  Checking  ")
                 editor.setType(AccountType.BANK)
-                "12550".forEach(editor::appendDigit)
-                awaitStateThat { it.openingDigits == "12550" }
+                "125".forEach(editor::appendDigit)
+                editor.appendDecimalSeparator()
+                "50".forEach(editor::appendDigit)
+                awaitStateThat { it.openingInput == "125.50" }
 
                 editor.save()
                 awaitStateThat { it.finished }
@@ -87,9 +89,9 @@ class AccountEditViewModelTest {
             editor.uiState.test {
                 editor.setName("Credit card")
                 editor.setType(AccountType.CARD)
-                "45000".forEach(editor::appendDigit)
+                "450".forEach(editor::appendDigit)
                 editor.toggleSign()
-                awaitStateThat { it.openingNegative && it.openingDigits == "45000" }
+                awaitStateThat { it.openingNegative && it.openingInput == "450" }
 
                 editor.save()
                 awaitStateThat { it.finished }

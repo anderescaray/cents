@@ -41,6 +41,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class ReportsViewModelTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
     private lateinit var viewModel: ReportsViewModel
 
     // A Tuesday in the middle of August, so "this week" and "this quarter" have to be
@@ -52,18 +53,24 @@ class ReportsViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
         viewModel =
-            ReportsViewModel(
-                reportSections(database),
-                RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
-                TransactionFilterStore(),
-                clock,
+            viewModels.keep(
+                ReportsViewModel(
+                    reportSections(database),
+                    RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                    TransactionFilterStore(),
+                    clock,
+                ),
             )
     }
 
     @After
     fun tearDown() {
-        Dispatchers.resetMain()
-        database.close()
+        try {
+            viewModels.cancelAll()
+            if (::database.isInitialized) database.close()
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     @Test

@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature
 
-import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
@@ -18,7 +17,6 @@ import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -41,6 +39,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class TransactionsViewModelTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
     private lateinit var transactions: RoomTransactionRepository
     private lateinit var deleted: DeletedTransactionBuffer
     private lateinit var filters: TransactionFilterStore
@@ -59,37 +58,35 @@ class TransactionsViewModelTest {
         deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
         filters = TransactionFilterStore()
         viewModel =
-            TransactionsViewModel(
-                transactionRepository = transactions,
-                deletedTransactions = deleted,
-                filters = filters,
-                accountRepository =
-                    RoomAccountRepository(
-                        database.accountDao(),
-                        database.transactionDao(),
-                        database,
-                        clock,
-                    ),
-                clock = clock,
+            viewModels.keep(
+                TransactionsViewModel(
+                    transactionRepository = transactions,
+                    deletedTransactions = deleted,
+                    filters = filters,
+                    accountRepository =
+                        RoomAccountRepository(
+                            database.accountDao(),
+                            database.transactionDao(),
+                            database,
+                            clock,
+                        ),
+                    clock = clock,
+                ),
             )
     }
 
     @After
     fun tearDown() {
         try {
-            // The view model outlives its test unless it is told not to. `uiState` is
-            // shared with `WhileSubscribed(5s)`, so the Room query behind it stays
-            // subscribed after Turbine lets go, and every test in the class would
-            // otherwise leave one running against a database that is about to be closed —
-            // several of them by the end, competing for the same executor as the test
-            // still running. Cancelling first is what `onCleared` does on the phone.
-            //
-            // Both handles are `lateinit`: a `setUp` that dies part-way leaves them unset,
-            // and reading one would throw on the way down.
-            if (::viewModel.isInitialized) viewModel.viewModelScope.cancel()
+            // Every view model this class made, stopped the way `onCleared` stops one on the
+            // phone. `uiState` is shared with `WhileSubscribed(5s)`, so without this the Room
+            // query behind it keeps running against a database that is about to be closed.
+            viewModels.cancelAll()
+            // `lateinit`: a `setUp` that dies part-way leaves this unset, and reading it
+            // would throw on the way down.
             if (::database.isInitialized) database.close()
         } finally {
-            // Unconditionally, and last. Anything that escapes this method leaves
+            // Unconditionally, and last. Anything escaping this method leaves
             // `Dispatchers.Main` overridden for the rest of the JVM, and the next class to
             // call `setMain` dies on it rather than on anything of its own — one failed
             // teardown here takes down every class that runs after it.

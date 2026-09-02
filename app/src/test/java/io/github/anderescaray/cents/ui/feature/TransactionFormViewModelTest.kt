@@ -42,6 +42,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class TransactionFormViewModelTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
     private lateinit var viewModel: TransactionFormViewModel
     private lateinit var transactions: RoomTransactionRepository
     private lateinit var deleted: DeletedTransactionBuffer
@@ -62,25 +63,31 @@ class TransactionFormViewModelTest {
 
     /** The form as the navigation graph builds it: adding by default, editing with an id. */
     private fun formFor(transactionId: Long = Destination.TransactionForm.NEW) =
-        TransactionFormViewModel(
-            transactionRepository = transactions,
-            deletedTransactions = deleted,
-            accountRepository =
-                RoomAccountRepository(
-                    database.accountDao(),
-                    database.transactionDao(),
-                    database,
-                    clock,
-                ),
-            categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
-            savedStateHandle = SavedStateHandle(mapOf("transactionId" to transactionId)),
-            clock = clock,
+        viewModels.keep(
+            TransactionFormViewModel(
+                transactionRepository = transactions,
+                deletedTransactions = deleted,
+                accountRepository =
+                    RoomAccountRepository(
+                        database.accountDao(),
+                        database.transactionDao(),
+                        database,
+                        clock,
+                    ),
+                categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
+                savedStateHandle = SavedStateHandle(mapOf("transactionId" to transactionId)),
+                clock = clock,
+            ),
         )
 
     @After
     fun tearDown() {
-        database.close()
-        Dispatchers.resetMain()
+        try {
+            viewModels.cancelAll()
+            if (::database.isInitialized) database.close()
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     @Test

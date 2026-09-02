@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -41,6 +44,17 @@ import io.github.anderescaray.cents.ui.util.AmountEntry
  * The bottom row is separator, zero, delete, which turns the pad into the even three-by-four
  * grid of the iOS decimal pad — closer to the platform being imitated than the two stretched
  * keys it replaces.
+ *
+ * **It stands on its own surface, with a hairline above it.** Without that it shared the
+ * grouped background with the form it sits under, and its keys are grouped cards like every
+ * other card on that ground — so in the account editor there was no line at all between the
+ * colour swatches and the top row of keys, and the owner could not see where one ended and
+ * the other began. A bar background and a `barSeparator` are what iOS puts under an input
+ * accessory, and they are the same two tokens the tab bar uses to sit above content.
+ *
+ * The bottom inset is the keypad's own business rather than each caller's: it is always the
+ * thing against the bottom edge when it is on screen, and a caller that padded *outside* it
+ * would leave a strip of the form's background below the surface.
  */
 @Composable
 fun CentsKeypad(
@@ -51,13 +65,51 @@ fun CentsKeypad(
     deleteLabel: String = "⌫",
     separatorLabel: String = AmountEntry.separatorFor().toString(),
 ) {
-    val separatorDescription = stringResource(R.string.keypad_decimal_separator)
-    val deleteDescription = stringResource(R.string.keypad_delete)
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(horizontal = CentsDimens.spacingS),
+                .background(CentsTheme.colors.barBackground),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(CentsDimens.separatorThickness)
+                    .background(CentsTheme.colors.barSeparator),
+        )
+        KeypadKeys(
+            onDigit = onDigit,
+            onDecimalSeparator = onDecimalSeparator,
+            onDelete = onDelete,
+            deleteLabel = deleteLabel,
+            separatorLabel = separatorLabel,
+        )
+    }
+}
+
+/** The three-by-four grid itself, on the surface [CentsKeypad] puts under it. */
+@Composable
+private fun KeypadKeys(
+    onDigit: (Char) -> Unit,
+    onDecimalSeparator: () -> Unit,
+    onDelete: () -> Unit,
+    deleteLabel: String,
+    separatorLabel: String,
+) {
+    val separatorDescription = stringResource(R.string.keypad_decimal_separator)
+    val deleteDescription = stringResource(R.string.keypad_delete)
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CentsDimens.spacingS)
+                .padding(top = CentsDimens.spacingS)
+                .padding(
+                    bottom =
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                            CentsDimens.spacingS,
+                ),
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
     ) {
         ROWS.forEach { row ->

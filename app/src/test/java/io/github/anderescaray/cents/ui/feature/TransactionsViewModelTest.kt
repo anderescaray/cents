@@ -76,15 +76,25 @@ class TransactionsViewModelTest {
 
     @After
     fun tearDown() {
-        // The view model outlives its test unless it is told not to. `uiState` is shared
-        // with `WhileSubscribed(5s)`, so the Room query behind it stays subscribed after
-        // Turbine lets go, and every test in the class would otherwise leave one running
-        // against a database that is about to be closed — several of them by the end,
-        // competing for the same executor as the test still running. Cancelling first is
-        // what `onCleared` does on the phone.
-        viewModel.viewModelScope.cancel()
-        database.close()
-        Dispatchers.resetMain()
+        try {
+            // The view model outlives its test unless it is told not to. `uiState` is
+            // shared with `WhileSubscribed(5s)`, so the Room query behind it stays
+            // subscribed after Turbine lets go, and every test in the class would
+            // otherwise leave one running against a database that is about to be closed —
+            // several of them by the end, competing for the same executor as the test
+            // still running. Cancelling first is what `onCleared` does on the phone.
+            //
+            // Both handles are `lateinit`: a `setUp` that dies part-way leaves them unset,
+            // and reading one would throw on the way down.
+            if (::viewModel.isInitialized) viewModel.viewModelScope.cancel()
+            if (::database.isInitialized) database.close()
+        } finally {
+            // Unconditionally, and last. Anything that escapes this method leaves
+            // `Dispatchers.Main` overridden for the rest of the JVM, and the next class to
+            // call `setMain` dies on it rather than on anything of its own — one failed
+            // teardown here takes down every class that runs after it.
+            Dispatchers.resetMain()
+        }
     }
 
     private suspend fun movement(

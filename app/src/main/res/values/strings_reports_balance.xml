@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The balance-over-time view's own strings.
+
+    A file of its own rather than more lines in strings.xml: that file is being edited on two
+    other branches right now, and a resource file per view is one more thing a new view adds
+    instead of a place three of them collide. Android merges every file under values/ into the
+    same resource table, so nothing about how these are used changes.
+-->
+<resources>
+    <string name="reports_balance_header">Balance over time</string>
+    <string name="reports_balance_empty">Nothing moved in this period.</string>
+    <string name="reports_balance_opening">Started with</string>
+    <string name="reports_balance_closing">Ended with</string>
+    <string name="reports_balance_change">Change</string>
+</resources>

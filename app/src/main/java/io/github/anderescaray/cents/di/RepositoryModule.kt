@@ -7,12 +7,16 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
-import io.github.anderescaray.cents.data.repository.RoomReportsRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomBalanceOverTimeRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomMonthlyFlowRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
-import io.github.anderescaray.cents.domain.repository.ReportsRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
+import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
+import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
+import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
 import java.time.Clock
 import javax.inject.Singleton
 
@@ -28,8 +32,16 @@ abstract class RepositoryModule {
     @Binds
     abstract fun bindTransactionRepository(impl: RoomTransactionRepository): TransactionRepository
 
+    // One binding per view on the Reports tab: a new view adds one line here, and that is
+    // the whole of its footprint on this file. See ui/feature/reports/ReportSection.kt.
     @Binds
-    abstract fun bindReportsRepository(impl: RoomReportsRepository): ReportsRepository
+    abstract fun bindSpendingByCategoryRepository(impl: RoomSpendingByCategoryRepository): SpendingByCategoryRepository
+
+    @Binds
+    abstract fun bindMonthlyFlowRepository(impl: RoomMonthlyFlowRepository): MonthlyFlowRepository
+
+    @Binds
+    abstract fun bindBalanceOverTimeRepository(impl: RoomBalanceOverTimeRepository): BalanceOverTimeRepository
 
     companion object {
         /**

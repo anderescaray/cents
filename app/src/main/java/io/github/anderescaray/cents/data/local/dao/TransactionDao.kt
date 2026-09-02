@@ -218,6 +218,82 @@ interface TransactionDao {
         to: LocalDate,
     ): Flow<List<MonthTotals>>
 
+    /**
+     * The money there was before a period started: the balance the line begins from.
+     *
+     * It is the same arithmetic as `AccountDao.observeBalances`, summed across every account
+     * instead of grouped by one — opening balances plus every movement, income adding and
+     * expense subtracting — but cut off at [from]. Starting the cumulative line anywhere else
+     * would make it disagree with the number the Accounts tab shows for the same money.
+     *
+     * **Archived accounts count.** Archiving means "stop offering it", not "the money left",
+     * and the two charts beside this one already count an archived account's movements. The
+     * one legitimate difference from the Accounts tab total, which sums only active accounts,
+     * is an archived account that still holds a balance.
+     *
+     * Two scalar sub-selects rather than a join: an account with no movements must still
+     * contribute its opening balance, and a `LEFT JOIN` filtered on the transaction's date
+     * gets that wrong in a way that is easy to write and hard to see.
+     */
+    @Query(
+        """
+        SELECT (
+                   SELECT COALESCE(SUM(a.openingBalanceMinor), 0) FROM accounts a
+               ) + (
+                   SELECT COALESCE(
+                       SUM(
+                           CASE t.kind
+                               WHEN 'INCOME' THEN t.amountMinor
+                               WHEN 'EXPENSE' THEN -t.amountMinor
+                               ELSE 0
+                           END
+                       ),
+                       0
+                   )
+                   FROM transactions t
+                   WHERE t.date < :from
+               )
+        """,
+    )
+    fun observeBalanceBefore(from: LocalDate): Flow<Long>
+
+    /**
+     * What each day of a period did to the balance, summed in SQL.
+     *
+     * This is the balance line. Only days that have movements come back — a running total
+     * changes on the days something happened, and the flat stretches between them are filled
+     * in the repository, where the cost is the length of the period rather than the number of
+     * movements ever recorded (`CLAUDE.md` §5).
+     *
+     * [DayNet.netMinor] is signed, because a cumulative balance adds and subtracts rather
+     * than carrying two columns; [DayNet.movementCount] is what tells an empty period apart
+     * from a period whose income and expenses happened to cancel out exactly.
+     */
+    @Query(
+        """
+        SELECT t.date AS date,
+               COALESCE(
+                   SUM(
+                       CASE t.kind
+                           WHEN 'INCOME' THEN t.amountMinor
+                           WHEN 'EXPENSE' THEN -t.amountMinor
+                           ELSE 0
+                       END
+                   ),
+                   0
+               ) AS netMinor,
+               COUNT(*) AS movementCount
+        FROM transactions t
+        WHERE t.date BETWEEN :from AND :to
+        GROUP BY t.date
+        ORDER BY t.date
+        """,
+    )
+    fun observeDailyNet(
+        from: LocalDate,
+        to: LocalDate,
+    ): Flow<List<DayNet>>
+
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
 
@@ -281,4 +357,14 @@ data class MonthTotals(
     val month: String,
     val incomeMinor: Long,
     val expenseMinor: Long,
+)
+
+/**
+ * One day's effect on the balance: [netMinor] is signed, income positive and expense
+ * negative. [movementCount] separates "nothing happened" from "it cancelled out".
+ */
+data class DayNet(
+    val date: LocalDate,
+    val netMinor: Long,
+    val movementCount: Int,
 )

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reports_balance_header">Evolución del saldo</string>
+    <string name="reports_balance_empty">No se movió nada en este periodo.</string>
+    <string name="reports_balance_opening">Empezaste con</string>
+    <string name="reports_balance_closing">Terminaste con</string>
+    <string name="reports_balance_change">Cambio</string>
+</resources>

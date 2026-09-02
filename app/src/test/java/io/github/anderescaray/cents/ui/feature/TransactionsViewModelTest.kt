@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
@@ -17,6 +18,7 @@ import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -74,8 +76,25 @@ class TransactionsViewModelTest {
 
     @After
     fun tearDown() {
-        database.close()
-        Dispatchers.resetMain()
+        try {
+            // The view model outlives its test unless it is told not to. `uiState` is
+            // shared with `WhileSubscribed(5s)`, so the Room query behind it stays
+            // subscribed after Turbine lets go, and every test in the class would
+            // otherwise leave one running against a database that is about to be closed —
+            // several of them by the end, competing for the same executor as the test
+            // still running. Cancelling first is what `onCleared` does on the phone.
+            //
+            // Both handles are `lateinit`: a `setUp` that dies part-way leaves them unset,
+            // and reading one would throw on the way down.
+            if (::viewModel.isInitialized) viewModel.viewModelScope.cancel()
+            if (::database.isInitialized) database.close()
+        } finally {
+            // Unconditionally, and last. Anything that escapes this method leaves
+            // `Dispatchers.Main` overridden for the rest of the JVM, and the next class to
+            // call `setMain` dies on it rather than on anything of its own — one failed
+            // teardown here takes down every class that runs after it.
+            Dispatchers.resetMain()
+        }
     }
 
     private suspend fun movement(
@@ -216,6 +235,33 @@ class TransactionsViewModelTest {
             }
         }
 
+    /**
+     * What the row on the list itself is wired to. The screen test proves the row is there
+     * only when something is narrowing the list; this proves that taking it puts every
+     * movement back, whichever of the two kinds of narrowing was on.
+     */
+    @Test
+    fun `clearing from the list puts back the movements a form filter was hiding`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking"))
+            movement(accountId = id, date = LocalDate.of(2026, 7, 4), minor = 3_450)
+            movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.size == 2 }
+
+                filters.apply(TransactionFilter(minAmountMinor = 4_000))
+                awaitStateThat { it.isNarrowed && it.days.size == 1 }
+
+                viewModel.clearFilter()
+
+                val restored = awaitStateThat { it.days.size == 2 }
+                assertEquals(TransactionFilter.None, restored.filter)
+                assertEquals(false, restored.isNarrowed)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     @Test
     fun `the search field is part of the filter, and clearing takes it with everything else`() =
         runTest {
@@ -228,8 +274,16 @@ class TransactionsViewModelTest {
                 viewModel.setQuery("nothing like this")
                 // The field shows what was typed straight away; the filter catches up once
                 // the typing pauses. A field fed from the applied filter drops characters.
-                assertEquals("nothing like this", awaitStateThat { it.query.isNotEmpty() }.query)
-                awaitStateThat { it.isNarrowed && it.days.isEmpty() }
+                val typed = awaitStateThat { it.query == "nothing like this" }
+                // Whether the narrowing arrives in that same emission or in a later one is
+                // scheduling rather than behaviour: the query goes through a debounce and
+                // the rows come back from Room on its own executor. Demanding a *second*
+                // emission is what made this time out on a loaded CI machine, so what is
+                // waited for is the state, and only if it is not already in hand.
+                val narrowed =
+                    typed.takeIf { it.isNarrowed && it.days.isEmpty() }
+                        ?: awaitStateThat { it.isNarrowed && it.days.isEmpty() }
+                assertEquals("nothing like this", narrowed.filter.query)
 
                 viewModel.clearFilter()
                 val restored = awaitStateThat { it.days.isNotEmpty() }

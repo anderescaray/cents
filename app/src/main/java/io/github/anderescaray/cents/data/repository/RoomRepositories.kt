@@ -10,26 +10,20 @@ import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategoryKind
-import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.Money
-import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodSummary
-import io.github.anderescaray.cents.domain.model.ReportPeriod
-import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
-import io.github.anderescaray.cents.domain.repository.ReportsRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.time.LocalDate
-import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -218,84 +212,6 @@ class RoomTransactionRepository
             transactionDao.deleteById(id)
         }
     }
-
-/**
- * The charts, aggregated by SQLite.
- *
- * There is no loop over transactions anywhere below. What Kotlin does here is turn totals
- * into [Money], work out each slice's share of one total it already has, and walk the
- * *months* of the range to fill the empty ones — all bounded by the size of the answer
- * rather than by how many movements the app has ever recorded.
- */
-@Singleton
-class RoomReportsRepository
-    @Inject
-    constructor(
-        private val transactionDao: TransactionDao,
-    ) : ReportsRepository {
-        override fun observeSpendingByCategory(
-            period: ReportPeriod,
-            currency: String,
-            kind: TransactionKind,
-        ): Flow<SpendingBreakdown> =
-            transactionDao
-                .observeTotalsByCategory(kind, period.from, period.to)
-                .map { rows ->
-                    val totalMinor = rows.sumOf { it.totalMinor }
-                    SpendingBreakdown(
-                        period = period,
-                        slices =
-                            rows.map { row ->
-                                CategorySpending(
-                                    categoryId = row.categoryId,
-                                    name = row.categoryName,
-                                    colorArgb = row.categoryColorArgb,
-                                    total = Money(row.totalMinor, currency),
-                                    transactionCount = row.transactionCount,
-                                    // A zero total means there are no rows at all, so this
-                                    // branch never divides an existing slice by zero.
-                                    share = if (totalMinor == 0L) 0f else row.totalMinor.toFloat() / totalMinor,
-                                )
-                            },
-                        total = Money(totalMinor, currency),
-                        kind = kind,
-                    )
-                }
-
-        override fun observeMonthlyFlow(
-            period: ReportPeriod,
-            currency: String,
-        ): Flow<List<MonthlyFlow>> =
-            transactionDao
-                .observeMonthlyTotals(period.from, period.to)
-                .map { rows ->
-                    val byMonth = rows.associateBy { YearMonth.parse(it.month) }
-                    monthsIn(period).map { month ->
-                        val totals = byMonth[month]
-                        MonthlyFlow(
-                            month = month,
-                            summary =
-                                PeriodSummary(
-                                    income = Money(totals?.incomeMinor ?: 0, currency),
-                                    expenses = Money(totals?.expenseMinor ?: 0, currency),
-                                ),
-                        )
-                    }
-                }
-    }
-
-/**
- * Every calendar month the period touches, in order and including partial ones at either
- * end. A range of a single day is one month, not zero.
- */
-private fun monthsIn(period: ReportPeriod): List<YearMonth> {
-    val first = YearMonth.from(period.from)
-    val last = YearMonth.from(period.to)
-    if (last < first) return emptyList()
-    return generateSequence(first) { it.plusMonths(1) }
-        .takeWhile { it <= last }
-        .toList()
-}
 
 /**
  * Turns typed text into a LIKE pattern, or null when there is nothing to search for.

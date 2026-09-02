@@ -1,50 +1,122 @@
-package io.github.anderescaray.cents.ui.feature.reports
+package io.github.anderescaray.cents.ui.feature.reports.section
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
-import com.patrykandpatrick.vico.compose.cartesian.data.columnModel
-import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
-import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.pie.PieChart
 import com.patrykandpatrick.vico.compose.pie.PieChartHost
 import com.patrykandpatrick.vico.compose.pie.PieSize
 import com.patrykandpatrick.vico.compose.pie.data.PieChartModelProducer
 import com.patrykandpatrick.vico.compose.pie.data.pieSeries
 import com.patrykandpatrick.vico.compose.pie.rememberPieChart
+import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
-import io.github.anderescaray.cents.domain.model.MonthlyFlow
+import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
+import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
+import io.github.anderescaray.cents.ui.components.CentsListRow
+import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
+import io.github.anderescaray.cents.ui.feature.reports.ReportActions
+import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
+import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
+import io.github.anderescaray.cents.ui.feature.reports.Swatch
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.math.atan2
 import kotlin.math.hypot
+
+/**
+ * Where the money went, as a ring with the categories it is made of listed under it.
+ *
+ * One of the two views the tab started with, moved into a section and otherwise unchanged.
+ * Everything it needs is in this file: the state, the source that fills it, the chart and the
+ * row it draws. That is the shape a new view copies.
+ */
+data class SpendingSection(
+    val breakdown: SpendingBreakdown,
+) : ReportSectionState {
+    override val key: String get() = KEY
+
+    @Composable
+    override fun Content(actions: ReportActions) {
+        CentsListSection(header = stringResource(R.string.reports_spending_header)) {
+            if (breakdown.isEmpty) {
+                EmptyChart(stringResource(R.string.reports_spending_empty))
+            } else {
+                Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
+                    SpendingDonut(breakdown) { actions.onDrillDown(breakdown.filterFor(it)) }
+                }
+                CentsListRow(
+                    title = stringResource(R.string.reports_spending_total),
+                    value = MoneyFormatter.format(breakdown.total),
+                )
+                breakdown.slices.forEachIndexed { index, slice ->
+                    CategoryRow(
+                        slice = slice,
+                        last = index == breakdown.slices.lastIndex,
+                        onClick = { actions.onDrillDown(breakdown.filterFor(slice)) },
+                    )
+                }
+            }
+        }
+    }
+
+    companion object {
+        const val KEY = "spending"
+    }
+}
+
+@Singleton
+class SpendingSectionSource
+    @Inject
+    constructor(
+        private val repository: SpendingByCategoryRepository,
+    ) : ReportSectionSource {
+        override fun observe(
+            period: ReportPeriod,
+            currency: String,
+        ): Flow<ReportSectionState> = repository.observeSpendingByCategory(period, currency).map(::SpendingSection)
+    }
+
+/**
+ * The legend *is* the list. Each row already has to carry the name, the amount and the
+ * share, so putting the swatch on that row means one place to read rather than a key beside
+ * the chart to match colours up against.
+ */
+@Composable
+private fun CategoryRow(
+    slice: CategorySpending,
+    last: Boolean,
+    onClick: () -> Unit,
+) {
+    CentsListRow(
+        title = slice.name ?: stringResource(R.string.reports_uncategorized),
+        subtitle = stringResource(R.string.reports_share, (slice.share * PERCENT).toInt()),
+        value = MoneyFormatter.format(slice.total),
+        leading = { Swatch(slice.colorArgb?.let { Color(it) } ?: CentsTheme.colors.tertiaryLabel) },
+        showChevron = true,
+        showSeparator = !last,
+        onClick = onClick,
+    )
+}
 
 /**
  * Spending by category, as a ring.
@@ -56,7 +128,7 @@ import kotlin.math.hypot
  * absence rather than as one more category.
  */
 @Composable
-fun SpendingDonut(
+internal fun SpendingDonut(
     breakdown: SpendingBreakdown,
     modifier: Modifier = Modifier,
     onSliceClick: (CategorySpending) -> Unit = {},
@@ -116,9 +188,9 @@ fun SpendingDonut(
  *
  * Vico draws the pie but hands back no hit testing, so this reconstructs the geometry it
  * used: [PieSize.Outer.Fill] means a circle centred in the box with the smaller side as its
- * diameter, and slices are laid out clockwise from twelve o'clock — the -90° start angle.
- * Nothing shrinks that circle here, because these slices carry no labels and no offset from
- * the centre, which are the two things Vico insets the radius for.
+ * diameter, and slices are laid out clockwise from twelve o'clock — the minus-ninety-degree
+ * start angle. Nothing shrinks that circle here, because these slices carry no labels and no
+ * offset from the centre, which are the two things Vico insets the radius for.
  *
  * [holeDiameter] is passed in pixels rather than assumed, because Vico takes the hole as an
  * absolute size: on a screen narrower than the ring is tall, the ring shrinks and the hole
@@ -154,109 +226,10 @@ internal fun SpendingBreakdown.sliceAt(
     return slices.getOrNull(if (index >= 0) index else slices.lastIndex)
 }
 
-/**
- * Income against expenses, one pair of columns per month.
- *
- * Green for money in and red for money out, from the same two tokens the transaction list
- * uses for amounts, so a colour means the same thing on both screens. Vico's own theme is
- * overridden rather than themed: its defaults come from Material, and a purple column would
- * be exactly the "accent that came from nowhere" ADR 0001 rules out.
- */
-@Composable
-fun MonthlyFlowChart(
-    months: List<MonthlyFlow>,
-    modifier: Modifier = Modifier,
-) {
-    val positive = CentsTheme.colors.positive
-    val destructive = CentsTheme.colors.destructive
-    val labelColor = CentsTheme.colors.secondaryLabel
-    val producer = remember { CartesianChartModelProducer() }
-
-    LaunchedEffect(months) {
-        if (months.isEmpty()) return@LaunchedEffect
-        producer.runTransaction {
-            columnModel {
-                series(months.map { it.summary.income.minorUnits })
-                series(months.map { it.summary.expenses.minorUnits })
-            }
-        }
-    }
-
-    if (months.isEmpty()) return
-
-    val labels =
-        remember(months) {
-            val formatter = DateTimeFormatter.ofPattern(MONTH_LABEL_PATTERN, Locale.getDefault())
-            months.map { it.month.atDay(1).format(formatter) }
-        }
-    val labelStyle = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)
-
-    CartesianChartHost(
-        chart =
-            rememberCartesianChart(
-                rememberColumnCartesianLayer(
-                    columnProvider =
-                        ColumnCartesianLayer.ColumnProvider.series(
-                            rememberLineComponent(Fill(positive), COLUMN_WIDTH),
-                            rememberLineComponent(Fill(destructive), COLUMN_WIDTH),
-                        ),
-                ),
-                startAxis =
-                    VerticalAxis.rememberStart(
-                        label = rememberAxisLabelComponent(style = labelStyle),
-                        // Minor units on an axis would read as a hundred times the money.
-                        valueFormatter =
-                            CartesianValueFormatter { _, value, _ ->
-                                (value / MINOR_UNITS_PER_UNIT).toLong().toString()
-                            },
-                    ),
-                bottomAxis =
-                    HorizontalAxis.rememberBottom(
-                        label = rememberAxisLabelComponent(style = labelStyle),
-                        valueFormatter =
-                            CartesianValueFormatter { _, value, _ ->
-                                labels.getOrElse(value.toInt()) { "" }
-                            },
-                    ),
-            ),
-        modelProducer = producer,
-        modifier = modifier.fillMaxWidth().height(COLUMN_CHART_HEIGHT),
-    )
-}
-
-/** What a chart says when the period it was given holds nothing. */
-@Composable
-fun EmptyChart(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier.fillMaxWidth().height(EMPTY_HEIGHT),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = message,
-            style = CentsTheme.typography.subhead,
-            color = CentsTheme.colors.secondaryLabel,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = CentsDimens.spacingL),
-        )
-    }
-}
-
 private val DONUT_HEIGHT = 220.dp
 private val DONUT_HOLE = 104.dp
+private val SLICE_SPACING = 2.dp
 
 private const val QUARTER_TURN = 90f
 private const val FULL_TURN = 360f
-private val SLICE_SPACING = 2.dp
-private val COLUMN_CHART_HEIGHT = 180.dp
-private val COLUMN_WIDTH = 10.dp
-private val EMPTY_HEIGHT = 120.dp
-private val AXIS_LABEL_SIZE = 11.sp
-
-/** Three-letter month names: "Aug", "Ago" — whatever the device locale calls it. */
-private const val MONTH_LABEL_PATTERN = "LLL"
-
-/** Cents stores money in minor units; an axis is labelled in whole ones. */
-private const val MINOR_UNITS_PER_UNIT = 100.0
+private const val PERCENT = 100

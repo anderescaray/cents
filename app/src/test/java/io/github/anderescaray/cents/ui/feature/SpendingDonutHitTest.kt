@@ -5,7 +5,7 @@ import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
-import io.github.anderescaray.cents.ui.feature.reports.sliceAt
+import io.github.anderescaray.cents.ui.feature.reports.section.sliceAt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

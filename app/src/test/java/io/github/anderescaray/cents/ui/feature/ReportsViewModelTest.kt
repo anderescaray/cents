@@ -7,13 +7,16 @@ import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
-import io.github.anderescaray.cents.data.repository.RoomReportsRepository
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.reports.PeriodPreset
+import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
 import io.github.anderescaray.cents.ui.feature.reports.ReportsViewModel
 import io.github.anderescaray.cents.ui.feature.reports.periodFor
+import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSection
+import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
+import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,7 +53,7 @@ class ReportsViewModelTest {
         database = createTestDatabase()
         viewModel =
             ReportsViewModel(
-                RoomReportsRepository(database.transactionDao()),
+                reportSections(database),
                 RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                 TransactionFilterStore(),
                 clock,
@@ -94,12 +97,27 @@ class ReportsViewModelTest {
         }
 
     @Test
+    fun `every registered view arrives, in the order the tab lists them`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.sections.isNotEmpty() }
+
+                // The screen renders whatever is here; nothing in the view model names a
+                // chart. This is the assertion a fourth view updates, and the only one.
+                assertEquals(listOf("spending", "flow", "balance"), state.sections.map { it.key })
+            }
+        }
+
+    @Test
     fun `no accounts is a different screen from an empty period`() =
         runTest {
             viewModel.uiState.test {
                 val state = awaitStateThat { !it.isLoading }
 
                 assertTrue(state.hasNoAccounts)
+                assertTrue(state.sections.isEmpty())
             }
         }
 
@@ -124,6 +142,31 @@ class ReportsViewModelTest {
                 val year = awaitStateThat { it.preset == PeriodPreset.YEAR && it.spending != null }
                 assertEquals(Money(54_000, "EUR"), year.spending?.total)
                 assertEquals(ReportPeriod.Year(2026), year.period)
+            }
+        }
+
+    @Test
+    fun `changing the period moves every view at once`() =
+        runTest {
+            val accountId = database.accountDao().insert(account(openingBalanceMinor = 10_000))
+            database.transactionDao().insert(
+                transaction(accountId, amountMinor = 4_000, date = LocalDate.of(2026, 3, 4)),
+            )
+
+            viewModel.uiState.test {
+                // August: March is behind the period, so the line starts already reduced by
+                // it and the donut shows nothing at all.
+                val month = awaitStateThat { it.sections.isNotEmpty() }
+                assertEquals(true, month.spending?.isEmpty)
+                assertEquals(Money(6_000, "EUR"), month.balance?.opening)
+
+                viewModel.selectPreset(PeriodPreset.YEAR)
+
+                val year = awaitStateThat { it.preset == PeriodPreset.YEAR && it.balance?.isEmpty == false }
+                // The same movement, now inside the period on both charts at once.
+                assertEquals(Money(4_000, "EUR"), year.spending?.total)
+                assertEquals(Money(10_000, "EUR"), year.balance?.opening)
+                assertEquals(Money(6_000, "EUR"), year.balance?.closing)
             }
         }
 
@@ -162,6 +205,9 @@ class ReportsViewModelTest {
                 assertEquals(LocalDate.of(2026, 8, 1), state.customFrom)
                 assertEquals(LocalDate.of(2026, 8, 31), state.customTo)
                 assertEquals(Money(2_500, "EUR"), state.spending?.total)
+                // Straightened before the balance line sees it, so it draws a month of days
+                // rather than nothing at all.
+                assertEquals(AUGUST_DAYS, state.balance?.points?.size)
             }
         }
 
@@ -182,10 +228,11 @@ class ReportsViewModelTest {
                 awaitStateThat { !it.isLoading }
                 viewModel.selectPreset(PeriodPreset.YEAR)
 
-                val year = awaitStateThat { it.preset == PeriodPreset.YEAR && it.monthlyFlow.size > 1 }
-                assertEquals(MONTHS_IN_YEAR, year.monthlyFlow.size)
-                assertEquals(Money(200_000, "EUR"), year.monthlyFlow[1].summary.income)
-                assertTrue(year.monthlyFlow.first().isEmpty)
+                val year = awaitStateThat { it.preset == PeriodPreset.YEAR && (it.monthlyFlow?.size ?: 0) > 1 }
+                val months = requireNotNull(year.monthlyFlow)
+                assertEquals(MONTHS_IN_YEAR, months.size)
+                assertEquals(Money(200_000, "EUR"), months[1].summary.income)
+                assertTrue(months.first().isEmpty)
             }
         }
 
@@ -205,5 +252,12 @@ class ReportsViewModelTest {
 
     private companion object {
         const val MONTHS_IN_YEAR = 12
+        const val AUGUST_DAYS = 31
     }
 }
+
+private val ReportsUiState.spending get() = section<SpendingSection>()?.breakdown
+
+private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.months
+
+private val ReportsUiState.balance get() = section<BalanceOverTimeSection>()?.balance

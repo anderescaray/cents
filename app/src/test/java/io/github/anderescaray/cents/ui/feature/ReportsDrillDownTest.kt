@@ -6,13 +6,13 @@ import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
-import io.github.anderescaray.cents.data.repository.RoomReportsRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.domain.model.CategoryFilter
-import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.reports.ReportsViewModel
+import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,7 +23,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -38,6 +37,11 @@ import java.time.ZoneOffset
  * Tapping a slice hands the transaction list the filter that slice is made of. What is being
  * checked here is that the list would show *exactly* the movements the chart added up —
  * every one of these assertions is a way the two could quietly disagree.
+ *
+ * The filter is now built by the section rather than by the view model, which is what lets a
+ * view drill down on something that is not a category at all. The view model applies whatever
+ * it is handed and never learns what was tapped, so these tests go through
+ * [SpendingBreakdown.filterFor] on the way in, exactly as the section does.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -57,7 +61,7 @@ class ReportsDrillDownTest {
         transactions = RoomTransactionRepository(database.transactionDao(), clock)
         viewModel =
             ReportsViewModel(
-                RoomReportsRepository(database.transactionDao()),
+                reportSections(database),
                 RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                 filters,
                 clock,
@@ -96,7 +100,7 @@ class ReportsDrillDownTest {
             val breakdown = awaitSpending()
             val slice = breakdown.slices.single { it.name == "Groceries" }
 
-            viewModel.drillDown(slice)
+            viewModel.drillDown(breakdown.filterFor(slice))
 
             val matched = transactions.observeTransactions(filters.filter.value).first()
             assertEquals(2, matched.size)
@@ -120,7 +124,7 @@ class ReportsDrillDownTest {
             val breakdown = awaitSpending()
             val unnamed = breakdown.slices.single { it.categoryId == null }
 
-            viewModel.drillDown(unnamed)
+            viewModel.drillDown(breakdown.filterFor(unnamed))
 
             // `categoryId = null` already means "never classified", so the filter has to say
             // Uncategorized rather than leaving the category unset, which means "any".
@@ -141,10 +145,10 @@ class ReportsDrillDownTest {
             filters.setQuery("something typed ages ago")
             val breakdown = awaitSpending()
 
-            viewModel.drillDown(breakdown.slices.first())
+            viewModel.drillDown(breakdown.filterFor(breakdown.slices.first()))
 
             // The row promises the movements behind the slice; a stale search word would
-            // narrow that further with nothing on the chart saying so.
+            // narrow that promise further with nothing on the chart saying so.
             assertEquals("", filters.filter.value.query)
         }
 
@@ -156,7 +160,7 @@ class ReportsDrillDownTest {
             database.transactionDao().insert(transaction(accountId, groceries, amountMinor = 1_000))
             val breakdown = awaitSpending()
 
-            viewModel.drillDown(breakdown.slices.first())
+            viewModel.drillDown(breakdown.filterFor(breakdown.slices.first()))
 
             val filter = filters.filter.value
             assertEquals(LocalDate.of(2026, 8, 1), filter.from)
@@ -165,24 +169,10 @@ class ReportsDrillDownTest {
             assertTrue(filter.isNarrowed)
         }
 
-    @Test
-    fun `a tap before anything has loaded leaves the list showing everything`() =
-        runTest {
-            database.accountDao().insert(account())
-
-            viewModel.drillDown(
-                CategorySpending(
-                    categoryId = 99,
-                    name = "Gone",
-                    colorArgb = null,
-                    total = Money(1, "EUR"),
-                    transactionCount = 1,
-                    share = 1f,
-                ),
-            )
-
-            assertFalse(filters.filter.value.isNarrowed)
-        }
-
-    private suspend fun awaitSpending() = requireNotNull(viewModel.uiState.first { it.spending != null }.spending)
+    private suspend fun awaitSpending(): SpendingBreakdown =
+        requireNotNull(
+            viewModel.uiState
+                .first { it.section<SpendingSection>() != null }
+                .section<SpendingSection>(),
+        ).breakdown
 }

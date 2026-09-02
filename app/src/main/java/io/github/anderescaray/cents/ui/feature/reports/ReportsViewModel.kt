@@ -3,12 +3,9 @@ package io.github.anderescaray.cents.ui.feature.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.anderescaray.cents.domain.model.CategorySpending
-import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.ReportPeriod
-import io.github.anderescaray.cents.domain.model.SpendingBreakdown
+import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.repository.AccountRepository
-import io.github.anderescaray.cents.domain.repository.ReportsRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import java.time.Clock
@@ -40,13 +36,17 @@ enum class PeriodPreset {
     CUSTOM,
 }
 
+/**
+ * What the Reports tab is showing.
+ *
+ * Note what is *not* here: a field per chart. [sections] is whatever [ReportSections] was
+ * built with, in that order, each one already reduced to the thing it draws — so adding a
+ * fourth view changes this class not at all.
+ */
 data class ReportsUiState(
     val preset: PeriodPreset = PeriodPreset.MONTH,
     val period: ReportPeriod = ReportPeriod.Month(YearMonth.now()),
-    /** Where the money went, largest slice first. Null while the first read is in flight. */
-    val spending: SpendingBreakdown? = null,
-    /** Income against expenses, one entry per month of [period], empty months included. */
-    val monthlyFlow: List<MonthlyFlow> = emptyList(),
+    val sections: List<ReportSectionState> = emptyList(),
     val isLoading: Boolean = true,
     /**
      * True when the app has no accounts at all, which is a different screen from a period
@@ -58,20 +58,23 @@ data class ReportsUiState(
     val customFrom: LocalDate get() = period.from
 
     val customTo: LocalDate get() = period.to
+
+    /** The one section of a given kind, for the screens and the tests that want just one. */
+    inline fun <reified T : ReportSectionState> section(): T? = sections.filterIsInstance<T>().firstOrNull()
 }
 
 /**
  * The Reports tab, reading the database instead of inventing content.
  *
- * Nothing here adds up transactions. Both flows come from `GROUP BY` queries and arrive as
- * totals; the view model's job is to decide *which period* is being asked about and to
- * re-ask when that changes.
+ * Nothing here adds up transactions, and nothing here knows what any chart is. Its two jobs
+ * are deciding *which period* is being asked about and re-asking every section when that
+ * changes; the sections come from [ReportSections] and answer for themselves.
  */
 @HiltViewModel
 class ReportsViewModel
     @Inject
     constructor(
-        private val reportsRepository: ReportsRepository,
+        private val sections: ReportSections,
         accountRepository: AccountRepository,
         private val filters: TransactionFilterStore,
         private val clock: Clock,
@@ -95,19 +98,17 @@ class ReportsViewModel
                             ),
                         )
                     } else {
-                        // Both charts answer questions about the same period, so they are
-                        // combined rather than collected apart: shown separately they can
-                        // disagree for a frame, and a donut for August beside bars ending
-                        // in July is a screen that contradicts itself.
+                        // Every section answers a question about the same period, so they
+                        // are combined rather than collected apart: shown separately they can
+                        // disagree for a frame, and a donut for August beside bars ending in
+                        // July is a screen that contradicts itself.
                         combine(
-                            reportsRepository.observeSpendingByCategory(selected.period, currency),
-                            reportsRepository.observeMonthlyFlow(selected.period, currency),
-                        ) { spending, flow ->
+                            sections.inOrder.map { it.observe(selected.period, currency) },
+                        ) { states ->
                             ReportsUiState(
                                 preset = selected.preset,
                                 period = selected.period,
-                                spending = spending,
-                                monthlyFlow = flow,
+                                sections = states.toList(),
                                 isLoading = false,
                             )
                         }
@@ -143,19 +144,20 @@ class ReportsViewModel
         }
 
         /**
-         * Narrows the transaction list to the movements one slice is made of.
+         * Narrows the transaction list to the movements a section handed over.
          *
          * The list is not handed a copy of anything: it is handed the same filter it would
-         * have got from the filter form, so the drill-down is the feature that already
-         * exists rather than a second filtered screen. The caller navigates afterwards.
+         * have got from the filter form, so the drill-down is the feature that already exists
+         * rather than a second filtered screen. Which movements those are is the section's
+         * business — this method never learns what was tapped. The caller navigates
+         * afterwards.
          *
-         * The search text is cleared along with it. This row promises "the movements behind
-         * this slice", and a word still sitting in the search field from ten minutes ago
+         * The search text is cleared along with it. A drill-down promises "the movements
+         * behind this", and a word still sitting in the search field from ten minutes ago
          * would quietly narrow that promise further with nothing on the chart saying so.
          */
-        fun drillDown(slice: CategorySpending) {
-            val breakdown = uiState.value.spending ?: return
-            filters.apply(breakdown.filterFor(slice), clearQuery = true)
+        fun drillDown(filter: TransactionFilter) {
+            filters.apply(filter, clearQuery = true)
         }
 
         private fun defaultSelection(): Selection {

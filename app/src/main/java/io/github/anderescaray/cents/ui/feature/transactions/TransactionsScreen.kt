@@ -69,8 +69,12 @@ fun TransactionsScreen(
     }
 }
 
+/**
+ * The list itself, given everything it shows. Stateless so a test can put a filtered and an
+ * unfiltered list on screen without a view model behind it.
+ */
 @Composable
-private fun TransactionsList(
+internal fun TransactionsList(
     state: TransactionsUiState,
     onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
@@ -97,7 +101,7 @@ private fun TransactionsList(
         // nothing asked, the month is what the list is about; once something is asked, the
         // answer is what the filter matched, and the month is beside the point.
         if (state.isNarrowed) {
-            matchSummary(state)
+            matchSummary(state, onClearFilter)
         } else {
             state.monthSummary?.let { summary -> monthSummary(summary) }
         }
@@ -155,11 +159,33 @@ private fun LazyListScope.searchField(
     }
 }
 
-/** What the filter matched: how many, and what they come to. */
-private fun LazyListScope.matchSummary(state: TransactionsUiState) {
+/**
+ * What the filter matched: how many, what they come to, and the way back out of it.
+ *
+ * The way out belongs here rather than anywhere else on the list because this section is the
+ * one thing on screen that exists *because* something is filtered — an unfiltered list has no
+ * Matches card at all, so nothing sits here idle. Undoing a filter is the action reached for
+ * most often, and it used to mean opening the form and scrolling to its foot.
+ *
+ * When nothing matched the row stands down: [noMatchesState] is already offering the same
+ * escape directly underneath, and the same row twice reads as two different actions.
+ */
+private fun LazyListScope.matchSummary(
+    state: TransactionsUiState,
+    onClearFilter: () -> Unit,
+) {
     item(key = "matches") {
-        CentsListSection(header = stringResource(R.string.filters_results_header)) {
-            val summary = state.matchSummary
+        val summary = state.matchSummary
+        val offersWayOut = !state.isEmpty
+        CentsListSection(
+            header = stringResource(R.string.filters_results_header),
+            // "Everything" includes the search box, which is on this screen and about to be
+            // emptied in front of the owner. Said out loud only when there is text to lose:
+            // the filters going is the expected part, the typed text going is the surprise.
+            footer =
+                stringResource(R.string.filters_clear_footer)
+                    .takeIf { offersWayOut && state.query.isNotBlank() },
+        ) {
             CentsListRow(
                 title =
                     pluralStringResource(
@@ -175,7 +201,7 @@ private fun LazyListScope.matchSummary(state: TransactionsUiState) {
                     } else {
                         CentsTheme.colors.label
                     },
-                showSeparator = summary != null,
+                showSeparator = summary != null || offersWayOut,
             )
             if (summary != null) {
                 CentsListRow(
@@ -187,7 +213,14 @@ private fun LazyListScope.matchSummary(state: TransactionsUiState) {
                     title = stringResource(R.string.summary_expenses),
                     value = MoneyFormatter.format(summary.expenses),
                     valueColor = CentsTheme.colors.destructive,
-                    showSeparator = false,
+                    showSeparator = offersWayOut,
+                )
+            }
+            if (offersWayOut) {
+                CentsActionRow(
+                    label = stringResource(R.string.filters_show_everything),
+                    onClick = onClearFilter,
+                    modifier = Modifier.testTag(CLEAR_FILTER_TAG),
                 )
             }
         }
@@ -312,3 +345,6 @@ private const val BANNER_RADIUS = 14
 
 internal const val FILTERS_BUTTON_TAG = "openFilters"
 internal const val SHOW_EVERYTHING_TAG = "showEverything"
+
+/** The way out of a filter that lives on the list itself, beside what the filter matched. */
+internal const val CLEAR_FILTER_TAG = "clearFilter"

@@ -10,6 +10,7 @@ import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import java.time.LocalDate
 
@@ -48,15 +49,22 @@ internal fun BoundRow(
     )
 }
 
+/**
+ * One end of the amount range, typed in euros.
+ *
+ * The canonical text is turned into this phone's separator on the way in and left exactly as
+ * typed on the way out: what the field shows is what the owner would write, and what the view
+ * model receives is sanitized there, in one place, alongside the keypad's rules.
+ */
 @Composable
 internal fun AmountField(
-    digits: String,
+    input: String,
     placeholder: String,
     onChange: (String) -> Unit,
     last: Boolean = false,
 ) {
     CentsTextField(
-        value = digits,
+        value = AmountEntry.toTypedText(input),
         onValueChange = onChange,
         placeholder = placeholder,
         numeric = true,

@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,13 +30,13 @@ import javax.inject.Inject
 /**
  * State of the movement form, adding or editing.
  *
- * The amount is held as a string of digits meaning **minor units**: typing 1, 2, 5, 0 means
- * 12,50 €. That is how fast expense entry works on a phone — no decimal point to hit, no
- * locale-dependent parsing, and nothing that can round.
+ * The amount is held as the text being typed, in **euros**: `1` `2` `,` `5` `0` means 12,50 €,
+ * and `1` `2` alone means 12 €. [AmountEntry] owns every rule about what may go into that
+ * string and turns it into the integer number of cents that is actually stored (rule 1).
  */
 data class TransactionFormUiState(
     val kind: TransactionKind = TransactionKind.EXPENSE,
-    val amountDigits: String = "",
+    val amountInput: String = AmountEntry.EMPTY,
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
     val selectedAccountId: Long? = null,
@@ -58,7 +59,7 @@ data class TransactionFormUiState(
 ) {
     val selectedAccount: Account? get() = accounts.firstOrNull { it.id == selectedAccountId }
 
-    val amount: Money get() = Money(amountDigits.toLongOrNull() ?: 0L, currency)
+    val amount: Money get() = Money(AmountEntry.toMinorUnits(amountInput), currency)
 
     /** An amount of zero is not a movement, and every movement needs an account. */
     val canSave: Boolean get() = amount.minorUnits > 0 && selectedAccountId != null && !saving
@@ -143,7 +144,7 @@ class TransactionFormViewModel
                     .copy(
                         isEditing = true,
                         kind = transaction.kind,
-                        amountDigits = transaction.amount.minorUnits.toString(),
+                        amountInput = AmountEntry.fromMinorUnits(transaction.amount.minorUnits),
                         selectedAccountId = transaction.accountId,
                         selectedCategoryId = transaction.categoryId,
                         date = transaction.date,
@@ -187,14 +188,16 @@ class TransactionFormViewModel
 
         fun appendDigit(digit: Char) {
             if (!digit.isDigit()) return
-            form.update { state ->
-                val next = (state.amountDigits + digit).trimStart('0')
-                if (next.length > MAX_DIGITS) state else state.copy(amountDigits = next)
-            }
+            form.update { it.copy(amountInput = AmountEntry.append(it.amountInput, digit)) }
+        }
+
+        /** The comma key. A second one, or a third digit behind it, simply does not go in. */
+        fun appendDecimalSeparator() {
+            form.update { it.copy(amountInput = AmountEntry.append(it.amountInput, AmountEntry.SEPARATOR)) }
         }
 
         fun deleteDigit() {
-            form.update { it.copy(amountDigits = it.amountDigits.dropLast(1)) }
+            form.update { it.copy(amountInput = AmountEntry.delete(it.amountInput)) }
         }
 
         fun setKind(kind: TransactionKind) {
@@ -281,10 +284,6 @@ class TransactionFormViewModel
                     )
                 }
             }
-        }
-
-        private companion object {
-            const val MAX_DIGITS = 12
         }
     }
 

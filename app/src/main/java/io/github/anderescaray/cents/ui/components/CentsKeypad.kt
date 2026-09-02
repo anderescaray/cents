@@ -19,26 +19,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.AmountEntry
 
 /**
  * The numeric keypad for entering an amount.
  *
  * A full-width keypad rather than the system keyboard: entering an expense is the action
- * this app exists for, and the PRD asks for it in under five seconds and three taps. Keys
- * are large, and the digits go straight into minor units.
+ * this app exists for, and the PRD asks for it in under five seconds and three taps.
+ *
+ * The digits are **euros**, and the decimal key is how cents are asked for — `2` `5` is 25 €,
+ * `2` `,` `5` is 2,50 €. The rules that key obeys live in [AmountEntry]; the keypad only
+ * reports which key was pressed.
+ *
+ * The bottom row is separator, zero, delete, which turns the pad into the even three-by-four
+ * grid of the iOS decimal pad — closer to the platform being imitated than the two stretched
+ * keys it replaces.
  */
 @Composable
 fun CentsKeypad(
     onDigit: (Char) -> Unit,
+    onDecimalSeparator: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     deleteLabel: String = "⌫",
+    separatorLabel: String = AmountEntry.separatorFor().toString(),
 ) {
+    val separatorDescription = stringResource(R.string.keypad_decimal_separator)
+    val deleteDescription = stringResource(R.string.keypad_delete)
     Column(
         modifier =
             modifier
@@ -53,9 +67,26 @@ fun CentsKeypad(
             ) {
                 row.forEach { key ->
                     KeypadKey(
-                        label = if (key == DELETE_KEY) deleteLabel else key.toString(),
+                        label =
+                            when (key) {
+                                DELETE_KEY -> deleteLabel
+                                SEPARATOR_KEY -> separatorLabel
+                                else -> key.toString()
+                            },
+                        description =
+                            when (key) {
+                                DELETE_KEY -> deleteDescription
+                                SEPARATOR_KEY -> separatorDescription
+                                else -> key.toString()
+                            },
                         modifier = Modifier.weight(1f),
-                        onClick = { if (key == DELETE_KEY) onDelete() else onDigit(key) },
+                        onClick = {
+                            when (key) {
+                                DELETE_KEY -> onDelete()
+                                SEPARATOR_KEY -> onDecimalSeparator()
+                                else -> onDigit(key)
+                            }
+                        },
                     )
                 }
             }
@@ -66,6 +97,7 @@ fun CentsKeypad(
 @Composable
 private fun KeypadKey(
     label: String,
+    description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,7 +115,7 @@ private fun KeypadKey(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = onClick,
-                ).semantics { contentDescription = label },
+                ).semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -95,6 +127,10 @@ private fun KeypadKey(
 }
 
 private const val DELETE_KEY = '⌫'
+
+/** The canonical separator stands for the key; what it *says* is the locale's business. */
+private const val SEPARATOR_KEY = AmountEntry.SEPARATOR
+
 private const val KEY_HEIGHT = 52
 
 private val ROWS =
@@ -102,5 +138,5 @@ private val ROWS =
         listOf('1', '2', '3'),
         listOf('4', '5', '6'),
         listOf('7', '8', '9'),
-        listOf('0', DELETE_KEY),
+        listOf(SEPARATOR_KEY, '0', DELETE_KEY),
     )

@@ -39,7 +39,11 @@ fun CentsTextField(
     placeholder: String,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
-    /** Digits only, with the number pad to type them: an amount, never a sentence. */
+    /**
+     * An amount, never a sentence: the decimal pad to type it, and nothing but digits and a
+     * decimal separator allowed through. What may follow that separator is the caller's
+     * business — see [io.github.anderescaray.cents.ui.util.AmountEntry].
+     */
     numeric: Boolean = false,
     /** Set when another row follows inside the same section, as [CentsListRow] does. */
     showSeparator: Boolean = false,
@@ -108,9 +112,12 @@ private fun Field(
 ) {
     BasicTextField(
         value = value,
-        // Filtered here rather than trusted to the keyboard: a number pad still pastes, and
-        // a physical keyboard types whatever it likes.
-        onValueChange = { typed -> onValueChange(if (numeric) typed.filter { it.isDigit() } else typed) },
+        // Filtered here rather than trusted to the keyboard: a decimal pad still pastes, and
+        // a physical keyboard types whatever it likes. Both separators come through, because
+        // which one a keyboard offers does not always follow the locale.
+        onValueChange = { typed ->
+            onValueChange(if (numeric) typed.filter { it.isDigit() || it in NUMERIC_SEPARATORS } else typed)
+        },
         singleLine = true,
         textStyle = CentsTheme.typography.body.copy(color = CentsTheme.colors.label),
         cursorBrush = SolidColor(accent),
@@ -118,7 +125,7 @@ private fun Field(
             KeyboardOptions(
                 capitalization =
                     if (numeric) KeyboardCapitalization.None else KeyboardCapitalization.Sentences,
-                keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text,
+                keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text,
                 imeAction = ImeAction.Done,
             ),
         // The caller's modifier lands on the field itself, which is the node that carries
@@ -131,3 +138,6 @@ private fun Field(
 }
 
 private const val SELECTION_ALPHA = 0.3f
+
+/** Both, so a keyboard that offers the "wrong" one for the locale is not a dead key. */
+private const val NUMERIC_SEPARATORS = ".,"

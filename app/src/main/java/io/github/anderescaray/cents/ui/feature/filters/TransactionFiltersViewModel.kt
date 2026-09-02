@@ -11,6 +11,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
+import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,16 @@ data class TransactionFiltersUiState(
      * month walked into the same wall.
      */
     val preset: DateRangePreset = DateRangePreset.ANY,
+    /**
+     * The two amount bounds **as they are being typed**, in euros, held next to the numbers
+     * they parse to rather than derived from them.
+     *
+     * Deriving them back from [TransactionFilter.minAmountMinor] would erase the separator
+     * the instant it was typed — `2,` and `2` are the same 200 cents — so the comma key would
+     * appear broken on the one screen where the owner is watching for it.
+     */
+    val minAmountInput: String = AmountEntry.EMPTY,
+    val maxAmountInput: String = AmountEntry.EMPTY,
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
     /** The one currency the app works in, for saying the amount range back in money. */
@@ -84,7 +95,12 @@ class TransactionFiltersViewModel
         init {
             val current = filters.filter.value
             form.update {
-                it.copy(draft = current, preset = current.presetFor(LocalDate.now(clock)))
+                it.copy(
+                    draft = current,
+                    preset = current.presetFor(LocalDate.now(clock)),
+                    minAmountInput = current.minAmountMinor.asInput(),
+                    maxAmountInput = current.maxAmountMinor.asInput(),
+                )
             }
             viewModelScope.launch {
                 // Archived ones are included: a filter is a question about history, and
@@ -171,10 +187,23 @@ class TransactionFiltersViewModel
             }
         }
 
-        /** Digits are minor units, exactly as they are on the movement keypad (rule 1). */
-        fun setMinAmount(digits: String) = edit { it.copy(minAmountMinor = digits.toMinorUnits()) }
+        /**
+         * Typed in euros with a comma, exactly as on the movement keypad — the same
+         * [AmountEntry] rules, so 25 is 25 € here and 25 € there.
+         */
+        fun setMinAmount(typed: String) {
+            val input = AmountEntry.sanitize(typed)
+            form.update {
+                it.copy(minAmountInput = input, draft = it.draft.copy(minAmountMinor = input.asBound()))
+            }
+        }
 
-        fun setMaxAmount(digits: String) = edit { it.copy(maxAmountMinor = digits.toMinorUnits()) }
+        fun setMaxAmount(typed: String) {
+            val input = AmountEntry.sanitize(typed)
+            form.update {
+                it.copy(maxAmountInput = input, draft = it.draft.copy(maxAmountMinor = input.asBound()))
+            }
+        }
 
         /**
          * Empties the form without leaving it: Apply is still what commits the change.
@@ -184,7 +213,14 @@ class TransactionFiltersViewModel
          */
         fun clear() {
             clearsQuery = true
-            form.update { it.copy(draft = TransactionFilter.None, preset = DateRangePreset.ANY) }
+            form.update {
+                it.copy(
+                    draft = TransactionFilter.None,
+                    preset = DateRangePreset.ANY,
+                    minAmountInput = AmountEntry.EMPTY,
+                    maxAmountInput = AmountEntry.EMPTY,
+                )
+            }
         }
 
         fun apply() = filters.apply(form.value.draft, clearQuery = clearsQuery)
@@ -196,19 +232,26 @@ class TransactionFiltersViewModel
 /**
  * Blank means "no bound", which is not the same number as zero.
  *
- * Capped at [MAX_AMOUNT_DIGITS], the same ceiling the movement keypad uses. Without it, a
- * pasted or held-down run of digits overflows `Long` and `toLongOrNull` returns null — which
- * this function already spends its meaning on, so the bound would silently vanish and the
- * field would blank itself while the owner was still typing.
+ * The digits themselves are already capped by [AmountEntry.sanitize], so a pasted or
+ * held-down run of them cannot overflow `Long` and come back as null — which this function
+ * spends its meaning on, and which would silently drop the bound while the owner was still
+ * typing into the field.
  */
-private fun String.toMinorUnits(): Long? =
-    filter { it.isDigit() }
-        .take(MAX_AMOUNT_DIGITS)
-        .takeIf { it.isNotEmpty() }
-        ?.toLongOrNull()
+private fun String.asBound(): Long? = takeIf { it.isNotEmpty() }?.let(AmountEntry::toMinorUnits)
 
-/** Twelve digits is 10 billion in major units: past any figure this app will ever hold. */
-private const val MAX_AMOUNT_DIGITS = 12
+/**
+ * What the field shows when the form opens on a filter the list already carries.
+ *
+ * Zero is spelled out rather than left to [AmountEntry.fromMinorUnits], which answers "" for
+ * it: an amount of nothing was never typed into a movement, but "at least 0 €" is a bound
+ * somebody did type here, and it must survive the form being reopened.
+ */
+private fun Long?.asInput(): String =
+    when (this) {
+        null -> AmountEntry.EMPTY
+        0L -> "0"
+        else -> AmountEntry.fromMinorUnits(this)
+    }
 
 private fun LocalDate.endOfMonth(): LocalDate = withDayOfMonth(lengthOfMonth())
 

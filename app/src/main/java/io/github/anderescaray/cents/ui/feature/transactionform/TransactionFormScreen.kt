@@ -43,7 +43,7 @@ import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
-import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.relativeLabel
 
 @Composable
@@ -102,6 +102,7 @@ fun TransactionFormScreen(
         if (keypad.isShown) {
             CentsKeypad(
                 onDigit = viewModel::appendDigit,
+                onDecimalSeparator = viewModel::appendDecimalSeparator,
                 onDelete = viewModel::deleteDigit,
                 modifier =
                     Modifier.padding(
@@ -321,7 +322,9 @@ private fun AmountHeader(
     onClick: () -> Unit,
 ) {
     Text(
-        text = MoneyFormatter.format(state.amount),
+        // The entry, not the amount: 25 reads "25 €" and 25, reads "25, €", so the comma key
+        // and the digits behind it are visibly doing something.
+        text = AmountEntry.format(state.amountInput, state.currency),
         style = CentsTheme.typography.largeTitle,
         color =
             if (state.kind == TransactionKind.INCOME) {

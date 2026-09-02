@@ -32,6 +32,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class CategoriesViewModelTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
     private lateinit var viewModel: CategoriesViewModel
 
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
@@ -41,15 +42,21 @@ class CategoriesViewModelTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
         viewModel =
-            CategoriesViewModel(
-                RoomCategoryRepository(database.categoryDao(), database, clock),
+            viewModels.keep(
+                CategoriesViewModel(
+                    RoomCategoryRepository(database.categoryDao(), database, clock),
+                ),
             )
     }
 
     @After
     fun tearDown() {
-        database.close()
-        Dispatchers.resetMain()
+        try {
+            viewModels.cancelAll()
+            if (::database.isInitialized) database.close()
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     @Test

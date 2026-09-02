@@ -37,6 +37,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class TransactionFiltersViewModelTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
     private lateinit var filters: TransactionFilterStore
 
     // A Wednesday in the middle of August, so "this month" and "last month" are unambiguous.
@@ -51,22 +52,28 @@ class TransactionFiltersViewModelTest {
 
     @After
     fun tearDown() {
-        database.close()
-        Dispatchers.resetMain()
+        try {
+            viewModels.cancelAll()
+            if (::database.isInitialized) database.close()
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     private fun viewModel() =
-        TransactionFiltersViewModel(
-            filters = filters,
-            accountRepository =
-                RoomAccountRepository(
-                    database.accountDao(),
-                    database.transactionDao(),
-                    database,
-                    clock,
-                ),
-            categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
-            clock = clock,
+        viewModels.keep(
+            TransactionFiltersViewModel(
+                filters = filters,
+                accountRepository =
+                    RoomAccountRepository(
+                        database.accountDao(),
+                        database.transactionDao(),
+                        database,
+                        clock,
+                    ),
+                categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
+                clock = clock,
+            ),
         )
 
     @Test

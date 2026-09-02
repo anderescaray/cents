@@ -34,6 +34,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class AccountDetailViewModelTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
 
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
 
@@ -45,22 +46,28 @@ class AccountDetailViewModelTest {
 
     @After
     fun tearDown() {
-        database.close()
-        Dispatchers.resetMain()
+        try {
+            viewModels.cancelAll()
+            if (::database.isInitialized) database.close()
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     private fun detailFor(accountId: Long) =
-        AccountDetailViewModel(
-            accountRepository =
-                RoomAccountRepository(
-                    database.accountDao(),
-                    database.transactionDao(),
-                    database,
-                    clock,
-                ),
-            transactionRepository = RoomTransactionRepository(database.transactionDao(), clock),
-            savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
-            clock = clock,
+        viewModels.keep(
+            AccountDetailViewModel(
+                accountRepository =
+                    RoomAccountRepository(
+                        database.accountDao(),
+                        database.transactionDao(),
+                        database,
+                        clock,
+                    ),
+                transactionRepository = RoomTransactionRepository(database.transactionDao(), clock),
+                savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
+                clock = clock,
+            ),
         )
 
     @Test

@@ -47,6 +47,7 @@ import java.time.ZoneOffset
 @RunWith(RobolectricTestRunner::class)
 class ReportsDrillDownTest {
     private lateinit var database: CentsDatabase
+    private val viewModels = ViewModelKeeper()
     private lateinit var viewModel: ReportsViewModel
     private lateinit var filters: TransactionFilterStore
     private lateinit var transactions: RoomTransactionRepository
@@ -60,18 +61,24 @@ class ReportsDrillDownTest {
         filters = TransactionFilterStore()
         transactions = RoomTransactionRepository(database.transactionDao(), clock)
         viewModel =
-            ReportsViewModel(
-                reportSections(database),
-                RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
-                filters,
-                clock,
+            viewModels.keep(
+                ReportsViewModel(
+                    reportSections(database),
+                    RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                    filters,
+                    clock,
+                ),
             )
     }
 
     @After
     fun tearDown() {
-        Dispatchers.resetMain()
-        database.close()
+        try {
+            viewModels.cancelAll()
+            if (::database.isInitialized) database.close()
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     @Test

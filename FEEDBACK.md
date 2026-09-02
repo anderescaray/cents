@@ -26,48 +26,11 @@ and what was actually done — so this file stays short and the history stays so
 
 Two walks. The first was on a Pixel 8 on 2026-08-30, on the branch build `d7a51a3`
 (main + PR #20 + PR #21). The second was on 2026-09-02 on a **HONOR HEY3-W00, Android 16**,
-on `main` at `0aa0e0a` (through PR #26 and #28), after a genuine fresh install — so PR #27's
-euro amounts were not in the build being walked. Everything not listed below passed. Written
-down by the agent from what the owner reported out loud, in English to keep to rule 10 — the
-content is his.
+on `main` at `0aa0e0a` (through PR #26 and #28), after a genuine fresh install. Everything not
+listed below passed. Written down by the agent from what the owner reported out loud, in
+English to keep to rule 10 — the content is his.
 
-### 1. Amounts should be typed in euros, with a comma, not counted up in cents
-
-**Where:** 05 (the movement keypad) and e4 (the amount filter). Both are correct as specified —
-`2` `5` `0` `0` reads 25,00 €, and the filter says its range back in real money.
-**What happened:** every round number costs two extra taps on `0`.
-**What you expected:** typing starts in euros, and a comma is typed only when cents are wanted:
-`2` `5` is 25 €, and `2` `,` `5` is 2,50 €. **After a comma, at most two digits** — a third
-simply does not go in, rather than being accepted and rounded away.
-**How much it matters:** not a bug — a change of convention, and the same one in both places.
-**Status:** fixed on `feat/amounts-in-euros` (PR #27), waiting to be merged.
-
-### 2. Switching tabs backwards still animates forwards
-
-**Where:** the tab bar. Reports → Accounts, and Settings → Reports.
-**What happened:** the new tab slides in from the right, as if you had moved *forward*, even
-though you moved left along the tab bar.
-**What you expected:** moving left along the tabs should slide the other way.
-**Why it happens:** `switchToTab` in `CentsApp.kt` is a `navigate()`, and every `navigate()` is
-a push, so the `NavHost` uses `enterTransition`/`exitTransition` — both `SlideDirection.Start`
-— whatever the direction of travel. Nothing compares the two tabs' positions. The tab order is
-Transactions, Accounts, Reports, Settings (`TopLevelTab`), so the sign is knowable.
-**Worth deciding while fixing it:** iOS itself does not slide between tabs at all — a tab bar
-cuts, and the horizontal push is reserved for pushing *within* a tab. Making the slide
-direction-aware and dropping the slide between tabs entirely are both defensible; the second is
-closer to ADR 0001 and would make this whole class of bug impossible.
-**How much it matters:** it reads as wrong every time, and it is the one animation seen most.
-
-### 3. The keypad and the colour picker run together in the account editor
-
-**Where:** creating a new account.
-**What happened:** the number keypad and the colour swatches sit directly against each other in
-the same colour, so there is no visible line where the keypad ends and the colours begin. They
-do not overlap — it is that nothing separates them.
-**What you expected:** to be able to see where one stops and the other starts.
-**How much it matters:** looks wrong, not broken.
-
-### 4. The donut should be able to show income, not only expenses
+### 1. The donut should be able to show income, not only expenses
 
 **Where:** the Reports tab.
 **What you want:** the same ring, for income as well as spending — where the money came *from*,
@@ -75,7 +38,7 @@ not only where it went.
 **How much it matters:** wanted, not urgent. Not a defect: the ring was only ever specified for
 spending.
 
-### 5. Reports should be filterable by account
+### 2. Reports should be filterable by account
 
 **Where:** the Reports tab.
 **What you want:** to narrow every report to one account, the way the movements list can be.
@@ -98,6 +61,9 @@ is still outstanding.
 
 | Date | What was wrong | What was done |
 |---|---|---|
+| 2026-09-02 | **The keypad and the colour picker ran together** in the account editor — same colour, no line between them | The keypad now stands on its own bar background with a hairline above it, the two tokens the tab bar already uses to sit above content. Its keys are grouped cards like the colour swatches, so sharing a ground with the form left nothing between them. The bottom inset moved into the keypad, since padding it from outside would leave a strip of the form's background below the surface. `fix/the-keypad-sits-on-its-own-surface` |
+| 2026-09-02 | **Switching tabs backwards animated forwards** — Reports → Accounts and Settings → Reports slid in from the right | A tab switch is a `navigate()`, and every `navigate()` is a push, so the slide was one fixed direction. `slideDirectionFor` compares the two tabs' positions, which `TopLevelTab` has always ordered. One case is knowingly left: switching to a tab whose saved stack has a detail screen on top still slides forward, because a pushed screen carries no record of its tab. #31 |
+| 2026-09-02 | **Amounts were counted up in cents** rather than typed in euros | Typing starts in euros and the comma asks for cents; after it, two digits at most and a third is refused rather than rounded away. One `AmountEntry` decides this for both the keypad and the amount filter, and what reaches `Money` is still an exact `Long` of cents. #27 |
 | 2026-08-30 | **d1** — a half-swiped row stayed parked open with Delete showing | The middle state is gone: past 60% of the row's width the swipe fires the same delete confirmation, and short of it the row springs back. The Delete button is no longer tappable, since it never stands still — recorded in ADR 0001 as the first deliberate departure from iOS, with the custom accessibility action left as the non-gesture path. #24 |
 | 2026-08-30 | **03** — the number keypad came up on the account *name* field | `CentsKeypad` was mounted unconditionally at the bottom of both forms. It is now shown only when the amount is the field being answered, and a text field taking focus puts it away. `fix/keypad-only-for-amounts` |
 | 2026-08-30 | **d8** — the number keypad was up when a movement was opened only to be read | Same fix. A form now opens with the keypad up when it is *creating* a record and without it when it is opening one that exists; tapping the amount asks for it back. `fix/keypad-only-for-amounts` |

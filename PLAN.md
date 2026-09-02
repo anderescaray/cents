@@ -489,10 +489,11 @@ See C6.
 Then take the first unchecked branch in C3 and work it end to end:
 `branch → implement → tests → gates → PR → wait for CI → hand back`.
 
-**Phase 1 closed on 2026-08-21 and C3 now lists Phase 2.** One thing is different about that
-list: from here on, the work *may* be run by several agents at once, and whether it is is the
-owner's decision rather than a default (D5, and D9 in `DECISIONS.md`). Do not open three
-worktrees because the phase changed.
+**Phase 1 closed on 2026-08-21 and C3 now lists Phase 2.** D9 is answered — three agents, on
+Claude Code's own worktrees — and the first wave has landed. That is permission for *this*
+phase, not a standing default: `CLAUDE.md` §7 still only allows parallelism across genuinely
+disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separable and were not.
+Check the code before trusting a plan that says they are.
 
 ## C2. What is built and merged
 
@@ -509,7 +510,8 @@ worktrees because the phase changed.
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Tests | 143, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a spending ring, income against expenses per month, and a balance line over the period, all under one period control. A slice opens the movements behind it. A fourth view is an additive unit — see C3 |
+| Tests | 256, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -717,46 +719,53 @@ way, which is the part that is expensive to rediscover. All merged, in this orde
 
 **Phase 1 finished on 2026-08-21**, with the four exit criteria in Part B §2 signed off.
 
-### Phase 2 — next: understanding the money
+### Phase 2 — under way: understanding the money
 
 PRD §4.3 lists six views. **The first branch builds two of them properly** (D4), because six
 charts at once is how a phase turns into a month.
 
-- [x] **`feat/reports-charts`** — **built, not yet merged.** The Reports tab reads the
-      database: spending by category as a ring and income against expenses per month, in that
-      order and nothing else (D4). One period governs both charts — week / month / quarter /
-      year / custom — and `ReportPeriod` hands back a `TransactionFilter` rather than being a
-      second idea of a period. Both aggregations are `GROUP BY` queries; Kotlin's share of the
-      work is bounded by the size of the answer, not by how many movements exist. Uncategorized
-      spending is its own slice rather than a dropped row, and empty months are zeros rather
-      than gaps. 19 tests, 143 → 162.
+- [x] **`feat/reports-charts`** — merged (#20). The Reports tab reads the database: spending by
+      category as a ring and income against expenses per month, in that order and nothing else
+      (D4). One period governs both charts — week / month / quarter / year / custom — and
+      `ReportPeriod` hands back a `TransactionFilter` rather than being a second idea of a
+      period. Both aggregations are `GROUP BY` queries; Kotlin's share of the work is bounded
+      by the size of the answer, not by how many movements exist. Uncategorized spending is its
+      own slice rather than a dropped row, and empty months are zeros rather than gaps.
       **Vico is pinned to 3.2.3 rather than 3.3.0** — see the note at the end of `CLAUDE.md` §8.
-      *Left for the phone:* whether the ring reads at 220 dp, whether "Custom" is discoverable
-      as the fifth segment, and both themes. Nothing in this branch has been seen on hardware.
 
-- [x] **`feat/reports-drilldown`** — **built, not yet merged, and stacked on
-      `feat/reports-charts`.** Tapping a slice of the ring, or its row underneath, narrows the
-      transaction list to the movements behind it and switches to that tab. It hands over the
-      same `TransactionFilter` the filter form produces — period, category and kind together —
-      so nothing new shows the movements. The unnamed slice opens the uncategorized inbox
-      rather than everything, and a search word left in the field is cleared.
-      Vico offers no hit testing for pie charts, so the ring tap reconstructs the geometry and
-      a tap in the hole or off the ring deliberately does nothing; `SpendingDonutHitTest`
-      covers that arithmetic, because it is wrong in a way nobody notices until it opens the
-      wrong category. 11 tests, 162 → 173.
-      *Not in this branch:* tapping a **month column** to see that month's movements. The
-      cartesian chart does support markers, so it is cheap, but the branch's scope was the
-      donut and it is not worth widening before either of these has been on a phone.
+- [x] **`feat/reports-drilldown`** — merged (#21). Tapping a slice of the ring, or its row
+      underneath, narrows the transaction list to the movements behind it and switches to that
+      tab, handing over the same `TransactionFilter` the filter form produces. Vico offers no
+      hit testing for pie charts, so the ring tap reconstructs the geometry and a tap in the
+      hole or off the ring deliberately does nothing.
+      *Still not built:* tapping a **month column** to see that month's movements.
 
-- [ ] **The remaining PRD §4.3 views** — balance over time, spending by weekday, period
-      comparison, single-category detail. These are genuinely separable and are the first
-      honest candidate for running in parallel (D9).
+- [x] **`feat/reports-balance-over-time`** — merged (#28), and **this is the branch that made
+      the rest of §4.3 parallelisable.** It builds the third view and the seam under it in one
+      go, because they could not honestly be separated: before it, each remaining view would
+      have touched the same seven files.
+      A view is now an **additive unit**. It owns `domain/model/<View>.kt`,
+      `domain/repository/reports/<View>Repository.kt`,
+      `data/repository/reports/Room<View>Repository.kt`,
+      `ui/feature/reports/section/<View>Section.kt`, its tests and its own `strings_<view>.xml`
+      pair. Of shared wiring it touches **one line** in `RepositoryModule`, **two** in
+      `ReportSections`, one appended `@Query` in `TransactionDao` and one line in the test
+      factory. `ReportsViewModel` and `ReportsScreen` do not change at all.
+      **A decision the owner should know he can overrule:** the balance line starts from the
+      money carried into the period — opening balances plus everything before the first day —
+      not from zero. It is the only version checkable by hand, since the last point of a line
+      ending today equals the Accounts tab total, and a test asserts exactly that. Archived
+      accounts count, which makes the line legitimately differ from that total when one holds a
+      balance.
 
-**`DECISIONS.md` D9 — one agent or three — is still open, and `feat/reports-charts` was built
-under its recorded default: one agent.** That was the cheap half either way, because the branch
-adds Vico to the version catalog and creates `ui/feature/reports`, the shared foundations
-`CLAUDE.md` §7 says to build serially first. Those now exist, so D9 is a live question again
-rather than a deferred one: the remaining §4.3 views are the first honest three-way split.
+- [ ] **The last three PRD §4.3 views** — spending by weekday, period comparison,
+      single-category detail. **These are now genuinely separable**, which they were not before
+      #28, and are the wave the three-agent split was answered for.
+
+**D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
+ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
+What that wave actually taught is in C4 rather than here, because the lesson was not about
+parallelism.
 
 ## C4. Known gaps, so they are not mistaken for bugs
 
@@ -772,10 +781,23 @@ rather than a deferred one: the remaining §4.3 views are the first honest three
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **The Reports tab now reads the database, but only two of the six PRD §4.3 views exist.**
-  Balance over time, spending by weekday, period comparison and single-category detail are
-  unbuilt, and tapping a slice does not yet open the movements behind it — that is
-  `feat/reports-drilldown`. The two that exist have never been seen on a phone.
+- **Three of the six PRD §4.3 views exist.** Spending by weekday, period comparison and
+  single-category detail are unbuilt. The seam they will be built on does exist (#28), so each
+  is additive rather than another edit to the same seven files.
+- **Switching to a tab whose saved stack has a detail screen on top still slides the wrong
+  way.** #31 made the tab animation follow the direction of travel by comparing the two tabs'
+  positions, but a screen pushed *inside* a tab carries no record of which tab it belongs to,
+  so there is nothing to compare and it falls back to a forward slide. The same missing concept
+  makes the tab bar highlight **Transactions** while an account's detail screen is open. Both
+  want the selected tab tracked as state rather than read back out of the back stack.
+- **A green CI run is one machine, one ordering, one run.** `main` was green on CI and red
+  locally on 2026-09-02: nine of the ten view-model test classes let their view model outlive
+  the test, so a leaked collector kept using a `Dispatchers.Main` the *next* class was trying
+  to install. The failure always landed on a class that had done nothing wrong, and which class
+  that was depended on the order JUnit happened to run them in. #30 fixed it in one place, but
+  the habit it argues for is the point: run the suite more than once, and read
+  `test-results/*.xml` rather than `BUILD SUCCESSFUL`. Three of the four branches before it hit
+  some version of this and each fixed only the file it owned.
 - **Installs made before `feat/account-deletion` still hold the seeded *Cash* account.**
   Nothing removes it automatically, for the same reason the eleven seeded categories were
   left alone: it may already hold movements, and deciding what happens to those is the

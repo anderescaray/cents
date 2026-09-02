@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
@@ -17,6 +18,7 @@ import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -74,6 +76,13 @@ class TransactionsViewModelTest {
 
     @After
     fun tearDown() {
+        // The view model outlives its test unless it is told not to. `uiState` is shared
+        // with `WhileSubscribed(5s)`, so the Room query behind it stays subscribed after
+        // Turbine lets go, and every test in the class would otherwise leave one running
+        // against a database that is about to be closed — several of them by the end,
+        // competing for the same executor as the test still running. Cancelling first is
+        // what `onCleared` does on the phone.
+        viewModel.viewModelScope.cancel()
         database.close()
         Dispatchers.resetMain()
     }
@@ -255,8 +264,16 @@ class TransactionsViewModelTest {
                 viewModel.setQuery("nothing like this")
                 // The field shows what was typed straight away; the filter catches up once
                 // the typing pauses. A field fed from the applied filter drops characters.
-                assertEquals("nothing like this", awaitStateThat { it.query.isNotEmpty() }.query)
-                awaitStateThat { it.isNarrowed && it.days.isEmpty() }
+                val typed = awaitStateThat { it.query == "nothing like this" }
+                // Whether the narrowing arrives in that same emission or in a later one is
+                // scheduling rather than behaviour: the query goes through a debounce and
+                // the rows come back from Room on its own executor. Demanding a *second*
+                // emission is what made this time out on a loaded CI machine, so what is
+                // waited for is the state, and only if it is not already in hand.
+                val narrowed =
+                    typed.takeIf { it.isNarrowed && it.days.isEmpty() }
+                        ?: awaitStateThat { it.isNarrowed && it.days.isEmpty() }
+                assertEquals("nothing like this", narrowed.filter.query)
 
                 viewModel.clearFilter()
                 val restored = awaitStateThat { it.days.isNotEmpty() }

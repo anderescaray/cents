@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSectionSource
+import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSectionSource
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -107,6 +108,7 @@ class ReportSections
         spending: SpendingSectionSource,
         monthlyFlow: MonthlyFlowSectionSource,
         balance: BalanceOverTimeSectionSource,
+        comparison: PeriodComparisonSectionSource,
     ) {
-        val inOrder: List<ReportSectionSource> = listOf(spending, monthlyFlow, balance)
+        val inOrder: List<ReportSectionSource> = listOf(spending, monthlyFlow, balance, comparison)
     }

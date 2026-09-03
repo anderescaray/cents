@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportsViewModel
 import io.github.anderescaray.cents.ui.feature.reports.periodFor
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSection
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
+import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +61,7 @@ class ReportsViewModelTest {
         viewModel =
             viewModels.keep(
                 ReportsViewModel(
-                    reportSections(database),
+                    reportSections(database, clock),
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                     filters,
                     clock,
@@ -264,8 +265,33 @@ class ReportsViewModelTest {
                 val state = awaitStateThat { it.sections.isNotEmpty() }
 
                 // The screen renders whatever is here; nothing in the view model names a
-                // chart. This is the assertion a fourth view updates, and the only one.
-                assertEquals(listOf("spending", "flow", "balance"), state.sections.map { it.key })
+                // chart. This is the assertion a new view updates, and the only one.
+                assertEquals(
+                    listOf("spending", "flow", "balance", "comparison"),
+                    state.sections.map { it.key },
+                )
+            }
+        }
+
+    @Test
+    fun `the comparison reads the period before the one selected`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(accountId, amountMinor = 40_000, date = LocalDate.of(2026, 7, 10)),
+                    transaction(accountId, amountMinor = 25_000, date = LocalDate.of(2026, 8, 4)),
+                ),
+            )
+
+            viewModel.uiState.test {
+                // The tab opens on August, so the view has to go and find July without
+                // anything on screen having asked for it.
+                val state = awaitStateThat { it.comparison?.isEmpty == false }
+
+                assertEquals(Money(25_000, "EUR"), state.comparison?.current?.expenses)
+                assertEquals(Money(40_000, "EUR"), state.comparison?.before?.expenses)
+                assertEquals(Money(-15_000, "EUR"), state.comparison?.expensesChange)
             }
         }
 
@@ -422,3 +448,5 @@ private val ReportsUiState.earning get() = section<SpendingSection>()?.income
 private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.months
 
 private val ReportsUiState.balance get() = section<BalanceOverTimeSection>()?.balance
+
+private val ReportsUiState.comparison get() = section<PeriodComparisonSection>()?.comparison

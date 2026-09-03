@@ -1,11 +1,13 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,8 +18,10 @@ import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategorySpending
+import io.github.anderescaray.cents.domain.model.ComparedRanges
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
+import io.github.anderescaray.cents.domain.model.PeriodComparison
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.ReportScope
@@ -30,6 +34,7 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSection
 import io.github.anderescaray.cents.ui.feature.reports.section.KIND_CONTROL_TAG
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
+import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
@@ -204,6 +209,46 @@ class ReportsScreenTest {
     }
 
     @Test
+    fun `the comparison names each measure and the way back to the previous period`() {
+        setContent(fullState())
+
+        scrollTo("THIS PERIOD AGAINST THE LAST")
+        // "Expenses" is on screen twice on purpose: once labelling the pair of columns and
+        // once naming the row that says what they add up to. The rows say the change in
+        // words, because two bars of similar height do not tell anyone whether they saved
+        // forty euros or four hundred.
+        composeRule.onAllNodesWithText("Expenses").assertCountEquals(2)
+        composeRule.onNodeWithText("Previous period").assertExists()
+        composeRule.onNodeWithText("Movements in the previous period").assertExists()
+    }
+
+    @Test
+    fun `the previous period's row opens the movements behind it`() {
+        var opened: TransactionFilter? = null
+        setContent(fullState(), onDrillDown = { opened = it })
+
+        scrollTo("Movements in the previous period")
+        composeRule.onNodeWithText("Movements in the previous period").performClick()
+
+        // July, not August: it is the one stretch on this tab no other view can reach.
+        assertEquals(LocalDate.of(2026, 7, 1), opened?.from)
+        assertEquals(LocalDate.of(2026, 7, 31), opened?.to)
+    }
+
+    @Test
+    fun `two empty periods say there is nothing to compare`() {
+        setContent(
+            ReportsUiState(
+                isLoading = false,
+                period = AUGUST,
+                sections = listOf(PeriodComparisonSection(comparison(current = 0, before = 0))),
+            ),
+        )
+
+        composeRule.onNodeWithText("Nothing happened in either period.").assertExists()
+    }
+
+    @Test
     fun `an empty period says so instead of drawing an empty ring or a flat line`() {
         setContent(
             ReportsUiState(
@@ -225,6 +270,7 @@ class ReportsScreenTest {
                         BalanceOverTimeSection(
                             BalanceOverTime(AUGUST, Money(50_000, "EUR"), emptyList(), activeDays = 0),
                         ),
+                        PeriodComparisonSection(comparison(current = 0, before = 0)),
                     ),
             ),
         )
@@ -378,6 +424,7 @@ class ReportsScreenTest {
                         ),
                 ),
                 MonthlyFlowSection(months()),
+                PeriodComparisonSection(comparison(current = 90_000, before = 120_000)),
                 BalanceOverTimeSection(
                     BalanceOverTime(
                         period = AUGUST,
@@ -391,6 +438,18 @@ class ReportsScreenTest {
                     ),
                 ),
             ),
+    )
+
+    private fun comparison(
+        current: Long,
+        before: Long,
+    ) = PeriodComparison(
+        // A whole August against a whole July: the screen tests are about what is drawn, and
+        // the clamping a running period gets is the repository's business and tested there.
+        scope = scopeFor(),
+        ranges = ComparedRanges(current = AUGUST, previous = JULY, partial = false),
+        current = PeriodSummary(Money.zero("EUR"), Money(current, "EUR")),
+        before = PeriodSummary(Money.zero("EUR"), Money(before, "EUR")),
     )
 
     private fun months() =
@@ -441,6 +500,7 @@ class ReportsScreenTest {
 
     private companion object {
         val AUGUST = ReportPeriod.Month(YearMonth.of(2026, 8))
+        val JULY = ReportPeriod.Month(YearMonth.of(2026, 7))
         const val GROCERIES_ID = 2L
         const val SALARY_ID = 3L
         const val CURRENT_ID = 10L

@@ -10,12 +10,14 @@ import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomBalanceOverTimeRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomMonthlyFlowRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomPeriodComparisonRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
+import io.github.anderescaray.cents.domain.repository.reports.PeriodComparisonRepository
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
 import java.time.Clock
 import javax.inject.Singleton
@@ -42,6 +44,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindBalanceOverTimeRepository(impl: RoomBalanceOverTimeRepository): BalanceOverTimeRepository
+
+    @Binds
+    abstract fun bindPeriodComparisonRepository(impl: RoomPeriodComparisonRepository): PeriodComparisonRepository
 
     companion object {
         /**

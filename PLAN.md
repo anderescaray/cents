@@ -510,8 +510,8 @@ Check the code before trusting a plan that says they are.
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, and a balance line over the period, all under one period control and **one account picker**. A slice opens the movements behind it, in the direction the ring was showing. A fourth view is an additive unit — see C3 |
-| Tests | 273, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, and **this period against the one before it**, all under one period control and one account picker. A slice opens the movements behind it, in the direction the ring was showing. What a fifth view costs is spelled out in C3 |
+| Tests | 283, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -786,9 +786,44 @@ charts at once is how a phase turns into a month.
       where hiding them was the point.
       The picker does not appear at all until there are two accounts.
 
-- [ ] **The last three PRD §4.3 views** — spending by weekday, period comparison,
-      single-category detail. **These are now genuinely separable**, which they were not before
-      #28, and are the wave the three-agent split was answered for.
+- [x] **`feat/reports-period-comparison`** — the fourth PRD §4.3 view, and **the first one
+      that cost the seam nothing**: a model, a repository interface, a Room implementation, one
+      section file, its own strings pair, and single lines in `RepositoryModule`,
+      `ReportSections` and the test factory. The only existing assertion that changed was the
+      one in `ReportsViewModelTest` that names the sections in order, which is exactly what its
+      comment said would happen.
+      **A period that has not finished is compared against the same stretch of the one before
+      it**, not against the whole of it. The tab opens on the whole calendar month, so on the
+      third of September "this period" holds three days; against the whole of August that reads
+      as spending down 95%, and it would read that way for about twenty-seven days out of every
+      thirty. `comparedWith` clamps both sides and the section says so in its footer. It is the
+      same flattery `previous()` exists to avoid, arrived at from the other side — and it was
+      shipped and then caught in review, which is the argument for the review step.
+      Two other things it decided. **The comparison is against a stretch of the same shape** —
+      `ReportPeriod.previous()` — because a month against "the last thirty days" overlaps
+      itself and a month against thirty days of the previous month flatters it; a calendar
+      shape stays a calendar shape, so February's predecessor is January whatever their
+      lengths. **The tinting is not "up is green"**: each row carries which direction is good,
+      or a month of heavier spending would glow green.
+      It also needed no new SQL. Two totals queries already existed, one for every account and
+      one for a given account, so the repository picks between them — which means the narrowed
+      case uses `index_transactions_accountId_date` instead of the non-sargable `OR` form the
+      other three reports use (C4). That is what the split recorded in that gap looks like.
+
+- [ ] **The last two PRD §4.3 views** — spending by weekday and single-category detail.
+      **They are not equally separable, and the difference is worth knowing before splitting
+      them across agents.** Single-category detail is additive the way period comparison was:
+      a category and a date range are both things `TransactionFilter` already expresses, so
+      tapping a point can open the movements behind it with nothing new.
+      **Spending by weekday is not.** `TransactionFilter` has no idea of a weekday, so either
+      the bars do not drill down — which the PRD's cross-cutting requirement asks for — or the
+      filter model grows a concept, and then the filter form has to show it or the list ends up
+      narrowed by something the owner cannot see or clear. That was `DECISIONS.md` D10, and it
+      is **answered: B** (2026-09-03) — the filter learns weekdays and the Filters form shows
+      the section, so the bar drills down and what it applied can be found and cleared.
+      **Order, decided by the owner on 2026-09-03: single-category detail first, serially.**
+      Not in parallel worktrees, even though D9 allows it: the two views append a line each to
+      the same three shared files, and one PR at a time is the rhythm the owner reviews in.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -809,10 +844,23 @@ parallelism.
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **Three of the six PRD §4.3 views exist.** Spending by weekday, period comparison and
-  single-category detail are unbuilt. The seam they will be built on does exist (#28), and a
-  new view is asked for a `ReportScope` rather than a period, so each is still additive — one
-  file per view, plus the two lines in `ReportSections`.
+- **Four of the six PRD §4.3 views exist.** Spending by weekday and single-category detail
+  are unbuilt. The seam does exist (#28, #35) and period comparison proved it holds: a new view
+  is a new file plus single lines in three shared ones. Spending by weekday is the one that may
+  still cost more than that, because its drill-down has no filter to express it — D10.
+- **A report built from two flows can render one frame of a half-updated answer.** The balance
+  line and the period comparison each `combine` two queries, and both files used to claim that
+  this made the pair atomic. It does not: `combine` pairs the newest value of one flow with the
+  *last* value of the other, so one write that touches both halves — moving a movement from
+  July to August, say — briefly renders it counted twice or not at all before the second
+  emission lands. It is transient, self-correcting and cosmetic. Making it impossible needs one
+  query returning both halves, which for the comparison would cost the index it currently gets
+  to use. Written down rather than traded away for a frame.
+- **The period comparison has no year-on-year mode.** PRD §4.3 asks "this month vs last / vs
+  the same month last year", and only the first half is built. The second is a second segment
+  and a third query, on the shape the ring's Expense/Income toggle already established — not a
+  redesign. It was left out because D4's lesson is that a view ships when it answers one
+  question properly.
 - **The Reports account picker is an inline list, not a sheet.** With a handful of accounts it
   reads at a glance and needs no tap to say what the tab is narrowed to, which is why it was
   chosen; with fifteen it would push the first chart off the screen. It hides itself entirely

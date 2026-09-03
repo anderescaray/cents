@@ -24,8 +24,11 @@ import javax.inject.Singleton
  * (`CLAUDE.md` §5).
  *
  * The two flows are combined rather than collected apart on purpose: the opening balance and
- * the days inside the period are halves of one line, and a frame where one has updated and
- * the other has not is a line that starts in the wrong place.
+ * the days inside the period are halves of one line, and one write should produce one pass
+ * through here rather than two halves updating at their own pace. It does not make the pair
+ * atomic, and this comment used to say that it did — `combine` pairs the newest value of one
+ * flow with the last value of the other, so a single frame can still show a line that starts
+ * in the wrong place before the second emission lands (`PLAN.md` C4).
  */
 @Singleton
 class RoomBalanceOverTimeRepository

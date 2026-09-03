@@ -758,8 +758,9 @@ charts at once is how a phase turns into a month.
       accounts count, which makes the line legitimately differ from that total when one holds a
       balance.
 
-- [x] **`feat/the-ring-shows-income-too`** — the first thing the owner asked for after the second
-      device walk, and it outranked the next planned branch (`FEEDBACK.md`). A segmented control
+- [x] **`feat/the-ring-shows-income-too`** — **open as #34, green on CI, waiting on the owner to
+      merge.** The first thing the owner asked for after the second device walk, and it
+      outranked the next planned branch (`FEEDBACK.md`). A segmented control
       above the ring picks the direction; the section's header, total and empty line follow it,
       because *Total spent* over income would be wrong rather than merely terse.
       **Both breakdowns are read at once** rather than one query re-run on each flip. The kind
@@ -767,6 +768,17 @@ charts at once is how a phase turns into a month.
       `SpendingBreakdown.filterFor`, so a slice of the income ring drills down to income with
       nothing added — the work was two more strings, a `combine`, and a toggle that survives
       being scrolled off a `LazyColumn`.
+
+- [ ] **`feat/reports-for-one-account`** — the second and last open `FEEDBACK.md` item: narrow
+      every report to one account, the way the movements list can be. **This one is not
+      additive, and that is the whole of its difficulty.** A section source takes a period and
+      a currency; an account is a third thing every view has to be asked about, so the seam
+      itself changes — most cheaply by replacing the two parameters with one scope that also
+      knows how to produce the drill-down filter, since a slice tapped while one account is
+      selected must open that account's movements and not everyone's. Each of the three
+      queries gains the predicate, and `observeBalanceBefore` gains the harder half: with an
+      account chosen, the line must start from *that* account's opening balance rather than
+      the sum of all of them. It comes after #34 because both touch `SpendingSection.kt`.
 
 - [ ] **The last three PRD §4.3 views** — spending by weekday, period comparison,
       single-category detail. **These are now genuinely separable**, which they were not before

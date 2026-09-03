@@ -175,7 +175,8 @@ A full local run of what CI checks, worth doing before opening a PR:
 
 ## 8. Current status
 
-**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics) is next.** Recording money
+**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics) is nearly done: five of the six
+PRD §4.3 views are built, and only spending by weekday is left.** Recording money
 works end to end: the Room schema, the domain and repository layers, the iOS-flavoured design
 system and navigation, a transaction list grouped by day with a monthly summary, one form that
 adds and edits movements (keypad, date picker, note, delete with undo), category management,
@@ -191,7 +192,12 @@ of them — move them elsewhere, or delete them too — rather than quietly arch
 The app works in **one currency**, the device's, and does not offer a choice: `Money` still
 carries its ISO-4217 code and still refuses cross-currency arithmetic, but that is a guard
 rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
-143 tests run on the JVM, so CI covers the database and the UI without a device.
+The **Reports tab** is the work of Phase 2: a ring that answers where the money went or where
+it came from, income against expenses per month, a balance line, this period against the one
+before it, and one category followed over twelve periods — all under one period control and one
+account picker, with a slice or a point opening the movements behind it. A new view there is an
+additive unit; what it costs is spelled out in `ui/feature/reports/ReportSection.kt`.
+305 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**
@@ -207,13 +213,16 @@ at the start of every session, before any code:**
 The protocol for both is [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
 
 **Phase 2 is the first phase that may run several agents at once — and starting that is the
-owner's deliberate decision, not a default.** D5 settled how it would run; `DECISIONS.md` D9
-asks whether it starts now, and until it is answered the work stays serial. Do not open
-worktrees because the phase number changed.
+owner's deliberate decision, not a default.** D5 settled how it would run and D9 answered
+*three agents* on 2026-08-30, which is permission for a wave of genuinely disjoint work, not a
+standing default. **On 2026-09-03 the owner chose to run the remaining views serially anyway**,
+because they append a line each to the same three shared files and one PR at a time is the
+rhythm they review in. Ask before opening worktrees; do not open them because the phase number
+changed.
 
 **Where to start a session and what is left to build is
 [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session
-checklist, the ordered list of remaining Phase 1 branches, and the list of known gaps —
+checklist, the ordered list of branches still to build, and the list of known gaps —
 keep it updated at the end of every session, because it is the only place that records
 what is deliberately unfinished rather than broken.
 

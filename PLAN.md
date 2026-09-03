@@ -493,7 +493,15 @@ Then take the first unchecked branch in C3 and work it end to end:
 Claude Code's own worktrees — and the first wave has landed. That is permission for *this*
 phase, not a standing default: `CLAUDE.md` §7 still only allows parallelism across genuinely
 disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separable and were not.
-Check the code before trusting a plan that says they are.
+Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
+serial anyway** for the views after that, so ask before forking.
+
+**Where the last session stopped (2026-09-03).** Four branches were built and three merged:
+#34 (the ring shows income), #35 (reports narrowed to one account), #36 (this period against
+the last). **#37 — one category over time — is open, green, and unmerged**, and the next branch
+should start from `main` after it lands rather than stacking on it: see the note in C4 about
+what stacking cost this session. `FEEDBACK.md` is empty and `DECISIONS.md` D10 is answered, so
+the next branch is the last unchecked one in C3 — spending by weekday, built on D10's answer B.
 
 ## C2. What is built and merged
 
@@ -810,7 +818,8 @@ charts at once is how a phase turns into a month.
       case uses `index_transactions_accountId_date` instead of the non-sargable `OR` form the
       other three reports use (C4). That is what the split recorded in that gap looks like.
 
-- [x] **`feat/reports-category-detail`** — the fifth PRD §4.3 view, and the first whose
+- [x] **`feat/reports-category-detail`** — **open as #37, green on CI, waiting on the owner to
+      merge.** The fifth PRD §4.3 view, and the first whose
       question does not fit inside the selected period: "is Restaurants creeping up" cannot be
       read off one month, and a line with one point is not a trend. **The period picks the
       bucket instead** — a month selected means the last twelve months, a week means the last
@@ -876,6 +885,19 @@ parallelism.
   trend needs history. The rule it keeps is that the period decides the bucket, so no two
   points anywhere on the tab are different lengths of time. Anything later that assumes "a
   report only ever touches the selected range" has to account for this one.
+- **Do not branch off an unmerged branch when the merge will be a squash.** `main` squash-merges,
+  so a stacked branch carries commits whose content arrives on `main` as one different commit,
+  and rebasing then conflicts on every hunk. It happened on 2026-09-03 and the fix was to rebuild
+  the branch as a single commit on the merged `main` — `git checkout -B <branch> origin/main`
+  followed by `git checkout <old tip> -- .`, which works only because the stacked tree is a strict
+  superset. Cheaper to wait for the merge.
+- **Nobody has seen Phase 2 on a phone.** Every view on the Reports tab is verified by JVM tests
+  and by nothing else: the ring's Expense/Income toggle, the account picker above the charts, the
+  comparison columns and the trend line have never been rendered on a device. The device walk in
+  `docs/device-check.md` predates all of them. On 2026-09-03 the phone reached adb once as
+  `device` but was asleep, and every later attempt saw it absent or `offline` — over USB and over
+  wireless debugging, whose mDNS advertised nothing. Screenshots need it awake and unlocked, and
+  unlocking is the owner's (C5).
 - **A report's idea of "today" is fixed when its flow is built.** The period comparison and
   the trend both read the clock once, when the scope changes, so an app left open across
   midnight keeps yesterday's clamp — a movement dated today is left out of "this period" until

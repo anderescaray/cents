@@ -1,7 +1,7 @@
 package io.github.anderescaray.cents.ui.feature.reports
 
 import androidx.compose.runtime.Composable
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSectionSource
@@ -78,16 +78,18 @@ data class ReportActions(
 )
 
 /**
- * Turns a period into one section's data. Injected once and stateless.
+ * Turns a [ReportScope] into one section's data. Injected once and stateless.
+ *
+ * One parameter rather than the period and currency it started as, because narrowing the tab
+ * to an account is a question every view has to be asked at once — a ring showing one account
+ * beside a balance line showing all of them is a screen that contradicts itself. A view that
+ * ignores [ReportScope.accountId] is unfinished, not opted out.
  *
  * Note what it does *not* take: no click handlers, no navigation, no other section's data.
  * A source that needed any of those would be a section that is not additive.
  */
 interface ReportSectionSource {
-    fun observe(
-        period: ReportPeriod,
-        currency: String,
-    ): Flow<ReportSectionState>
+    fun observe(scope: ReportScope): Flow<ReportSectionState>
 }
 
 /**

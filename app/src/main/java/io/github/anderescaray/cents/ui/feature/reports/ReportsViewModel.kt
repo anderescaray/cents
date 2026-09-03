@@ -3,7 +3,9 @@ package io.github.anderescaray.cents.ui.feature.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
@@ -53,7 +55,23 @@ data class ReportsUiState(
      * with nothing in it: one says "start here", the other says "nothing happened".
      */
     val hasNoAccounts: Boolean = false,
+    /**
+     * Every account, archived ones included — the same list the balance line already counts.
+     * Archiving means "stop offering it for new movements", not "the money never existed", so
+     * an archived account that had a busy March is exactly what someone opens a report to look
+     * at.
+     */
+    val accounts: List<Account> = emptyList(),
+    /** Which account the whole tab is narrowed to, or null for all of them. */
+    val accountId: Long? = null,
 ) {
+    /**
+     * Whether choosing is worth the room it takes. With one account there is nothing to
+     * choose, and a picker offering a single answer is a row that only ever says what the
+     * screen would have said anyway.
+     */
+    val canPickAccount: Boolean get() = accounts.size > 1
+
     /** The custom range's endpoints, so the two date rows have something to show. */
     val customFrom: LocalDate get() = period.from
 
@@ -86,8 +104,17 @@ class ReportsViewModel
             combine(
                 selection,
                 accountRepository.observeAccounts(includeArchived = true),
-            ) { selected, accounts -> selected to accounts.firstOrNull()?.currency }
-                .flatMapLatest { (selected, currency) ->
+            ) { selected, accounts -> selected to accounts }
+                .flatMapLatest { (selected, accounts) ->
+                    // An account the tab was narrowed to can stop existing while the tab is
+                    // open — deleted from the Accounts tab, movements and all (D7). Falling
+                    // back to every account is the only honest answer; the alternative is a
+                    // tab reporting on nothing, headed by the name of something gone.
+                    val accountId = selected.accountId?.takeIf { id -> accounts.any { it.id == id } }
+                    val currency =
+                        accounts.firstOrNull { it.id == accountId }?.currency
+                            ?: accounts.firstOrNull()?.currency
+
                     if (currency == null) {
                         flowOf(
                             ReportsUiState(
@@ -98,18 +125,23 @@ class ReportsViewModel
                             ),
                         )
                     } else {
-                        // Every section answers a question about the same period, so they
-                        // are combined rather than collected apart: shown separately they can
+                        val scope = ReportScope(selected.period, currency, accountId)
+                        // Every section answers a question about the same scope, so they are
+                        // combined rather than collected apart: shown separately they can
                         // disagree for a frame, and a donut for August beside bars ending in
-                        // July is a screen that contradicts itself.
+                        // July is a screen that contradicts itself. That is the same argument
+                        // for the account being part of the scope rather than something one
+                        // view applies for itself.
                         combine(
-                            sections.inOrder.map { it.observe(selected.period, currency) },
+                            sections.inOrder.map { it.observe(scope) },
                         ) { states ->
                             ReportsUiState(
                                 preset = selected.preset,
                                 period = selected.period,
                                 sections = states.toList(),
                                 isLoading = false,
+                                accounts = accounts,
+                                accountId = accountId,
                             )
                         }
                     }
@@ -125,11 +157,27 @@ class ReportsViewModel
                     // Switching to Custom keeps the range that was on screen, so the two
                     // date rows open on the period just being looked at rather than on
                     // today twice. Filters learned this the hard way (device check d5).
-                    Selection(PeriodPreset.CUSTOM, ReportPeriod.Custom(current.period.from, current.period.to))
+                    current.copy(
+                        preset = PeriodPreset.CUSTOM,
+                        period = ReportPeriod.Custom(current.period.from, current.period.to),
+                    )
                 } else {
-                    Selection(preset, periodFor(preset, LocalDate.now(clock)))
+                    // Copied rather than rebuilt: changing the period is not a reason to stop
+                    // looking at the account that was being looked at.
+                    current.copy(preset = preset, period = periodFor(preset, LocalDate.now(clock)))
                 }
             }
+        }
+
+        /**
+         * Narrows every view to one account, or to all of them with null.
+         *
+         * One selection for the whole tab rather than one per chart, for the same reason the
+         * period is one: the charts are three answers about the same money, and letting them
+         * disagree about whose money it is makes the tab unreadable.
+         */
+        fun selectAccount(accountId: Long?) {
+            selection.update { it.copy(accountId = accountId) }
         }
 
         fun setCustomRange(
@@ -140,7 +188,9 @@ class ReportsViewModel
             // empty chart that looks identical to a quiet month, with nothing saying why.
             val start = minOf(from, to)
             val end = maxOf(from, to)
-            selection.value = Selection(PeriodPreset.CUSTOM, ReportPeriod.Custom(start, end))
+            selection.update {
+                it.copy(preset = PeriodPreset.CUSTOM, period = ReportPeriod.Custom(start, end))
+            }
         }
 
         /**
@@ -168,6 +218,7 @@ class ReportsViewModel
         private data class Selection(
             val preset: PeriodPreset,
             val period: ReportPeriod,
+            val accountId: Long? = null,
         )
 
         private companion object {

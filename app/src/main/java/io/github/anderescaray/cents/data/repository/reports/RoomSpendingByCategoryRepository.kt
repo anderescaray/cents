@@ -3,7 +3,7 @@ package io.github.anderescaray.cents.data.repository.reports
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.Money
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
@@ -26,30 +26,29 @@ class RoomSpendingByCategoryRepository
         private val transactionDao: TransactionDao,
     ) : SpendingByCategoryRepository {
         override fun observeSpendingByCategory(
-            period: ReportPeriod,
-            currency: String,
+            scope: ReportScope,
             kind: TransactionKind,
         ): Flow<SpendingBreakdown> =
             transactionDao
-                .observeTotalsByCategory(kind, period.from, period.to)
+                .observeTotalsByCategory(kind, scope.period.from, scope.period.to, scope.accountId)
                 .map { rows ->
                     val totalMinor = rows.sumOf { it.totalMinor }
                     SpendingBreakdown(
-                        period = period,
+                        scope = scope,
                         slices =
                             rows.map { row ->
                                 CategorySpending(
                                     categoryId = row.categoryId,
                                     name = row.categoryName,
                                     colorArgb = row.categoryColorArgb,
-                                    total = Money(row.totalMinor, currency),
+                                    total = Money(row.totalMinor, scope.currency),
                                     transactionCount = row.transactionCount,
                                     // A zero total means there are no rows at all, so this
                                     // branch never divides an existing slice by zero.
                                     share = if (totalMinor == 0L) 0f else row.totalMinor.toFloat() / totalMinor,
                                 )
                             },
-                        total = Money(totalMinor, currency),
+                        total = Money(totalMinor, scope.currency),
                         kind = kind,
                     )
                 }

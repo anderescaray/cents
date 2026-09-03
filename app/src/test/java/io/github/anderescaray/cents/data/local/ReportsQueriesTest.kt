@@ -137,7 +137,7 @@ class ReportsQueriesTest {
                 ),
             )
 
-            val rows = dao.observeMonthlyTotals(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 8, 31)).first()
+            val rows = dao.observeMonthlyTotals(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 8, 31), null).first()
 
             // July is absent: SQL groups what exists, and the gap is filled in the repository.
             assertEquals(listOf("2026-06", "2026-08"), rows.map { it.month })
@@ -160,7 +160,7 @@ class ReportsQueriesTest {
                 ),
             )
 
-            val rows = dao.observeMonthlyTotals(LocalDate.of(2024, 1, 1), LocalDate.of(2026, 12, 31)).first()
+            val rows = dao.observeMonthlyTotals(LocalDate.of(2024, 1, 1), LocalDate.of(2026, 12, 31), null).first()
 
             assertEquals(listOf("2024-02", "2026-01", "2026-02"), rows.map { it.month })
             assertEquals(listOf(3L, 1L, 2L), rows.map { it.expenseMinor })
@@ -170,4 +170,4 @@ class ReportsQueriesTest {
 private suspend fun io.github.anderescaray.cents.data.local.dao.TransactionDao.spendingIn(
     from: LocalDate,
     to: LocalDate,
-) = observeTotalsByCategory(TransactionKind.EXPENSE, from, to).first()
+) = observeTotalsByCategory(TransactionKind.EXPENSE, from, to, null).first()

@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import io.github.anderescaray.cents.domain.model.Account
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
 import io.github.anderescaray.cents.domain.model.CategoryFilter
@@ -18,6 +20,7 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -145,6 +148,50 @@ class ReportsScreenTest {
     }
 
     @Test
+    fun `one account is not a choice, so no picker is drawn`() {
+        setContent(fullState(accounts = listOf(account(CURRENT_ID, "Current"))))
+
+        // A row offering a single answer says what the screen already said.
+        composeRule.onNodeWithText("All accounts").assertDoesNotExist()
+    }
+
+    @Test
+    fun `two accounts are offered, along with the way back to all of them`() {
+        setContent(fullState(accounts = twoAccounts()))
+
+        composeRule.onNodeWithText("All accounts").assertExists()
+        composeRule.onNodeWithText("Current").assertExists()
+        composeRule.onNodeWithText("Savings").assertExists()
+    }
+
+    @Test
+    fun `choosing an account is reported, and so is choosing all of them again`() {
+        val chosen = mutableListOf<Long?>()
+        setContent(
+            fullState(accounts = twoAccounts(), accountId = CURRENT_ID),
+            onSelectAccount = { chosen += it },
+        )
+
+        composeRule.onNodeWithText("Savings").performClick()
+        composeRule.onNodeWithText("All accounts").performClick()
+
+        // Null is a real answer rather than the absence of one: it is how the tab goes back
+        // to every account, and it has to be reachable from the same list.
+        assertEquals(listOf(SAVINGS_ID, null), chosen)
+    }
+
+    @Test
+    fun `an archived account is offered, and says that it is archived`() {
+        setContent(
+            fullState(accounts = twoAccounts() + account(OLD_ID, "Old card", archived = true)),
+        )
+
+        // The charts have always counted an archived account's movements. Leaving it out
+        // here would make its history unreachable from the tab that exists to look at it.
+        composeRule.onNodeWithText("Old card (archived)").assertExists()
+    }
+
+    @Test
     fun `the balance line shows where the period started, ended and what it changed`() {
         setContent(fullState())
 
@@ -165,8 +212,14 @@ class ReportsScreenTest {
                 sections =
                     listOf(
                         SpendingSection(
-                            expense = SpendingBreakdown(AUGUST, emptyList(), Money.zero("EUR")),
-                            income = SpendingBreakdown(AUGUST, emptyList(), Money.zero("EUR"), TransactionKind.INCOME),
+                            expense = SpendingBreakdown(scopeFor(), emptyList(), Money.zero("EUR")),
+                            income =
+                                SpendingBreakdown(
+                                    scopeFor(),
+                                    emptyList(),
+                                    Money.zero("EUR"),
+                                    TransactionKind.INCOME,
+                                ),
                         ),
                         MonthlyFlowSection(emptyList()),
                         BalanceOverTimeSection(
@@ -277,6 +330,7 @@ class ReportsScreenTest {
     private fun setContent(
         state: ReportsUiState,
         onSelectPreset: (PeriodPreset) -> Unit = {},
+        onSelectAccount: (Long?) -> Unit = {},
         onDrillDown: (TransactionFilter) -> Unit = {},
     ) {
         composeRule.setContent {
@@ -284,6 +338,7 @@ class ReportsScreenTest {
                 ReportsScreen(
                     state = state,
                     onSelectPreset = onSelectPreset,
+                    onSelectAccount = onSelectAccount,
                     onSetRange = { _, _ -> },
                     onDrillDown = onDrillDown,
                 )
@@ -298,16 +353,25 @@ class ReportsScreenTest {
                 slice("Groceries", 250, 0.25f, categoryId = GROCERIES_ID),
             ),
         incomeSlices: List<CategorySpending> = listOf(slice("Salary", 2_000, 1f, categoryId = SALARY_ID)),
+        accounts: List<Account> = emptyList(),
+        accountId: Long? = null,
     ) = ReportsUiState(
         isLoading = false,
         period = AUGUST,
+        accounts = accounts,
+        accountId = accountId,
         sections =
             listOf(
                 SpendingSection(
-                    expense = SpendingBreakdown(AUGUST, slices, Money(slices.sumOf { it.total.minorUnits }, "EUR")),
+                    expense =
+                        SpendingBreakdown(
+                            scopeFor(accountId),
+                            slices,
+                            Money(slices.sumOf { it.total.minorUnits }, "EUR"),
+                        ),
                     income =
                         SpendingBreakdown(
-                            AUGUST,
+                            scopeFor(accountId),
                             incomeSlices,
                             Money(incomeSlices.sumOf { it.total.minorUnits }, "EUR"),
                             TransactionKind.INCOME,
@@ -337,6 +401,30 @@ class ReportsScreenTest {
             ),
         )
 
+    /**
+     * The scope the fake sections report on. It carries the account the state says the tab is
+     * narrowed to, because that is what a drill-down reads — a state claiming one account
+     * while its slices carry a filter for all of them would test nothing the app does.
+     */
+    private fun scopeFor(accountId: Long? = null) = ReportScope(AUGUST, "EUR", accountId)
+
+    private fun twoAccounts() = listOf(account(CURRENT_ID, "Current"), account(SAVINGS_ID, "Savings"))
+
+    private fun account(
+        id: Long,
+        name: String,
+        archived: Boolean = false,
+    ) = Account(
+        id = id,
+        name = name,
+        type = AccountType.BANK,
+        currency = "EUR",
+        openingBalance = Money.zero("EUR"),
+        colorArgb = 0,
+        archived = archived,
+        sortOrder = 0,
+    )
+
     private fun slice(
         name: String?,
         minor: Long,
@@ -355,5 +443,8 @@ class ReportsScreenTest {
         val AUGUST = ReportPeriod.Month(YearMonth.of(2026, 8))
         const val GROCERIES_ID = 2L
         const val SALARY_ID = 3L
+        const val CURRENT_ID = 10L
+        const val SAVINGS_ID = 11L
+        const val OLD_ID = 12L
     }
 }

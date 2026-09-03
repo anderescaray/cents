@@ -1,12 +1,12 @@
 package io.github.anderescaray.cents.domain.repository.reports
 
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Where the money went: one slice per category over [ReportPeriod], largest first, including
+ * Where the money went: one slice per category over [ReportScope], largest first, including
  * an unnamed slice for whatever was never categorized.
  *
  * One interface per view on the Reports tab, each in its own file in this package — see
@@ -21,8 +21,7 @@ interface SpendingByCategoryRepository {
      * did the money come from"; the first chart asks for expenses (D4).
      */
     fun observeSpendingByCategory(
-        period: ReportPeriod,
-        currency: String,
+        scope: ReportScope,
         kind: TransactionKind = TransactionKind.EXPENSE,
     ): Flow<SpendingBreakdown>
 }

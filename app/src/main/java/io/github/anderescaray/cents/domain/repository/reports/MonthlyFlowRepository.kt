@@ -1,7 +1,7 @@
 package io.github.anderescaray.cents.domain.repository.reports
 
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -12,8 +12,5 @@ import kotlinx.coroutines.flow.Flow
  * shared rule, and `ui/feature/reports/ReportSection.kt` for the seam this is half of.
  */
 interface MonthlyFlowRepository {
-    fun observeMonthlyFlow(
-        period: ReportPeriod,
-        currency: String,
-    ): Flow<List<MonthlyFlow>>
+    fun observeMonthlyFlow(scope: ReportScope): Flow<List<MonthlyFlow>>
 }

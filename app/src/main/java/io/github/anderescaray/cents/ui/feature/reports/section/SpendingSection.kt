@@ -2,16 +2,24 @@ package io.github.anderescaray.cents.ui.feature.reports.section
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.patrykandpatrick.vico.compose.common.Fill
@@ -25,9 +33,11 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.ReportActions
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
@@ -37,43 +47,91 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.atan2
 import kotlin.math.hypot
 
 /**
- * Where the money went, as a ring with the categories it is made of listed under it.
+ * Where the money went — and, on the other segment, where it came from: one ring per
+ * direction, with the categories it is made of listed under it.
  *
  * One of the two views the tab started with, moved into a section and otherwise unchanged.
  * Everything it needs is in this file: the state, the source that fills it, the chart and the
  * row it draws. That is the shape a new view copies.
+ *
+ * **Both directions are carried at once rather than one at a time.** The ring was only ever
+ * specified for spending (D4), and the owner asked for income as well; the cheap way would
+ * have been a kind held somewhere and one query re-run on every flip. Two aggregations over
+ * the same period cost two `GROUP BY`s bounded by the number of categories, and buy a toggle
+ * that answers instantly instead of emptying the ring while SQLite is asked again. It also
+ * keeps this section stateless in the way the seam asks for: the source still takes a period
+ * and nothing else, so the choice lives in the composable that shows it and nowhere else.
  */
 data class SpendingSection(
-    val breakdown: SpendingBreakdown,
+    val expense: SpendingBreakdown,
+    val income: SpendingBreakdown,
 ) : ReportSectionState {
     override val key: String get() = KEY
 
+    /** The ring for one direction, so a test can ask for the side it is about. */
+    fun breakdownFor(kind: TransactionKind): SpendingBreakdown =
+        when (kind) {
+            TransactionKind.EXPENSE -> expense
+            TransactionKind.INCOME -> income
+        }
+
     @Composable
     override fun Content(actions: ReportActions) {
-        CentsListSection(header = stringResource(R.string.reports_spending_header)) {
-            if (breakdown.isEmpty) {
-                EmptyChart(stringResource(R.string.reports_spending_empty))
-            } else {
-                Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
-                    SpendingDonut(breakdown) { actions.onDrillDown(breakdown.filterFor(it)) }
-                }
-                CentsListRow(
-                    title = stringResource(R.string.reports_spending_total),
-                    value = MoneyFormatter.format(breakdown.total),
-                )
-                breakdown.slices.forEachIndexed { index, slice ->
-                    CategoryRow(
-                        slice = slice,
-                        last = index == breakdown.slices.lastIndex,
-                        onClick = { actions.onDrillDown(breakdown.filterFor(slice)) },
+        // Saved rather than remembered: the section is one item of a `LazyColumn`, so
+        // scrolling it off screen disposes it, and a toggle that quietly went back to
+        // spending on the way past would be a bug nobody could describe.
+        var kind by rememberSaveable { mutableStateOf(TransactionKind.EXPENSE) }
+        val breakdown = breakdownFor(kind)
+        val labels = KINDS.associateWith { stringResource(it.labelRes) }
+
+        Column {
+            // Above the card rather than inside it, the way the period control sits above
+            // the whole tab: a segmented control is a question about what follows, and a row
+            // in a grouped list reads as one more piece of the answer.
+            CentsSegmentedControl(
+                options = KINDS,
+                selected = kind,
+                onSelect = { kind = it },
+                label = { labels.getValue(it) },
+                // Tagged because "Income" is also the word the flow chart's legend uses one
+                // section down, and a test asking for it by text would be asking which of
+                // the two the tree happened to compose first.
+                modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).testTag(KIND_CONTROL_TAG),
+            )
+            Spacer(Modifier.height(CentsDimens.spacingM))
+
+            CentsListSection(header = stringResource(kind.headerRes)) {
+                if (breakdown.isEmpty) {
+                    EmptyChart(stringResource(kind.emptyRes))
+                } else {
+                    Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
+                        // Keyed on the direction so each ring gets its own model producer.
+                        // Shared, Vico animates from the old geometry to the new one while
+                        // the colours have already changed — five expense arcs painted in
+                        // the one income category's colour for the length of the
+                        // transition. The two are different answers, not one changing.
+                        key(kind) {
+                            SpendingDonut(breakdown) { actions.onDrillDown(breakdown.filterFor(it)) }
+                        }
+                    }
+                    CentsListRow(
+                        title = stringResource(kind.totalRes),
+                        value = MoneyFormatter.format(breakdown.total),
                     )
+                    breakdown.slices.forEachIndexed { index, slice ->
+                        CategoryRow(
+                            slice = slice,
+                            last = index == breakdown.slices.lastIndex,
+                            onClick = { actions.onDrillDown(breakdown.filterFor(slice)) },
+                        )
+                    }
                 }
             }
         }
@@ -81,8 +139,30 @@ data class SpendingSection(
 
     companion object {
         const val KEY = "spending"
+
+        /** Expenses first: it is the question the tab was built to answer (D4). */
+        private val KINDS = listOf(TransactionKind.EXPENSE, TransactionKind.INCOME)
     }
 }
+
+/**
+ * The words a direction is described in.
+ *
+ * Four strings rather than one flipped noun, because the ring is not "spending, negated":
+ * "where the money went" and "where it came from" are two questions, and a total labelled
+ * *Total spent* over income would be wrong rather than merely terse.
+ */
+private val TransactionKind.labelRes: Int
+    get() = if (this == TransactionKind.INCOME) R.string.kind_income else R.string.kind_expense
+
+private val TransactionKind.headerRes: Int
+    get() = if (this == TransactionKind.INCOME) R.string.reports_income_header else R.string.reports_spending_header
+
+private val TransactionKind.totalRes: Int
+    get() = if (this == TransactionKind.INCOME) R.string.reports_income_total else R.string.reports_spending_total
+
+private val TransactionKind.emptyRes: Int
+    get() = if (this == TransactionKind.INCOME) R.string.reports_income_empty else R.string.reports_spending_empty
 
 @Singleton
 class SpendingSectionSource
@@ -93,7 +173,12 @@ class SpendingSectionSource
         override fun observe(
             period: ReportPeriod,
             currency: String,
-        ): Flow<ReportSectionState> = repository.observeSpendingByCategory(period, currency).map(::SpendingSection)
+        ): Flow<ReportSectionState> =
+            combine(
+                repository.observeSpendingByCategory(period, currency, TransactionKind.EXPENSE),
+                repository.observeSpendingByCategory(period, currency, TransactionKind.INCOME),
+                ::SpendingSection,
+            )
     }
 
 /**
@@ -225,6 +310,8 @@ internal fun SpendingBreakdown.sliceAt(
     // to the slice that was drawn there.
     return slices.getOrNull(if (index >= 0) index else slices.lastIndex)
 }
+
+internal const val KIND_CONTROL_TAG = "reportsSpendingKind"
 
 private val DONUT_HEIGHT = 220.dp
 private val DONUT_HOLE = 104.dp

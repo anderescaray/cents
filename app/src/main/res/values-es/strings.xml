@@ -184,6 +184,9 @@
     <string name="reports_spending_header">A dónde fue el dinero</string>
     <string name="reports_spending_total">Total gastado</string>
     <string name="reports_spending_empty">No se gastó nada en este periodo.</string>
+    <string name="reports_income_header">De dónde vino el dinero</string>
+    <string name="reports_income_total">Total ingresado</string>
+    <string name="reports_income_empty">No entró nada en este periodo.</string>
     <string name="reports_uncategorized">Sin categoría</string>
     <string name="reports_share">%1$d%%</string>
     <string name="reports_flow_header">Ingresos y gastos</string>

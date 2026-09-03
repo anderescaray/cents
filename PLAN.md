@@ -510,8 +510,8 @@ Check the code before trusting a plan that says they are.
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Reports | The tab reads the database: a spending ring, income against expenses per month, and a balance line over the period, all under one period control. A slice opens the movements behind it. A fourth view is an additive unit — see C3 |
-| Tests | 256, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, and a balance line over the period, all under one period control. A slice opens the movements behind it, in the direction the ring was showing. A fourth view is an additive unit — see C3 |
+| Tests | 260, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -757,6 +757,28 @@ charts at once is how a phase turns into a month.
       ending today equals the Accounts tab total, and a test asserts exactly that. Archived
       accounts count, which makes the line legitimately differ from that total when one holds a
       balance.
+
+- [x] **`feat/the-ring-shows-income-too`** — **open as #34, green on CI, waiting on the owner to
+      merge.** The first thing the owner asked for after the second device walk, and it
+      outranked the next planned branch (`FEEDBACK.md`). A segmented control
+      above the ring picks the direction; the section's header, total and empty line follow it,
+      because *Total spent* over income would be wrong rather than merely terse.
+      **Both breakdowns are read at once** rather than one query re-run on each flip. The kind
+      was already a parameter of `SpendingByCategoryRepository` and already travelled inside
+      `SpendingBreakdown.filterFor`, so a slice of the income ring drills down to income with
+      nothing added — the work was two more strings, a `combine`, and a toggle that survives
+      being scrolled off a `LazyColumn`.
+
+- [ ] **`feat/reports-for-one-account`** — the second and last open `FEEDBACK.md` item: narrow
+      every report to one account, the way the movements list can be. **This one is not
+      additive, and that is the whole of its difficulty.** A section source takes a period and
+      a currency; an account is a third thing every view has to be asked about, so the seam
+      itself changes — most cheaply by replacing the two parameters with one scope that also
+      knows how to produce the drill-down filter, since a slice tapped while one account is
+      selected must open that account's movements and not everyone's. Each of the three
+      queries gains the predicate, and `observeBalanceBefore` gains the harder half: with an
+      account chosen, the line must start from *that* account's opening balance rather than
+      the sum of all of them. It comes after #34 because both touch `SpendingSection.kt`.
 
 - [ ] **The last three PRD §4.3 views** — spending by weekday, period comparison,
       single-category detail. **These are now genuinely separable**, which they were not before

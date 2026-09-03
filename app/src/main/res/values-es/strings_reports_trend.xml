@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reports_trend_header">Una categoría a lo largo del tiempo</string>
+    <string name="reports_trend_empty">No se registró nada en este tramo.</string>
+    <string name="reports_trend_pick">Toca para seguir otra categoría</string>
+    <string name="reports_trend_latest">Este periodo</string>
+    <string name="reports_trend_change">Frente a lo habitual</string>
+    <string name="reports_trend_partial">Este periodo no ha terminado, así que cada punto cuenta los mismos días que él.</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The single-category trend's own strings, a file per view — see strings_reports_balance.xml.
+-->
+<resources>
+    <string name="reports_trend_header">One category over time</string>
+    <string name="reports_trend_empty">Nothing was recorded in this stretch.</string>
+    <string name="reports_trend_pick">Tap to follow a different category</string>
+    <string name="reports_trend_latest">This period</string>
+    <string name="reports_trend_change">Against the usual</string>
+    <string name="reports_trend_partial">This period has not finished, so every point counts the same number of days as it does.</string>
+</resources>

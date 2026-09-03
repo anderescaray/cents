@@ -82,7 +82,9 @@ data class ComparedRanges(
  */
 fun ReportPeriod.comparedWith(today: LocalDate): ComparedRanges {
     val whole = ComparedRanges(current = this, previous = previous(), partial = false)
-    if (today < from || today >= to) return whole
+    // `> to`, not `>= to`: on the last day of a period the day is not over, and February's
+    // twenty-eight days against the whole of January is the same flattery in miniature.
+    if (today < from || today > to) return whole
 
     val elapsedDays = ChronoUnit.DAYS.between(from, today)
     val before = previous()

@@ -18,6 +18,7 @@ import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategorySpending
+import io.github.anderescaray.cents.domain.model.CategoryTrend
 import io.github.anderescaray.cents.domain.model.ComparedRanges
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
@@ -28,10 +29,13 @@ import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.TrendBucket
+import io.github.anderescaray.cents.domain.model.TrendChoice
 import io.github.anderescaray.cents.ui.feature.reports.PeriodPreset
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSection
+import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSection
 import io.github.anderescaray.cents.ui.feature.reports.section.KIND_CONTROL_TAG
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
@@ -61,6 +65,9 @@ import java.time.YearMonth
 class ReportsScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    /** Which categories the trend section was pointed at while a test ran. */
+    private val watched = mutableListOf<Long>()
 
     @Test
     fun `each category is shown with its share and its amount`() {
@@ -233,6 +240,35 @@ class ReportsScreenTest {
         // July, not August: it is the one stretch on this tab no other view can reach.
         assertEquals(LocalDate.of(2026, 7, 1), opened?.from)
         assertEquals(LocalDate.of(2026, 7, 31), opened?.to)
+    }
+
+    @Test
+    fun `the trend names the category it is following and offers the others`() {
+        setContent(fullState())
+
+        scrollTo("ONE CATEGORY OVER TIME")
+        composeRule.onNodeWithText("Tap to follow a different category").assertExists()
+        // The other categories are behind a tap rather than listed under every chart: there
+        // can be as many as the owner has typed.
+        composeRule.onNodeWithText("Holidays").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Tap to follow a different category").performClick()
+
+        composeRule.onNodeWithText("Holidays").assertExists()
+    }
+
+    @Test
+    fun `choosing another category is reported to the section that owns the choice`() {
+        setContent(fullState())
+
+        scrollTo("Tap to follow a different category")
+        composeRule.onNodeWithText("Tap to follow a different category").performClick()
+        scrollTo("Holidays")
+        composeRule.onNodeWithText("Holidays").performClick()
+
+        // Which category is watched is the view's own business — it does not travel through
+        // ReportActions, and nothing else on the tab has an opinion about it.
+        assertEquals(listOf(SALARY_ID), watched)
     }
 
     @Test
@@ -425,6 +461,7 @@ class ReportsScreenTest {
                 ),
                 MonthlyFlowSection(months()),
                 PeriodComparisonSection(comparison(current = 90_000, before = 120_000)),
+                CategoryTrendSection(trend(), onSelectCategory = { watched += it }),
                 BalanceOverTimeSection(
                     BalanceOverTime(
                         period = AUGUST,
@@ -439,6 +476,22 @@ class ReportsScreenTest {
                 ),
             ),
     )
+
+    private fun trend(selected: String = "Restaurants") =
+        CategoryTrend(
+            scope = scopeFor(),
+            selected = TrendChoice(GROCERIES_ID, selected, 0),
+            choices =
+                listOf(
+                    TrendChoice(GROCERIES_ID, selected, 0),
+                    TrendChoice(SALARY_ID, "Holidays", 0),
+                ),
+            buckets =
+                listOf(
+                    TrendBucket(JULY, JULY, Money(10_000, "EUR")),
+                    TrendBucket(AUGUST, AUGUST, Money(30_000, "EUR")),
+                ),
+        )
 
     private fun comparison(
         current: Long,

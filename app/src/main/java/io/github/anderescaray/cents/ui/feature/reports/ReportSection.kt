@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSectionSource
+import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSectionSource
@@ -109,6 +110,8 @@ class ReportSections
         monthlyFlow: MonthlyFlowSectionSource,
         balance: BalanceOverTimeSectionSource,
         comparison: PeriodComparisonSectionSource,
+        trend: CategoryTrendSectionSource,
     ) {
-        val inOrder: List<ReportSectionSource> = listOf(spending, monthlyFlow, balance, comparison)
+        val inOrder: List<ReportSectionSource> =
+            listOf(spending, monthlyFlow, balance, comparison, trend)
     }

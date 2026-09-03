@@ -15,6 +15,7 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
 import io.github.anderescaray.cents.ui.feature.reports.ReportsViewModel
 import io.github.anderescaray.cents.ui.feature.reports.periodFor
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSection
+import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSection
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
@@ -267,7 +268,7 @@ class ReportsViewModelTest {
                 // The screen renders whatever is here; nothing in the view model names a
                 // chart. This is the assertion a new view updates, and the only one.
                 assertEquals(
-                    listOf("spending", "flow", "balance", "comparison"),
+                    listOf("spending", "flow", "balance", "comparison", "trend"),
                     state.sections.map { it.key },
                 )
             }
@@ -292,6 +293,59 @@ class ReportsViewModelTest {
                 assertEquals(Money(25_000, "EUR"), state.comparison?.current?.expenses)
                 assertEquals(Money(40_000, "EUR"), state.comparison?.before?.expenses)
                 assertEquals(Money(-15_000, "EUR"), state.comparison?.expensesChange)
+            }
+        }
+
+    @Test
+    fun `the trend follows one category across buckets the period decides`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val rent = database.categoryDao().insert(category(name = "Rent"))
+            val food = database.categoryDao().insert(category(name = "Restaurants"))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(accountId, rent, amountMinor = 800_000, date = LocalDate.of(2026, 8, 1)),
+                    transaction(accountId, food, amountMinor = 5_000, date = LocalDate.of(2026, 8, 4)),
+                    transaction(accountId, food, amountMinor = 4_000, date = LocalDate.of(2026, 6, 4)),
+                ),
+            )
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.trend?.selected != null }
+
+                // The tab is on a month, so the buckets are months — twelve of them, ending on
+                // the one selected, which is more than the period holds. It is the one view
+                // that reads outside it, and CategoryTrend argues why.
+                assertEquals("Rent", state.trend?.selected?.name)
+                assertEquals(TREND_BUCKETS, state.trend?.buckets?.size)
+            }
+        }
+
+    @Test
+    fun `pointing the trend at another category keeps it there`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val rent = database.categoryDao().insert(category(name = "Rent"))
+            val food = database.categoryDao().insert(category(name = "Restaurants"))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(accountId, rent, amountMinor = 800_000, date = LocalDate.of(2026, 8, 1)),
+                    transaction(accountId, food, amountMinor = 5_000, date = LocalDate.of(2026, 8, 4)),
+                ),
+            )
+
+            viewModel.uiState.test {
+                val opened = awaitStateThat { it.trend?.selected != null }
+                requireNotNull(opened.section<CategoryTrendSection>()).onSelectCategory(food)
+
+                // The choice lives in the section's own source, so it survives the period
+                // changing underneath it — nothing about a different month says stop watching
+                // this category.
+                awaitStateThat { it.trend?.selected?.name == "Restaurants" }
+                viewModel.selectPreset(PeriodPreset.QUARTER)
+
+                val later = awaitStateThat { it.preset == PeriodPreset.QUARTER && it.trend != null }
+                assertEquals("Restaurants", later.trend?.selected?.name)
             }
         }
 
@@ -436,6 +490,7 @@ class ReportsViewModelTest {
     }
 
     private companion object {
+        const val TREND_BUCKETS = 12
         const val MONTHS_IN_YEAR = 12
         const val AUGUST_DAYS = 31
     }
@@ -450,3 +505,5 @@ private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.mo
 private val ReportsUiState.balance get() = section<BalanceOverTimeSection>()?.balance
 
 private val ReportsUiState.comparison get() = section<PeriodComparisonSection>()?.comparison
+
+private val ReportsUiState.trend get() = section<CategoryTrendSection>()?.trend

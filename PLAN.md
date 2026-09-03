@@ -510,8 +510,8 @@ Check the code before trusting a plan that says they are.
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, and **this period against the one before it**, all under one period control and one account picker. A slice opens the movements behind it, in the direction the ring was showing. What a fifth view costs is spelled out in C3 |
-| Tests | 283, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice opens the movements behind it, in the direction the ring was showing. What a sixth view costs is spelled out in C3 |
+| Tests | 305, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -810,7 +810,31 @@ charts at once is how a phase turns into a month.
       case uses `index_transactions_accountId_date` instead of the non-sargable `OR` form the
       other three reports use (C4). That is what the split recorded in that gap looks like.
 
-- [ ] **The last two PRD §4.3 views** — spending by weekday and single-category detail.
+- [x] **`feat/reports-category-detail`** — the fifth PRD §4.3 view, and the first whose
+      question does not fit inside the selected period: "is Restaurants creeping up" cannot be
+      read off one month, and a line with one point is not a trend. **The period picks the
+      bucket instead** — a month selected means the last twelve months, a week means the last
+      twelve weeks — so the one-period rule still holds in the sense that matters, which is
+      that nothing on the tab compares a month against a quarter. That argument lives on
+      `CategoryTrend`, and this is the one view that reads outside the selection.
+      **It is also the one section that holds a choice of its own.** Which category to watch
+      belongs to the view, not to the tab, so `CategoryTrendSectionSource` keeps it rather than
+      `ReportsViewModel` learning what a category detail is. The callback reaches the state as
+      a property of that singleton — a stable instance, so two states carrying it still compare
+      equal and Compose can skip the section. Being a singleton, the choice outlives leaving
+      the tab and dies with the process, which is the intent.
+      The change is measured against the **average** of the earlier buckets rather than the
+      previous one, or a single quiet month would make the next read as a spike.
+      Three things review caught and the branch fixes: **a category is summed in its own
+      direction and movements against it are netted**, or an income category leads a list
+      documented as "what is most spent on" and a pay rise renders red; **a running period cuts
+      every bucket to the same elapsed days**, the same rule the comparison view follows one
+      section up; and the axis label follows the bucket, because twelve years labelled as
+      months all read "Jan".
+
+- [ ] **The last PRD §4.3 view** — spending by weekday, on D10's answer (B): `TransactionFilter`
+      gains a weekday, and the Filters form gains the section that makes it visible and
+      clearable. The rest of the note below still applies —
       **They are not equally separable, and the difference is worth knowing before splitting
       them across agents.** Single-category detail is additive the way period comparison was:
       a category and a date range are both things `TransactionFilter` already expresses, so
@@ -844,10 +868,24 @@ parallelism.
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **Four of the six PRD §4.3 views exist.** Spending by weekday and single-category detail
-  are unbuilt. The seam does exist (#28, #35) and period comparison proved it holds: a new view
-  is a new file plus single lines in three shared ones. Spending by weekday is the one that may
-  still cost more than that, because its drill-down has no filter to express it — D10.
+- **Five of the six PRD §4.3 views exist.** Only spending by weekday is unbuilt, and it is
+  the one that costs more than a new file: D10 is answered B, so it also adds a weekday to
+  `TransactionFilter` and a section to the Filters form.
+- **The trend view reads outside the selected period, on purpose.** Every other view reports on
+  the period and nothing else; this one shows the twelve periods ending with it, because a
+  trend needs history. The rule it keeps is that the period decides the bucket, so no two
+  points anywhere on the tab are different lengths of time. Anything later that assumes "a
+  report only ever touches the selected range" has to account for this one.
+- **A report's idea of "today" is fixed when its flow is built.** The period comparison and
+  the trend both read the clock once, when the scope changes, so an app left open across
+  midnight keeps yesterday's clamp — a movement dated today is left out of "this period" until
+  the flow is rebuilt. The tab's flows are `WhileSubscribed(5s)`, so leaving the tab for five
+  seconds is enough to refresh it, and the same root cause is the "nothing invalidates the
+  screen at midnight" gap further down this list. Fixing it properly is one midnight tick that
+  every screen reads, not a clock re-read per view.
+- **The watched category is app-scoped and forgotten on restart.** It lives in a `@Singleton`
+  section source, so it survives leaving the tab and dies with the process. Persisting it is a
+  DataStore key, and it was not worth one until someone misses it.
 - **A report built from two flows can render one frame of a half-updated answer.** The balance
   line and the period comparison each `combine` two queries, and both files used to claim that
   this made the pair atomic. It does not: `combine` pairs the newest value of one flow with the

@@ -27,7 +27,7 @@ data class CategorySpending(
  * drawing an empty circle.
  */
 data class SpendingBreakdown(
-    val period: ReportPeriod,
+    val scope: ReportScope,
     val slices: List<CategorySpending>,
     val total: Money,
     /** Which direction the slices are, so a drill-down asks for the same movements. */
@@ -38,14 +38,16 @@ data class SpendingBreakdown(
     /**
      * The movements one slice is made of, expressed as a filter.
      *
-     * All three parts matter and each one is a way the list could disagree with the chart:
-     * the **period**, or the list would show every month; the **category**, which is the
-     * slice itself and is [CategoryFilter.Uncategorized] rather than "any" for the unnamed
-     * one; and the **kind**, or an income movement filed under Groceries would appear in a
-     * list that claims to add up to an expense slice.
+     * Every part matters and each one is a way the list could disagree with the chart: the
+     * **period**, or the list would show every month; the **account** the tab is narrowed to,
+     * or a slice of one account's spending would open everyone's — both of those come from
+     * the scope, which is why [ReportScope.asFilter] is the only way to start one; the
+     * **category**, which is the slice itself and is [CategoryFilter.Uncategorized] rather
+     * than "any" for the unnamed one; and the **kind**, or an income movement filed under
+     * Groceries would appear in a list that claims to add up to an expense slice.
      */
     fun filterFor(slice: CategorySpending): TransactionFilter =
-        period.asFilter().copy(
+        scope.asFilter().copy(
             category =
                 slice.categoryId?.let(CategoryFilter::One) ?: CategoryFilter.Uncategorized,
             kind = kind,

@@ -26,6 +26,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -48,6 +50,9 @@ class ReportsViewModelTest {
     // worked out rather than accidentally matching the month.
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
 
+    // Held rather than built inline, because a drill-down is only observable through it.
+    private val filters = TransactionFilterStore()
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -57,7 +62,7 @@ class ReportsViewModelTest {
                 ReportsViewModel(
                     reportSections(database),
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
-                    TransactionFilterStore(),
+                    filters,
                     clock,
                 ),
             )
@@ -137,6 +142,116 @@ class ReportsViewModelTest {
                     TransactionKind.INCOME,
                     state.earning?.let { it.filterFor(it.slices.first()) }?.kind,
                 )
+            }
+        }
+
+    @Test
+    fun `choosing an account narrows every view at once`() =
+        runTest {
+            val current = database.accountDao().insert(account(name = "Current", openingBalanceMinor = 100_000))
+            val savings = database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 900_000))
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(current, groceries, amountMinor = 3_000, date = LocalDate.of(2026, 8, 4)),
+                    transaction(savings, groceries, amountMinor = 90_000, date = LocalDate.of(2026, 8, 5)),
+                ),
+            )
+
+            viewModel.uiState.test {
+                awaitStateThat { it.spending?.total == Money(93_000, "EUR") }
+
+                viewModel.selectAccount(current)
+
+                // All three views move together, or the tab shows one account's spending
+                // beside every account's balance and reads as a contradiction.
+                val narrowed = awaitStateThat { it.accountId == current && it.spending != null }
+                assertEquals(Money(3_000, "EUR"), narrowed.spending?.total)
+                assertEquals(
+                    3_000L,
+                    narrowed.monthlyFlow
+                        ?.single()
+                        ?.summary
+                        ?.expenses
+                        ?.minorUnits,
+                )
+                assertEquals(Money(100_000, "EUR"), narrowed.balance?.opening)
+            }
+        }
+
+    @Test
+    fun `a slice tapped while one account is chosen opens that account's movements`() =
+        runTest {
+            val current = database.accountDao().insert(account(name = "Current"))
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            database.transactionDao().insert(
+                transaction(current, groceries, amountMinor = 3_000, date = LocalDate.of(2026, 8, 4)),
+            )
+
+            viewModel.uiState.test {
+                viewModel.selectAccount(current)
+                val state = awaitStateThat { it.accountId == current && it.spending?.isEmpty == false }
+                val breakdown = requireNotNull(state.spending)
+
+                viewModel.drillDown(breakdown.filterFor(breakdown.slices.first()))
+            }
+
+            // Without the account on the filter the list would answer with every account's
+            // movements while the ring above it added up one account's.
+            assertEquals(current, filters.filter.value.accountId)
+        }
+
+    @Test
+    fun `changing the period keeps the account being looked at`() =
+        runTest {
+            val current = database.accountDao().insert(account(name = "Current"))
+            database.accountDao().insert(account(name = "Savings"))
+
+            viewModel.uiState.test {
+                viewModel.selectAccount(current)
+                awaitStateThat { it.accountId == current }
+
+                viewModel.selectPreset(PeriodPreset.YEAR)
+
+                // Asking about a different stretch of time is not asking about different
+                // money, and rebuilding the selection from scratch used to lose the account.
+                val state = awaitStateThat { it.preset == PeriodPreset.YEAR }
+                assertEquals(current, state.accountId)
+            }
+        }
+
+    @Test
+    fun `an account deleted while the tab is open falls back to all of them`() =
+        runTest {
+            val current = database.accountDao().insert(account(name = "Current"))
+            database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 900_000))
+
+            viewModel.uiState.test {
+                viewModel.selectAccount(current)
+                awaitStateThat { it.accountId == current }
+
+                database.accountDao().deleteById(current)
+
+                // The alternative is a tab reporting on nothing, headed by the name of an
+                // account that no longer exists.
+                val state = awaitStateThat { it.accounts.none { account -> account.id == current } }
+                assertNull(state.accountId)
+                assertEquals(Money(900_000, "EUR"), state.balance?.opening)
+            }
+        }
+
+    @Test
+    fun `the picker only appears once there is more than one account`() =
+        runTest {
+            database.accountDao().insert(account(name = "Current"))
+
+            viewModel.uiState.test {
+                val alone = awaitStateThat { it.accounts.size == 1 }
+                assertFalse(alone.canPickAccount)
+
+                database.accountDao().insert(account(name = "Savings"))
+
+                assertTrue(awaitStateThat { it.accounts.size == 2 }.canPickAccount)
             }
         }
 

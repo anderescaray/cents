@@ -6,20 +6,20 @@ import java.time.YearMonth
 /**
  * The stretch of time a report is about.
  *
- * This is the only thing every view on the Reports tab shares. Each view's own model —
- * [SpendingBreakdown], [MonthlyFlow], [BalanceOverTime] — lives in a file of its own beside
- * this one, so a new view is a new file rather than one more edit to a growing shared one.
+ * Half of what every view on the Reports tab is asked about; the other half is which account,
+ * and [ReportScope] is the two of them together. Each view's own model — [SpendingBreakdown],
+ * [MonthlyFlow], [BalanceOverTime] — lives in a file of its own beside this one, so a new view
+ * is a new file rather than one more edit to a growing shared one.
  *
  * A period is a [TransactionFilter] date range with a name, not a second idea of "a
- * period": [asFilter] is what a drill-down hands to the transaction list, so tapping a
- * slice of a chart lands on exactly the movements the slice was made of.
+ * period". It does **not** know how to turn itself into a filter, though: it used to, and
+ * that method became a way to build a drill-down that carried the dates and silently
+ * dropped the account. [ReportScope.asFilter] is the one way, because it is the only thing
+ * that knows everything a report was narrowed by.
  */
 sealed interface ReportPeriod {
     val from: LocalDate
     val to: LocalDate
-
-    /** The same range the transaction list already knows how to apply. */
-    fun asFilter(): TransactionFilter = TransactionFilter(from = from, to = to)
 
     data class Week(
         override val from: LocalDate,

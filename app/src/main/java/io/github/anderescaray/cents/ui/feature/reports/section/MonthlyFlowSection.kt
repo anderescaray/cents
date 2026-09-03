@@ -26,7 +26,7 @@ import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
@@ -87,10 +87,8 @@ class MonthlyFlowSectionSource
     constructor(
         private val repository: MonthlyFlowRepository,
     ) : ReportSectionSource {
-        override fun observe(
-            period: ReportPeriod,
-            currency: String,
-        ): Flow<ReportSectionState> = repository.observeMonthlyFlow(period, currency).map(::MonthlyFlowSection)
+        override fun observe(scope: ReportScope): Flow<ReportSectionState> =
+            repository.observeMonthlyFlow(scope).map(::MonthlyFlowSection)
     }
 
 /**

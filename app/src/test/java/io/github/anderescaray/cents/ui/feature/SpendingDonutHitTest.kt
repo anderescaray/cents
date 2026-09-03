@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.ui.feature.reports.section.sliceAt
 import org.junit.Assert.assertEquals
@@ -23,7 +24,7 @@ class SpendingDonutHitTest {
     // Four equal quarters, in the order the chart draws them: clockwise from twelve.
     private val breakdown =
         SpendingBreakdown(
-            period = ReportPeriod.Month(YearMonth.of(2026, 8)),
+            scope = ReportScope(ReportPeriod.Month(YearMonth.of(2026, 8)), "EUR"),
             slices =
                 listOf(
                     slice("North-east", 0.25f),

@@ -46,7 +46,7 @@ class BalanceQueriesTest {
                 ),
             )
 
-            val rows = dao.observeDailyNet(august(1), august(31)).first()
+            val rows = dao.observeDailyNet(august(1), august(31), null).first()
 
             assertEquals(listOf(august(1), august(4)), rows.map { it.date })
             assertEquals(listOf(155_000L, -12_000L), rows.map { it.netMinor })
@@ -67,7 +67,7 @@ class BalanceQueriesTest {
                 ),
             )
 
-            val rows = dao.observeDailyNet(august(1), august(31)).first()
+            val rows = dao.observeDailyNet(august(1), august(31), null).first()
 
             assertEquals(1, rows.size)
             assertEquals(0L, rows.single().netMinor)
@@ -88,7 +88,7 @@ class BalanceQueriesTest {
                 ),
             )
 
-            val rows = dao.observeDailyNet(august(1), august(31)).first()
+            val rows = dao.observeDailyNet(august(1), august(31), null).first()
 
             assertEquals(listOf(august(1), august(31)), rows.map { it.date })
             assertEquals(listOf(-200L, -300L), rows.map { it.netMinor })
@@ -114,7 +114,7 @@ class BalanceQueriesTest {
                 ),
             )
 
-            val before = dao.observeBalanceBefore(august(1)).first()
+            val before = dao.observeBalanceBefore(august(1), null).first()
 
             assertEquals(100_000L - 25_000L + 60_000L - 15_000L, before)
         }
@@ -124,7 +124,7 @@ class BalanceQueriesTest {
         runTest {
             database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 500_000))
 
-            val before = database.transactionDao().observeBalanceBefore(august(1)).first()
+            val before = database.transactionDao().observeBalanceBefore(august(1), null).first()
 
             assertEquals(500_000L, before)
         }
@@ -132,7 +132,7 @@ class BalanceQueriesTest {
     @Test
     fun `no accounts and no movements is zero rather than null`() =
         runTest {
-            val before = database.transactionDao().observeBalanceBefore(august(1)).first()
+            val before = database.transactionDao().observeBalanceBefore(august(1), null).first()
 
             assertEquals(0L, before)
         }
@@ -151,7 +151,7 @@ class BalanceQueriesTest {
                 ),
             )
 
-            val afterEverything = dao.observeBalanceBefore(LocalDate.of(2026, 9, 1)).first()
+            val afterEverything = dao.observeBalanceBefore(LocalDate.of(2026, 9, 1), null).first()
             val accountsTabTotal =
                 database
                     .accountDao()

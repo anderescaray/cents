@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -50,7 +51,7 @@ class RoomSpendingByCategoryRepositoryTest {
                 ),
             )
 
-            val breakdown = repository.observeSpendingByCategory(august, "EUR").first()
+            val breakdown = repository.observeSpendingByCategory(scope(august)).first()
 
             assertEquals(Money(100_000, "EUR"), breakdown.total)
             assertEquals(listOf(0.75f, 0.25f), breakdown.slices.map { it.share })
@@ -62,7 +63,7 @@ class RoomSpendingByCategoryRepositoryTest {
         runTest {
             database.accountDao().insert(account())
 
-            val breakdown = repository.observeSpendingByCategory(august, "EUR").first()
+            val breakdown = repository.observeSpendingByCategory(scope(august)).first()
 
             assertTrue(breakdown.isEmpty)
             assertEquals(Money.zero("EUR"), breakdown.total)
@@ -80,18 +81,53 @@ class RoomSpendingByCategoryRepositoryTest {
                 ),
             )
 
-            val income = repository.observeSpendingByCategory(august, "EUR", TransactionKind.INCOME).first()
+            val income = repository.observeSpendingByCategory(scope(august), TransactionKind.INCOME).first()
 
             assertEquals(Money(200_000, "EUR"), income.total)
         }
 
     @Test
-    fun `a period is a transaction filter, so a slice can open the movements behind it`() {
-        val filter = ReportPeriod.Month(YearMonth.of(2026, 8)).asFilter()
+    fun `only the chosen account's spending is counted`() =
+        runTest {
+            val current = database.accountDao().insert(account(name = "Current"))
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(current, groceries, amountMinor = 3_000),
+                    transaction(savings, groceries, amountMinor = 90_000),
+                ),
+            )
+
+            val everything = repository.observeSpendingByCategory(scope(august)).first()
+            val justCurrent = repository.observeSpendingByCategory(scope(august, current)).first()
+
+            assertEquals(Money(93_000, "EUR"), everything.total)
+            assertEquals(Money(3_000, "EUR"), justCurrent.total)
+        }
+
+    @Test
+    fun `a scope is a transaction filter, so a slice opens that account's movements`() {
+        val accountId = 7L
+
+        val filter = scope(august, accountId).asFilter()
 
         assertEquals(LocalDate.of(2026, 8, 1), filter.from)
         assertEquals(LocalDate.of(2026, 8, 31), filter.to)
+        // Without this the list would answer with every account's movements while the chart
+        // above it added up one account's. The period alone can no longer build a filter,
+        // which is what stops that being written by accident.
+        assertEquals(accountId, filter.accountId)
     }
 
     private val august = ReportPeriod.Month(YearMonth.of(2026, 8))
+
+    /**
+     * The scope these tests report on. `accountId` defaults to null — every account — so a
+     * test only names one when narrowing is what it is about.
+     */
+    private fun scope(
+        period: ReportPeriod,
+        accountId: Long? = null,
+    ) = ReportScope(period, "EUR", accountId)
 }

@@ -31,7 +31,7 @@ import com.patrykandpatrick.vico.compose.pie.data.pieSeries
 import com.patrykandpatrick.vico.compose.pie.rememberPieChart
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
@@ -170,13 +170,10 @@ class SpendingSectionSource
     constructor(
         private val repository: SpendingByCategoryRepository,
     ) : ReportSectionSource {
-        override fun observe(
-            period: ReportPeriod,
-            currency: String,
-        ): Flow<ReportSectionState> =
+        override fun observe(scope: ReportScope): Flow<ReportSectionState> =
             combine(
-                repository.observeSpendingByCategory(period, currency, TransactionKind.EXPENSE),
-                repository.observeSpendingByCategory(period, currency, TransactionKind.INCOME),
+                repository.observeSpendingByCategory(scope, TransactionKind.EXPENSE),
+                repository.observeSpendingByCategory(scope, TransactionKind.INCOME),
                 ::SpendingSection,
             )
     }

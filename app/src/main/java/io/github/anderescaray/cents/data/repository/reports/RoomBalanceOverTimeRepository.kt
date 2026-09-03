@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -32,30 +33,29 @@ class RoomBalanceOverTimeRepository
     constructor(
         private val transactionDao: TransactionDao,
     ) : BalanceOverTimeRepository {
-        override fun observeBalanceOverTime(
-            period: ReportPeriod,
-            currency: String,
-        ): Flow<BalanceOverTime> =
-            combine(
-                transactionDao.observeBalanceBefore(period.from),
-                transactionDao.observeDailyNet(period.from, period.to),
+        override fun observeBalanceOverTime(scope: ReportScope): Flow<BalanceOverTime> {
+            val period = scope.period
+            return combine(
+                transactionDao.observeBalanceBefore(period.from, scope.accountId),
+                transactionDao.observeDailyNet(period.from, period.to, scope.accountId),
             ) { openingMinor, days ->
                 val netByDate = days.associate { it.date to it.netMinor }
                 var running = openingMinor
                 val points =
                     period.days().map { day ->
                         running += netByDate[day] ?: 0L
-                        BalancePoint(day, Money(running, currency))
+                        BalancePoint(day, Money(running, scope.currency))
                     }
                 BalanceOverTime(
                     period = period,
-                    opening = Money(openingMinor, currency),
+                    opening = Money(openingMinor, scope.currency),
                     points = points,
                     // Days, not movements: what this separates is "nothing happened" from
                     // "it happened and cancelled out", and both of those are days.
                     activeDays = days.count { it.movementCount > 0 },
                 )
             }
+        }
     }
 
 /**

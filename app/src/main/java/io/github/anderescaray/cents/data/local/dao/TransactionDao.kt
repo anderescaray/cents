@@ -169,6 +169,18 @@ interface TransactionDao {
      * movements survive as their own group** with a null id and a null name. They are money
      * that was spent, and dropping them would make the slices add up to less than the total
      * with nothing on screen saying why. Naming that group is the UI's job.
+     *
+     * A null [accountId] means every account, which is the same spelling `TransactionFilter`
+     * uses for it. The predicate is written that way — `:accountId IS NULL OR ...` — rather
+     * than as two queries, because the alternative is two `@Query`s per report that have to be
+     * kept saying the same thing.
+     *
+     * **That form is not sargable**, and it is worth being honest about the cost: an `OR` over
+     * a bound parameter stops SQLite using `index_transactions_accountId_date`, so all four
+     * report queries fall back to the index on `date` and test the account row by row. It is
+     * bounded by the length of the period rather than by anything the owner does, and no
+     * device walk has ever noticed it. If one does, the fix is a second `@Query` per report,
+     * not a new index — recorded in `PLAN.md` C4 rather than half-done here.
      */
     @Query(
         """
@@ -179,7 +191,9 @@ interface TransactionDao {
                COUNT(*) AS transactionCount
         FROM transactions t
         LEFT JOIN categories c ON c.id = t.categoryId
-        WHERE t.kind = :kind AND t.date BETWEEN :from AND :to
+        WHERE t.kind = :kind
+          AND t.date BETWEEN :from AND :to
+          AND (:accountId IS NULL OR t.accountId = :accountId)
         GROUP BY t.categoryId
         ORDER BY totalMinor DESC, categoryName ASC
         """,
@@ -188,6 +202,7 @@ interface TransactionDao {
         kind: TransactionKind,
         from: LocalDate,
         to: LocalDate,
+        accountId: Long?,
     ): Flow<List<CategoryTotal>>
 
     /**
@@ -209,6 +224,7 @@ interface TransactionDao {
                COALESCE(SUM(CASE WHEN t.kind = 'EXPENSE' THEN t.amountMinor ELSE 0 END), 0) AS expenseMinor
         FROM transactions t
         WHERE t.date BETWEEN :from AND :to
+          AND (:accountId IS NULL OR t.accountId = :accountId)
         GROUP BY month
         ORDER BY month
         """,
@@ -216,6 +232,7 @@ interface TransactionDao {
     fun observeMonthlyTotals(
         from: LocalDate,
         to: LocalDate,
+        accountId: Long?,
     ): Flow<List<MonthTotals>>
 
     /**
@@ -231,6 +248,11 @@ interface TransactionDao {
      * one legitimate difference from the Accounts tab total, which sums only active accounts,
      * is an archived account that still holds a balance.
      *
+     * With an [accountId] given, **both halves narrow together**. Only that account's opening
+     * balance is carried in, and only its movements are counted before [from] — narrowing one
+     * and not the other is the mistake this query exists to make impossible, because it would
+     * draw a line starting from everyone's money and moving with one account's.
+     *
      * Two scalar sub-selects rather than a join: an account with no movements must still
      * contribute its opening balance, and a `LEFT JOIN` filtered on the transaction's date
      * gets that wrong in a way that is easy to write and hard to see.
@@ -238,7 +260,9 @@ interface TransactionDao {
     @Query(
         """
         SELECT (
-                   SELECT COALESCE(SUM(a.openingBalanceMinor), 0) FROM accounts a
+                   SELECT COALESCE(SUM(a.openingBalanceMinor), 0)
+                   FROM accounts a
+                   WHERE :accountId IS NULL OR a.id = :accountId
                ) + (
                    SELECT COALESCE(
                        SUM(
@@ -252,10 +276,14 @@ interface TransactionDao {
                    )
                    FROM transactions t
                    WHERE t.date < :from
+                     AND (:accountId IS NULL OR t.accountId = :accountId)
                )
         """,
     )
-    fun observeBalanceBefore(from: LocalDate): Flow<Long>
+    fun observeBalanceBefore(
+        from: LocalDate,
+        accountId: Long?,
+    ): Flow<Long>
 
     /**
      * What each day of a period did to the balance, summed in SQL.
@@ -285,6 +313,7 @@ interface TransactionDao {
                COUNT(*) AS movementCount
         FROM transactions t
         WHERE t.date BETWEEN :from AND :to
+          AND (:accountId IS NULL OR t.accountId = :accountId)
         GROUP BY t.date
         ORDER BY t.date
         """,
@@ -292,6 +321,7 @@ interface TransactionDao {
     fun observeDailyNet(
         from: LocalDate,
         to: LocalDate,
+        accountId: Long?,
     ): Flow<List<DayNet>>
 
     @Query("SELECT COUNT(*) FROM transactions")

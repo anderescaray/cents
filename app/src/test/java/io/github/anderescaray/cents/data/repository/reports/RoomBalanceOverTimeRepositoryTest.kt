@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -59,7 +60,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             // Five days, five points: the flat stretches are what a balance does between
             // movements, and a chart missing them would draw a slope that never happened.
@@ -84,7 +85,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             assertEquals(Money(30_000, "EUR"), line.opening)
             assertEquals(Money(30_000, "EUR"), line.points.first().balance)
@@ -108,7 +109,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line = repository.observeBalanceOverTime(ReportPeriod.Month(YearMonth.of(2026, 8)), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(ReportPeriod.Month(YearMonth.of(2026, 8)))).first()
             val accountsTabTotal =
                 database
                     .accountDao()
@@ -120,12 +121,67 @@ class RoomBalanceOverTimeRepositoryTest {
         }
 
     @Test
+    fun `one account's line starts from that account's opening balance, not everyone's`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 250_000))
+            val savings = database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 900_000))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(checking, amountMinor = 20_000, date = july(15)),
+                    transaction(savings, amountMinor = 500_000, date = july(15)),
+                    transaction(checking, amountMinor = 30_000, date = august(2)),
+                    transaction(savings, amountMinor = 100_000, date = august(3)),
+                ),
+            )
+
+            val line = repository.observeBalanceOverTime(scope(week(1, 5), checking)).first()
+
+            // Both halves narrow together or neither does. Carrying in every account's
+            // opening balance and then moving it by one account's movements is the failure
+            // this exists to catch, and it draws a line that looks entirely plausible.
+            assertEquals(Money(230_000, "EUR"), line.opening)
+            assertEquals(Money(200_000, "EUR"), line.closing)
+            assertEquals(Money(-30_000, "EUR"), line.change)
+        }
+
+    @Test
+    fun `one account's line ends on what the Accounts tab shows for it`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 250_000))
+            database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 900_000))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(checking, kind = TransactionKind.INCOME, amountMinor = 40_000, date = july(15)),
+                    transaction(checking, amountMinor = 30_000, date = august(2)),
+                ),
+            )
+
+            val line =
+                repository
+                    .observeBalanceOverTime(
+                        scope(ReportPeriod.Month(YearMonth.of(2026, 8)), checking),
+                    ).first()
+            val onTheAccountsTab =
+                database
+                    .accountDao()
+                    .observeBalances()
+                    .first()
+                    .single { it.accountId == checking }
+                    .balanceMinor
+
+            // The same check the whole-app line already makes, narrowed: the last point of a
+            // line ending today is the number that account shows, and it can be read off the
+            // phone in ten seconds.
+            assertEquals(onTheAccountsTab, line.closing.minorUnits)
+        }
+
+    @Test
     fun `a period with nothing in it is empty, and the line it would draw is flat`() =
         runTest {
             val accountId = database.accountDao().insert(account(openingBalanceMinor = 80_000))
             database.transactionDao().insert(transaction(accountId, amountMinor = 5_000, date = july(4)))
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             // Empty is a state, not a missing answer: the section says so in words rather
             // than drawing a flat line that is true and tells you nothing.
@@ -150,7 +206,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             assertFalse(line.isEmpty)
             assertEquals(
@@ -174,7 +230,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             // Three movements, one day, and they happen to cancel out exactly: the day is
             // still an active day, which is what keeps this apart from an empty period.
@@ -194,7 +250,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             assertEquals(Money.zero("EUR"), line.opening)
             assertEquals(
@@ -219,7 +275,7 @@ class RoomBalanceOverTimeRepositoryTest {
             // is the easy way to write this query and the reason it is two sub-selects.
             database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 500_000))
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             assertEquals(Money(500_000, "EUR"), line.opening)
             assertEquals(Money(500_000, "EUR"), line.closing)
@@ -238,7 +294,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 transaction(archived, kind = TransactionKind.INCOME, amountMinor = 3_000, date = august(2)),
             )
 
-            val line = repository.observeBalanceOverTime(week(1, 5), "EUR").first()
+            val line = repository.observeBalanceOverTime(scope(week(1, 5))).first()
 
             assertEquals(Money(20_000, "EUR"), line.opening)
             assertEquals(Money(23_000, "EUR"), line.closing)
@@ -260,7 +316,7 @@ class RoomBalanceOverTimeRepositoryTest {
                 ),
             )
 
-            val line: BalanceOverTime = repository.observeBalanceOverTime(ReportPeriod.Year(2026), "EUR").first()
+            val line: BalanceOverTime = repository.observeBalanceOverTime(scope(ReportPeriod.Year(2026))).first()
 
             assertEquals(DAYS_IN_2026, line.points.size)
             assertEquals(
@@ -280,7 +336,7 @@ class RoomBalanceOverTimeRepositoryTest {
 
             val line =
                 repository
-                    .observeBalanceOverTime(ReportPeriod.Custom(august(9), august(2)), "EUR")
+                    .observeBalanceOverTime(scope(ReportPeriod.Custom(august(9), august(2))))
                     .first()
 
             // The view model straightens these before they get here; a chart is not the place
@@ -297,6 +353,15 @@ class RoomBalanceOverTimeRepositoryTest {
     private fun august(day: Int) = LocalDate.of(2026, 8, day)
 
     private fun july(day: Int) = LocalDate.of(2026, 7, day)
+
+    /**
+     * The scope these tests report on. `accountId` defaults to null — every account — so a
+     * test only names one when narrowing is what it is about.
+     */
+    private fun scope(
+        period: ReportPeriod,
+        accountId: Long? = null,
+    ) = ReportScope(period, "EUR", accountId)
 
     private companion object {
         const val FIVE_DAYS = 5

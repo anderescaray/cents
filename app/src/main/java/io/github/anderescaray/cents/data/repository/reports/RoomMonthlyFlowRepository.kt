@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -25,22 +26,19 @@ class RoomMonthlyFlowRepository
     constructor(
         private val transactionDao: TransactionDao,
     ) : MonthlyFlowRepository {
-        override fun observeMonthlyFlow(
-            period: ReportPeriod,
-            currency: String,
-        ): Flow<List<MonthlyFlow>> =
+        override fun observeMonthlyFlow(scope: ReportScope): Flow<List<MonthlyFlow>> =
             transactionDao
-                .observeMonthlyTotals(period.from, period.to)
+                .observeMonthlyTotals(scope.period.from, scope.period.to, scope.accountId)
                 .map { rows ->
                     val byMonth = rows.associateBy { YearMonth.parse(it.month) }
-                    monthsIn(period).map { month ->
+                    monthsIn(scope.period).map { month ->
                         val totals = byMonth[month]
                         MonthlyFlow(
                             month = month,
                             summary =
                                 PeriodSummary(
-                                    income = Money(totals?.incomeMinor ?: 0, currency),
-                                    expenses = Money(totals?.expenseMinor ?: 0, currency),
+                                    income = Money(totals?.incomeMinor ?: 0, scope.currency),
+                                    expenses = Money(totals?.expenseMinor ?: 0, scope.currency),
                                 ),
                         )
                     }

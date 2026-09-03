@@ -29,7 +29,7 @@ import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
-import io.github.anderescaray.cents.domain.model.ReportPeriod
+import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.feature.reports.AmountRow
@@ -113,10 +113,8 @@ class BalanceOverTimeSectionSource
     constructor(
         private val repository: BalanceOverTimeRepository,
     ) : ReportSectionSource {
-        override fun observe(
-            period: ReportPeriod,
-            currency: String,
-        ): Flow<ReportSectionState> = repository.observeBalanceOverTime(period, currency).map(::BalanceOverTimeSection)
+        override fun observe(scope: ReportScope): Flow<ReportSectionState> =
+            repository.observeBalanceOverTime(scope).map(::BalanceOverTimeSection)
     }
 
 /**

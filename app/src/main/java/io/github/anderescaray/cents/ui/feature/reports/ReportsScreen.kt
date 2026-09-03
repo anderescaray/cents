@@ -21,6 +21,8 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.feature.filters.SelectableRow
+import io.github.anderescaray.cents.ui.feature.filters.displayName
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import java.time.LocalDate
 
@@ -30,9 +32,10 @@ private enum class RangeBound { FROM, TO }
 /**
  * The Reports tab.
  *
- * One period governs the whole screen. Every chart answers the same question — "over this
- * stretch of time" — so a selector per chart would let them drift apart and quietly invite a
- * comparison of August's spending against the whole year's income.
+ * One period and one account govern the whole screen. Every chart answers the same question —
+ * "over this stretch of time, for this money" — so a selector per chart would let them drift
+ * apart and quietly invite a comparison of August's spending against the whole year's income,
+ * or of one account's outgoings against every account's balance.
  *
  * Below the selector this screen composes a list of sections and knows nothing about any of
  * them: not what they draw, not what they are made of, not how many there are. Adding a view
@@ -48,6 +51,7 @@ fun ReportsScreen(
     ReportsScreen(
         state = state,
         onSelectPreset = viewModel::selectPreset,
+        onSelectAccount = viewModel::selectAccount,
         onSetRange = viewModel::setCustomRange,
         onDrillDown = { filter ->
             // The filter is applied first and the tab switched second, so the list is
@@ -69,6 +73,7 @@ fun ReportsScreen(
 fun ReportsScreen(
     state: ReportsUiState,
     onSelectPreset: (PeriodPreset) -> Unit,
+    onSelectAccount: (Long?) -> Unit,
     onSetRange: (LocalDate, LocalDate) -> Unit,
     onDrillDown: (TransactionFilter) -> Unit,
 ) {
@@ -80,6 +85,7 @@ fun ReportsScreen(
         bottomPadding = CentsDimens.tabBarHeight,
     ) {
         periodSection(state, onSelectPreset) { openPicker = it }
+        accountSection(state, onSelectAccount)
 
         if (state.hasNoAccounts) {
             item(key = "no-accounts") { NoAccountsSection() }
@@ -139,6 +145,44 @@ private fun LazyListScope.periodSection(
             }
             Spacer(Modifier.height(CentsDimens.sectionSpacing))
         }
+    }
+}
+
+/**
+ * Which account the tab is about, or all of them.
+ *
+ * It is the filter form's list of rows rather than a sheet or a screen of its own: the
+ * question is small, the answer is worth being able to read without tapping anything, and
+ * `SelectableRow` already says "one of these is chosen" the way iOS does. Archived accounts
+ * are offered, because the charts have always counted their movements — hiding one here would
+ * make an archived account's history unreachable from the tab that exists to look at history.
+ *
+ * It does not appear at all until there are two accounts to choose between. A picker with one
+ * answer is a row that says what the screen already said.
+ */
+private fun LazyListScope.accountSection(
+    state: ReportsUiState,
+    onSelectAccount: (Long?) -> Unit,
+) {
+    if (!state.canPickAccount) return
+
+    item(key = "account") {
+        CentsListSection(header = stringResource(R.string.reports_account_header)) {
+            SelectableRow(
+                title = stringResource(R.string.reports_all_accounts),
+                selected = state.accountId == null,
+                onClick = { onSelectAccount(null) },
+            )
+            state.accounts.forEachIndexed { index, account ->
+                SelectableRow(
+                    title = account.displayName(),
+                    selected = state.accountId == account.id,
+                    last = index == state.accounts.lastIndex,
+                    onClick = { onSelectAccount(account.id) },
+                )
+            }
+        }
+        Spacer(Modifier.height(CentsDimens.sectionSpacing))
     }
 }
 

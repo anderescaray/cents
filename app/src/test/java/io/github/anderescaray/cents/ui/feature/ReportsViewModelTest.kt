@@ -61,7 +61,7 @@ class ReportsViewModelTest {
         viewModel =
             viewModels.keep(
                 ReportsViewModel(
-                    reportSections(database),
+                    reportSections(database, clock),
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                     filters,
                     clock,

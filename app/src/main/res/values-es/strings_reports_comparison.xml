@@ -6,4 +6,5 @@
     <string name="reports_comparison_legend_current">Este periodo</string>
     <string name="reports_comparison_unchanged">sin cambios</string>
     <string name="reports_comparison_open_before">Movimientos del periodo anterior</string>
+    <string name="reports_comparison_partial">Este periodo no ha terminado, así que se compara con el mismo tramo del anterior.</string>
 </resources>

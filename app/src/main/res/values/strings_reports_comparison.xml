@@ -13,4 +13,5 @@
     <string name="reports_comparison_legend_current">This period</string>
     <string name="reports_comparison_unchanged">no change</string>
     <string name="reports_comparison_open_before">Movements in the previous period</string>
+    <string name="reports_comparison_partial">This period has not finished, so it is compared against the same stretch of the previous one.</string>
 </resources>

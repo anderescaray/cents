@@ -18,6 +18,7 @@ import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategorySpending
+import io.github.anderescaray.cents.domain.model.ComparedRanges
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodComparison
@@ -443,8 +444,10 @@ class ReportsScreenTest {
         current: Long,
         before: Long,
     ) = PeriodComparison(
+        // A whole August against a whole July: the screen tests are about what is drawn, and
+        // the clamping a running period gets is the repository's business and tested there.
         scope = scopeFor(),
-        previous = JULY,
+        ranges = ComparedRanges(current = AUGUST, previous = JULY, partial = false),
         current = PeriodSummary(Money.zero("EUR"), Money(current, "EUR")),
         before = PeriodSummary(Money.zero("EUR"), Money(before, "EUR")),
     )

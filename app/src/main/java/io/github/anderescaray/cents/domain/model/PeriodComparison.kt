@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.domain.model
 
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /**
@@ -16,10 +17,12 @@ import java.time.temporal.ChronoUnit
  */
 data class PeriodComparison(
     val scope: ReportScope,
-    val previous: ReportPeriod,
+    val ranges: ComparedRanges,
     val current: PeriodSummary,
     val before: PeriodSummary,
 ) {
+    val previous: ReportPeriod get() = ranges.previous
+
     /**
      * True when neither period holds anything.
      *
@@ -38,10 +41,56 @@ data class PeriodComparison(
 
     val netChange: Money get() = current.net - before.net
 
-    /** The movements behind either column, as a filter the transaction list already applies. */
-    fun filterForCurrent(): TransactionFilter = scope.asFilter()
+    /**
+     * The movements behind either column, as a filter the transaction list already applies.
+     *
+     * Built from [ranges] rather than from the scope's period, or a tap would open a month
+     * of movements under a column that only added up three days of it.
+     */
+    fun filterForCurrent(): TransactionFilter = scope.copy(period = ranges.current).asFilter()
 
-    fun filterForPrevious(): TransactionFilter = scope.copy(period = previous).asFilter()
+    fun filterForPrevious(): TransactionFilter = scope.copy(period = ranges.previous).asFilter()
+}
+
+/**
+ * The two stretches actually compared, which are not always the two whole periods.
+ *
+ * **A period that has not finished yet is compared against the same part of the one before
+ * it.** The tab opens on "this month", and `periodFor` means the whole calendar month by
+ * that — so on the third of September the selected period is 1–30 September while only
+ * three days of it have happened. Comparing that against the whole of August says spending
+ * fell by 95%, on the third of the month, for about twenty-seven days out of every thirty.
+ * It is the same flattery [ReportPeriod.previous] exists to avoid, arrived at from the other
+ * side, and the fix is the same principle: compare like with like.
+ *
+ * [partial] is true when that clamping happened, so the section can say why the dates it
+ * shows are not the dates in the selector. A period that has already ended is compared
+ * whole, and nothing is clamped.
+ */
+data class ComparedRanges(
+    val current: ReportPeriod,
+    val previous: ReportPeriod,
+    val partial: Boolean,
+)
+
+/**
+ * What to compare this period against, given what day it is.
+ *
+ * The elapsed part is counted in days and taken off the *start* of the previous period, not
+ * its end: "the first three days of September against the first three days of August" is the
+ * comparison someone means, and it is the one that stays true as the month fills up.
+ */
+fun ReportPeriod.comparedWith(today: LocalDate): ComparedRanges {
+    val whole = ComparedRanges(current = this, previous = previous(), partial = false)
+    if (today < from || today >= to) return whole
+
+    val elapsedDays = ChronoUnit.DAYS.between(from, today)
+    val before = previous()
+    return ComparedRanges(
+        current = ReportPeriod.Custom(from, today),
+        previous = ReportPeriod.Custom(before.from, minOf(before.to, before.from.plusDays(elapsedDays))),
+        partial = true,
+    )
 }
 
 /**

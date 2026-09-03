@@ -19,8 +19,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneOffset
 
 /** One test class per report repository, the same way there is one file per view. */
 @RunWith(RobolectricTestRunner::class)
@@ -31,7 +34,9 @@ class RoomPeriodComparisonRepositoryTest {
     @Before
     fun setUp() {
         database = createTestDatabase()
-        repository = RoomPeriodComparisonRepository(database.transactionDao())
+        // Standing after August has ended, so the periods these tests name are compared
+        // whole. The one test about a running period installs its own clock.
+        repository = RoomPeriodComparisonRepository(database.transactionDao(), afterAugust)
     }
 
     @After
@@ -174,7 +179,66 @@ class RoomPeriodComparisonRepositoryTest {
             assertEquals(accountId, filter.accountId)
         }
 
+    @Test
+    fun `a period that has not finished is compared against the same stretch, not the whole`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            database.transactionDao().insertAll(
+                listOf(
+                    // The whole of July, of which only the first three days are comparable.
+                    transaction(accountId, amountMinor = 30_000, date = LocalDate.of(2026, 7, 2)),
+                    transaction(accountId, amountMinor = 170_000, date = LocalDate.of(2026, 7, 20)),
+                    // August so far.
+                    transaction(accountId, amountMinor = 25_000, date = LocalDate.of(2026, 8, 2)),
+                ),
+            )
+            val onTheThird = RoomPeriodComparisonRepository(database.transactionDao(), august3)
+
+            val comparison = onTheThird.observePeriodComparison(scope(august)).first()
+
+            // Against the whole of July this would read as spending down 87%, on the third of
+            // the month, and it would say that for most of every month. Against the same three
+            // days it reads as slightly down, which is the truth.
+            assertTrue(comparison.ranges.partial)
+            assertEquals(LocalDate.of(2026, 8, 3), comparison.ranges.current.to)
+            assertEquals(LocalDate.of(2026, 7, 1), comparison.ranges.previous.from)
+            assertEquals(LocalDate.of(2026, 7, 3), comparison.ranges.previous.to)
+            assertEquals(Money(25_000, "EUR"), comparison.current.expenses)
+            assertEquals(Money(30_000, "EUR"), comparison.before.expenses)
+        }
+
+    @Test
+    fun `a period that has ended is compared whole, and says it was not clamped`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            val comparison = repository.observePeriodComparison(scope(august)).first()
+
+            assertFalse(comparison.ranges.partial)
+            assertEquals(LocalDate.of(2026, 8, 31), comparison.ranges.current.to)
+            assertEquals(LocalDate.of(2026, 7, 31), comparison.ranges.previous.to)
+        }
+
+    @Test
+    fun `a running period's drill-down opens the days compared, not the whole month`() =
+        runTest {
+            database.accountDao().insert(account())
+            val onTheThird = RoomPeriodComparisonRepository(database.transactionDao(), august3)
+
+            val comparison = onTheThird.observePeriodComparison(scope(august)).first()
+
+            // A tap under a column that added up three days must not open thirty-one.
+            assertEquals(LocalDate.of(2026, 8, 3), comparison.filterForCurrent().to)
+            assertEquals(LocalDate.of(2026, 7, 3), comparison.filterForPrevious().to)
+        }
+
     private val august = ReportPeriod.Month(YearMonth.of(2026, 8))
+
+    /** The third of August, mid-period, which is the case the clamping exists for. */
+    private val august3 = Clock.fixed(Instant.parse("2026-08-03T10:00:00Z"), ZoneOffset.UTC)
+
+    /** After August has ended, so a whole month is compared against a whole month. */
+    private val afterAugust = Clock.fixed(Instant.parse("2026-09-15T10:00:00Z"), ZoneOffset.UTC)
 
     private fun scope(
         period: ReportPeriod,

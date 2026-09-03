@@ -75,7 +75,14 @@ data class PeriodComparisonSection(
 
     @Composable
     override fun Content(actions: ReportActions) {
-        CentsListSection(header = stringResource(R.string.reports_comparison_header)) {
+        CentsListSection(
+            header = stringResource(R.string.reports_comparison_header),
+            // Said out loud, because the dates on the drill-down row will not be the dates in
+            // the selector above and there is nothing else on screen to explain that.
+            footer =
+                stringResource(R.string.reports_comparison_partial)
+                    .takeIf { comparison.ranges.partial && !comparison.isEmpty },
+        ) {
             if (comparison.isEmpty) {
                 // Two empty periods are not a chart of two zeroes: there is nothing to
                 // compare, and saying so beats drawing a flat pair of bars.

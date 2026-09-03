@@ -104,6 +104,43 @@ class ReportsViewModelTest {
         }
 
     @Test
+    fun `the ring section carries both directions, each with its own kind`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            val salary = database.categoryDao().insert(category(name = "Salary"))
+            database.transactionDao().insertAll(
+                listOf(
+                    transaction(accountId, groceries, amountMinor = 4_000, date = LocalDate.of(2026, 8, 4)),
+                    transaction(
+                        accountId,
+                        salary,
+                        kind = TransactionKind.INCOME,
+                        amountMinor = 200_000,
+                        date = LocalDate.of(2026, 8, 1),
+                    ),
+                ),
+            )
+
+            viewModel.uiState.test {
+                // Both sides are asked for at once, so the toggle on screen never waits on
+                // SQLite and the two can never be about different periods.
+                val state = awaitStateThat { it.earning?.isEmpty == false }
+
+                assertEquals(Money(4_000, "EUR"), state.spending?.total)
+                assertEquals(Money(200_000, "EUR"), state.earning?.total)
+                assertEquals(TransactionKind.EXPENSE, state.spending?.kind)
+                assertEquals(TransactionKind.INCOME, state.earning?.kind)
+                // The kind is what a drill-down carries, so an income slice cannot open a
+                // list of the expenses filed under the same category.
+                assertEquals(
+                    TransactionKind.INCOME,
+                    state.earning?.let { it.filterFor(it.slices.first()) }?.kind,
+                )
+            }
+        }
+
+    @Test
     fun `every registered view arrives, in the order the tab lists them`() =
         runTest {
             database.accountDao().insert(account())
@@ -263,7 +300,9 @@ class ReportsViewModelTest {
     }
 }
 
-private val ReportsUiState.spending get() = section<SpendingSection>()?.breakdown
+private val ReportsUiState.spending get() = section<SpendingSection>()?.expense
+
+private val ReportsUiState.earning get() = section<SpendingSection>()?.income
 
 private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.months
 

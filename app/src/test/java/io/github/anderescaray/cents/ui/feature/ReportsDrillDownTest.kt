@@ -181,5 +181,5 @@ class ReportsDrillDownTest {
             viewModel.uiState
                 .first { it.section<SpendingSection>() != null }
                 .section<SpendingSection>(),
-        ).breakdown
+        ).expense
 }

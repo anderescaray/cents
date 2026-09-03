@@ -30,15 +30,7 @@ on `main` at `0aa0e0a` (through PR #26 and #28), after a genuine fresh install. 
 listed below passed. Written down by the agent from what the owner reported out loud, in
 English to keep to rule 10 — the content is his.
 
-### 1. The donut should be able to show income, not only expenses
-
-**Where:** the Reports tab.
-**What you want:** the same ring, for income as well as spending — where the money came *from*,
-not only where it went.
-**How much it matters:** wanted, not urgent. Not a defect: the ring was only ever specified for
-spending.
-
-### 2. Reports should be filterable by account
+### 1. Reports should be filterable by account
 
 **Where:** the Reports tab.
 **What you want:** to narrow every report to one account, the way the movements list can be.
@@ -61,6 +53,7 @@ is still outstanding.
 
 | Date | What was wrong | What was done |
 |---|---|---|
+| 2026-09-03 | **The ring only ever showed spending** — there was no way to ask where the money came *from* | A segmented control above the ring picks the direction, and the section's words follow it: *Where the money went* / *Where the money came from*, *Total spent* / *Total earned*. Both breakdowns are read at once rather than one query re-run on each flip, so the toggle answers instantly and the two sides can never be about different periods; the cost is a second `GROUP BY` bounded by the number of categories. A slice of the income ring drills down to income, because the kind already travelled with the filter. `feat/the-ring-shows-income-too` |
 | 2026-09-02 | **The keypad and the colour picker ran together** in the account editor — same colour, no line between them | The keypad now stands on its own bar background with a hairline above it, the two tokens the tab bar already uses to sit above content. Its keys are grouped cards like the colour swatches, so sharing a ground with the form left nothing between them. The bottom inset moved into the keypad, since padding it from outside would leave a strip of the form's background below the surface. `fix/the-keypad-sits-on-its-own-surface` |
 | 2026-09-02 | **Switching tabs backwards animated forwards** — Reports → Accounts and Settings → Reports slid in from the right | A tab switch is a `navigate()`, and every `navigate()` is a push, so the slide was one fixed direction. `slideDirectionFor` compares the two tabs' positions, which `TopLevelTab` has always ordered. One case is knowingly left: switching to a tab whose saved stack has a detail screen on top still slides forward, because a pushed screen carries no record of its tab. #31 |
 | 2026-09-02 | **Amounts were counted up in cents** rather than typed in euros | Typing starts in euros and the comma asks for cents; after it, two digits at most and a third is refused rather than rounded away. One `AmountEntry` decides this for both the keypad and the amount filter, and what reaches `Money` is still an exact `Long` of cents. #27 |

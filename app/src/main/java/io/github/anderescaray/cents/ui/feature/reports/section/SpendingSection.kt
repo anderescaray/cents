@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -111,7 +112,14 @@ data class SpendingSection(
                     EmptyChart(stringResource(kind.emptyRes))
                 } else {
                     Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
-                        SpendingDonut(breakdown) { actions.onDrillDown(breakdown.filterFor(it)) }
+                        // Keyed on the direction so each ring gets its own model producer.
+                        // Shared, Vico animates from the old geometry to the new one while
+                        // the colours have already changed — five expense arcs painted in
+                        // the one income category's colour for the length of the
+                        // transition. The two are different answers, not one changing.
+                        key(kind) {
+                            SpendingDonut(breakdown) { actions.onDrillDown(breakdown.filterFor(it)) }
+                        }
                     }
                     CentsListRow(
                         title = stringResource(kind.totalRes),

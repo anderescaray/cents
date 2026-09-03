@@ -172,8 +172,15 @@ interface TransactionDao {
      *
      * A null [accountId] means every account, which is the same spelling `TransactionFilter`
      * uses for it. The predicate is written that way — `:accountId IS NULL OR ...` — rather
-     * than as two queries, because SQLite evaluates the null check once per statement and the
-     * alternative is two `@Query`s that must be kept saying the same thing.
+     * than as two queries, because the alternative is two `@Query`s per report that have to be
+     * kept saying the same thing.
+     *
+     * **That form is not sargable**, and it is worth being honest about the cost: an `OR` over
+     * a bound parameter stops SQLite using `index_transactions_accountId_date`, so all four
+     * report queries fall back to the index on `date` and test the account row by row. It is
+     * bounded by the length of the period rather than by anything the owner does, and no
+     * device walk has ever noticed it. If one does, the fix is a second `@Query` per report,
+     * not a new index — recorded in `PLAN.md` C4 rather than half-done here.
      */
     @Query(
         """

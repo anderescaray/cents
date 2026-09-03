@@ -820,6 +820,15 @@ parallelism.
   scrollable box inside a scrolling screen.
 - **The chosen account does not survive closing the app**, the same way filters do not and for
   the same reason: remembering it is a saved-view feature with a name and a list, not a flag.
+- **Narrowing a report to one account does not use the index that exists for it.** The four
+  report queries take the account as `:accountId IS NULL OR t.accountId = :accountId`, and an
+  `OR` over a bound parameter is not sargable — SQLite cannot use
+  `index_transactions_accountId_date` and falls back to the index on `date`, testing the
+  account row by row. The alternative is two `@Query`s per report that have to be kept saying
+  the same thing, which is a duplication bug waiting to happen in exchange for a saving nobody
+  has measured on a phone. The work is still bounded by the length of the period. If a device
+  walk ever finds the Reports tab slow with a long history, this is the first thing to split —
+  and `CLAUDE.md` §5 is why it is written down rather than left to be discovered.
 - **Any change to any account restarts every chart query.** The tab combines the selection with
   the account list and `flatMapLatest`es the result, so renaming an account or archiving one
   re-runs the three aggregations. It predates the picker — the currency was already read from

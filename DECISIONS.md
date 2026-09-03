@@ -29,7 +29,35 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-**Nothing is waiting on the owner right now.** D9 was the last one, answered 2026-08-30.
+### D10 — should a weekday bar open the movements behind it?
+
+**What is at stake.** *Spending by weekday* ("do weekends wreck me?") is one of the two PRD
+§4.3 views still unbuilt. Every other chart on the tab drills down, and §4.3 asks for that as a
+cross-cutting requirement — but `TransactionFilter` has no idea of a weekday, and the
+transaction list can only show what that filter can express.
+
+So there are three honest answers, and they lead to different amounts of work:
+
+- **A — the bars do not drill down.** The view answers its question and stops. Cheapest, and
+  the only option that changes nothing outside the new view. It makes one chart on the tab
+  behave differently from the other four.
+- **B — the filter grows a weekday, and the filter form shows it.** Tapping "Saturday" narrows
+  the list the way tapping a slice does, and the Filters screen gains a section so the
+  narrowing is visible and clearable. Most work, and the only version that is consistent both
+  ways.
+- **C — the filter grows a weekday, hidden from the form.** Cheaper than B, and it recreates
+  the problem `r8` was about: a list narrowed by something the owner can see the effect of but
+  not find. Recorded so the option is on the table, not because it is recommended.
+
+**Recommendation: B**, but it is the owner's because it changes what a filter *is* — the thing
+the movements list is built around — for the sake of one chart.
+
+**Default until answered: A.** The view gets built and its bars do nothing when tapped, which
+is a gap that can be closed later without rewriting anything.
+
+**Answer:**
+
+---
 
 New questions get added here as they come up, each with a default so that an unanswered one
 never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reports_comparison_header">Este periodo frente al anterior</string>
+    <string name="reports_comparison_empty">No pasó nada en ninguno de los dos periodos.</string>
+    <string name="reports_comparison_legend_before">Periodo anterior</string>
+    <string name="reports_comparison_legend_current">Este periodo</string>
+    <string name="reports_comparison_unchanged">sin cambios</string>
+    <string name="reports_comparison_open_before">Movimientos del periodo anterior</string>
+</resources>

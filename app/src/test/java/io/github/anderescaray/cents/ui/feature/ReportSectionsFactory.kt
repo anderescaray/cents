@@ -2,11 +2,13 @@ package io.github.anderescaray.cents.ui.feature
 
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.repository.reports.RoomBalanceOverTimeRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomCategoryTrendRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomMonthlyFlowRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomPeriodComparisonRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
 import io.github.anderescaray.cents.ui.feature.reports.ReportSections
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSectionSource
+import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSectionSource
@@ -32,5 +34,6 @@ fun reportSections(
         MonthlyFlowSectionSource(RoomMonthlyFlowRepository(dao)),
         BalanceOverTimeSectionSource(RoomBalanceOverTimeRepository(dao)),
         PeriodComparisonSectionSource(RoomPeriodComparisonRepository(dao, clock)),
+        CategoryTrendSectionSource(RoomCategoryTrendRepository(dao, clock)),
     )
 }

@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomBalanceOverTimeRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomCategoryTrendRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomMonthlyFlowRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomPeriodComparisonRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
@@ -16,6 +17,7 @@ import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
+import io.github.anderescaray.cents.domain.repository.reports.CategoryTrendRepository
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
 import io.github.anderescaray.cents.domain.repository.reports.PeriodComparisonRepository
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
@@ -47,6 +49,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindPeriodComparisonRepository(impl: RoomPeriodComparisonRepository): PeriodComparisonRepository
+
+    @Binds
+    abstract fun bindCategoryTrendRepository(impl: RoomCategoryTrendRepository): CategoryTrendRepository
 
     companion object {
         /**

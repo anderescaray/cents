@@ -324,6 +324,75 @@ interface TransactionDao {
         accountId: Long?,
     ): Flow<List<DayNet>>
 
+    /**
+     * Every category with a movement over a span, largest first.
+     *
+     * This is the single-category trend's list of things it can be about, and where its
+     * default comes from — the busiest category is usually the one worth watching. An INNER
+     * JOIN rather than the LEFT one the donut uses, because a trend is about a named category
+     * and "uncategorized" is not one: it is the absence of a label, and a line following it
+     * over a year would be following several unrelated things at once.
+     *
+     * **Each category is summed in its own direction, and movements against it are netted.**
+     * `amountMinor` is always positive and `kind` carries the sign, so adding both kinds
+     * together makes a salary and a rent payment the same shape — which put an income category
+     * at the top of a list documented as "what is most spent on". A movement whose kind matches
+     * its category's counts up, and one that does not — a refund filed under Groceries — counts
+     * down, so the total is what the category actually came to.
+     */
+    @Query(
+        """
+        SELECT t.categoryId AS categoryId,
+               c.name AS categoryName,
+               c.colorArgb AS categoryColorArgb,
+               COALESCE(SUM(CASE WHEN t.kind = c.kind THEN t.amountMinor ELSE -t.amountMinor END), 0) AS totalMinor,
+               COUNT(*) AS transactionCount
+        FROM transactions t
+        INNER JOIN categories c ON c.id = t.categoryId
+        WHERE t.date BETWEEN :from AND :to
+          AND (:accountId IS NULL OR t.accountId = :accountId)
+        GROUP BY t.categoryId
+        ORDER BY totalMinor DESC, categoryName ASC
+        """,
+    )
+    fun observeCategoriesWithMovements(
+        from: LocalDate,
+        to: LocalDate,
+        accountId: Long?,
+    ): Flow<List<CategoryTotal>>
+
+    /**
+     * One category's daily totals over a span, summed in SQL.
+     *
+     * Days rather than buckets, because a bucket is a calendar month or week and SQLite has no
+     * idea which of those was selected. Folding days into buckets costs one pass over the days
+     * of the span — a year is 365 steps at most — rather than one over every movement ever
+     * recorded, which is the same shape the balance line uses (`CLAUDE.md` §5).
+     *
+     * Summed in the category's own direction and netted against it, exactly as
+     * [observeCategoriesWithMovements] is, or the line would disagree with the list that chose
+     * which line to draw.
+     */
+    @Query(
+        """
+        SELECT t.date AS date,
+               COALESCE(SUM(CASE WHEN t.kind = c.kind THEN t.amountMinor ELSE -t.amountMinor END), 0) AS totalMinor
+        FROM transactions t
+        INNER JOIN categories c ON c.id = t.categoryId
+        WHERE t.categoryId = :categoryId
+          AND t.date BETWEEN :from AND :to
+          AND (:accountId IS NULL OR t.accountId = :accountId)
+        GROUP BY t.date
+        ORDER BY t.date
+        """,
+    )
+    fun observeCategoryDailyTotals(
+        categoryId: Long,
+        from: LocalDate,
+        to: LocalDate,
+        accountId: Long?,
+    ): Flow<List<DayTotal>>
+
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
 
@@ -368,6 +437,12 @@ data class TransactionWithNames(
 data class PeriodTotals(
     val incomeMinor: Long,
     val expenseMinor: Long,
+)
+
+/** One day's total for a single category, as SQL returns it. */
+data class DayTotal(
+    val date: LocalDate,
+    val totalMinor: Long,
 )
 
 /**

@@ -55,7 +55,11 @@ the movements list is built around — for the sake of one chart.
 **Default until answered: A.** The view gets built and its bars do nothing when tapped, which
 is a gap that can be closed later without rewriting anything.
 
-**Answer:**
+**Answer: B** (2026-09-03). `TransactionFilter` gains a weekday, and the Filters form gains a
+section for it, so a bar opens the movements behind it and the narrowing it applies is visible
+and clearable like every other one. Not yet built — it lands with the spending-by-weekday
+branch, which comes after single-category detail; this entry moves to *Answered* then, with
+what was actually done.
 
 ---
 

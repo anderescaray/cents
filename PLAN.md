@@ -818,7 +818,12 @@ charts at once is how a phase turns into a month.
       **Spending by weekday is not.** `TransactionFilter` has no idea of a weekday, so either
       the bars do not drill down — which the PRD's cross-cutting requirement asks for — or the
       filter model grows a concept, and then the filter form has to show it or the list ends up
-      narrowed by something the owner cannot see or clear. That is `DECISIONS.md` D10.
+      narrowed by something the owner cannot see or clear. That was `DECISIONS.md` D10, and it
+      is **answered: B** (2026-09-03) — the filter learns weekdays and the Filters form shows
+      the section, so the bar drills down and what it applied can be found and cleared.
+      **Order, decided by the owner on 2026-09-03: single-category detail first, serially.**
+      Not in parallel worktrees, even though D9 allows it: the two views append a line each to
+      the same three shared files, and one PR at a time is the rhythm the owner reviews in.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.

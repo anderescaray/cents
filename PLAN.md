@@ -496,12 +496,18 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
-**Where the last session stopped (2026-09-03).** Four branches were built and three merged:
+**Where the last session stopped (2026-09-03).** Four branches were built and all four merged:
 #34 (the ring shows income), #35 (reports narrowed to one account), #36 (this period against
-the last). **#37 — one category over time — is open, green, and unmerged**, and the next branch
-should start from `main` after it lands rather than stacking on it: see the note in C4 about
-what stacking cost this session. `FEEDBACK.md` is empty and `DECISIONS.md` D10 is answered, so
-the next branch is the last unchecked one in C3 — spending by weekday, built on D10's answer B.
+the last) and #37 (one category over time). `main` is green.
+
+**The next branch is the last unchecked one in C3 — spending by weekday**, built on D10's
+answer **B**: `TransactionFilter` gains a weekday and the Filters form gains the section that
+makes it visible and clearable. `FEEDBACK.md` is empty and `DECISIONS.md` has nothing waiting
+except D10, which stays under *Open* until that branch lands and can say what was done.
+
+Two things carried over that no test can settle, both in C4 below: **nobody has seen any of
+Phase 2 on a phone**, and the next branch should start from `main` rather than stacking on an
+unmerged one.
 
 ## C2. What is built and merged
 
@@ -818,8 +824,7 @@ charts at once is how a phase turns into a month.
       case uses `index_transactions_accountId_date` instead of the non-sargable `OR` form the
       other three reports use (C4). That is what the split recorded in that gap looks like.
 
-- [x] **`feat/reports-category-detail`** — **open as #37, green on CI, waiting on the owner to
-      merge.** The fifth PRD §4.3 view, and the first whose
+- [x] **`feat/reports-category-detail`** — merged (#37). The fifth PRD §4.3 view, and the first whose
       question does not fit inside the selected period: "is Restaurants creeping up" cannot be
       read off one month, and a line with one point is not a trend. **The period picks the
       bucket instead** — a month selected means the last twelve months, a week means the last

@@ -64,7 +64,6 @@ class RoomSpendingByWeekdayRepositoryTest {
             assertEquals(Money(3_000, "EUR"), spending.on(DayOfWeek.WEDNESDAY).total)
             assertEquals(Money(5_000, "EUR"), spending.on(DayOfWeek.SATURDAY).total)
             assertEquals(Money(9_800, "EUR"), spending.total)
-            assertEquals(DayOfWeek.SATURDAY, spending.busiest?.weekday)
         }
 
     @Test

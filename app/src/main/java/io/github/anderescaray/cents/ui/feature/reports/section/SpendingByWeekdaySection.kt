@@ -68,6 +68,11 @@ data class SpendingByWeekdaySection(
     @Composable
     override fun Content(actions: ReportActions) {
         val locale = Locale.getDefault()
+        // Computed once per state rather than in the body: CLAUDE.md §5 asks for a derived
+        // value to be precomputed rather than rebuilt on every recomposition, and this list
+        // was already remembered inside WeekdayColumns — one source, passed to both places
+        // that need the days in this order.
+        val ordered = remember(spending, locale) { weekdays(locale).map(spending::on) }
 
         CentsListSection(
             header = stringResource(R.string.reports_weekday_header),
@@ -77,7 +82,7 @@ data class SpendingByWeekdaySection(
                 EmptyChart(stringResource(R.string.reports_weekday_empty))
             } else {
                 Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
-                    WeekdayColumns(spending, locale)
+                    WeekdayColumns(ordered, locale)
                 }
                 // The same label the ring uses for its total: this is the same number, laid
                 // out by day instead of by category.
@@ -85,7 +90,6 @@ data class SpendingByWeekdaySection(
                     label = stringResource(R.string.reports_spending_total),
                     amount = spending.total,
                 )
-                val ordered = weekdays(locale).map(spending::on)
                 ordered.forEachIndexed { index, day ->
                     DayRow(
                         day = day,
@@ -147,7 +151,7 @@ private fun DayRow(
 }
 
 /**
- * Seven columns, one per day, starting on the locale's first day of the week.
+ * Seven columns, one per day, in the order [ordered] already puts them in.
  *
  * One colour and one series: this is spending, so the columns take the same red the flow
  * chart's expenses do, and a colour means the same thing on both. The weekend against the
@@ -156,14 +160,13 @@ private fun DayRow(
  */
 @Composable
 internal fun WeekdayColumns(
-    spending: SpendingByWeekday,
+    ordered: List<WeekdaySpending>,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
     val destructive = CentsTheme.colors.destructive
     val labelColor = CentsTheme.colors.secondaryLabel
     val producer = remember { CartesianChartModelProducer() }
-    val ordered = remember(spending, locale) { weekdays(locale).map(spending::on) }
 
     LaunchedEffect(ordered) {
         producer.runTransaction {

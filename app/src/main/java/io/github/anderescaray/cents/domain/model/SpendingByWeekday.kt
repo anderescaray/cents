@@ -49,10 +49,6 @@ data class SpendingByWeekday(
             days.filterNot { it.weekday in WEEKEND }.map { it.total }.reduceOrNull(Money::plus)
                 ?: Money.zero(scope.currency)
 
-    /** The day the most went out on, or null when nothing did. */
-    val busiest: WeekdaySpending?
-        get() = days.filterNot { it.total.isZero }.maxByOrNull { it.total.minorUnits }
-
     fun on(weekday: DayOfWeek): WeekdaySpending =
         days.firstOrNull { it.weekday == weekday }
             ?: WeekdaySpending(weekday, Money.zero(scope.currency), 0)

@@ -6,11 +6,13 @@ import io.github.anderescaray.cents.data.repository.reports.RoomCategoryTrendRep
 import io.github.anderescaray.cents.data.repository.reports.RoomMonthlyFlowRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomPeriodComparisonRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByWeekdayRepository
 import io.github.anderescaray.cents.ui.feature.reports.ReportSections
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSectionSource
+import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekdaySectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSectionSource
 import java.time.Clock
 
@@ -33,6 +35,7 @@ fun reportSections(
         SpendingSectionSource(RoomSpendingByCategoryRepository(dao)),
         MonthlyFlowSectionSource(RoomMonthlyFlowRepository(dao)),
         BalanceOverTimeSectionSource(RoomBalanceOverTimeRepository(dao)),
+        SpendingByWeekdaySectionSource(RoomSpendingByWeekdayRepository(dao)),
         PeriodComparisonSectionSource(RoomPeriodComparisonRepository(dao, clock)),
         CategoryTrendSectionSource(RoomCategoryTrendRepository(dao, clock)),
     )

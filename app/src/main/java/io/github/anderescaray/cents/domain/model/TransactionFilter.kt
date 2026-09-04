@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.domain.model
 
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 /**
@@ -39,6 +40,17 @@ data class TransactionFilter(
     val kind: TransactionKind? = null,
     val from: LocalDate? = null,
     val to: LocalDate? = null,
+    /**
+     * One day of the week, matched against each movement's own date.
+     *
+     * It is the odd one out: a date range narrows to a stretch, this narrows to every
+     * Saturday inside whatever stretch is already set. It exists because *spending by weekday*
+     * drills down like every other chart on the Reports tab (PRD §4.3), and the list can only
+     * ever show what this filter can express — so the concept lives here and the Filters form
+     * has a section for it, rather than the bar narrowing the list by something the owner
+     * cannot see or clear (`DECISIONS.md` D10, answer B).
+     */
+    val weekday: DayOfWeek? = null,
     val minAmountMinor: Long? = null,
     val maxAmountMinor: Long? = null,
 ) {
@@ -54,6 +66,7 @@ data class TransactionFilter(
                 category != CategoryFilter.All,
                 kind != null,
                 from != null || to != null,
+                weekday != null,
                 minAmountMinor != null || maxAmountMinor != null,
             ).count { it }
 

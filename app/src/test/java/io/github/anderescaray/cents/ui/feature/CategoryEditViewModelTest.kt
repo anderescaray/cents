@@ -273,6 +273,7 @@ class CategoryEditViewModelTest {
                         kind = null,
                         from = null,
                         to = null,
+                        weekday = null,
                         minAmountMinor = null,
                         maxAmountMinor = null,
                         query = null,

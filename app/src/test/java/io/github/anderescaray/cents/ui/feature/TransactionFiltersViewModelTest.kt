@@ -28,6 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -116,6 +117,22 @@ class TransactionFiltersViewModelTest {
                 assertEquals(DateRangePreset.ANY, any.preset)
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `a weekday is a draft edit that only reaches the list on apply`() =
+        runTest {
+            val form = viewModel()
+
+            form.setWeekday(DayOfWeek.SATURDAY)
+            assertEquals(TransactionFilter.None, filters.filter.value)
+
+            form.apply()
+            assertEquals(DayOfWeek.SATURDAY, filters.filter.value.weekday)
+
+            form.setWeekday(null)
+            form.apply()
+            assertEquals(null, filters.filter.value.weekday)
         }
 
     @Test

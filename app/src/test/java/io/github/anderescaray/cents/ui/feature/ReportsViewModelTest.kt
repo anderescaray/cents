@@ -18,6 +18,7 @@ import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSe
 import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSection
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
+import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekdaySection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -268,8 +270,37 @@ class ReportsViewModelTest {
                 // The screen renders whatever is here; nothing in the view model names a
                 // chart. This is the assertion a new view updates, and the only one.
                 assertEquals(
-                    listOf("spending", "flow", "balance", "comparison", "trend"),
+                    listOf("spending", "flow", "balance", "weekday", "comparison", "trend"),
                     state.sections.map { it.key },
+                )
+            }
+        }
+
+    @Test
+    fun `the weekday view groups the period's spending by day of the week`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            database.transactionDao().insertAll(
+                listOf(
+                    // Monday 17 and Saturday 22 August 2026.
+                    transaction(accountId, amountMinor = 4_000, date = LocalDate.of(2026, 8, 17)),
+                    transaction(accountId, amountMinor = 9_000, date = LocalDate.of(2026, 8, 22)),
+                    // July: outside the month the tab opens on.
+                    transaction(accountId, amountMinor = 99_000, date = LocalDate.of(2026, 7, 20)),
+                ),
+            )
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.weekday?.isEmpty == false }
+
+                assertEquals(Money(4_000, "EUR"), state.weekday?.on(DayOfWeek.MONDAY)?.total)
+                assertEquals(Money(9_000, "EUR"), state.weekday?.on(DayOfWeek.SATURDAY)?.total)
+                assertEquals(Money(13_000, "EUR"), state.weekday?.total)
+                // A bar drills down by a weekday, which the list can now express and the
+                // Filters form can show and clear (D10).
+                assertEquals(
+                    DayOfWeek.SATURDAY,
+                    state.weekday?.filterFor(DayOfWeek.SATURDAY)?.weekday,
                 )
             }
         }
@@ -503,6 +534,8 @@ private val ReportsUiState.earning get() = section<SpendingSection>()?.income
 private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.months
 
 private val ReportsUiState.balance get() = section<BalanceOverTimeSection>()?.balance
+
+private val ReportsUiState.weekday get() = section<SpendingByWeekdaySection>()?.spending
 
 private val ReportsUiState.comparison get() = section<PeriodComparisonSection>()?.comparison
 

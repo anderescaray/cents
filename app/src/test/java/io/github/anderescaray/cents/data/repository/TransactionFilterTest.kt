@@ -204,6 +204,34 @@ class TransactionFilterTest {
         }
 
     @Test
+    fun `a weekday narrows to that day of the week, in any month, and composes with a range`() =
+        runTest {
+            seed()
+            // The July restaurant meals are the 4th and the 22nd, seven days and two weeks
+            // apart — so the 4th and the 1st of August share a weekday and the 22nd does not.
+            val saturday = LocalDate.of(2026, 7, 4).dayOfWeek
+
+            // Across every month: the 3 450 on Saturday 4 July and the 200 000 on Saturday
+            // 1 August, newest first. The two Wednesday movements are left out.
+            assertEquals(
+                listOf(200_000L, 3_450L),
+                amountsFor(TransactionFilter(weekday = saturday)),
+            )
+
+            // With July's range added, only the one that falls in July survives.
+            assertEquals(
+                listOf(3_450L),
+                amountsFor(
+                    TransactionFilter(
+                        weekday = saturday,
+                        from = LocalDate.of(2026, 7, 1),
+                        to = LocalDate.of(2026, 7, 31),
+                    ),
+                ),
+            )
+        }
+
+    @Test
     fun `filters compose rather than replacing one another`() =
         runTest {
             seed()

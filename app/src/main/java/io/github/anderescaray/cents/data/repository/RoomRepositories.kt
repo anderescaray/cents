@@ -171,6 +171,7 @@ class RoomTransactionRepository
                     kind = filter.kind,
                     from = filter.from,
                     to = filter.to,
+                    weekday = filter.weekday?.value,
                     minAmountMinor = filter.minAmountMinor,
                     maxAmountMinor = filter.maxAmountMinor,
                     query = filter.query.toLikeArgument(),

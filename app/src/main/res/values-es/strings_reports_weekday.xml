@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reports_weekday_header">Gasto por día de la semana</string>
+    <string name="reports_weekday_empty">No hay gasto en este periodo que desglosar por día.</string>
+    <string name="reports_weekday_verdict_weekend">Un día de fin de semana normal te cuesta más que un día entre semana normal.</string>
+    <string name="reports_weekday_verdict_weekday">Un día entre semana normal te cuesta más que un día de fin de semana normal.</string>
+    <string name="reports_weekday_verdict_even">Entre semana y el fin de semana cuestan más o menos lo mismo por día.</string>
+</resources>

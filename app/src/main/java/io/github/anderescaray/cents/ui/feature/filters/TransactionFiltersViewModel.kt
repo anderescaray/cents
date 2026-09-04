@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -131,6 +132,9 @@ class TransactionFiltersViewModel
         fun setAccount(accountId: Long?) = edit { it.copy(accountId = accountId) }
 
         fun setCategory(category: CategoryFilter) = edit { it.copy(category = category) }
+
+        /** One day of the week, or null for every day — what a weekday bar drills down to. */
+        fun setWeekday(weekday: DayOfWeek?) = edit { it.copy(weekday = weekday) }
 
         /** A preset writes both ends at once; [DateRangePreset.CUSTOM] opens the calendars. */
         fun setPreset(preset: DateRangePreset) {

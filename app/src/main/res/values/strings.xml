@@ -153,6 +153,8 @@
     <string name="filters_date_to">To</string>
     <string name="filters_date_pick">Choose</string>
     <string name="filters_date_inverted">The first date is after the second, so nothing can match.</string>
+    <string name="filters_weekday_header">Weekday</string>
+    <string name="filters_weekday_any">Any day</string>
     <string name="filters_account_header">Account</string>
     <string name="filters_all_accounts">Every account</string>
     <string name="filters_category_header">Category</string>

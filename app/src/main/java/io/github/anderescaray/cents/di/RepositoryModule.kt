@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.data.repository.reports.RoomCategoryTrendRep
 import io.github.anderescaray.cents.data.repository.reports.RoomMonthlyFlowRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomPeriodComparisonRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
+import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByWeekdayRepository
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
@@ -21,6 +22,7 @@ import io.github.anderescaray.cents.domain.repository.reports.CategoryTrendRepos
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
 import io.github.anderescaray.cents.domain.repository.reports.PeriodComparisonRepository
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
+import io.github.anderescaray.cents.domain.repository.reports.SpendingByWeekdayRepository
 import java.time.Clock
 import javax.inject.Singleton
 
@@ -43,6 +45,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindMonthlyFlowRepository(impl: RoomMonthlyFlowRepository): MonthlyFlowRepository
+
+    @Binds
+    abstract fun bindSpendingByWeekdayRepository(impl: RoomSpendingByWeekdayRepository): SpendingByWeekdayRepository
 
     @Binds
     abstract fun bindBalanceOverTimeRepository(impl: RoomBalanceOverTimeRepository): BalanceOverTimeRepository

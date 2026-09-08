@@ -27,10 +27,12 @@ import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
+import io.github.anderescaray.cents.domain.model.SpendingByWeekday
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.TrendBucket
 import io.github.anderescaray.cents.domain.model.TrendChoice
+import io.github.anderescaray.cents.domain.model.WeekdaySpending
 import io.github.anderescaray.cents.ui.feature.reports.PeriodPreset
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
@@ -39,6 +41,7 @@ import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSect
 import io.github.anderescaray.cents.ui.feature.reports.section.KIND_CONTROL_TAG
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
+import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekdaySection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
@@ -46,6 +49,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -213,6 +217,35 @@ class ReportsScreenTest {
         // The chart is drawn against an axis that does not start at zero, so the level it is
         // drawn at has to be said in words as well.
         composeRule.onNodeWithText("Change").assertExists()
+    }
+
+    @Test
+    fun `the weekday view lists each day and answers whether weekends cost more`() {
+        setContent(fullState())
+
+        scrollTo("SPENDING BY WEEKDAY")
+        composeRule.onNodeWithText("Saturday").assertExists()
+        composeRule.onNodeWithText("Monday").assertExists()
+        // Saturday is 9 000 against a flat 1 000 on the weekdays, so a typical weekend day
+        // costs more — the answer said in words under the bars.
+        composeRule
+            .onNodeWithText("A typical weekend day costs you more than a typical weekday.")
+            .assertExists()
+    }
+
+    @Test
+    fun `tapping a weekday hands back the filter for that day's movements`() {
+        var opened: TransactionFilter? = null
+        setContent(fullState(), onDrillDown = { opened = it })
+
+        scrollTo("Saturday")
+        composeRule.onNodeWithText("Saturday").assertHasClickAction().performClick()
+
+        // The weekday is what a spending-by-weekday bar drills down by — new to the filter
+        // for this view, and shown on the Filters form so it can be cleared (D10).
+        assertEquals(DayOfWeek.SATURDAY, opened?.weekday)
+        assertEquals(TransactionKind.EXPENSE, opened?.kind)
+        assertEquals(LocalDate.of(2026, 8, 1), opened?.from)
     }
 
     @Test
@@ -474,6 +507,10 @@ class ReportsScreenTest {
                         activeDays = 1,
                     ),
                 ),
+                // Last in the fake state rather than in tab order: it sits between the flow
+                // and comparison sections on the real screen, and putting it there here would
+                // change which of their look-alike rows a `LazyColumn` keeps composed.
+                SpendingByWeekdaySection(weekdaySpending()),
             ),
     )
 
@@ -491,6 +528,17 @@ class ReportsScreenTest {
                     TrendBucket(JULY, JULY, Money(10_000, "EUR")),
                     TrendBucket(AUGUST, AUGUST, Money(30_000, "EUR")),
                 ),
+        )
+
+    private fun weekdaySpending() =
+        SpendingByWeekday(
+            scope = scopeFor(),
+            days =
+                DayOfWeek.entries.map { day ->
+                    // Saturday well above the flat weekday, so the footer verdict is fixed.
+                    val minor = if (day == DayOfWeek.SATURDAY) 9_000L else 1_000L
+                    WeekdaySpending(day, Money(minor, "EUR"), 1)
+                },
         )
 
     private fun comparison(

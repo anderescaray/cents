@@ -28,8 +28,11 @@ import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.weekdays
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import java.time.format.TextStyle
+import java.util.Locale
 
 /**
  * Everything that narrows the transaction list except the search field, on one screen.
@@ -79,6 +82,7 @@ fun TransactionFiltersScreen(
         ) {
             kindSection(state, viewModel)
             dateSection(state, viewModel)
+            weekdaySection(state, viewModel)
             accountSection(state, viewModel)
             categorySection(state, viewModel)
             amountSection(state, viewModel)
@@ -152,6 +156,36 @@ private fun LazyListScope.dateSection(
                 BoundRow(R.string.filters_date_to, state.draft.to, last = true) {
                     viewModel.openPicker(DateBound.TO)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * One day of the week, so a *spending by weekday* bar can be drilled into and the narrowing
+ * it applies can be seen and cleared here like any other (D10). Days start on the locale's
+ * first day, the same order the chart draws them in.
+ */
+private fun LazyListScope.weekdaySection(
+    state: TransactionFiltersUiState,
+    viewModel: TransactionFiltersViewModel,
+) {
+    item(key = "weekday") {
+        val locale = Locale.getDefault()
+        CentsListSection(header = stringResource(R.string.filters_weekday_header)) {
+            SelectableRow(
+                title = stringResource(R.string.filters_weekday_any),
+                selected = state.draft.weekday == null,
+                onClick = { viewModel.setWeekday(null) },
+            )
+            val days = weekdays(locale)
+            days.forEachIndexed { index, day ->
+                SelectableRow(
+                    title = day.getDisplayName(TextStyle.FULL, locale),
+                    selected = state.draft.weekday == day,
+                    last = index == days.lastIndex,
+                    onClick = { viewModel.setWeekday(day) },
+                )
             }
         }
     }

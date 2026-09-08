@@ -496,17 +496,20 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
-**Where the last session stopped (2026-09-03).** Four branches were built and all four merged:
-#34 (the ring shows income), #35 (reports narrowed to one account), #36 (this period against
-the last) and #37 (one category over time). `main` is green.
+**Where the last session stopped (2026-09-04).** `feat/reports-by-weekday` was built on D10's
+answer **B** and is **waiting for review** — the sixth and last PRD §4.3 view. `TransactionFilter`
+grew a `weekday`, the DAO's filter query a clause that rotates SQLite's `strftime('%w')` onto
+ISO day numbering, the Filters form a "Weekday" section in locale order, and the new view drills
+each day row down to that weekday inside the period. Before it, the previous four branches all
+merged: #34 (the ring shows income), #35 (reports narrowed to one account), #36 (this period
+against the last) and #37 (one category over time). 317 JVM tests, green locally on a clean run.
 
-**The next branch is the last unchecked one in C3 — spending by weekday**, built on D10's
-answer **B**: `TransactionFilter` gains a weekday and the Filters form gains the section that
-makes it visible and clearable. `FEEDBACK.md` is empty and `DECISIONS.md` has nothing waiting
-except D10, which stays under *Open* until that branch lands and can say what was done.
+**With that merged, PRD §4.3 is complete and Phase 2's chart work is done.** The next branch is
+whatever `FEEDBACK.md` turns up on the next device walk, or the deferred work in C4 (year-on-year
+comparison, the dashboard of cards in C7) — none of it decided. `DECISIONS.md` is empty.
 
 Two things carried over that no test can settle, both in C4 below: **nobody has seen any of
-Phase 2 on a phone**, and the next branch should start from `main` rather than stacking on an
+Phase 2 on a phone**, and a branch should start from `main` rather than stacking on an
 unmerged one.
 
 ## C2. What is built and merged
@@ -524,8 +527,8 @@ unmerged one.
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice opens the movements behind it, in the direction the ring was showing. What a sixth view costs is spelled out in C3 |
-| Tests | 305, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist once `feat/reports-by-weekday` merges |
+| Tests | 317, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -846,22 +849,32 @@ charts at once is how a phase turns into a month.
       section up; and the axis label follows the bucket, because twelve years labelled as
       months all read "Jan".
 
-- [ ] **The last PRD §4.3 view** — spending by weekday, on D10's answer (B): `TransactionFilter`
-      gains a weekday, and the Filters form gains the section that makes it visible and
-      clearable. The rest of the note below still applies —
-      **They are not equally separable, and the difference is worth knowing before splitting
-      them across agents.** Single-category detail is additive the way period comparison was:
-      a category and a date range are both things `TransactionFilter` already expresses, so
-      tapping a point can open the movements behind it with nothing new.
-      **Spending by weekday is not.** `TransactionFilter` has no idea of a weekday, so either
-      the bars do not drill down — which the PRD's cross-cutting requirement asks for — or the
-      filter model grows a concept, and then the filter form has to show it or the list ends up
-      narrowed by something the owner cannot see or clear. That was `DECISIONS.md` D10, and it
-      is **answered: B** (2026-09-03) — the filter learns weekdays and the Filters form shows
-      the section, so the bar drills down and what it applied can be found and cleared.
-      **Order, decided by the owner on 2026-09-03: single-category detail first, serially.**
-      Not in parallel worktrees, even though D9 allows it: the two views append a line each to
-      the same three shared files, and one PR at a time is the rhythm the owner reviews in.
+- [x] **`feat/reports-by-weekday`** — the sixth and last PRD §4.3 view, on D10's answer **B**.
+      Built 2026-09-04, **waiting for review**. It was the one §4.3 view that was not purely
+      additive: it needed the filter model to grow a concept it had never had.
+      - **`TransactionFilter` gained a `weekday: DayOfWeek?`.** The DAO's one filter query got a
+        clause — `((CAST(strftime('%w', t.date * 86400, 'unixepoch') AS INTEGER) + 6) % 7) + 1
+        = :weekday` — that rotates SQLite's Sunday-0 numbering onto ISO Monday-1, so the
+        parameter is just `DayOfWeek.getValue()` with no converter. `activeCount` counts it, so
+        the Filters badge and the "show everything" path already cover it.
+      - **The Filters form gained a "Weekday" section** — "Any day" plus the seven days in the
+        locale's own order (`weekdays(locale)`, the same helper the date picker uses). That is
+        the whole of B: a weekday bar drills down, and what it applied is visible and clearable
+        beside every other filter rather than narrowing the list invisibly (the `r8` mistake).
+      - **The view itself is additive**: `SpendingByWeekday` + its repository interface + Room
+        impl + `SpendingByWeekdaySection` + its strings, one `@Binds`, one line in
+        `ReportSections` (between `balance` and `comparison`, matching §4.3's order), one
+        appended `@Query`, one line in the test factory. `ReportsViewModel` and `ReportsScreen`
+        did not change.
+      - **Expenses only, and the footer answers the question.** "Do weekends wreck me" is about
+        the *typical* day, so the footer compares Saturday-and-Sunday-per-day against the other
+        five-per-day (cross-multiplied, so rounding never decides a close call) rather than the
+        raw two-against-five totals a weekend would always lose. The weekend is Saturday and
+        Sunday flatly — both shipped locales mean that, and `WeekFields` has no portable notion
+        of it; a locale that disagrees would revisit it, like the swipe's LTR assumption.
+      - The model holds `days` in fixed Monday-first order so it is testable; the section
+        reorders for display. The chart is one red series (the flow chart's expense colour),
+        seven columns; per-column tinting was judged more Vico than the point was worth.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -882,9 +895,13 @@ parallelism.
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **Five of the six PRD §4.3 views exist.** Only spending by weekday is unbuilt, and it is
-  the one that costs more than a new file: D10 is answered B, so it also adds a weekday to
-  `TransactionFilter` and a section to the Filters form.
+- **All six PRD §4.3 views exist** (`feat/reports-by-weekday`, waiting for review). The weekday
+  filter it added is the odd one on the form: every other filter narrows to a stretch or a set,
+  a weekday narrows to every Saturday inside whatever range is already set. It also assumes the
+  weekend is Saturday and Sunday, which both shipped locales agree on.
+- **The weekday chart is expenses only.** "Do weekends wreck me" is not asked of income, and the
+  ring one section up already toggles direction. If income-by-weekday is ever wanted it is a
+  second query on the shape the ring's toggle established, not a redesign.
 - **The trend view reads outside the selected period, on purpose.** Every other view reports on
   the period and nothing else; this one shows the twelve periods ending with it, because a
   trend needs history. The rule it keeps is that the period decides the bucket, so no two
@@ -942,6 +959,11 @@ parallelism.
   has measured on a phone. The work is still bounded by the length of the period. If a device
   walk ever finds the Reports tab slow with a long history, this is the first thing to split —
   and `CLAUDE.md` §5 is why it is written down rather than left to be discovered.
+- **A weekday filter is evaluated with `strftime` per row.** When `weekday` is set the list
+  query computes the day of the week for every candidate row rather than reading an index — no
+  index on a weekday exists, and one would be a stored column and a migration. The date range is
+  still applied first where one is set, so it is bounded by the period the same way the account
+  `OR` above is. Same trigger for revisiting: a device walk finding the filtered list slow.
 - **Any change to any account restarts every chart query.** The tab combines the selection with
   the account list and `flatMapLatest`es the result, so renaming an account or archiving one
   re-runs the three aggregations. It predates the picker — the currency was already read from

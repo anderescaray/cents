@@ -175,8 +175,8 @@ A full local run of what CI checks, worth doing before opening a PR:
 
 ## 8. Current status
 
-**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics) is nearly done: five of the six
-PRD §4.3 views are built, and only spending by weekday is left.** Recording money
+**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics): all six PRD §4.3 views are built —
+the last, spending by weekday, is on `feat/reports-by-weekday` waiting for review.** Recording money
 works end to end: the Room schema, the domain and repository layers, the iOS-flavoured design
 system and navigation, a transaction list grouped by day with a monthly summary, one form that
 adds and edits movements (keypad, date picker, note, delete with undo), category management,
@@ -193,11 +193,12 @@ The app works in **one currency**, the device's, and does not offer a choice: `M
 carries its ISO-4217 code and still refuses cross-currency arithmetic, but that is a guard
 rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
 The **Reports tab** is the work of Phase 2: a ring that answers where the money went or where
-it came from, income against expenses per month, a balance line, this period against the one
-before it, and one category followed over twelve periods — all under one period control and one
-account picker, with a slice or a point opening the movements behind it. A new view there is an
-additive unit; what it costs is spelled out in `ui/feature/reports/ReportSection.kt`.
-305 tests run on the JVM, so CI covers the database and the UI without a device.
+it came from, income against expenses per month, a balance line, spending by day of the week,
+this period against the one before it, and one category followed over twelve periods — all under
+one period control and one account picker, with a slice, a bar or a point opening the movements
+behind it. A new view there is an additive unit; what it costs is spelled out in
+`ui/feature/reports/ReportSection.kt`.
+317 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

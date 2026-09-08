@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The spending-by-weekday view's own strings, a file per view — see strings_reports_balance.xml.
+-->
+<resources>
+    <string name="reports_weekday_header">Spending by weekday</string>
+    <string name="reports_weekday_empty">No spending in this period to break down by day.</string>
+    <string name="reports_weekday_verdict_weekend">A typical weekend day costs you more than a typical weekday.</string>
+    <string name="reports_weekday_verdict_weekday">A typical weekday costs you more than a typical weekend day.</string>
+    <string name="reports_weekday_verdict_even">Weekdays and weekends cost about the same per day.</string>
+</resources>

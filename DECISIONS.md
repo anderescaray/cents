@@ -29,37 +29,8 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D10 — should a weekday bar open the movements behind it?
-
-**What is at stake.** *Spending by weekday* ("do weekends wreck me?") is one of the two PRD
-§4.3 views still unbuilt. Every other chart on the tab drills down, and §4.3 asks for that as a
-cross-cutting requirement — but `TransactionFilter` has no idea of a weekday, and the
-transaction list can only show what that filter can express.
-
-So there are three honest answers, and they lead to different amounts of work:
-
-- **A — the bars do not drill down.** The view answers its question and stops. Cheapest, and
-  the only option that changes nothing outside the new view. It makes one chart on the tab
-  behave differently from the other four.
-- **B — the filter grows a weekday, and the filter form shows it.** Tapping "Saturday" narrows
-  the list the way tapping a slice does, and the Filters screen gains a section so the
-  narrowing is visible and clearable. Most work, and the only version that is consistent both
-  ways.
-- **C — the filter grows a weekday, hidden from the form.** Cheaper than B, and it recreates
-  the problem `r8` was about: a list narrowed by something the owner can see the effect of but
-  not find. Recorded so the option is on the table, not because it is recommended.
-
-**Recommendation: B**, but it is the owner's because it changes what a filter *is* — the thing
-the movements list is built around — for the sake of one chart.
-
-**Default until answered: A.** The view gets built and its bars do nothing when tapped, which
-is a gap that can be closed later without rewriting anything.
-
-**Answer: B** (2026-09-03). `TransactionFilter` gains a weekday, and the Filters form gains a
-section for it, so a bar opens the movements behind it and the narrowing it applies is visible
-and clearable like every other one. Not yet built — it lands with the spending-by-weekday
-branch, which comes after single-category detail; this entry moves to *Answered* then, with
-what was actually done.
+**Nothing is waiting here right now.** D10 was answered B and shipped in
+`feat/reports-by-weekday`; it is in the *Answered* table below.
 
 ---
 
@@ -85,5 +56,6 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D10 | Should a *spending by weekday* bar open the movements behind it? | **B** — `TransactionFilter` grows a `weekday`, and the Filters form shows a section for it, so a bar drills down like every other chart and the narrowing is visible and clearable. Built in `feat/reports-by-weekday` (2026-09-04): the DAO's filter query gained a weekday clause (`strftime('%w')` rotated onto ISO numbering), the form a "Weekday" section in locale order, and the new view drills each day row down to that weekday inside the period. | 2026-09-04 · `feat/reports-by-weekday`, `PLAN.md` C3 |
 | D9 | Phase 2 with one agent, or three? | **Three.** The reason to wait was that Vico and `ui/feature/reports` were shared foundations, and `CLAUDE.md` §7 builds those once and serially; #20 merged them, so that argument is spent. The four remaining PRD §4.3 views — balance over time, spending by weekday, period comparison, single-category detail — split three ways cleanly. Run on Claude Code's worktree parallelism rather than waiting for the harness, which amends D5's *how* and nothing else. | 2026-08-30 · `PLAN.md` Part B §3, D5 above |
 | D8 | Bubbles instead of a tab bar? | **Yes, after Phase 1 exits**, as a launcher: tapping a bubble expands it to fill the screen in under 500 ms, the tab bar shows inside a section but can be collapsed, and every piece of that state survives a restart. | 2026-08-20 · `PLAN.md` C7, future ADR 0002 |

@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSe
 import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSectionSource
+import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekdaySectionSource
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSectionSource
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -109,9 +110,10 @@ class ReportSections
         spending: SpendingSectionSource,
         monthlyFlow: MonthlyFlowSectionSource,
         balance: BalanceOverTimeSectionSource,
+        weekday: SpendingByWeekdaySectionSource,
         comparison: PeriodComparisonSectionSource,
         trend: CategoryTrendSectionSource,
     ) {
         val inOrder: List<ReportSectionSource> =
-            listOf(spending, monthlyFlow, balance, comparison, trend)
+            listOf(spending, monthlyFlow, balance, weekday, comparison, trend)
     }

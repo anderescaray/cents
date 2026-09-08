@@ -70,6 +70,11 @@ interface TransactionDao {
      *
      * [query] arrives already wrapped in `%` and with LIKE's own wildcards escaped, so a
      * search for "50%" looks for that text and not for "50 followed by anything".
+     *
+     * [weekday] is an ISO day number, Monday 1 to Sunday 7 — `DayOfWeek.getValue()`. `date` is
+     * an epoch day, so `date * 86400` is the same UTC-anchored Unix timestamp the monthly
+     * query uses; `strftime('%w', …)` counts from Sunday 0, and `((… + 6) % 7) + 1` rotates
+     * that onto the ISO numbering so the parameter needs no conversion on the way in.
      */
     @Query(
         """
@@ -88,6 +93,10 @@ interface TransactionDao {
           AND (:kind IS NULL OR t.kind = :kind)
           AND (:from IS NULL OR t.date >= :from)
           AND (:to IS NULL OR t.date <= :to)
+          AND (
+            :weekday IS NULL
+            OR ((CAST(strftime('%w', t.date * 86400, 'unixepoch') AS INTEGER) + 6) % 7) + 1 = :weekday
+          )
           AND (:minAmountMinor IS NULL OR t.amountMinor >= :minAmountMinor)
           AND (:maxAmountMinor IS NULL OR t.amountMinor <= :maxAmountMinor)
           AND (
@@ -107,6 +116,7 @@ interface TransactionDao {
         kind: TransactionKind?,
         from: LocalDate?,
         to: LocalDate?,
+        weekday: Int?,
         minAmountMinor: Long?,
         maxAmountMinor: Long?,
         query: String?,
@@ -234,6 +244,39 @@ interface TransactionDao {
         to: LocalDate,
         accountId: Long?,
     ): Flow<List<MonthTotals>>
+
+    /**
+     * What was spent on each day of the week over a period, summed in SQL.
+     *
+     * This is the weekday chart. Seven groups at most, so the work is bounded by the days of
+     * the week rather than by the movements in the period — the same reason every other chart
+     * on the tab aggregates in `GROUP BY` (`CLAUDE.md` §5).
+     *
+     * [WeekdayTotal.weekday] is an ISO day number, Monday 1 to Sunday 7, so it drops straight
+     * into `DayOfWeek.of`. `strftime('%w')` counts from Sunday 0; `((… + 6) % 7) + 1` rotates
+     * that onto the ISO numbering, exactly as the filter query does. A day with nothing spent
+     * on it does not come back — SQL groups what exists — and the zero is filled in the
+     * repository, where it costs one pass over seven days.
+     */
+    @Query(
+        """
+        SELECT (((CAST(strftime('%w', t.date * 86400, 'unixepoch') AS INTEGER) + 6) % 7) + 1) AS weekday,
+               SUM(t.amountMinor) AS totalMinor,
+               COUNT(*) AS transactionCount
+        FROM transactions t
+        WHERE t.kind = :kind
+          AND t.date BETWEEN :from AND :to
+          AND (:accountId IS NULL OR t.accountId = :accountId)
+        GROUP BY weekday
+        ORDER BY weekday
+        """,
+    )
+    fun observeTotalsByWeekday(
+        kind: TransactionKind,
+        from: LocalDate,
+        to: LocalDate,
+        accountId: Long?,
+    ): Flow<List<WeekdayTotal>>
 
     /**
      * The money there was before a period started: the balance the line begins from.
@@ -453,6 +496,16 @@ data class CategoryTotal(
     val categoryId: Long?,
     val categoryName: String?,
     val categoryColorArgb: Int?,
+    val totalMinor: Long,
+    val transactionCount: Int,
+)
+
+/**
+ * One weekday's spending, as SQL returns it. [weekday] is an ISO day number, Monday 1 to
+ * Sunday 7.
+ */
+data class WeekdayTotal(
+    val weekday: Int,
     val totalMinor: Long,
     val transactionCount: Int,
 )

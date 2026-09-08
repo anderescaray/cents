@@ -151,6 +151,8 @@
     <string name="filters_date_to">Hasta</string>
     <string name="filters_date_pick">Elegir</string>
     <string name="filters_date_inverted">La primera fecha es posterior a la segunda, así que nada puede coincidir.</string>
+    <string name="filters_weekday_header">Día de la semana</string>
+    <string name="filters_weekday_any">Cualquier día</string>
     <string name="filters_account_header">Cuenta</string>
     <string name="filters_all_accounts">Todas las cuentas</string>
     <string name="filters_category_header">Categoría</string>

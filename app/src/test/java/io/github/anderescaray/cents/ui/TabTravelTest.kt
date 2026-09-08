@@ -1,7 +1,9 @@
 package io.github.anderescaray.cents.ui
 
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
+import io.github.anderescaray.cents.ui.navigation.routes
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -50,9 +52,21 @@ class TabTravelTest {
     }
 
     @Test
-    fun `pushing a screen inside a tab is a push, whichever tab it is`() {
-        // A pushed screen is no tab at all, so there are no positions to compare and the
-        // forward slide is what a push should look like.
+    fun `switching into a tab whose stack has a detail screen on top travels backwards`() {
+        // What arrives is an account's detail screen, but the tab you moved to is Accounts, and
+        // that is what the direction is owed to. Before the tab owned its pushed screens there
+        // was nothing to compare here and this slid forward — the last case #31 left open.
+        val arriving = TopLevelTab.entries.first { Destination.AccountDetail::class in it.routes }
+        assertEquals(
+            SlideDirection.End,
+            slideDirectionFor(from = TopLevelTab.SETTINGS, to = arriving),
+        )
+    }
+
+    @Test
+    fun `pushing a screen no tab owns is a push, whichever tab it is from`() {
+        // The movement form opens from two tabs, so it is owned by neither: there are no
+        // positions to compare and the forward slide is what a push should look like.
         for (tab in TopLevelTab.entries) {
             assertEquals(SlideDirection.Start, slideDirectionFor(from = tab, to = null))
             assertEquals(SlideDirection.Start, slideDirectionFor(from = null, to = tab))

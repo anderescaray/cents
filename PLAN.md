@@ -496,17 +496,24 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
-**Where the last session stopped (2026-09-04).** `feat/reports-by-weekday` was built on D10's
-answer **B** and is **waiting for review** — the sixth and last PRD §4.3 view. `TransactionFilter`
+**Where the last session stopped (2026-09-08).** `feat/reports-by-weekday` merged as #39, so
+**PRD §4.3 is complete and Phase 2's chart work is done**. The branch after it is
+`fix/the-tab-bar-knows-where-you-are`, which closes the one case #31 left open: the tab bar now
+knows which tab a pushed screen belongs to, so it stays lit on *Accounts* over an account's
+detail screen, and switching into a tab whose saved stack has one on top slides the way you
+actually moved. 331 JVM tests, green twice on a clean run.
+
+**Where the session before it stopped (2026-09-04).** `feat/reports-by-weekday` was built on
+D10's answer **B** and was then waiting for review — the sixth and last PRD §4.3 view. `TransactionFilter`
 grew a `weekday`, the DAO's filter query a clause that rotates SQLite's `strftime('%w')` onto
 ISO day numbering, the Filters form a "Weekday" section in locale order, and the new view drills
 each day row down to that weekday inside the period. Before it, the previous four branches all
 merged: #34 (the ring shows income), #35 (reports narrowed to one account), #36 (this period
 against the last) and #37 (one category over time). 317 JVM tests, green locally on a clean run.
 
-**With that merged, PRD §4.3 is complete and Phase 2's chart work is done.** The next branch is
-whatever `FEEDBACK.md` turns up on the next device walk, or the deferred work in C4 (year-on-year
-comparison, the dashboard of cards in C7) — none of it decided. `DECISIONS.md` is empty.
+**The next branch** is whatever `FEEDBACK.md` turns up on the next device walk, or the deferred
+work in C4 (year-on-year comparison, the dashboard of cards in C7) — none of it decided.
+`DECISIONS.md` is empty.
 
 Two things carried over that no test can settle, both in C4 below: **nobody has seen any of
 Phase 2 on a phone**, and a branch should start from `main` rather than stacking on an
@@ -522,13 +529,13 @@ unmerged one.
 | Database | Room v1: `accounts`, `categories`, `transactions`. Balances computed in SQL, foreign keys `RESTRICT`, schema exported to `app/schemas/` |
 | Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
 | Design system | iOS-flavoured tokens and components, including a row that swipes sideways to delete and a search field — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
-| Navigation | Four tabs, type-safe routes, push/pop transitions |
+| Navigation | Four tabs, type-safe routes, push/pop transitions. A tab owns the screens pushed inside it, so the bar stays lit on the tab you are in and a slide travels the way you moved |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list. Searchable, and filterable by date range, account, category, kind and amount |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist once `feat/reports-by-weekday` merges |
-| Tests | 317, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
+| Tests | 331, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -850,7 +857,7 @@ charts at once is how a phase turns into a month.
       months all read "Jan".
 
 - [x] **`feat/reports-by-weekday`** — the sixth and last PRD §4.3 view, on D10's answer **B**.
-      Built 2026-09-04, **waiting for review**. It was the one §4.3 view that was not purely
+      Merged as #39. It was the one §4.3 view that was not purely
       additive: it needed the filter model to grow a concept it had never had.
       - **`TransactionFilter` gained a `weekday: DayOfWeek?`.** The DAO's one filter query got a
         clause — `((CAST(strftime('%w', t.date * 86400, 'unixepoch') AS INTEGER) + 6) % 7) + 1
@@ -876,6 +883,29 @@ charts at once is how a phase turns into a month.
         reorders for display. The chart is one red series (the flow chart's expense colour),
         seven columns; per-column tinting was judged more Vico than the point was worth.
 
+- [x] **`fix/the-tab-bar-knows-where-you-are`** — the last case #31 left open, and the tab-bar
+      highlight that had the same cause. A screen pushed inside a tab carried no record of which
+      tab that was, so two things read the top of the back stack and got the same wrong answer:
+      the bar lit **Transactions** over an account's detail screen, and switching into a tab
+      whose saved stack had a detail on top slid forwards.
+      - **A tab now owns its screens.** `TopLevelTab.owns` lists what can only be reached from
+        inside it — the filter form under Transactions, an account's detail under Accounts, the
+        category list under Settings — and `routes` is the one list both the bar and the slide
+        ask. Four nested nav graphs would answer the same question, at the price of registering
+        every shared screen in each of them.
+      - **A screen two tabs can reach is owned by neither, and that is the interesting half.**
+        The movement form opens from the list and from an account; the account and category
+        editors likewise. Naming an owner would pick one of two truths, so those fall back to
+        the tab the owner was already in — which is why the tab is *remembered* (saveable state,
+        so it survives a rotation and process death) rather than derived. Opening a movement
+        from an account leaves you in Accounts and opening the same screen from the list leaves
+        you in Transactions, and there are tests for both.
+      - What is not tested is `hasRoute` itself, which is androidx's — but a Robolectric test
+        drives a real `NavHost` and pins the case that would break if the lookup only matched
+        bare objects: `AccountDetail(1)` carries an argument, and it still resolves to Accounts.
+      *Done when:* the bar names the tab you are actually in, and no switch slides the wrong way.
+      **Done**, 331 tests.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -895,7 +925,7 @@ parallelism.
   and the self-referencing foreign key is `RESTRICT`, so deleting a parent that still has
   children would throw out of the view model with nothing catching it. Unreachable today
   because nothing can create a child.
-- **All six PRD §4.3 views exist** (`feat/reports-by-weekday`, waiting for review). The weekday
+- **All six PRD §4.3 views exist**, `feat/reports-by-weekday` (#39) last. The weekday
   filter it added is the odd one on the form: every other filter narrows to a stretch or a set,
   a weekday narrows to every Saturday inside whatever range is already set. It also assumes the
   weekend is Saturday and Sunday, which both shipped locales agree on.
@@ -969,12 +999,15 @@ parallelism.
   re-runs the three aggregations. It predates the picker — the currency was already read from
   that list — and it is bounded work on a handful of rows, but it is why the account list is
   not the place to hang anything expensive.
-- **Switching to a tab whose saved stack has a detail screen on top still slides the wrong
-  way.** #31 made the tab animation follow the direction of travel by comparing the two tabs'
-  positions, but a screen pushed *inside* a tab carries no record of which tab it belongs to,
-  so there is nothing to compare and it falls back to a forward slide. The same missing concept
-  makes the tab bar highlight **Transactions** while an account's detail screen is open. Both
-  want the selected tab tracked as state rather than read back out of the back stack.
+- **Which tab a screen lives in is a hand-kept list.** `fix/the-tab-bar-knows-where-you-are`
+  closed the gap #31 left — a pushed screen now carries the tab it belongs to, so the bar stays
+  lit on Accounts over an account's detail and switching into that saved stack slides backwards
+  — but it does so because `TopLevelTab.owns` says which screens are inside which tab, and
+  nothing makes a new destination declare itself. One that does not is treated like the three
+  screens two tabs can reach: no owner, so the tab you were already in stands. That is the right
+  answer for those three and a harmless one for a forgotten route, which is why it is a list
+  rather than four nested nav graphs — those would answer the same question by duplicating every
+  shared screen per tab.
 - **A green CI run is one machine, one ordering, one run.** `main` was green on CI and red
   locally on 2026-09-02: nine of the ten view-model test classes let their view model outlive
   the test, so a leaked collector kept using a `Dispatchers.Main` the *next* class was trying

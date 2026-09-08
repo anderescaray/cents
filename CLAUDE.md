@@ -175,8 +175,8 @@ A full local run of what CI checks, worth doing before opening a PR:
 
 ## 8. Current status
 
-**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics): all six PRD §4.3 views are built —
-the last, spending by weekday, is on `feat/reports-by-weekday` waiting for review.** Recording money
+**Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics): all six PRD §4.3 views are built
+and merged, the last being spending by weekday (#39).** Recording money
 works end to end: the Room schema, the domain and repository layers, the iOS-flavoured design
 system and navigation, a transaction list grouped by day with a monthly summary, one form that
 adds and edits movements (keypad, date picker, note, delete with undo), category management,
@@ -198,7 +198,7 @@ this period against the one before it, and one category followed over twelve per
 one period control and one account picker, with a slice, a bar or a point opening the movements
 behind it. A new view there is an additive unit; what it costs is spelled out in
 `ui/feature/reports/ReportSection.kt`.
-317 tests run on the JVM, so CI covers the database and the UI without a device.
+331 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

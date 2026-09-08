@@ -496,12 +496,19 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
-**Where the last session stopped (2026-09-08).** `feat/reports-by-weekday` merged as #39, so
-**PRD §4.3 is complete and Phase 2's chart work is done**. The branch after it is
-`fix/the-tab-bar-knows-where-you-are`, which closes the one case #31 left open: the tab bar now
-knows which tab a pushed screen belongs to, so it stays lit on *Accounts* over an account's
-detail screen, and switching into a tab whose saved stack has one on top slides the way you
-actually moved. 330 JVM tests, green twice on a clean run.
+**Where the last session stopped (2026-09-08).** Three things landed, in this order.
+`feat/reports-by-weekday` merged as **#39**, so **PRD §4.3 is complete and Phase 2's chart work
+is done**. `fix/the-tab-bar-knows-where-you-are` merged as **#40**, closing the one case #31 left
+open: a pushed screen now carries the tab it belongs to. And `feat/bubble-launcher` builds **D8**
+— the app opens on a canvas of bubbles, and the tab bar is what you use once you are inside a
+section. It ships **ADR 0002**, because ADR 0001 specifies a tab bar and rule 12 makes that
+binding. 358 JVM tests, green twice on a clean run.
+
+**Two agents ran side by side for the first time on 2026-09-08**, and not the way §3.1 describes:
+the owner drove a second agent in *this* working copy rather than in a worktree, on
+`docs/device-check.md`. It worked because the write sets did not overlap, but that was the split
+being disjoint rather than the setup enforcing it — one index, one branch, and nothing but care
+between them. Next time, `git worktree add`.
 
 **Where the session before it stopped (2026-09-04).** `feat/reports-by-weekday` was built on
 D10's answer **B** and was then waiting for review — the sixth and last PRD §4.3 view. `TransactionFilter`
@@ -529,13 +536,13 @@ unmerged one.
 | Database | Room v1: `accounts`, `categories`, `transactions`. Balances computed in SQL, foreign keys `RESTRICT`, schema exported to `app/schemas/` |
 | Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
 | Design system | iOS-flavoured tokens and components, including a row that swipes sideways to delete and a search field — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
-| Navigation | Four tabs, type-safe routes, push/pop transitions. A tab owns the screens pushed inside it, so the bar stays lit on the tab you are in and a slide travels the way you moved |
+| Navigation | A canvas of bubbles the app opens on, four tabs underneath it, type-safe routes and push/pop transitions. A tab owns the screens pushed inside it, so the bar stays lit on the tab you are in and a slide travels the way you moved; a section is pushed on top of the canvas, so back from a section root returns there |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list. Searchable, and filterable by date range, account, category, kind and amount |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
-| Tests | 330, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 358, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -911,6 +918,38 @@ charts at once is how a phase turns into a month.
       *Done when:* the bar names the tab you are actually in, and no switch slides the wrong way.
       **Done**, 330 tests.
 
+- [x] **`feat/bubble-launcher`** — **D8, built.** The app opens on a canvas of four bubbles, one
+      per section, dragged and pinched wherever the owner wants them, drifting gently, and
+      expanding into the section when tapped. The tab bar is not replaced: it is what moves you
+      between sections once you are in one, and it collapses to a grabber. It ships
+      [`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md), because
+      ADR 0001 specifies a tab bar and rule 12 makes that binding.
+      - **The canvas is the start destination**, so every section is pushed on top of it and back
+        from a section root returns there — collapsed or not, because a gesture that means two
+        things depending on a toggle is worse than a toggle that only hides a bar. That also
+        fixed something older: back after a drill-down from Reports used to leave the app,
+        because the movements list was the floor of the stack.
+      - **A layout is fractions, not pixels** — of the canvas for the position, of its *shorter
+        side* for the diameter, so turning the phone leaves a bubble the size it was in the hand
+        rather than taller than the screen. Anything that no longer fits is shrunk or pushed
+        inside when it is drawn, without rewriting what was stored, so a bubble that fell off a
+        small screen comes back where it was on the large one.
+      - **Only what was moved is stored.** A section with nothing saved sits where a fresh
+        install puts it, so a future section needs no migration and a half-written bubble reads
+        as unplaced rather than as a position with invented parts.
+      - **Accessibility is the part that is not free**, and it is why the branch is not a coat of
+        paint: bubbles are buttons with names and an explicit traversal order, the drift is never
+        *started* when the device has animations off (an invisible animation is still one the
+        device asked not to run), a tap then opens the section immediately instead of growing
+        into it, and Settings carries **Reset the bubble layout** — because no gesture-free way
+        to move a bubble exists, and a screen reader cannot drag one.
+      - **DataStore arrives**, which `CLAUDE.md` §2 has named as the preferences layer since the
+        beginning and nothing had needed until now. It is bound in its own `PreferencesModule`
+        rather than in `RepositoryModule`: none of it goes near Room, and a module per storage
+        mechanism is one fewer file that two branches both have to edit.
+      *Done when:* the app opens on the canvas, a bubble stays where it was put across a restart,
+      and every section is still reachable without a gesture. **Done**, 358 tests.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -1004,6 +1043,26 @@ parallelism.
   re-runs the three aggregations. It predates the picker — the currency was already read from
   that list — and it is bounded work on a handful of rows, but it is why the account list is
   not the place to hang anything expensive.
+- **The way back from a section is a fade, not the expansion in reverse.** A section does not
+  know which bubble it came from, and teaching it would mean threading a rectangle through
+  navigation for one animation. Going in is the continuous shape D8 asked for; coming out is a
+  fade, and nobody has said whether that is enough.
+- **There is no gesture-free way to move or resize a bubble.** TalkBack can open one — they are
+  buttons with names and an explicit traversal order — but dragging is a drag. Settings →
+  **Reset the bubble layout** is the escape hatch, chosen over per-bubble "nudge" actions because
+  it is the one that also rescues a bubble pinched down to nothing in a corner.
+- **Bubbles may overlap once they are dragged**, and nothing stops it: pushing them apart would
+  mean fighting the finger. Only the *default* arrangement is held clear, and a test measures it.
+- **The reduce-motion setting is read once per composition, not observed.** Turning animations
+  off while the app is open leaves the drift running until the next launch. Observing it is a
+  `ContentObserver` for a setting that changes about once a year.
+- **The canvas reopens the section that was last open**, which is what D8 asked for and may not
+  be what it feels like in the hand: it means the app usually does *not* open on the bubbles. It
+  is one write and one flag to change to "always open on the canvas" if that reads better on the
+  phone.
+- **The drift is a live animation for as long as the canvas is on screen.** It is four
+  interpolations and it stops with the composition, but it is the first thing in this app that
+  runs when nobody is touching it — worth a look if the battery figures ever get examined.
 - **Which tab a screen lives in is a hand-kept list.** `fix/the-tab-bar-knows-where-you-are`
   closed the gap #31 left — a pushed screen now carries the tab it belongs to, so the bar stays
   lit on Accounts over an account's detail and switching into that saved stack slides backwards
@@ -1167,11 +1226,11 @@ Requested 2026-08-20, decided the same day in D8. Instead of four fixed tabs, th
 on a canvas of **four bubbles** — one per section — draggable anywhere, resizable, each
 drifting with a small continuous motion.
 
-> **The gate on this opened on 2026-08-21**, when Phase 1 closed. It is no longer blocked; it
-> is unscheduled. The default is that it waits until after `feat/reports-charts`, for one
-> reason: it amends the ADR that governs navigation, and every chart screen is built inside
-> that navigation. Doing it first means building the charts twice, or building them against a
-> shell that is about to change. Say so if it should jump the queue.
+> **Built on 2026-09-08, on `feat/bubble-launcher`.** The wait was deliberate and it was the
+> right order: it amends the ADR that governs navigation, and every chart screen was built
+> inside that navigation, so doing it first would have meant building the charts against a shell
+> that was about to change. What it actually shipped is in C3; what it decided is in
+> [`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md).
 
 **Yes, after Phase 1 exits, and as a launcher rather than a replacement.** The shape:
 

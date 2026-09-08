@@ -37,6 +37,13 @@ class SelectedTabTest {
     private var selected: TopLevelTab? = null
 
     @Test
+    fun `the canvas is in no tab, so the bar has nothing to light`() {
+        start()
+
+        assertEquals(null, selected)
+    }
+
+    @Test
     fun `an account's detail screen keeps the bar on Accounts`() {
         start()
 
@@ -65,7 +72,6 @@ class SelectedTabTest {
     fun `the same form opened from the list leaves you in Transactions`() {
         start()
 
-        // Away and back, so the answer cannot be the initial value quietly agreeing.
         switchTo(TopLevelTab.ACCOUNTS)
         switchTo(TopLevelTab.TRANSACTIONS)
         push(Destination.TransactionForm(transactionId = 7))
@@ -91,6 +97,20 @@ class SelectedTabTest {
     }
 
     @Test
+    fun `back from a section root returns to the canvas rather than leaving the app`() {
+        start()
+
+        switchTo(TopLevelTab.REPORTS)
+        composeRule.runOnIdle { navController.popBackStack() }
+        composeRule.waitForIdle()
+
+        // Sections sit on top of the canvas, which is what makes back mean something from a
+        // tab root. Popping to the movements list instead used to end the app after a
+        // drill-down, since that was the floor of the stack.
+        assertEquals(null, selected)
+    }
+
+    @Test
     fun `the category list belongs to Settings, even reached from a tab away`() {
         start()
 
@@ -108,7 +128,8 @@ class SelectedTabTest {
             val tab = backStack.selectedTab()
             SideEffect { selected = tab }
 
-            NavHost(navController = navController, startDestination = Destination.Transactions) {
+            NavHost(navController = navController, startDestination = Destination.Home) {
+                composable<Destination.Home> {}
                 composable<Destination.Transactions> {}
                 composable<Destination.Accounts> {}
                 composable<Destination.Reports> {}

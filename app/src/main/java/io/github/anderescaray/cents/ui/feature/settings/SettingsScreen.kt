@@ -21,7 +21,10 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
  * row, a disclosure row and the prominent button, so all of it can be judged on a device.
  */
 @Composable
-fun SettingsScreen(onOpenCategories: () -> Unit) {
+fun SettingsScreen(
+    onOpenCategories: () -> Unit,
+    onResetHomeLayout: () -> Unit,
+) {
     var biometricLock by remember { mutableStateOf(false) }
 
     CentsLargeTitleScaffold(title = stringResource(R.string.tab_settings)) {
@@ -35,6 +38,7 @@ fun SettingsScreen(onOpenCategories: () -> Unit) {
                 )
             }
         }
+        item { ResetHomeLayoutSection(onReset = onResetHomeLayout) }
         item {
             CentsListSection(header = stringResource(R.string.settings_section_security)) {
                 CentsListRow(
@@ -75,5 +79,23 @@ fun SettingsScreen(onOpenCategories: () -> Unit) {
                 modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
             )
         }
+    }
+}
+
+/**
+ * The non-gesture way back to a sane canvas. A screen reader cannot drag a bubble, and a bubble
+ * pinched down to nothing in a corner should not need one.
+ */
+@Composable
+private fun ResetHomeLayoutSection(onReset: () -> Unit) {
+    CentsListSection(
+        header = stringResource(R.string.settings_section_home),
+        footer = stringResource(R.string.settings_reset_home_footer),
+    ) {
+        CentsListRow(
+            title = stringResource(R.string.settings_reset_home),
+            showSeparator = false,
+            onClick = onReset,
+        )
     }
 }

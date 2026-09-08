@@ -1,24 +1,27 @@
 package io.github.anderescaray.cents.ui
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.components.CentsTabBar
+import io.github.anderescaray.cents.ui.components.CentsTabBarShelf
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
@@ -26,21 +29,26 @@ import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
 import io.github.anderescaray.cents.ui.feature.filters.TransactionFiltersScreen
+import io.github.anderescaray.cents.ui.feature.home.HomeScreen
+import io.github.anderescaray.cents.ui.feature.home.HomeUiState
+import io.github.anderescaray.cents.ui.feature.home.HomeViewModel
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
-import io.github.anderescaray.cents.ui.navigation.routes
-
-/** How long a push or pop takes. iOS uses a brisk slide, not a slow fade. */
-private const val PUSH_DURATION_MS = 320
 
 @Composable
-fun CentsApp(navController: NavHostController = rememberNavController()) {
+fun CentsApp(
+    navController: NavHostController = rememberNavController(),
+    home: HomeViewModel = hiltViewModel(),
+) {
     val backStack by navController.currentBackStack.collectAsState()
     val currentTab = backStack.selectedTab()
+    val homeState by home.state.collectAsStateWithLifecycle()
+
+    RestoreLastSection(state = homeState, currentTab = currentTab, navController = navController, home = home)
 
     val tabs =
         TopLevelTab.entries.map { tab ->
@@ -53,128 +61,79 @@ fun CentsApp(navController: NavHostController = rememberNavController()) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
-            CentsNavHost(navController)
+            CentsNavHost(navController = navController, home = home, homeState = homeState)
         }
 
-        CentsTabBar(
-            items = tabs,
-            selectedKey = currentTab.name,
-            onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
-        )
+        // No bar on the canvas: the bubbles are the way in, and a tab bar under them would be
+        // the same four destinations offered twice.
+        if (currentTab != null) {
+            CentsTabBarShelf(
+                collapsed = homeState.tabBarCollapsed,
+                onCollapsedChange = home::setTabBarCollapsed,
+            ) {
+                CentsTabBar(
+                    items = tabs,
+                    selectedKey = currentTab.name,
+                    onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
+                )
+            }
+        }
     }
 }
 
 /**
- * The tab a destination belongs to: the tab it *is*, or the tab it was pushed inside.
+ * Reopening where the app was left, and remembering where it is now — in that order, which is
+ * the whole subtlety.
  *
- * Null for a screen more than one tab can reach — see [TopLevelTab.owns], which is where that
- * is decided, so the bar and the slide can never disagree about who owns what.
+ * The canvas is the start destination, so on a cold start the current tab is null, and writing
+ * that down before the stored section has been read would erase it a frame before it was used.
+ * So nothing is remembered until the one restore has been attempted, and the flag saying so is
+ * saveable: after process death Android restores the back stack itself, and a second restore
+ * would push a section on top of one already open.
  */
-internal fun NavDestination.owningTab(): TopLevelTab? =
-    TopLevelTab.entries.firstOrNull { tab -> tab.routes.any { hasRoute(it) } }
+@Composable
+private fun RestoreLastSection(
+    state: HomeUiState,
+    currentTab: TopLevelTab?,
+    navController: NavHostController,
+    home: HomeViewModel,
+) {
+    var restored by rememberSaveable { mutableStateOf(false) }
 
-/**
- * The tab the bar shows as selected: the nearest screen *down* the stack that a tab owns.
- *
- * Reading only the top of the stack is what used to light *Transactions* over an account's
- * detail screen — a pushed destination matched no tab and the bar fell back to the first one.
- * Reading the whole stack answers the screens two tabs can reach as well, and answers them
- * correctly rather than by convention: the movement form sits above an account's detail when it
- * was opened from an account, and directly above the list when it was opened from the list, so
- * the same screen is filed under wherever you actually opened it.
- *
- * **Remembering the last tab instead would be wrong, and it is the version this branch shipped
- * first.** Each tab keeps its own saved stack (`switchToTab`), so leaving Accounts with a
- * movement form open, visiting Reports and coming back restores that form — and a single
- * remembered value would still be saying *Reports*, a tab the owner had just left. The stack is
- * the thing that knows, and it survives a rotation and process death without being saved
- * separately.
- *
- * Empty only before the graph is set, where the start destination is the honest answer.
- */
-internal fun List<NavBackStackEntry>.selectedTab(): TopLevelTab =
-    asReversed().firstNotNullOfOrNull { it.destination.owningTab() } ?: TopLevelTab.TRANSACTIONS
-
-/**
- * Which way this navigation is travelling, so the slide agrees with it.
- *
- * Every `navigate()` is a push as far as the `NavHost` is concerned, and a tab switch is a
- * `navigate()` — so with a single direction the animation said "forward" even when the tab
- * bar had moved you *left*, which reads as wrong every time and is the animation seen most.
- * `TopLevelTab` already orders the tabs, so the sign is knowable: moving to a lower tab is
- * travelling back, and the screen should arrive from the side it went out to.
- *
- * It asks [owningTab] rather than "is this destination a tab", so switching to a tab whose
- * saved stack has a detail screen on top travels the way the bar moved: the screen arriving is
- * an account's detail, but it is Accounts you went to. A push inside a tab has the same tab on
- * both sides and stays a forward slide, and so does anything involving a screen no tab owns.
- */
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.travelDirection() =
-    slideDirectionFor(
-        from = initialState.destination.owningTab(),
-        to = targetState.destination.owningTab(),
-    )
-
-/**
- * Separated from the transition so it can be tested: reading a slide direction off a running
- * animation is not something a JVM test can do, but the rule deciding it is arithmetic.
- */
-internal fun slideDirectionFor(
-    from: TopLevelTab?,
-    to: TopLevelTab?,
-): AnimatedContentTransitionScope.SlideDirection =
-    if (from != null && to != null && to.ordinal < from.ordinal) {
-        AnimatedContentTransitionScope.SlideDirection.End
-    } else {
-        AnimatedContentTransitionScope.SlideDirection.Start
+    LaunchedEffect(state.loaded) {
+        if (state.loaded && !restored) {
+            restored = true
+            state.lastSection?.let { navController.switchToTab(it.destination) }
+        }
     }
-
-/** Tabs switch, they do not stack: one entry per tab, state preserved. */
-internal fun NavHostController.switchToTab(destination: Destination) {
-    navigate(destination) {
-        popUpTo(Destination.Transactions) { saveState = true }
-        launchSingleTop = true
-        restoreState = true
+    LaunchedEffect(currentTab, restored) {
+        if (restored) home.rememberSection(currentTab)
     }
-}
-
-/**
- * A drill-down arrives at the movements list itself, never at whatever was left open on top
- * of it. `switchToTab` restores the tab's saved stack, and that stack can be holding the
- * filters screen — which is precisely where you go to read the filter a previous drill-down
- * applied. Restoring it would answer "show me this category" with the filter form.
- */
-private fun NavHostController.openMovementsList() {
-    switchToTab(Destination.Transactions)
-    popBackStack(Destination.Transactions, inclusive = false)
 }
 
 /** The navigation stack, with iOS push and pop transitions. */
 @Composable
-private fun CentsNavHost(navController: NavHostController) {
+private fun CentsNavHost(
+    navController: NavHostController,
+    home: HomeViewModel,
+    homeState: HomeUiState,
+) {
     NavHost(
         navController = navController,
-        startDestination = Destination.Transactions,
+        startDestination = Destination.Home,
         // Horizontal push and pop, the way an iOS navigation stack moves.
-        enterTransition = {
-            slideIntoContainer(travelDirection(), animationSpec = tween(PUSH_DURATION_MS))
-        },
-        exitTransition = {
-            slideOutOfContainer(travelDirection(), animationSpec = tween(PUSH_DURATION_MS))
-        },
-        popEnterTransition = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(PUSH_DURATION_MS),
-            )
-        },
-        popExitTransition = {
-            slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = tween(PUSH_DURATION_MS),
-            )
-        },
+        enterTransition = { arriving() },
+        exitTransition = { leaving() },
+        popEnterTransition = { arriving(BACKWARDS) },
+        popExitTransition = { leaving(BACKWARDS) },
     ) {
+        composable<Destination.Home> {
+            HomeScreen(
+                state = homeState,
+                onMove = home::move,
+                onOpenSection = { tab -> navController.switchToTab(tab.destination) },
+            )
+        }
         transactionRoutes(navController)
         accountRoutes(navController)
         categoryRoutes(navController)
@@ -188,7 +147,10 @@ private fun CentsNavHost(navController: NavHostController) {
             )
         }
         composable<Destination.Settings> {
-            SettingsScreen(onOpenCategories = { navController.navigate(Destination.Categories) })
+            SettingsScreen(
+                onOpenCategories = { navController.navigate(Destination.Categories) },
+                onResetHomeLayout = home::resetLayout,
+            )
         }
     }
 }

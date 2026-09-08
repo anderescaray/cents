@@ -20,6 +20,7 @@ import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.CategoryTrend
 import io.github.anderescaray.cents.domain.model.ComparedRanges
+import io.github.anderescaray.cents.domain.model.ComparisonSegment
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodComparison
@@ -41,6 +42,7 @@ import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSect
 import io.github.anderescaray.cents.ui.feature.reports.section.KIND_CONTROL_TAG
 import io.github.anderescaray.cents.ui.feature.reports.section.MonthlyFlowSection
 import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonSection
+import io.github.anderescaray.cents.ui.feature.reports.section.SEGMENT_CONTROL_TAG
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekdaySection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -258,8 +260,23 @@ class ReportsScreenTest {
         // words, because two bars of similar height do not tell anyone whether they saved
         // forty euros or four hundred.
         composeRule.onAllNodesWithText("Expenses").assertCountEquals(2)
-        composeRule.onNodeWithText("Previous period").assertExists()
+        // "Previous period" is on the segmented control and in the legend.
+        composeRule.onAllNodesWithText("Previous period").assertCountEquals(2)
         composeRule.onNodeWithText("Movements in the previous period").assertExists()
+    }
+
+    @Test
+    fun `the comparison answers this period against last year when that segment is selected`() {
+        setContent(fullState())
+
+        scrollTo("THIS PERIOD AGAINST THE LAST")
+        composeRule.onNodeWithText("THIS PERIOD AGAINST THE LAST").assertExists()
+
+        selectSegment("Same period last year")
+
+        composeRule.onNodeWithText("THIS PERIOD AGAINST LAST YEAR").assertExists()
+        composeRule.onAllNodesWithText("Same period last year").assertCountEquals(2)
+        composeRule.onNodeWithText("Movements in the same period last year").assertExists()
     }
 
     @Test
@@ -276,16 +293,33 @@ class ReportsScreenTest {
     }
 
     @Test
+    fun `the year-ago row opens the movements from the same period last year`() {
+        var opened: TransactionFilter? = null
+        setContent(fullState(), onDrillDown = { opened = it })
+
+        scrollTo("THIS PERIOD AGAINST THE LAST")
+        selectSegment("Same period last year")
+
+        scrollTo("Movements in the same period last year")
+        composeRule.onNodeWithText("Movements in the same period last year").performClick()
+
+        // August 2025, not July 2026: the year-ago segment opens that period's movements.
+        assertEquals(LocalDate.of(2025, 8, 1), opened?.from)
+        assertEquals(LocalDate.of(2025, 8, 31), opened?.to)
+    }
+
+    @Test
     fun `the trend names the category it is following and offers the others`() {
         setContent(fullState())
 
-        scrollTo("ONE CATEGORY OVER TIME")
+        scrollTo("Tap to follow a different category")
         composeRule.onNodeWithText("Tap to follow a different category").assertExists()
         // The other categories are behind a tap rather than listed under every chart: there
         // can be as many as the owner has typed.
         composeRule.onNodeWithText("Holidays").assertDoesNotExist()
 
         composeRule.onNodeWithText("Tap to follow a different category").performClick()
+        scrollTo("Holidays")
 
         composeRule.onNodeWithText("Holidays").assertExists()
     }
@@ -442,6 +476,17 @@ class ReportsScreenTest {
             .performClick()
     }
 
+    /**
+     * Taps one segment of the comparison section's period selector.
+     */
+    private fun selectSegment(label: String) {
+        composeRule
+            .onNode(hasTestTag(SEGMENT_CONTROL_TAG))
+            .onChildren()
+            .filterToOne(hasText(label))
+            .performClick()
+    }
+
     private fun setContent(
         state: ReportsUiState,
         onSelectPreset: (PeriodPreset) -> Unit = {},
@@ -493,7 +538,16 @@ class ReportsScreenTest {
                         ),
                 ),
                 MonthlyFlowSection(months()),
-                PeriodComparisonSection(comparison(current = 90_000, before = 120_000)),
+                PeriodComparisonSection(
+                    previous = comparison(current = 90_000, before = 120_000),
+                    samePeriodLastYear =
+                        comparison(
+                            current = 90_000,
+                            before = 110_000,
+                            targetPeriod = AUGUST_LAST_YEAR,
+                            segment = ComparisonSegment.SAME_PERIOD_LAST_YEAR,
+                        ),
+                ),
                 CategoryTrendSection(trend(), onSelectCategory = { watched += it }),
                 BalanceOverTimeSection(
                     BalanceOverTime(
@@ -544,13 +598,17 @@ class ReportsScreenTest {
     private fun comparison(
         current: Long,
         before: Long,
+        targetPeriod: ReportPeriod = JULY,
+        segment: ComparisonSegment = ComparisonSegment.PREVIOUS_PERIOD,
     ) = PeriodComparison(
-        // A whole August against a whole July: the screen tests are about what is drawn, and
-        // the clamping a running period gets is the repository's business and tested there.
+        // A whole August against a whole July (or August last year): the screen tests are
+        // about what is drawn, and the clamping a running period gets is the repository's
+        // business and tested there.
         scope = scopeFor(),
-        ranges = ComparedRanges(current = AUGUST, previous = JULY, partial = false),
+        ranges = ComparedRanges(current = AUGUST, previous = targetPeriod, partial = false),
         current = PeriodSummary(Money.zero("EUR"), Money(current, "EUR")),
         before = PeriodSummary(Money.zero("EUR"), Money(before, "EUR")),
+        segment = segment,
     )
 
     private fun months() =
@@ -602,6 +660,7 @@ class ReportsScreenTest {
     private companion object {
         val AUGUST = ReportPeriod.Month(YearMonth.of(2026, 8))
         val JULY = ReportPeriod.Month(YearMonth.of(2026, 7))
+        val AUGUST_LAST_YEAR = ReportPeriod.Month(YearMonth.of(2025, 8))
         const val GROCERIES_ID = 2L
         const val SALARY_ID = 3L
         const val CURRENT_ID = 10L

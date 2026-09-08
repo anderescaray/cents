@@ -8,10 +8,16 @@
 -->
 <resources>
     <string name="reports_comparison_header">This period against the last</string>
+    <string name="reports_comparison_header_year_ago">This period against last year</string>
     <string name="reports_comparison_empty">Nothing happened in either period.</string>
+    <string name="reports_comparison_segment_previous">Previous period</string>
+    <string name="reports_comparison_segment_year_ago">Same period last year</string>
     <string name="reports_comparison_legend_before">Previous period</string>
+    <string name="reports_comparison_legend_year_ago">Same period last year</string>
     <string name="reports_comparison_legend_current">This period</string>
     <string name="reports_comparison_unchanged">no change</string>
     <string name="reports_comparison_open_before">Movements in the previous period</string>
+    <string name="reports_comparison_open_year_ago">Movements in the same period last year</string>
     <string name="reports_comparison_partial">This period has not finished, so it is compared against the same stretch of the previous one.</string>
+    <string name="reports_comparison_partial_year_ago">This period has not finished, so it is compared against the same stretch of last year.</string>
 </resources>

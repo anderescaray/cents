@@ -519,7 +519,7 @@ merged: #34 (the ring shows income), #35 (reports narrowed to one account), #36 
 against the last) and #37 (one category over time). 317 JVM tests, green locally on a clean run.
 
 **The next branch** is whatever `FEEDBACK.md` turns up on the next device walk, or the deferred
-work in C4 (year-on-year comparison, the dashboard of cards in C7) — none of it decided.
+work in C4 (the dashboard of cards in C7) — none of it decided.
 `DECISIONS.md` is empty.
 
 Two things carried over that no test can settle, both in C4 below: **nobody has seen any of
@@ -1024,11 +1024,14 @@ parallelism.
   emission lands. It is transient, self-correcting and cosmetic. Making it impossible needs one
   query returning both halves, which for the comparison would cost the index it currently gets
   to use. Written down rather than traded away for a frame.
-- **The period comparison has no year-on-year mode.** PRD §4.3 asks "this month vs last / vs
-  the same month last year", and only the first half is built. The second is a second segment
-  and a third query, on the shape the ring's Expense/Income toggle already established — not a
-  redesign. It was left out because D4's lesson is that a view ships when it answers one
-  question properly.
+- ~~**The period comparison has no year-on-year mode.**~~ **Built in feat-reports-year-on-year.**
+  PRD §4.3 asks "this month vs last / vs the same month last year", and both halves are now built.
+  A segmented control toggles between "Previous period" and "Same period last year" on the shape
+  the ring's Expense/Income toggle established. Both segments are queried concurrently (`combine`
+  in `PeriodComparisonSectionSource`), keeping toggling instantaneous. Running periods are clamped
+  on both sides (the first N days of this period against the first N days of last year's counterpart),
+  calendar shapes are preserved (including leap years), and the drill-down row navigates to the
+  year-ago range.
 - **The Reports account picker is an inline list, not a sheet.** With a handful of accounts it
   reads at a glance and needs no tap to say what the tab is narrowed to, which is why it was
   chosen; with fifteen it would push the first chart off the screen. It hides itself entirely

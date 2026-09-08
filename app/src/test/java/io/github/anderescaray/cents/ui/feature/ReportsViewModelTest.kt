@@ -328,6 +328,34 @@ class ReportsViewModelTest {
         }
 
     @Test
+    fun `the comparison section carries both previous and same period last year`() =
+        runTest {
+            val accountId = database.accountDao().insert(account())
+            database.transactionDao().insertAll(
+                listOf(
+                    // August 2025 (year ago)
+                    transaction(accountId, amountMinor = 35_000, date = LocalDate.of(2025, 8, 4)),
+                    // July 2026 (previous period)
+                    transaction(accountId, amountMinor = 40_000, date = LocalDate.of(2026, 7, 10)),
+                    // August 2026 (current)
+                    transaction(accountId, amountMinor = 25_000, date = LocalDate.of(2026, 8, 4)),
+                ),
+            )
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.comparisonSection?.samePeriodLastYear?.isEmpty == false }
+                val section = requireNotNull(state.comparisonSection)
+
+                // Previous period: July 2026 (40_000)
+                assertEquals(Money(40_000, "EUR"), section.previous.before.expenses)
+                // Same period last year: August 2025 (35_000)
+                assertEquals(Money(35_000, "EUR"), section.samePeriodLastYear.before.expenses)
+                assertEquals(Money(25_000, "EUR"), section.samePeriodLastYear.current.expenses)
+                assertEquals(Money(-10_000, "EUR"), section.samePeriodLastYear.expensesChange)
+            }
+        }
+
+    @Test
     fun `the trend follows one category across buckets the period decides`() =
         runTest {
             val accountId = database.accountDao().insert(account())
@@ -538,5 +566,7 @@ private val ReportsUiState.balance get() = section<BalanceOverTimeSection>()?.ba
 private val ReportsUiState.weekday get() = section<SpendingByWeekdaySection>()?.spending
 
 private val ReportsUiState.comparison get() = section<PeriodComparisonSection>()?.comparison
+
+private val ReportsUiState.comparisonSection get() = section<PeriodComparisonSection>()
 
 private val ReportsUiState.trend get() = section<CategoryTrendSection>()?.trend

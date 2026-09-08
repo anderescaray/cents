@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.vico.compose)
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)

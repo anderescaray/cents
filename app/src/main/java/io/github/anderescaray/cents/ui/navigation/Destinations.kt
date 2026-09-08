@@ -12,6 +12,15 @@ import kotlin.reflect.KClass
  * call the compiler checks rather than a string that fails at runtime.
  */
 sealed interface Destination {
+    /**
+     * The canvas of bubbles the app opens on, and the floor of every stack: a section is
+     * pushed on top of it, so back from a section root returns here rather than leaving the
+     * app. It is not a tab and never appears in the bar — see
+     * [`0002-bubble-launcher.md`](../../../../../../../../docs/decisions/0002-bubble-launcher.md).
+     */
+    @Serializable
+    data object Home : Destination
+
     @Serializable
     data object Transactions : Destination
 

@@ -36,7 +36,7 @@ investment portfolio with prices pulled from the internet.
 | Navigation | Navigation Compose (type-safe routes) | |
 | Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
 | Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only |
-| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences |
+| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout |
 | Background work | WorkManager | Periodic price refresh, recurring reminders |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
@@ -104,7 +104,10 @@ Retrofit. The `domain` layer imports nothing from Android.
     table in section 2.
 12. **The UI looks like iOS, not like Material.** Inset grouped lists, large collapsing
     titles, a bottom tab bar, iOS-style switches and alerts, horizontal push/pop
-    transitions, the iOS system palette and the Inter typeface. Material 3 is a base to
+    transitions, the iOS system palette and the Inter typeface. The app opens on a canvas
+    of bubbles in front of that tab bar, which is the one deliberate departure —
+    [`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md)
+    amends the ADR below and is read with it. Material 3 is a base to
     build on, never a look to ship: no screen is assembled from default Material widgets,
     and there is no dynamic colour. The full specification, including what stays native
     Android, is [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md)
@@ -198,7 +201,7 @@ this period against the one before it, and one category followed over twelve per
 one period control and one account picker, with a slice, a bar or a point opening the movements
 behind it. A new view there is an additive unit; what it costs is spelled out in
 `ui/feature/reports/ReportSection.kt`.
-330 tests run on the JVM, so CI covers the database and the UI without a device.
+362 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

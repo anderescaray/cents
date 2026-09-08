@@ -205,4 +205,12 @@
     <!-- Spoken by the keypad; the keys themselves are labelled with the character. -->
     <string name="keypad_decimal_separator">Decimal separator</string>
     <string name="keypad_delete">Delete</string>
+    <string name="settings_section_home">Home</string>
+    <string name="settings_reset_home">Reset the bubble layout</string>
+    <string name="settings_reset_home_footer">Puts the bubbles back where a fresh install has them, at their original size.</string>
+    <string name="tab_bar_hide">Hide the tab bar</string>
+    <string name="tab_bar_show">Show the tab bar</string>
+    <string name="settings_reset_home_title">Reset the bubble layout?</string>
+    <string name="settings_reset_home_message">The bubbles go back where a fresh install has them. How you arranged them is not kept.</string>
+    <string name="settings_reset_home_confirm">Reset</string>
 </resources>

@@ -18,14 +18,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +43,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -83,13 +89,19 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val reduceMotion = rememberReduceMotion()
-    var opening by remember { mutableStateOf<TopLevelTab?>(null) }
+    var opening by remember { mutableStateOf<Opening?>(null) }
 
     BoxWithConstraints(
         modifier =
             modifier
                 .fillMaxSize()
                 .background(CentsTheme.colors.groupedBackground)
+                // The canvas is the safe area, not the window: the app draws edge to edge, and
+                // nothing else stands between a bubble and the status bar clock. Placements are
+                // fractions *of this*, so what fits here stays reachable — a bubble dragged to
+                // the bottom edge of the window would hand its horizontal drag to the system
+                // gesture bar.
+                .windowInsetsPadding(WindowInsets.systemBars)
                 .semantics { isTraversalGroup = true },
     ) {
         val canvasWidth = constraints.maxWidth.toFloat()
@@ -107,10 +119,17 @@ fun HomeScreen(
                         canvasWidth = canvasWidth,
                         canvasHeight = canvasHeight,
                         aspect = aspect,
-                        drifting = !reduceMotion && opening == null,
+                        drifting = !reduceMotion,
+                        // A second tap during the expansion would move the shape to another
+                        // bubble while still arriving at the first one.
+                        enabled = opening == null,
                         onMove = onMove,
-                        onOpen = {
-                            if (reduceMotion) onOpenSection(bubble.tab) else opening = bubble.tab
+                        onOpen = { placement ->
+                            if (reduceMotion) {
+                                onOpenSection(bubble.tab)
+                            } else {
+                                opening = Opening(bubble.tab, placement)
+                            }
                         },
                     )
                 }
@@ -119,29 +138,34 @@ fun HomeScreen(
 
         val expanding = opening
         if (expanding != null) {
-            val placement =
-                state.bubbles
-                    .first { it.tab == expanding }
-                    .placement
-                    .fittedTo(aspect)
             ExpandingBubble(
-                placement = placement,
+                opening = expanding,
                 canvasWidth = canvasWidth,
                 canvasHeight = canvasHeight,
-                onArrived = { onOpenSection(expanding) },
+                onArrived = onOpenSection,
             )
         }
     }
 }
 
 /**
+ * The bubble that was tapped and where it was at that moment — its *drawn* placement, drift
+ * aside, so a bubble tapped straight after being dragged grows from where the finger left it
+ * rather than from where the store has caught up to.
+ */
+private data class Opening(
+    val tab: TopLevelTab,
+    val from: BubblePlacement,
+)
+
+/**
  * One bubble. Drag moves it, a pinch resizes it, a tap opens it.
  *
  * The gesture writes to a draft rather than to the store, and only the *end* of the gesture is
  * saved: a drag emits every frame, and a store round-trip per frame would both hammer the disk
- * and hand the finger back a position from two frames ago. The draft is keyed on the stored
- * placement, so when the write lands — or when the layout is reset from Settings — the draft
- * goes and what is drawn is what is stored.
+ * and hand the finger back a position from two frames ago. The draft outlives the write that
+ * saves it — dropping it the moment the gesture ends would show the stored position for the
+ * frames the write takes, which is a bubble springing back and then forward again.
  */
 @Composable
 private fun Bubble(
@@ -151,11 +175,12 @@ private fun Bubble(
     canvasHeight: Float,
     aspect: Float,
     drifting: Boolean,
+    enabled: Boolean,
     onMove: (TopLevelTab, BubblePlacement) -> Unit,
-    onOpen: () -> Unit,
+    onOpen: (BubblePlacement) -> Unit,
 ) {
     val density = LocalDensity.current
-    var draft by remember(bubble.placement) { mutableStateOf<BubblePlacement?>(null) }
+    var draft by remember { mutableStateOf<BubblePlacement?>(null) }
     val placement = (draft ?: bubble.placement).fittedTo(aspect)
 
     val transform =
@@ -173,6 +198,12 @@ private fun Bubble(
             draft?.let { onMove(bubble.tab, it) }
         }
     }
+    LaunchedEffect(bubble.placement) {
+        // The stored layout changed for a reason other than the write just sent — Settings
+        // resetting it, most likely — so the draft is stale and the canvas is right. A gesture
+        // still under a finger is never overruled.
+        if (!transform.isTransformInProgress && bubble.placement != draft) draft = null
+    }
 
     val diameterPx = placement.diameter * minOf(canvasWidth, canvasHeight)
     val drift = driftOffset(index = index, enabled = drifting, amplitude = with(density) { DriftAmplitude.toPx() })
@@ -181,10 +212,13 @@ private fun Bubble(
     Box(
         modifier =
             Modifier
+                // Read inside the layout lambda, not in composition: the drift changes every
+                // frame, and reading it up here would recompose the whole bubble — modifiers,
+                // shadow, face and all — sixty times a second on the app's first screen.
                 .offset {
                     IntOffset(
-                        x = (placement.centerX * canvasWidth - diameterPx / 2f + drift.x).roundToInt(),
-                        y = (placement.centerY * canvasHeight - diameterPx / 2f + drift.y).roundToInt(),
+                        x = (placement.centerX * canvasWidth - diameterPx / 2f + drift.value.x).roundToInt(),
+                        y = (placement.centerY * canvasHeight - diameterPx / 2f + drift.value.y).roundToInt(),
                     )
                 }.size(with(density) { diameterPx.toDp() })
                 .shadow(elevation = BubbleShadow, shape = CircleShape)
@@ -193,9 +227,10 @@ private fun Bubble(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
+                    enabled = enabled,
                     onClickLabel = label,
                     role = Role.Button,
-                    onClick = onOpen,
+                    onClick = { onOpen(placement) },
                 ).semantics { traversalIndex = index.toFloat() }
                 .testTag(bubbleTag(bubble.tab)),
         contentAlignment = Alignment.Center,
@@ -237,20 +272,28 @@ private fun BubbleFace(
  */
 @Composable
 private fun ExpandingBubble(
-    placement: BubblePlacement,
+    opening: Opening,
     canvasWidth: Float,
     canvasHeight: Float,
-    onArrived: () -> Unit,
+    onArrived: (TopLevelTab) -> Unit,
 ) {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
+    val placement = opening.from
+    val progress = remember(opening) { Animatable(0f) }
+    LaunchedEffect(opening) {
         progress.animateTo(1f, animationSpec = tween(EXPAND_DURATION_MS, easing = FastOutSlowInEasing))
-        onArrived()
+        onArrived(opening.tab)
     }
 
     val from = CentsTheme.colors.groupedCard
     val to = CentsTheme.colors.groupedBackground
-    Canvas(modifier = Modifier.fillMaxSize()) {
+    Canvas(
+        // Nothing behind this is tappable while it runs. The bubbles are already refusing
+        // clicks; this stops a stray tap landing on whatever the shape has grown over.
+        modifier =
+            Modifier.fillMaxSize().pointerInput(
+                Unit,
+            ) { awaitPointerEventScope { while (true) awaitPointerEvent() } },
+    ) {
         val fraction = progress.value
         val diameter = placement.diameter * minOf(canvasWidth, canvasHeight)
         val width = lerpFloat(diameter, canvasWidth, fraction)
@@ -267,17 +310,21 @@ private fun ExpandingBubble(
 }
 
 /**
- * The small continuous motion that makes the canvas feel alive, staggered per bubble so the
- * four do not breathe in unison. Off means *not started*, not an amplitude of zero: an
- * animation still running invisibly is one the system was asked to stop.
+ * The small continuous motion that makes the canvas feel alive, staggered per bubble so the four
+ * do not breathe in unison. Off means *not started*, not an amplitude of zero: an animation
+ * still running invisibly is one the device asked not to run.
+ *
+ * Handed back as a [State] rather than as a value, so the caller can read it where the offset is
+ * used — in the layout phase — instead of in composition, which would recompose the bubble on
+ * every frame of it forever.
  */
 @Composable
 private fun driftOffset(
     index: Int,
     enabled: Boolean,
     amplitude: Float,
-): Offset {
-    if (!enabled) return Offset.Zero
+): State<Offset> {
+    if (!enabled) return remember { mutableStateOf(Offset.Zero) }
     val transition = rememberInfiniteTransition(label = "bubble-drift")
     val phase by transition.animateFloat(
         initialValue = 0f,
@@ -289,8 +336,12 @@ private fun driftOffset(
             ),
         label = "bubble-drift-phase",
     )
-    val angle = phase * TAU + index
-    return Offset(x = cos(angle) * amplitude * HORIZONTAL_DRIFT, y = sin(angle) * amplitude)
+    return remember(amplitude, index) {
+        derivedStateOf {
+            val angle = phase * TAU + index
+            Offset(x = cos(angle) * amplitude * HORIZONTAL_DRIFT, y = sin(angle) * amplitude)
+        }
+    }
 }
 
 private const val HORIZONTAL_DRIFT = 0.6f

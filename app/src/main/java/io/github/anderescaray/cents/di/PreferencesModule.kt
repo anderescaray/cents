@@ -2,8 +2,10 @@ package io.github.anderescaray.cents.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import dagger.Binds
 import dagger.Module
@@ -42,6 +44,10 @@ abstract class PreferencesModule {
             @ApplicationContext context: Context,
         ): DataStore<Preferences> =
             PreferenceDataStoreFactory.create(
+                // A file killed mid-write, or restored from a backup of another shape, is
+                // started again rather than thrown from — the screen it would otherwise take
+                // down with it is the one the app opens on.
+                corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
                 scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
                 produceFile = { context.preferencesDataStoreFile(PREFERENCES_NAME) },
             )

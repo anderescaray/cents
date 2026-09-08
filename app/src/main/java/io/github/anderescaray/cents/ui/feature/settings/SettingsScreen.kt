@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -85,9 +86,15 @@ fun SettingsScreen(
 /**
  * The non-gesture way back to a sane canvas. A screen reader cannot drag a bubble, and a bubble
  * pinched down to nothing in a corner should not need one.
+ *
+ * It asks first (rule 7) and there is no undo behind it: an arrangement is something the owner
+ * made by hand, it can only be rebuilt the same way, and this row sits one mis-tap away from
+ * everything else in Settings.
  */
 @Composable
 private fun ResetHomeLayoutSection(onReset: () -> Unit) {
+    var asking by remember { mutableStateOf(false) }
+
     CentsListSection(
         header = stringResource(R.string.settings_section_home),
         footer = stringResource(R.string.settings_reset_home_footer),
@@ -95,7 +102,22 @@ private fun ResetHomeLayoutSection(onReset: () -> Unit) {
         CentsListRow(
             title = stringResource(R.string.settings_reset_home),
             showSeparator = false,
-            onClick = onReset,
+            onClick = { asking = true },
+        )
+    }
+
+    if (asking) {
+        CentsAlert(
+            title = stringResource(R.string.settings_reset_home_title),
+            message = stringResource(R.string.settings_reset_home_message),
+            confirmLabel = stringResource(R.string.settings_reset_home_confirm),
+            onConfirm = {
+                asking = false
+                onReset()
+            },
+            dismissLabel = stringResource(R.string.action_cancel),
+            onDismiss = { asking = false },
+            destructive = true,
         )
     }
 }

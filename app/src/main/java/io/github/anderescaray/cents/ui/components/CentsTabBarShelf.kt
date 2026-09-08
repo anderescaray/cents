@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -76,7 +77,9 @@ fun CentsTabBarShelf(
             )
         }
 
-        AnimatedVisibility(visible = !collapsed, exit = shrinkVertically()) {
+        // Both halves named: the default enter grows out of the bottom-right corner and clips
+        // horizontally, which on a full-width bar reads as a glitch rather than as a bar.
+        AnimatedVisibility(visible = !collapsed, enter = expandVertically(), exit = shrinkVertically()) {
             bar()
         }
 

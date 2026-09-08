@@ -502,7 +502,7 @@ is done**. `fix/the-tab-bar-knows-where-you-are` merged as **#40**, closing the 
 open: a pushed screen now carries the tab it belongs to. And `feat/bubble-launcher` builds **D8**
 — the app opens on a canvas of bubbles, and the tab bar is what you use once you are inside a
 section. It ships **ADR 0002**, because ADR 0001 specifies a tab bar and rule 12 makes that
-binding. 358 JVM tests, green twice on a clean run.
+binding. 362 JVM tests, green twice on a clean run.
 
 **Two agents ran side by side for the first time on 2026-09-08**, and not the way §3.1 describes:
 the owner drove a second agent in *this* working copy rather than in a worktree, on
@@ -542,7 +542,7 @@ unmerged one.
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
-| Tests | 358, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 362, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -947,8 +947,20 @@ charts at once is how a phase turns into a month.
         beginning and nothing had needed until now. It is bound in its own `PreferencesModule`
         rather than in `RepositoryModule`: none of it goes near Room, and a module per storage
         mechanism is one fewer file that two branches both have to edit.
+      - **What review caught was mostly about the canvas being the first screen.** An
+        unreadable preferences file used to be a blank screen and a crash on *every* launch with
+        no way into the app, so nothing in the layout store throws any more: a read that fails is
+        a canvas nobody has arranged, a write that fails leaves the bubble where it was, and a
+        corrupt file is replaced rather than thrown from. The drift was recomposing all four
+        bubbles sixty times a second — modifiers, shadow and face — because the offset was read
+        in composition rather than in the layout lambda it was already using. The canvas ignored
+        system bar insets, so the first default bubble sat under the status bar clock and one
+        dragged to the bottom handed its drag to the gesture bar. A second tap during an
+        expansion moved the shape to another bubble and still arrived at the first. And the
+        reset now asks first (rule 7), because an arrangement made by hand can only be rebuilt by
+        hand.
       *Done when:* the app opens on the canvas, a bubble stays where it was put across a restart,
-      and every section is still reachable without a gesture. **Done**, 358 tests.
+      and every section is still reachable without a gesture. **Done**, 362 tests.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.

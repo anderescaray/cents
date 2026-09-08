@@ -207,4 +207,7 @@
     <string name="settings_reset_home_footer">Devuelve las burbujas al sitio y al tamaño que tienen en una instalación nueva.</string>
     <string name="tab_bar_hide">Ocultar la barra de pestañas</string>
     <string name="tab_bar_show">Mostrar la barra de pestañas</string>
+    <string name="settings_reset_home_title">¿Restablecer las burbujas?</string>
+    <string name="settings_reset_home_message">Las burbujas vuelven al sitio que tienen en una instalación nueva. Cómo las habías colocado no se guarda.</string>
+    <string name="settings_reset_home_confirm">Restablecer</string>
 </resources>

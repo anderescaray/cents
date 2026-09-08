@@ -501,7 +501,7 @@ serial anyway** for the views after that, so ask before forking.
 `fix/the-tab-bar-knows-where-you-are`, which closes the one case #31 left open: the tab bar now
 knows which tab a pushed screen belongs to, so it stays lit on *Accounts* over an account's
 detail screen, and switching into a tab whose saved stack has one on top slides the way you
-actually moved. 331 JVM tests, green twice on a clean run.
+actually moved. 330 JVM tests, green twice on a clean run.
 
 **Where the session before it stopped (2026-09-04).** `feat/reports-by-weekday` was built on
 D10's answer **B** and was then waiting for review — the sixth and last PRD §4.3 view. `TransactionFilter`
@@ -535,7 +535,7 @@ unmerged one.
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
-| Tests | 331, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 330, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -895,16 +895,21 @@ charts at once is how a phase turns into a month.
         every shared screen in each of them.
       - **A screen two tabs can reach is owned by neither, and that is the interesting half.**
         The movement form opens from the list and from an account; the account and category
-        editors likewise. Naming an owner would pick one of two truths, so those fall back to
-        the tab the owner was already in — which is why the tab is *remembered* (saveable state,
-        so it survives a rotation and process death) rather than derived. Opening a movement
-        from an account leaves you in Accounts and opening the same screen from the list leaves
-        you in Transactions, and there are tests for both.
+        editors likewise. Naming an owner would pick one of two truths, so the bar reads the
+        *nearest owned screen down the stack* instead: the form sits above an account's detail
+        when it was opened from an account and directly above the list when it was opened from
+        the list, so the same screen is filed under wherever it was actually opened.
+      - **Remembering the last owned tab is the version this branch shipped first, and review
+        caught it.** Each tab keeps its own saved stack, so leaving Accounts with a movement form
+        open, visiting Reports and tapping Accounts again restores that form — and one remembered
+        value would still have been saying *Reports*, a tab the owner had just left. The stack
+        already knew; it also survives a rotation and process death with nothing saved beside it,
+        so the saver went with the bug. There is a test that walks exactly that sequence.
       - What is not tested is `hasRoute` itself, which is androidx's — but a Robolectric test
         drives a real `NavHost` and pins the case that would break if the lookup only matched
         bare objects: `AccountDetail(1)` carries an argument, and it still resolves to Accounts.
       *Done when:* the bar names the tab you are actually in, and no switch slides the wrong way.
-      **Done**, 331 tests.
+      **Done**, 330 tests.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -1004,10 +1009,10 @@ parallelism.
   lit on Accounts over an account's detail and switching into that saved stack slides backwards
   — but it does so because `TopLevelTab.owns` says which screens are inside which tab, and
   nothing makes a new destination declare itself. One that does not is treated like the three
-  screens two tabs can reach: no owner, so the tab you were already in stands. That is the right
-  answer for those three and a harmless one for a forgotten route, which is why it is a list
-  rather than four nested nav graphs — those would answer the same question by duplicating every
-  shared screen per tab.
+  screens two tabs can reach: no owner, so the nearest owned screen underneath it answers
+  instead. That is the right answer for those three and a harmless one for a forgotten route,
+  which is why it is a list rather than four nested nav graphs — those would answer the same
+  question by duplicating every shared screen per tab.
 - **A green CI run is one machine, one ordering, one run.** `main` was green on CI and red
   locally on 2026-09-02: nine of the ten view-model test classes let their view model outlive
   the test, so a leaked collector kept using a `Dispatchers.Main` the *next* class was trying

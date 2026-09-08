@@ -198,7 +198,7 @@ this period against the one before it, and one category followed over twelve per
 one period control and one account picker, with a slice, a bar or a point opening the movements
 behind it. A new view there is an additive unit; what it costs is spelled out in
 `ui/feature/reports/ReportSection.kt`.
-331 tests run on the JVM, so CI covers the database and the UI without a device.
+330 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

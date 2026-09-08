@@ -6,12 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavBackStackEntry
@@ -21,7 +17,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
@@ -44,8 +39,8 @@ private const val PUSH_DURATION_MS = 320
 
 @Composable
 fun CentsApp(navController: NavHostController = rememberNavController()) {
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentTab = rememberSelectedTab(backStackEntry?.destination)
+    val backStack by navController.currentBackStack.collectAsState()
+    val currentTab = backStack.selectedTab()
 
     val tabs =
         TopLevelTab.entries.map { tab ->
@@ -79,33 +74,26 @@ internal fun NavDestination.owningTab(): TopLevelTab? =
     TopLevelTab.entries.firstOrNull { tab -> tab.routes.any { hasRoute(it) } }
 
 /**
- * The tab the tab bar shows as selected, which is not always the tab the top of the back stack
- * *is*.
+ * The tab the bar shows as selected: the nearest screen *down* the stack that a tab owns.
  *
- * A pushed screen owned by a tab answers for itself ([owningTab]). A screen more than one tab
- * can reach answers nothing, and the last owned tab stands: opening a movement from an account
- * leaves you in Accounts, and opening one from the list leaves you in Transactions — the same
- * screen, honestly filed under where you actually are. Reading the top of the stack instead is
- * what used to light *Transactions* over an account's detail screen, since a pushed destination
- * matched no tab and the bar fell back to the first one.
+ * Reading only the top of the stack is what used to light *Transactions* over an account's
+ * detail screen — a pushed destination matched no tab and the bar fell back to the first one.
+ * Reading the whole stack answers the screens two tabs can reach as well, and answers them
+ * correctly rather than by convention: the movement form sits above an account's detail when it
+ * was opened from an account, and directly above the list when it was opened from the list, so
+ * the same screen is filed under wherever you actually opened it.
  *
- * Remembered across configuration changes and process death, because the back stack survives
- * both and would otherwise come back under the wrong tab.
+ * **Remembering the last tab instead would be wrong, and it is the version this branch shipped
+ * first.** Each tab keeps its own saved stack (`switchToTab`), so leaving Accounts with a
+ * movement form open, visiting Reports and coming back restores that form — and a single
+ * remembered value would still be saying *Reports*, a tab the owner had just left. The stack is
+ * the thing that knows, and it survives a rotation and process death without being saved
+ * separately.
+ *
+ * Empty only before the graph is set, where the start destination is the honest answer.
  */
-@Composable
-internal fun rememberSelectedTab(destination: NavDestination?): TopLevelTab {
-    var lastOwned by rememberSaveable(stateSaver = TabSaver) { mutableStateOf(TopLevelTab.TRANSACTIONS) }
-    val owner = destination?.owningTab()
-    LaunchedEffect(owner) { if (owner != null) lastOwned = owner }
-    return owner ?: lastOwned
-}
-
-/** An enum is saved by name, so a renamed entry comes back as no tab rather than as a crash. */
-internal val TabSaver: Saver<TopLevelTab, String> =
-    Saver(
-        save = { it.name },
-        restore = { name -> TopLevelTab.entries.firstOrNull { it.name == name } },
-    )
+internal fun List<NavBackStackEntry>.selectedTab(): TopLevelTab =
+    asReversed().firstNotNullOfOrNull { it.destination.owningTab() } ?: TopLevelTab.TRANSACTIONS
 
 /**
  * Which way this navigation is travelling, so the slide agrees with it.
@@ -142,7 +130,7 @@ internal fun slideDirectionFor(
     }
 
 /** Tabs switch, they do not stack: one entry per tab, state preserved. */
-private fun NavHostController.switchToTab(destination: Destination) {
+internal fun NavHostController.switchToTab(destination: Destination) {
     navigate(destination) {
         popUpTo(Destination.Transactions) { saveState = true }
         launchSingleTop = true

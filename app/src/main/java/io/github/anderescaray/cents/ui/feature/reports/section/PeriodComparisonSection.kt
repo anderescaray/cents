@@ -2,15 +2,22 @@ package io.github.anderescaray.cents.ui.feature.reports.section
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -28,13 +35,16 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.ComparisonSegment
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodComparison
 import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.ReportScope
+import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.repository.reports.PeriodComparisonRepository
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.LegendRow
 import io.github.anderescaray.cents.ui.feature.reports.ReportActions
@@ -44,7 +54,7 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
@@ -52,7 +62,7 @@ import javax.inject.Singleton
 
 /**
  * Am I doing better or worse than last time: this period's income and expenses beside the
- * previous period's, as opposing columns.
+ * comparison period's (previous period or same period last year), as opposing columns.
  *
  * The fourth view on the tab, and the first one built entirely on the seam #28 and #35 left
  * behind — one model, one repository interface, one Room implementation, this file, its own
@@ -67,76 +77,158 @@ import javax.inject.Singleton
  * each row carries which direction is good — see [ChangeRow]. Getting that uniform would make
  * a month of heavier spending glow green, which is the sort of chart that quietly teaches the
  * wrong thing.
+ *
+ * A segmented control allows toggling between the previous period and the same period last year,
+ * on the shape the ring's Expense/Income toggle established. Both comparisons are read at once
+ * rather than re-querying on flip, keeping transitions instantaneous and the two views in sync.
  */
 data class PeriodComparisonSection(
-    val comparison: PeriodComparison,
+    val previous: PeriodComparison,
+    val samePeriodLastYear: PeriodComparison = previous,
 ) : ReportSectionState {
     override val key: String get() = KEY
 
+    val comparison: PeriodComparison get() = previous
+
+    fun comparisonFor(segment: ComparisonSegment): PeriodComparison =
+        when (segment) {
+            ComparisonSegment.PREVIOUS_PERIOD -> previous
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> samePeriodLastYear
+        }
+
     @Composable
     override fun Content(actions: ReportActions) {
-        CentsListSection(
-            header = stringResource(R.string.reports_comparison_header),
-            // Said out loud, because the dates on the drill-down row will not be the dates in
-            // the selector above and there is nothing else on screen to explain that.
-            footer =
-                stringResource(R.string.reports_comparison_partial)
-                    .takeIf { comparison.ranges.partial && !comparison.isEmpty },
-        ) {
-            if (comparison.isEmpty) {
-                // Two empty periods are not a chart of two zeroes: there is nothing to
-                // compare, and saying so beats drawing a flat pair of bars.
-                EmptyChart(stringResource(R.string.reports_comparison_empty))
-            } else {
-                Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
-                    ComparisonColumns(comparison)
+        var segment by rememberSaveable { mutableStateOf(ComparisonSegment.PREVIOUS_PERIOD) }
+        val comparison = comparisonFor(segment)
+        val labels = SEGMENTS.associateWith { stringResource(it.labelRes) }
+
+        Column {
+            CentsSegmentedControl(
+                options = SEGMENTS,
+                selected = segment,
+                onSelect = { segment = it },
+                label = { labels.getValue(it) },
+                modifier =
+                    Modifier
+                        .padding(horizontal = CentsDimens.screenMargin)
+                        .testTag(SEGMENT_CONTROL_TAG),
+            )
+            Spacer(Modifier.height(CentsDimens.spacingM))
+
+            CentsListSection(
+                header = stringResource(segment.headerRes),
+                // Said out loud, because the dates on the drill-down row will not be the dates in
+                // the selector above and there is nothing else on screen to explain that.
+                footer =
+                    stringResource(segment.partialRes)
+                        .takeIf { comparison.ranges.partial && !comparison.isEmpty },
+            ) {
+                if (comparison.isEmpty) {
+                    // Two empty periods are not a chart of two zeroes: there is nothing to
+                    // compare, and saying so beats drawing a flat pair of bars.
+                    EmptyChart(stringResource(R.string.reports_comparison_empty))
+                } else {
+                    ComparisonDetails(comparison, segment, actions.onDrillDown)
                 }
-                LegendRow(
-                    color = CentsTheme.colors.tertiaryLabel,
-                    label = stringResource(R.string.reports_comparison_legend_before),
-                    amount = comparison.before.net,
-                )
-                LegendRow(
-                    color = CentsTheme.colors.accent,
-                    label = stringResource(R.string.reports_comparison_legend_current),
-                    amount = comparison.current.net,
-                )
-                ChangeRow(
-                    label = stringResource(R.string.summary_income),
-                    amount = comparison.current.income,
-                    change = comparison.incomeChange,
-                    moreIsBetter = true,
-                )
-                ChangeRow(
-                    label = stringResource(R.string.summary_expenses),
-                    amount = comparison.current.expenses,
-                    change = comparison.expensesChange,
-                    moreIsBetter = false,
-                )
-                ChangeRow(
-                    label = stringResource(R.string.summary_net),
-                    amount = comparison.current.net,
-                    change = comparison.netChange,
-                    moreIsBetter = true,
-                )
-                // The previous period is the only stretch on this tab that no other view can
-                // reach: everything else reports on the period that is selected. So it gets
-                // the drill-down, and this period keeps the one it already has everywhere.
-                CentsListRow(
-                    title = stringResource(R.string.reports_comparison_open_before),
-                    subtitle = comparison.previous.label(),
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = { actions.onDrillDown(comparison.filterForPrevious()) },
-                )
             }
         }
     }
 
     companion object {
         const val KEY = "comparison"
+
+        /** Previous period first: the original and default comparison. */
+        private val SEGMENTS = listOf(ComparisonSegment.PREVIOUS_PERIOD, ComparisonSegment.SAME_PERIOD_LAST_YEAR)
     }
 }
+
+@Composable
+private fun ComparisonDetails(
+    comparison: PeriodComparison,
+    segment: ComparisonSegment,
+    onDrillDown: (TransactionFilter) -> Unit,
+) {
+    Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
+        key(segment) {
+            ComparisonColumns(comparison)
+        }
+    }
+    LegendRow(
+        color = CentsTheme.colors.tertiaryLabel,
+        label = stringResource(segment.legendRes),
+        amount = comparison.before.net,
+    )
+    LegendRow(
+        color = CentsTheme.colors.accent,
+        label = stringResource(R.string.reports_comparison_legend_current),
+        amount = comparison.current.net,
+    )
+    ChangeRow(
+        label = stringResource(R.string.summary_income),
+        amount = comparison.current.income,
+        change = comparison.incomeChange,
+        moreIsBetter = true,
+    )
+    ChangeRow(
+        label = stringResource(R.string.summary_expenses),
+        amount = comparison.current.expenses,
+        change = comparison.expensesChange,
+        moreIsBetter = false,
+    )
+    ChangeRow(
+        label = stringResource(R.string.summary_net),
+        amount = comparison.current.net,
+        change = comparison.netChange,
+        moreIsBetter = true,
+    )
+    // The comparison period is the only stretch on this tab that no other view can
+    // reach: everything else reports on the period that is selected. So it gets
+    // the drill-down, and this period keeps the one it already has everywhere.
+    CentsListRow(
+        title = stringResource(segment.openRes),
+        subtitle = comparison.previous.label(),
+        showChevron = true,
+        showSeparator = false,
+        onClick = { onDrillDown(comparison.filterForPrevious()) },
+    )
+}
+
+internal const val SEGMENT_CONTROL_TAG = "reportsComparisonSegment"
+
+private val ComparisonSegment.labelRes: Int
+    get() =
+        when (this) {
+            ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_segment_previous
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_segment_year_ago
+        }
+
+private val ComparisonSegment.headerRes: Int
+    get() =
+        when (this) {
+            ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_header
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_header_year_ago
+        }
+
+private val ComparisonSegment.legendRes: Int
+    get() =
+        when (this) {
+            ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_legend_before
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_legend_year_ago
+        }
+
+private val ComparisonSegment.openRes: Int
+    get() =
+        when (this) {
+            ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_open_before
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_open_year_ago
+        }
+
+private val ComparisonSegment.partialRes: Int
+    get() =
+        when (this) {
+            ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_partial
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_partial_year_ago
+        }
 
 @Singleton
 class PeriodComparisonSectionSource
@@ -145,7 +237,11 @@ class PeriodComparisonSectionSource
         private val repository: PeriodComparisonRepository,
     ) : ReportSectionSource {
         override fun observe(scope: ReportScope): Flow<ReportSectionState> =
-            repository.observePeriodComparison(scope).map(::PeriodComparisonSection)
+            combine(
+                repository.observePeriodComparison(scope, ComparisonSegment.PREVIOUS_PERIOD),
+                repository.observePeriodComparison(scope, ComparisonSegment.SAME_PERIOD_LAST_YEAR),
+                ::PeriodComparisonSection,
+            )
     }
 
 /**

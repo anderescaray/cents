@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.data.repository.reports
 import io.github.anderescaray.cents.data.local.dao.PeriodTotals
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.domain.model.ComparedRanges
+import io.github.anderescaray.cents.domain.model.ComparisonSegment
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodComparison
 import io.github.anderescaray.cents.domain.model.PeriodSummary
@@ -47,10 +48,13 @@ class RoomPeriodComparisonRepository
         private val transactionDao: TransactionDao,
         private val clock: Clock,
     ) : PeriodComparisonRepository {
-        override fun observePeriodComparison(scope: ReportScope): Flow<PeriodComparison> {
+        override fun observePeriodComparison(
+            scope: ReportScope,
+            segment: ComparisonSegment,
+        ): Flow<PeriodComparison> {
             // The clock is injected rather than read here, so a test can stand in the middle
             // of a month and check what this does about it.
-            val ranges: ComparedRanges = scope.period.comparedWith(LocalDate.now(clock))
+            val ranges: ComparedRanges = scope.period.comparedWith(LocalDate.now(clock), segment)
             return combine(
                 totalsFor(ranges.current, scope.accountId),
                 totalsFor(ranges.previous, scope.accountId),
@@ -60,6 +64,7 @@ class RoomPeriodComparisonRepository
                     ranges = ranges,
                     current = current.toSummary(scope.currency),
                     before = before.toSummary(scope.currency),
+                    segment = segment,
                 )
             }
         }

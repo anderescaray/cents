@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="reports_comparison_header">Este periodo frente al anterior</string>
+    <string name="reports_comparison_header_year_ago">Este periodo frente al año anterior</string>
     <string name="reports_comparison_empty">No pasó nada en ninguno de los dos periodos.</string>
+    <string name="reports_comparison_segment_previous">Periodo anterior</string>
+    <string name="reports_comparison_segment_year_ago">Mismo periodo año anterior</string>
     <string name="reports_comparison_legend_before">Periodo anterior</string>
+    <string name="reports_comparison_legend_year_ago">Mismo periodo año anterior</string>
     <string name="reports_comparison_legend_current">Este periodo</string>
     <string name="reports_comparison_unchanged">sin cambios</string>
     <string name="reports_comparison_open_before">Movimientos del periodo anterior</string>
+    <string name="reports_comparison_open_year_ago">Movimientos del mismo periodo del año anterior</string>
     <string name="reports_comparison_partial">Este periodo no ha terminado, así que se compara con el mismo tramo del anterior.</string>
+    <string name="reports_comparison_partial_year_ago">Este periodo no ha terminado, así que se compara con el mismo tramo del año anterior.</string>
 </resources>

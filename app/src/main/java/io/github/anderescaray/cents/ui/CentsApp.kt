@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -16,7 +17,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
@@ -32,14 +32,15 @@ import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormSc
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
+import io.github.anderescaray.cents.ui.navigation.routes
 
 /** How long a push or pop takes. iOS uses a brisk slide, not a slow fade. */
 private const val PUSH_DURATION_MS = 320
 
 @Composable
 fun CentsApp(navController: NavHostController = rememberNavController()) {
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentTab = backStackEntry?.destination?.topLevelTab() ?: TopLevelTab.TRANSACTIONS
+    val backStack by navController.currentBackStack.collectAsState()
+    val currentTab = backStack.selectedTab()
 
     val tabs =
         TopLevelTab.entries.map { tab ->
@@ -63,9 +64,36 @@ fun CentsApp(navController: NavHostController = rememberNavController()) {
     }
 }
 
-/** The tab a destination *is*, or null when it is a screen pushed inside one. */
-private fun NavDestination.topLevelTab(): TopLevelTab? =
-    TopLevelTab.entries.firstOrNull { hasRoute(it.destination::class) }
+/**
+ * The tab a destination belongs to: the tab it *is*, or the tab it was pushed inside.
+ *
+ * Null for a screen more than one tab can reach — see [TopLevelTab.owns], which is where that
+ * is decided, so the bar and the slide can never disagree about who owns what.
+ */
+internal fun NavDestination.owningTab(): TopLevelTab? =
+    TopLevelTab.entries.firstOrNull { tab -> tab.routes.any { hasRoute(it) } }
+
+/**
+ * The tab the bar shows as selected: the nearest screen *down* the stack that a tab owns.
+ *
+ * Reading only the top of the stack is what used to light *Transactions* over an account's
+ * detail screen — a pushed destination matched no tab and the bar fell back to the first one.
+ * Reading the whole stack answers the screens two tabs can reach as well, and answers them
+ * correctly rather than by convention: the movement form sits above an account's detail when it
+ * was opened from an account, and directly above the list when it was opened from the list, so
+ * the same screen is filed under wherever you actually opened it.
+ *
+ * **Remembering the last tab instead would be wrong, and it is the version this branch shipped
+ * first.** Each tab keeps its own saved stack (`switchToTab`), so leaving Accounts with a
+ * movement form open, visiting Reports and coming back restores that form — and a single
+ * remembered value would still be saying *Reports*, a tab the owner had just left. The stack is
+ * the thing that knows, and it survives a rotation and process death without being saved
+ * separately.
+ *
+ * Empty only before the graph is set, where the start destination is the honest answer.
+ */
+internal fun List<NavBackStackEntry>.selectedTab(): TopLevelTab =
+    asReversed().firstNotNullOfOrNull { it.destination.owningTab() } ?: TopLevelTab.TRANSACTIONS
 
 /**
  * Which way this navigation is travelling, so the slide agrees with it.
@@ -76,18 +104,15 @@ private fun NavDestination.topLevelTab(): TopLevelTab? =
  * `TopLevelTab` already orders the tabs, so the sign is knowable: moving to a lower tab is
  * travelling back, and the screen should arrive from the side it went out to.
  *
- * Anything that is not tab-to-tab keeps the forward slide, which is what pushing a screen
- * inside a tab should look like. **One case still slides forward when it should not:**
- * switching to a tab whose saved stack has a detail screen on top arrives at that screen
- * rather than at the tab's root, and a pushed screen carries no record of the tab it belongs
- * to — so there is nothing here to compare. Fixing that needs the selected tab tracked as
- * state rather than read back out of the back stack, which is a larger change than this bug
- * is worth on its own.
+ * It asks [owningTab] rather than "is this destination a tab", so switching to a tab whose
+ * saved stack has a detail screen on top travels the way the bar moved: the screen arriving is
+ * an account's detail, but it is Accounts you went to. A push inside a tab has the same tab on
+ * both sides and stays a forward slide, and so does anything involving a screen no tab owns.
  */
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.travelDirection() =
     slideDirectionFor(
-        from = initialState.destination.topLevelTab(),
-        to = targetState.destination.topLevelTab(),
+        from = initialState.destination.owningTab(),
+        to = targetState.destination.owningTab(),
     )
 
 /**
@@ -105,7 +130,7 @@ internal fun slideDirectionFor(
     }
 
 /** Tabs switch, they do not stack: one entry per tab, state preserved. */
-private fun NavHostController.switchToTab(destination: Destination) {
+internal fun NavHostController.switchToTab(destination: Destination) {
     navigate(destination) {
         popUpTo(Destination.Transactions) { saveState = true }
         launchSingleTop = true

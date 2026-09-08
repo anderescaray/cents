@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import kotlinx.serialization.Serializable
+import kotlin.reflect.KClass
 
 /**
  * Type-safe routes. Each destination is a serializable object, so navigating is a function
@@ -76,14 +77,58 @@ sealed interface Destination {
     }
 }
 
-/** A tab in the bottom bar, tying a destination to how it is presented. */
+/**
+ * A tab in the bottom bar, tying a destination to how it is presented — and to the screens
+ * that can only be reached from inside it.
+ *
+ * [owns] exists because a pushed screen otherwise carries no record of the tab it belongs to,
+ * and two things need to know: the bar, which has to stay lit on *Accounts* while an account's
+ * detail screen is open, and the slide, which has to travel backwards when you switch to a tab
+ * whose saved stack has that detail screen on top.
+ *
+ * **A screen reachable from more than one tab is listed by none of them.** The movement form
+ * opens from the list and from an account, and the category editor from Settings and from the
+ * form: naming an owner for those would be picking one of two truths. They fall back to the tab
+ * the owner was already in, which is the right answer in both cases and is why the tab is
+ * remembered rather than derived. A new destination nobody claims behaves the same way, so
+ * forgetting to list one degrades to today's behaviour rather than to a wrong tab.
+ */
 enum class TopLevelTab(
     val destination: Destination,
+    val owns: List<KClass<out Destination>>,
     @param:StringRes val labelRes: Int,
     @param:DrawableRes val iconRes: Int,
 ) {
-    TRANSACTIONS(Destination.Transactions, R.string.tab_transactions, R.drawable.ic_tab_transactions),
-    ACCOUNTS(Destination.Accounts, R.string.tab_accounts, R.drawable.ic_tab_accounts),
-    REPORTS(Destination.Reports, R.string.tab_reports, R.drawable.ic_tab_reports),
-    SETTINGS(Destination.Settings, R.string.tab_settings, R.drawable.ic_tab_settings),
+    TRANSACTIONS(
+        destination = Destination.Transactions,
+        owns = listOf(Destination.TransactionFilters::class),
+        labelRes = R.string.tab_transactions,
+        iconRes = R.drawable.ic_tab_transactions,
+    ),
+    ACCOUNTS(
+        destination = Destination.Accounts,
+        owns = listOf(Destination.AccountDetail::class),
+        labelRes = R.string.tab_accounts,
+        iconRes = R.drawable.ic_tab_accounts,
+    ),
+    REPORTS(
+        destination = Destination.Reports,
+        owns = emptyList(),
+        labelRes = R.string.tab_reports,
+        iconRes = R.drawable.ic_tab_reports,
+    ),
+    SETTINGS(
+        destination = Destination.Settings,
+        owns = listOf(Destination.Categories::class),
+        labelRes = R.string.tab_settings,
+        iconRes = R.drawable.ic_tab_settings,
+    ),
 }
+
+/**
+ * Every route this tab answers for: the tab's own destination, then the screens pushed inside
+ * it. Kept as one list so that "which tab is this screen in" is asked in exactly one place, and
+ * so it can be tested without a navigation graph.
+ */
+val TopLevelTab.routes: List<KClass<out Destination>>
+    get() = listOf(destination::class) + owns

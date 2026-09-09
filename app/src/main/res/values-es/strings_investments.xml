@@ -47,8 +47,8 @@
     <string name="holding_new_title">Nueva posición</string>
     <string name="holding_edit_title">Posición</string>
     <string name="holding_field_symbol">Símbolo</string>
-    <string name="holding_field_symbol_placeholder">NVDA, IE00B4L5Y983, BTC</string>
-    <string name="holding_field_symbol_footer">El ticker, el ISIN o el símbolo cripto. Es contra lo que se guarda el precio, para que dos cuentas con lo mismo coincidan en cuánto vale.</string>
+    <string name="holding_field_symbol_placeholder">NVD.DE, VWCE.DE, BTC</string>
+    <string name="holding_field_symbol_footer">El ticker tal y como lo escribe tu plataforma, con su mercado — NVD.DE es Nvidia en Fráncfort, en euros, mientras que NVDA es la cotización de Nueva York en dólares. Usa el que compraste de verdad y el precio de aquí coincidirá con el que ves allí.</string>
     <string name="holding_field_name">Nombre</string>
     <string name="holding_field_name_placeholder">NVIDIA</string>
     <string name="holding_field_class">Tipo</string>

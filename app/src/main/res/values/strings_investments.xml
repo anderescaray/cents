@@ -53,8 +53,8 @@
     <string name="holding_new_title">New holding</string>
     <string name="holding_edit_title">Holding</string>
     <string name="holding_field_symbol">Symbol</string>
-    <string name="holding_field_symbol_placeholder">NVDA, IE00B4L5Y983, BTC</string>
-    <string name="holding_field_symbol_footer">The ticker, ISIN or crypto symbol. It is what a price is stored against, so two accounts holding the same thing agree about what it is worth.</string>
+    <string name="holding_field_symbol_placeholder">NVD.DE, VWCE.DE, BTC</string>
+    <string name="holding_field_symbol_footer">The ticker as your platform writes it, including the market — NVD.DE is Nvidia in Frankfurt, priced in euros, while NVDA is the New York listing priced in dollars. Use the one you actually bought, and the price here will match the one you see there.</string>
     <string name="holding_field_name">Name</string>
     <string name="holding_field_name_placeholder">NVIDIA</string>
     <string name="holding_field_class">Kind</string>

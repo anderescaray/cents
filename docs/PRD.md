@@ -368,8 +368,23 @@ The strategy is detailed in [`../CLAUDE.md`](../CLAUDE.md) §7. In short:
 ## 8. Open decisions
 
 - [x] ~~Final app and package name.~~ → **Cents**, `io.github.anderescaray.cents`
-- [ ] Subcategory model: real hierarchy or flat tags?
-- [ ] Market data provider (decide in Phase 4, after comparing European coverage).
-- [ ] Track the index fund by its ISIN, or by the equivalent ETF? (see §5.1)
-- [ ] Is SQLCipher worth it, given the biometric lock already exists?
-- [ ] Backup strategy: manual to a file, or automatic to the user's Google Drive?
+- [x] ~~Subcategory model: real hierarchy or flat tags?~~ → **Flat** (`DECISIONS.md` D3). The
+      `parentId` column stays in the schema, unused.
+- [x] ~~Market data provider.~~ → **Twelve Data** (D13), for European coverage on the free tier,
+      behind the `PriceProvider` interface §5.1 requires. Waiting on an API key, which only the
+      owner can create.
+- [x] ~~Track the index fund by its ISIN, or by the equivalent ETF?~~ → **The equivalent ETF**
+      (D14). The ISIN goes in the holding's note; the tracking difference is the price of the
+      portfolio refreshing itself.
+- [x] ~~Is SQLCipher worth it, given the biometric lock already exists?~~ → **No** (D16). The
+      device is already encrypted and no other app can read these files; the biometric lock is
+      the protection that gets built.
+- [x] ~~Backup strategy: manual to a file, or automatic to the user's Google Drive?~~ → **Both,
+      manual first** (D15): a file the owner owns, then automatic backup as a later branch with
+      its own answers about encryption and restores.
+- [x] ~~What happens when the provider quotes a price in a currency the holding does not use?~~
+      → **It is not asked to** (D18). A holding tracks the euro-denominated listing of the
+      instrument — Nvidia is `NVD` in Frankfurt, in euros — which is what a European platform
+      sells you in the first place. No rate, no conversion, and the app's number matches the
+      broker's because it is the same quote. §4.5's conversion returns only if an instrument
+      with no euro listing is ever held.

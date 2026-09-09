@@ -179,15 +179,17 @@ A full local run of what CI checks, worth doing before opening a PR:
 ## 8. Current status
 
 **Phase 1 — complete, closed 2026-08-21. Phase 2 (analytics): all six PRD §4.3 views are built
-and merged, the last being spending by weekday (#39).** Recording money
-works end to end: the Room schema, the domain and repository layers, the iOS-flavoured design
-system and navigation, a transaction list grouped by day with a monthly summary, one form that
-adds and edits movements (keypad, date picker, note, delete with undo), category management,
-and the Accounts tab with balances computed from the movements behind them. Categories and
-accounts are deleted either from their editor or by swiping the row sideways — both reach the
-same confirmation, because the question lives in one place rather than one per screen. The
-list is searchable and filterable by date range, account, category, kind and amount, narrowed
-in SQL rather than in Kotlin.
+and merged, and the app now opens on a canvas of bubbles (#41) rather than on a tab.** Nothing
+planned is unbuilt; what is waiting is a walk on a real phone
+([`docs/device-check.md`](docs/device-check.md)), because none of Phase 2 has been seen on
+one. Recording money works end to end: the Room schema, the domain and repository layers, the
+iOS-flavoured design system and navigation, a transaction list grouped by day with a monthly
+summary, one form that adds and edits movements (keypad, date picker, note, delete with undo),
+category management, and the Accounts tab with balances computed from the movements behind them.
+Categories and accounts are deleted either from their editor or by swiping the row sideways —
+both reach the same confirmation, because the question lives in one place rather than one per
+screen. The list is searchable and filterable by date range, account, category, kind and amount,
+narrowed in SQL rather than in Kotlin.
 
 **Nothing is seeded.** A fresh install has no accounts and no categories: every row in the
 app is one the owner typed. Deleting an account that holds movements asks what should become
@@ -195,13 +197,13 @@ of them — move them elsewhere, or delete them too — rather than quietly arch
 The app works in **one currency**, the device's, and does not offer a choice: `Money` still
 carries its ISO-4217 code and still refuses cross-currency arithmetic, but that is a guard
 rail rather than a feature, and no conversion step exists (`DECISIONS.md` D2).
-The **Reports tab** is the work of Phase 2: a ring that answers where the money went or where
-it came from, income against expenses per month, a balance line, spending by day of the week,
-this period against the one before it, and one category followed over twelve periods — all under
-one period control and one account picker, with a slice, a bar or a point opening the movements
-behind it. A new view there is an additive unit; what it costs is spelled out in
-`ui/feature/reports/ReportSection.kt`.
-362 tests run on the JVM, so CI covers the database and the UI without a device.
+The **Reports tab** is the work of Phase 2: a ring that answers where the money went or where it
+came from, income against expenses per month, a balance line, spending by day of the week, this
+period against the one before it or against the same period last year (#42), and one category
+followed over twelve periods — all under one period control and one account picker, with a
+slice, a bar or a point opening the movements behind it. A new view there is an additive unit;
+what it costs is spelled out in `ui/feature/reports/ReportSection.kt`. 369 tests run on the JVM,
+so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

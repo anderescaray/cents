@@ -32,6 +32,12 @@ An empty *Open* is the normal state between walks, not a sign the channel went q
 fills up again the next time the app is used on a phone. The walk itself is
 [`docs/device-check.md`](docs/device-check.md).
 
+**The second walk is written and waiting to be walked** (2026-09-09). It now covers the whole
+Reports tab (`r1`–`r19`) and the canvas of bubbles the app opens on (`b1`–`b10`), and **none of
+that has been on a phone** — six chart views, a year-on-year comparison, and a front door made
+of drag and pinch gestures, all verified by JVM tests and by nothing else. Whatever it turns up
+lands here, and it becomes the next branch.
+
 ---
 
 ## Where the numbers come from

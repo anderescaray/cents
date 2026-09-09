@@ -511,11 +511,14 @@ that needs transfers, which are Phase 3, and which are now the next branch preci
 D11's model needs them. And no price comes from the internet — **D13 asks which provider, because
 it needs a key only the owner can create** (C5). Both are in C4 and in the C3 list.
 
-**The investments section still has no device-walk steps**, and now nothing stands in the way:
-the walk lives in `docs/device-check.md`, which #43 was rewriting when this branch was built —
-adding a Walk 6 alongside it would have conflicted hunk for hunk (the stacking rule in C4). #43
-has since merged, so **a Walk 6 for the portfolio is the first documentation job of the next
-session**.
+**The investments section has its own walk, written after #43 merged.** It could not be written
+while that branch was open — `docs/device-check.md` was being rewritten there, and a Walk 6
+alongside it would have conflicted hunk for hunk (the stacking rule in C4). Once #43 landed, this
+branch rebased onto it and added **Walk 6 (i1–i11)**: the empty states, the duplicate symbol, a
+purchase typed with its fee, a price that has a date, **the average cost surviving a partial
+sale** — the arithmetic everything else rests on — an oversized sale being refused, the headings,
+deleting a holding, and the account that cannot be deleted because it holds investments. Walk 5
+also gained its fifth bubble.
 
 **Where this session stopped (2026-09-09), first half.** Everything C3 listed was merged,
 `FEEDBACK.md` was empty and `DECISIONS.md` was empty. What was left was the walk that turns that
@@ -1092,6 +1095,9 @@ Phase 4 rather than being skipped.
         to a hard-coded default), the duplicate check runs one query at a time so a stale answer
         cannot clear the warning, and a write the database refuses becomes an alert rather than an
         exception escaping the view model.
+      - It also carries **Walk 6 of the device check** (`i1`–`i11`), added after #43 merged and
+        this branch rebased onto it, so the portfolio can be walked on the phone in the same pass
+        as the Reports tab and the canvas.
       *Done when:* what is held can be recorded, priced by hand, and read back with its profit.
       **Done**, 426 tests.
 

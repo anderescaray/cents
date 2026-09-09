@@ -647,8 +647,10 @@ because there would be nowhere to put what you added.
 
 ### i2 · Adding a holding asks four things and refuses a fifth
 
-Tap **+**. Type a symbol — `NVDA` — and watch it upper-case itself as you type; give it a name;
-pick a kind; check that the account row shows the account you expected. Save.
+Tap **+**. Type a symbol **the way your platform writes it** — `NVD.DE` for Nvidia in Frankfurt,
+which is the euro-priced listing a European broker sells you, rather than `NVDA`, which is New
+York in dollars (D18). Watch it upper-case itself as you type; give it a name; pick a kind; check
+that the account row shows the account you expected. Save.
 
 Now add a second holding with the **same symbol in the same account**. The footer under the
 symbol must say that account already holds it, and **Save must be off**.
@@ -656,6 +658,9 @@ symbol must say that account already holds it, and **Save must be off**.
 > **Wrong looks like** the second one saving. Two rows for one instrument split a single
 > position in half, and every average, total and profit on the screen would then be right about
 > each half and wrong about the holding.
+>
+> The footer under the symbol is doing real work here: it is what keeps the app and your broker
+> quoting the same listing, which is the whole of why nothing in this app converts a currency.
 
 ### i3 · A purchase is typed the way the keypad taught you
 
@@ -663,8 +668,9 @@ Open the holding, tap **Record a trade**, leave it on **Buy**. Type a quantity o
 of `123,45` and a fee of `1,20`. The footer must say what the purchase cost **including the
 fee**: 309,83 €.
 
-Check it against your broker's confirmation. Then try a quantity of `0,000000019` — the ninth
-decimal must not go in.
+Check it against your broker's confirmation — the same platform, the same listing, so the two
+numbers should agree to the cent. Then try a quantity of `0,000000019` — the ninth decimal must
+not go in.
 
 > **Wrong looks like** the footer showing 308,63 € (the fee dropped) or 12.345,00 € (the price
 > read as cents, the mistake `05` exists to catch). The quantity allows eight decimals because

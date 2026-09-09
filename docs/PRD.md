@@ -382,5 +382,9 @@ The strategy is detailed in [`../CLAUDE.md`](../CLAUDE.md) §7. In short:
 - [x] ~~Backup strategy: manual to a file, or automatic to the user's Google Drive?~~ → **Both,
       manual first** (D15): a file the owner owns, then automatic backup as a later branch with
       its own answers about encryption and restores.
-- [ ] What happens when the provider quotes a price in a currency the holding does not use?
-      (D18, and see §4.5.)
+- [x] ~~What happens when the provider quotes a price in a currency the holding does not use?~~
+      → **It is not asked to** (D18). A holding tracks the euro-denominated listing of the
+      instrument — Nvidia is `NVD` in Frankfurt, in euros — which is what a European platform
+      sells you in the first place. No rate, no conversion, and the app's number matches the
+      broker's because it is the same quote. §4.5's conversion returns only if an instrument
+      with no euro listing is ever held.

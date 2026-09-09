@@ -29,29 +29,9 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D18 — what happens when the provider answers in dollars
-
-**Only exists because D13 was answered.** You chose to keep everything in euros and convert by
-hand (D12), and you chose **Twelve Data** (D13) — which will answer in **dollars** for NVDA and
-in euros for a UCITS ETF. So the provider branch has to do something about a price that arrives
-in the wrong currency, and "convert yourself" cannot be the answer once the app is the one
-fetching it.
-
-**Options.** **A** — the app fetches an FX rate alongside the price, converts, and stores euros,
-with the row saying it was converted and when. **B** — only instruments the provider quotes in
-euros refresh themselves; a dollar-priced one keeps its hand-typed price, and the app says why it
-is not refreshing. **C** — store the dollar price as it comes and show it in dollars, which is
-D12's option B arriving through the back door.
-
-**Recommendation: A.** It is what "I want to see euros" means once a machine is doing the
-fetching, and Twelve Data has the FX endpoint. The cost is that a converted price is only as good
-as its rate, so the row has to say so — a number that says *converted at 1,08 on 9 Sep* is
-honest; the same number with nothing next to it is not.
-
-**Default until answered:** A, with the conversion visible on the row. Nothing is built yet:
-`feat/price-provider` is the branch, and it needs your API key before it can run at all.
-
-**Answer:**
+**Nothing is waiting here right now.** D12 through D18 were all answered on 2026-09-09 and are in
+the *Answered* table below; D18 was answered the same day it was asked, and its answer removed a
+feature rather than adding one.
 
 ---
 
@@ -77,7 +57,8 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
-| D12 | What happens to a holding priced in dollars? | **Everything stays in euros, converted by hand.** No currency picker on the holding form: a dollar instrument is entered at what it is worth in euros, the way the rest of the app works (D2). The `currency` column stays on the row for the day that changes, and D18 above is the part of this that a provider forces open. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C4 |
+| D18 | What happens when the provider answers in dollars? | **It does not.** The holding tracks the **euro-denominated listing** of the same company — Nvidia trades on XETRA, Tradegate and Gettex as **NVD**, in euros — which is the listing the owner actually bought on a European platform. So there is no conversion anywhere: no FX rate, no "approximately", and the number in the app is the same number the broker shows, because it is the same quote. The symbol field already carries this: it is free text, and it holds the ticker as the platform writes it. | 2026-09-09 · `feat/price-provider`, PRD §4.5 |
+| D12 | What happens to a holding priced in dollars? | **Everything stays in euros.** No currency picker on the holding form. What makes this hold rather than merely hope is D18: a company priced in dollars in New York is priced in euros in Frankfurt, and the holding tracks *that* listing — so nothing is ever converted, by hand or otherwise. The `currency` column stays on the row for the day a genuinely dollar-only instrument turns up. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C4 |
 | D13 | Which market data provider? | **Twelve Data**, for European coverage on the free tier — the ETFs are UCITS and listed in Europe. Built behind the `PriceProvider` interface PRD §5.1 makes mandatory, so swapping costs one class. **Blocked until the owner creates an account and puts the key in `local.properties`** (C5, rule 6). | 2026-09-09 · `feat/price-provider` (not built) |
 | D14 | Index funds by ISIN, or by the equivalent ETF? | **The equivalent ETF.** A fund's ISIN is the hard tier in PRD §5.1 and no free provider covers it; the ETF that follows the same index is priced, accessible and moves near-identically. The tracking difference is real and is the price of the whole portfolio refreshing itself. The ISIN goes in the holding's note. | 2026-09-09 · PRD §5.1, §8 |
 | D15 | Backup: manual to a file, or automatic to Drive? | **Both, in that order.** Manual export first — a file the owner owns, no account and no third party — and automatic backup as a later branch on top of it, with its own answers about encryption and what a restore overwrites. | 2026-09-09 · PRD §8, Phase 3 |

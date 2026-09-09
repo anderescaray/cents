@@ -502,10 +502,11 @@ That merge is what unblocks the queue: `feat/transfers` needs schema v3 on top o
 `feat/export` needs holdings and trades to exist, and both of those were the reason nothing else
 could be built while #44 sat open (the stacking rule in C4).
 
-**Six decisions were answered the same day** — D12 through D17 — and one was opened by them: D18
-asks what the app does when Twelve Data answers in dollars, because "keep everything in euros"
-and "fetch prices automatically" cannot both be true without something converting. Its default is
-to convert and say so on the row.
+**Seven decisions were answered the same day**, D12 through D18. The last one was opened by the
+two before it — "keep everything in euros" and "fetch prices automatically" cannot both be true
+if something has to convert — and then closed by the owner in one sentence: their platform sells
+them the **euro-denominated listing**, so the app tracks that. Nvidia is `NVD` in Frankfurt. No
+rate, no conversion, no *approximately*, and one less thing for `feat/price-provider` to build.
 
 **The next branch is `feat/transfers`**, which is Phase 3's first piece arriving inside Phase 4
 because D11's model needs it: money has to reach the investments account before a purchase can
@@ -1135,8 +1136,15 @@ Phase 4 rather than being skipped.
       answered: Twelve Data**, chosen for European coverage on the free tier, and **D14** says an
       index fund is priced by its equivalent ETF rather than by an ISIN no free provider carries.
       **Still blocked on the owner**: it needs an account and an API key in `local.properties`,
-      and only they can create one (C5, rule 6). **D18** is the question it opens — what the app
-      does when the answer arrives in dollars — and its default is to convert and say so.
+      and only they can create one (C5, rule 6).
+      **D18 removed the hardest part of this branch before it was built.** The question was what
+      to do with a price that arrives in dollars; the answer is that it never does, because a
+      holding tracks the **euro-denominated listing** — Nvidia is `NVD` in Frankfurt, quoted in
+      euros, which is what a European platform sells you. No FX call, no rate to keep fresh, no
+      total labelled *approximate*, and the number in the app is the one the broker shows because
+      it is the same quote. What the branch does instead is pass the symbol through with its
+      exchange (Twelve Data addresses exchanges by MIC code), and say plainly when a symbol
+      cannot be found rather than falling back to something that looks like a price.
 
 ### Phase 3 — the parts of it the answers of 2026-09-09 defined
 
@@ -1203,9 +1211,11 @@ parallelism.
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —
   the portfolio still totals per currency, so an install that somehow holds two does not add
-  them — but no conversion is built and none is planned for the app the owner types into. What is
-  *not* settled is what a **provider** does when it answers in dollars, which is D18 and belongs
-  to `feat/price-provider`.
+  them — but no conversion is built and none is planned. **D18 is what makes that sustainable
+  rather than a corner being cut**: a company priced in dollars in New York is priced in euros in
+  Frankfurt, and the holding tracks that listing, so the question never reaches the app. It comes
+  back only for an instrument with no euro listing at all, and that is the day PRD §4.5 gets read
+  again.
 - **A fully sold holding disappears from the portfolio, and the owner chose that** (D17,
   2026-09-09). It has no quantity, so it has nothing to be worth, and a row worth 0,00 € under a
   heading about what is held is noise. The cost is real and is written down rather than argued

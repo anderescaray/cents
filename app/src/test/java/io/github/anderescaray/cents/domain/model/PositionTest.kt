@@ -110,6 +110,35 @@ class PositionTest {
     }
 
     @Test
+    fun `a clamped sale books proceeds only for the units that were really there`() {
+        // One unit held, five recorded as sold at 120,00. Selling only what exists is half the
+        // answer; the other half is the money. Booking 600,00 of proceeds against the cost of
+        // one unit would report 500,00 of profit that never happened — as *realised*, which is
+        // the number that reads as money already made.
+        val position =
+            positionOf(
+                buy(units = 1, priceMinor = 10_000),
+                sell(units = 5, priceMinor = 12_000),
+            )
+
+        assertEquals(Quantity.ZERO, position.quantity)
+        assertEquals(Money(0, EUR), position.costBasis)
+        assertEquals(Money(2_000, EUR), position.realisedPnl)
+    }
+
+    @Test
+    fun `a clamped sale still pays its whole fee, because a fee is charged per order`() {
+        val position =
+            positionOf(
+                buy(units = 1, priceMinor = 10_000),
+                sell(units = 5, priceMinor = 12_000, feeMinor = 300),
+            )
+
+        // 120,00 for the one unit that existed, minus the 3,00 the order cost, minus 100,00.
+        assertEquals(Money(1_700, EUR), position.realisedPnl)
+    }
+
+    @Test
     fun `what it is worth needs a price, and says nothing without one`() {
         val unpriced = positionOf(buy(units = 2, priceMinor = 10_000))
 

@@ -27,7 +27,14 @@ data class PortfolioUiState(
     val loading: Boolean = true,
     val groups: List<PortfolioGroup> = emptyList(),
     val totals: List<PortfolioTotal> = emptyList(),
-    /** Nothing can be held until there is an account to hold it in, and the empty state says so. */
+    /**
+     * Nothing can be held until there is an account to hold it in, and the empty state says so.
+     *
+     * Archived ones count, because the holding form offers them: a portfolio can legitimately
+     * live in an account that has been put away, and answering "no accounts" here while the
+     * editor would have offered one is how the "+" button disappears in front of somebody who
+     * has an account.
+     */
     val hasAccount: Boolean = false,
 ) {
     val isEmpty: Boolean get() = groups.isEmpty()

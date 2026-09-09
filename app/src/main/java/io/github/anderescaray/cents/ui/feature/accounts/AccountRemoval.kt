@@ -35,6 +35,17 @@ enum class RemovalStep {
     CONFIRM_DESTRUCTIVE,
 
     /**
+     * It holds investments, and none of the three removals above touches them.
+     *
+     * This is a refusal rather than a question, and it is the one place in this flow where
+     * that is the honest answer: `holdings.accountId` is `RESTRICT`, a holding cannot be
+     * detached from its account the way a movement can be moved to another one, and nothing
+     * here is going to delete somebody's recorded trades as a side effect of tidying up an
+     * account. So the owner is told what stands in the way and where to go and deal with it.
+     */
+    BLOCKED_BY_HOLDINGS,
+
+    /**
      * The database refused. Both foreign keys are `RESTRICT`, so a movement recorded
      * between counting and confirming turns a legitimate delete into a constraint
      * violation — rare, and worth saying out loud rather than leaving the row sitting
@@ -49,6 +60,8 @@ data class AccountRemovalState(
     val name: String = "",
     val step: RemovalStep = RemovalStep.NONE,
     val transactionCount: Int = 0,
+    /** Investments held in it. Any at all is what [RemovalStep.BLOCKED_BY_HOLDINGS] says. */
+    val holdingCount: Int = 0,
     /** Accounts the movements could move into: active, not this one, same currency. */
     val reassignTargets: List<Account> = emptyList(),
 ) {
@@ -70,6 +83,11 @@ data class AccountRemovalState(
  * another account and delete this one, or delete both. The second is the only operation in
  * the app that destroys recorded history, so it is reached through a sheet and then a second
  * confirmation that says how many movements are at stake (`DECISIONS.md` D7).
+ *
+ * **One that holds investments is refused outright**, which is a third answer rather than a
+ * variation on those two. A movement can be moved to another account; a holding cannot, and
+ * deleting one would take its recorded trades with it — a decision that belongs to the person
+ * looking at the portfolio, not to somebody tidying up an account list.
  *
  * It lives outside the editor because the editor is no longer the only way in: a swipe on
  * the list asks the same thing, and a second implementation of this sequence is exactly how
@@ -98,13 +116,24 @@ class AccountRemoval(
     ) {
         scope.launch {
             val count = repository.countTransactions(id)
+            val holdings = repository.countHoldings(id)
             val targets = reassignTargets(id)
             question.value =
                 AccountRemovalState(
                     accountId = id,
                     name = name,
-                    step = if (count == 0) RemovalStep.CONFIRM_EMPTY else RemovalStep.CHOOSE,
+                    // Holdings are checked first because they beat both other answers: with
+                    // investments in it there is no version of "delete" this flow can carry
+                    // out, so offering the choice would be offering something that ends in a
+                    // constraint violation and a message about trying again.
+                    step =
+                        when {
+                            holdings > 0 -> RemovalStep.BLOCKED_BY_HOLDINGS
+                            count == 0 -> RemovalStep.CONFIRM_EMPTY
+                            else -> RemovalStep.CHOOSE
+                        },
                     transactionCount = count,
+                    holdingCount = holdings,
                     reassignTargets = targets,
                 )
         }

@@ -105,11 +105,13 @@ class PortfolioViewModelTest {
                 val state = awaitStateThat { it.totals.isNotEmpty() }
                 val total = state.totals.single()
 
-                // Two units at 125,00, against 200,00 paid.
+                // Two units at 125,00, against the 200,00 that *that* holding cost.
                 assertEquals(Money(25_000, "EUR"), total.marketValue)
-                assertEquals(Money(20_000, "EUR"), total.costBasis)
                 assertEquals(Money(5_000, "EUR"), total.profit)
-                assertEquals("the unpriced holding is named, not silently included", 1, total.unpricedCount)
+                // What everything cost is known whether or not it has a price: 200,00 + 270,00.
+                assertEquals(Money(47_000, "EUR"), total.costBasis)
+                assertEquals(Money(20_000, "EUR"), total.pricedCostBasis)
+                assertEquals("the unpriced holding is counted, not silently included", 1, total.unpricedCount)
                 cancelAndIgnoreRemainingEvents()
             }
         }

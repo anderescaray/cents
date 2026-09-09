@@ -8,7 +8,6 @@
     <string name="investments_total_value">Valor: %1$s</string>
     <string name="investments_total_cost">Coste: %1$s</string>
     <string name="investments_total_profit">Ganancia: %1$s</string>
-    <string name="investments_total_unpriced">%1$d de ellas no tienen precio todavía y quedan fuera del total.</string>
     <string name="investments_class_stock">Acciones</string>
     <string name="investments_class_etf">ETF</string>
     <string name="investments_class_index_fund">Fondos indexados</string>
@@ -61,7 +60,6 @@
     <string name="holding_delete">Eliminar esta posición</string>
     <string name="holding_delete_title">¿Eliminar %1$s?</string>
     <string name="holding_delete_message">No tiene operaciones, así que se puede eliminar del todo.</string>
-    <string name="holding_delete_message_trades">Sus %1$d operaciones se van con ella, y eso no se puede deshacer.</string>
 
     <!-- El formulario de operación -->
     <string name="trade_new_title">Nueva operación</string>
@@ -79,4 +77,6 @@
     <string name="trade_delete">Eliminar esta operación</string>
     <string name="trade_delete_title">¿Eliminar esta operación?</string>
     <string name="trade_delete_message">La posición y su coste medio se recalculan sin ella.</string>
+    <string name="holding_save_failed_message">Esa cuenta ya tiene ese símbolo. Abre la posición que ya está en vez de añadir otra fila para lo mismo.</string>
+    <string name="trade_save_failed_message">La posición a la que pertenece esta operación ya no está. No se ha registrado nada.</string>
 </resources>

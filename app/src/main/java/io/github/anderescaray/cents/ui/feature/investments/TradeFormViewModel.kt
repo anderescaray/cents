@@ -41,6 +41,8 @@ data class TradeFormUiState(
     val pickingDate: Boolean = false,
     val deleting: Boolean = false,
     val saving: Boolean = false,
+    /** The database refused the write. It is shown, and nothing is retried automatically. */
+    val writeFailed: Boolean = false,
     val finished: Boolean = false,
 ) {
     val quantity: Quantity get() = QuantityEntry.toQuantity(quantityInput)
@@ -193,9 +195,15 @@ class TradeFormViewModel
         fun confirmDeletion() {
             val id = tradeId ?: return
             viewModelScope.launch {
-                tradeRepository.deleteTrade(id)
-                form.update { it.copy(deleting = false, finished = true) }
+                val removed = runCatching { tradeRepository.deleteTrade(id) }
+                form.update {
+                    it.copy(deleting = false, writeFailed = removed.isFailure, finished = removed.isSuccess)
+                }
             }
+        }
+
+        fun dismissWriteFailure() {
+            form.update { it.copy(writeFailed = false) }
         }
 
         fun save() {
@@ -214,12 +222,21 @@ class TradeFormViewModel
                         date = state.date,
                         note = null,
                     )
-                if (tradeId == null) {
-                    tradeRepository.addTrade(trade)
-                } else {
-                    tradeRepository.updateTrade(trade)
+                // The holding can be deleted from another screen while this form is open, and
+                // `trades.holdingId` is RESTRICT — so the write can be refused. An exception
+                // escaping a view model's scope takes the app with it; this becomes an alert,
+                // the same bargain `AccountRemoval` strikes.
+                val written =
+                    runCatching {
+                        if (tradeId == null) {
+                            tradeRepository.addTrade(trade)
+                        } else {
+                            tradeRepository.updateTrade(trade)
+                        }
+                    }
+                form.update {
+                    it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess)
                 }
-                form.update { it.copy(saving = false, finished = true) }
             }
         }
     }

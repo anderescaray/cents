@@ -97,6 +97,28 @@ fun TradeFormScreen(
         )
     }
 
+    TradeFormDialogs(state = state, viewModel = viewModel)
+}
+
+/**
+ * The date picker and the two alerts. Out of the screen function because they are what it does
+ * *after* laying anything out, and reading the layout should not mean scrolling past them.
+ */
+@Composable
+private fun TradeFormDialogs(
+    state: TradeFormUiState,
+    viewModel: TradeFormViewModel,
+) {
+    if (state.writeFailed) {
+        CentsAlert(
+            title = stringResource(R.string.delete_failed_title),
+            message = stringResource(R.string.trade_save_failed_message),
+            confirmLabel = stringResource(R.string.action_ok),
+            onConfirm = viewModel::dismissWriteFailure,
+            onDismiss = viewModel::dismissWriteFailure,
+        )
+    }
+
     if (state.deleting) {
         CentsAlert(
             title = stringResource(R.string.trade_delete_title),

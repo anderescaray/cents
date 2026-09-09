@@ -29,6 +29,7 @@ internal fun RemovalDialogs(
         RemovalStep.CHOOSE -> RemovalChoiceSheet(state, removal)
         RemovalStep.PICK_TARGET -> ReassignTargetSheet(state, removal)
         RemovalStep.CONFIRM_DESTRUCTIVE -> ConfirmDestructiveAlert(state, removal)
+        RemovalStep.BLOCKED_BY_HOLDINGS -> HeldInvestmentsAlert(state, removal::cancel)
         RemovalStep.FAILED -> DeletionFailedAlert(removal::cancel)
     }
 }
@@ -143,6 +144,26 @@ private fun ConfirmDestructiveAlert(
  * Shared with the category list, because "the database would not let that go" is the same
  * sentence whichever row it was.
  */
+@Composable
+internal fun HeldInvestmentsAlert(
+    state: AccountRemovalState,
+    onDismiss: () -> Unit,
+) {
+    CentsAlert(
+        title = stringResource(R.string.account_delete_title, state.name),
+        message =
+            pluralStringResource(
+                R.plurals.account_delete_blocked_by_holdings,
+                state.holdingCount,
+                state.holdingCount,
+            ),
+        confirmLabel = stringResource(R.string.action_ok),
+        onConfirm = onDismiss,
+        onDismiss = onDismiss,
+    )
+}
+
+/** The database refused a deletion this flow believed it could carry out. */
 @Composable
 internal fun DeletionFailedAlert(onDismiss: () -> Unit) {
     CentsAlert(

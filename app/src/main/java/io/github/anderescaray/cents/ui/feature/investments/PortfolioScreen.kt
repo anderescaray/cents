@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -127,21 +128,29 @@ fun PortfolioScreen(
  */
 @Composable
 private fun TotalSection(total: PortfolioTotal) {
+    val value = total.marketValue
+    val profit = total.profit
     CentsListSection(
         footer =
             total.unpricedCount
                 .takeIf { it > 0 }
-                ?.let { stringResource(R.string.investments_total_unpriced, it) },
+                ?.let { pluralStringResource(R.plurals.investments_total_unpriced, it, it) },
     ) {
         CentsListRow(
-            title = stringResource(R.string.investments_total_value, MoneyFormatter.format(total.marketValue)),
+            // With nothing priced there is no value to show, and showing 0,00 € over money that
+            // was really spent is the failure a single unpriced row already refuses to commit.
+            title =
+                value?.let { stringResource(R.string.investments_total_value, MoneyFormatter.format(it)) }
+                    ?: stringResource(R.string.investments_no_price),
             subtitle = stringResource(R.string.investments_total_cost, MoneyFormatter.format(total.costBasis)),
             value =
-                buildString {
-                    append(MoneyFormatter.formatSigned(total.profit))
-                    total.profitRatio?.let { append(" · ").append(formatReturn(it)) }
+                profit?.let {
+                    buildString {
+                        append(MoneyFormatter.formatSigned(it))
+                        total.profitRatio?.let { ratio -> append(" · ").append(formatReturn(ratio)) }
+                    }
                 },
-            valueColor = profitColor(total.profit),
+            valueColor = profitColor(profit),
             showSeparator = false,
         )
     }

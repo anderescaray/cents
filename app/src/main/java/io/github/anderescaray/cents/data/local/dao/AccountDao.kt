@@ -81,6 +81,18 @@ interface AccountDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE accountId = :id")
     suspend fun countTransactions(id: Long): Int
 
+    /**
+     * How many investments are held in this account.
+     *
+     * `holdings.accountId` is `RESTRICT` too, so this is a second thing that can refuse a
+     * deletion — and unlike movements, there is no version of "delete" that resolves it here:
+     * a holding cannot be moved to another account by this flow and cannot be detached from
+     * one. Counting it is what lets the question be asked honestly instead of ending in a
+     * constraint violation.
+     */
+    @Query("SELECT COUNT(*) FROM holdings WHERE accountId = :id")
+    suspend fun countHoldings(id: Long): Int
+
     @Query("DELETE FROM accounts WHERE id = :id")
     suspend fun deleteById(id: Long)
 

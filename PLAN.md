@@ -1071,8 +1071,29 @@ Phase 4 rather than being skipped.
         that says how many go — the bargain D7 struck for accounts, applied to the same shape of
         problem. A duplicate symbol in one account is refused by a unique index *and* by the
         form, so the owner gets a reason instead of a constraint violation.
+      - **What review caught was mostly about money that is not there.** A total over a portfolio
+        nobody has priced folded to 0,00 € and rendered it — the failure a single unpriced row
+        already refused to commit, one level up; a total is now null until something in it has a
+        price, and profit is measured against what the *priced* half cost. A sale bigger than the
+        position clamped its quantity but not its money, booking proceeds for units that were
+        never held and calling the result *realised*. A quote is shared by symbol, so one stored
+        in another currency reached `Money`'s refusal to add euros to dollars from inside the
+        portfolio's `combine`, which would have taken the whole tab down rather than mispricing
+        one row — a mismatch now reads as no price.
+      - **And one thing this branch broke elsewhere.** `holdings.accountId` is `RESTRICT`, but
+        the account-deletion flow only ever counted movements: an account holding investments and
+        no movements took the "nothing lives in it" path, hit the constraint, and reported *"try
+        again"* — advice that could never work. Deleting such an account is now refused with a
+        reason, which is a third answer rather than a variation on D7's two: a movement can be
+        moved to another account, a holding cannot, and nothing here is going to delete somebody's
+        recorded trades as a side effect of tidying an account list.
+      - The holding editor also learned three things: archived accounts are listed (a holding does
+        not stop existing because its account was put away, and the currency used to fall through
+        to a hard-coded default), the duplicate check runs one query at a time so a stale answer
+        cannot clear the warning, and a write the database refuses becomes an alert rather than an
+        exception escaping the view model.
       *Done when:* what is held can be recorded, priced by hand, and read back with its profit.
-      **Done**, 415 tests.
+      **Done**, 426 tests.
 
 - [ ] **`feat/transfers`** — Phase 3's first piece, needed here: **money has to be able to reach
       the investments account**. A transfer is a paired outflow and inflow linked by one
@@ -1122,6 +1143,15 @@ parallelism.
   trend needs history. The rule it keeps is that the period decides the bucket, so no two
   points anywhere on the tab are different lengths of time. Anything later that assumes "a
   report only ever touches the selected range" has to account for this one.
+- **An account holding investments cannot be deleted at all.** Not archived-instead, not
+  reassigned: refused, with a message naming how many holdings are in the way. A movement can be
+  moved to another account and a holding cannot, and deleting one would take its recorded trades
+  with it — a decision that belongs to whoever is looking at the portfolio. The fix, when it is
+  wanted, is a fourth answer in the removal sheet, not a quiet cascade.
+- **A quote stored in a currency the holding does not use reads as no price.** It is the honest
+  answer without a conversion rate (D12) and it cannot arrive at all on a single-currency install;
+  what it means in practice is that an install predating D2 could show *no price yet* for
+  something it does have a price for, until a new one is typed.
 - **Buying does not spend anything yet.** D11 describes money transferred into an investments
   account and then allocated to a holding; this branch built the second half. A purchase records
   what was bought and at what price, and the account's balance does not move — because moving it

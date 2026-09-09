@@ -48,9 +48,14 @@ fun positionFrom(
                 // it: an edited buy can shrink under a sale recorded against it. Selling what is
                 // there and no more keeps the quantity at zero instead of going negative, which
                 // would make every number below it meaningless rather than merely wrong.
+                //
+                // **The money is clamped with the quantity**, which is the part that is easy to
+                // miss: booking the proceeds of five units against the cost of the one that was
+                // actually held would report a profit on four units that never existed, and it
+                // would report it as *realised* — the number that reads as money already made.
                 val sold = if (trade.quantity > quantity) quantity else trade.quantity
                 val costOut = proportionOf(basisMinor, sold, quantity)
-                realisedMinor += trade.net.minorUnits - costOut
+                realisedMinor += proceedsOf(trade, sold) - costOut
                 basisMinor -= costOut
                 quantity -= sold
             }
@@ -65,6 +70,23 @@ fun positionFrom(
         quote = quote,
     )
 }
+
+/**
+ * What a sale of [sold] units actually returned, fee included.
+ *
+ * The whole fee is taken off even when the quantity was clamped: a fee is charged once for the
+ * order, not per unit, and the alternative — scaling it down with the quantity — would invent a
+ * cheaper trade than the one that happened.
+ */
+private fun proceedsOf(
+    trade: Trade,
+    sold: Quantity,
+): Long =
+    if (sold == trade.quantity) {
+        trade.net.minorUnits
+    } else {
+        (sold * trade.pricePerUnit).minorUnits - trade.fee.minorUnits
+    }
 
 /** The share of [basisMinor] that [sold] out of [held] represents, rounded half away from zero. */
 private fun proportionOf(

@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.holding
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.domain.model.AccountType
@@ -210,6 +211,33 @@ class AccountEditViewModelTest {
             }
 
             assertEquals(emptyList<String>(), accounts.observeAccounts(includeArchived = true).first().map { it.name })
+        }
+
+    @Test
+    fun `an account holding investments is refused rather than offered a delete that cannot work`() =
+        runTest {
+            // `holdings.accountId` is RESTRICT and none of the three removals touches holdings,
+            // so every one of them would be refused by the database. Before this, an account
+            // with a holding and no movements took the "nothing lives in it" path and ended in
+            // a constraint violation reported as "try again" — advice that could never work.
+            val id = database.accountDao().insert(account(name = "Broker"))
+            database.holdingDao().insert(holding(id, symbol = "NVDA"))
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { it.name.isNotEmpty() }
+                editor.requestRemoval()
+                val state = editor.removal.state.first { it.asking }
+
+                assertEquals(RemovalStep.BLOCKED_BY_HOLDINGS, state.step)
+                assertEquals(1, state.holdingCount)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                listOf("Broker"),
+                accounts.observeAccounts(includeArchived = true).first().map { it.name },
+            )
         }
 
     @Test

@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -109,7 +110,7 @@ private fun DeleteHoldingAlert(
             if (trades == 0) {
                 stringResource(R.string.holding_delete_message)
             } else {
-                stringResource(R.string.holding_delete_message_trades, trades)
+                pluralStringResource(R.plurals.holding_delete_message_trades, trades, trades)
             },
         confirmLabel = stringResource(R.string.action_delete),
         onConfirm = viewModel::confirmDeletion,
@@ -204,7 +205,9 @@ private fun LazyListScope.priceSection(
                     showSeparator = false,
                 )
             } else {
-                val quote = position.quote
+                // The *usable* quote: one stored in another currency values nothing, so showing
+                // it as the last price would explain none of what the rows above say.
+                val quote = position.usableQuote
                 CentsListRow(
                     title = stringResource(R.string.holding_price_row),
                     subtitle =

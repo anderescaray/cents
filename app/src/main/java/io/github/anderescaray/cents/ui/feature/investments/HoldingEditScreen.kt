@@ -20,6 +20,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AssetClass
+import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsTextField
@@ -42,6 +43,18 @@ fun HoldingEditScreen(
 
     LaunchedEffect(state.finished) {
         if (state.finished) onDone()
+    }
+
+    if (state.writeFailed) {
+        // The database refused the write — the symbol was taken between the check and the save.
+        // Nothing is retried automatically: the owner asks again if they still want to.
+        CentsAlert(
+            title = stringResource(R.string.delete_failed_title),
+            message = stringResource(R.string.holding_save_failed_message),
+            confirmLabel = stringResource(R.string.action_ok),
+            onConfirm = viewModel::dismissWriteFailure,
+            onDismiss = viewModel::dismissWriteFailure,
+        )
     }
 
     Column(

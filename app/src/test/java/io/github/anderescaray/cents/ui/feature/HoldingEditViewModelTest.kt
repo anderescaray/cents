@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -147,6 +148,54 @@ class HoldingEditViewModelTest {
             assertEquals(AssetClass.CRYPTO, saved.assetClass)
             assertEquals(brokerId, saved.accountId)
             assertEquals("EUR", saved.currency)
+        }
+
+    @Test
+    fun `a holding in an archived account can still be edited, and keeps its currency`() =
+        runTest {
+            // Archiving an account does not delete what is held in it. The editor used to list
+            // only active accounts, so no row matched, Save was enabled with nothing selected,
+            // and the currency fell through to a hard-coded default (rule 2).
+            val archived = database.accountDao().insert(account(name = "Old broker", archived = true))
+            val id = database.holdingDao().insert(holding(archived, symbol = "NVDA"))
+
+            val viewModel = editorFor(holdingId = id)
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.accounts.isNotEmpty() && it.symbol == "NVDA" }
+
+                assertEquals(archived, state.accountId)
+                assertNotNull("the account it is in has to be in the list", state.account)
+                assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a write the database refuses is reported rather than escaping`() =
+        runTest {
+            // The duplicate check is a courtesy: the row it looked for can appear between the
+            // check and the write. What must not happen is the constraint violation escaping
+            // viewModelScope, which takes the app with it.
+            val viewModel = editorFor()
+            viewModel.onSymbolChanged("NVDA")
+            viewModel.onNameChanged("NVIDIA")
+
+            viewModel.uiState.test {
+                awaitStateThat { it.canSave }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            database.holdingDao().insert(holding(brokerId, symbol = "NVDA"))
+            viewModel.save()
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { !it.saving }
+
+                assertTrue("the refusal is shown", state.writeFailed)
+                assertFalse("and nothing pretends it was saved", state.finished)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     private fun editorFor(holdingId: Long = Destination.HoldingEdit.NEW): HoldingEditViewModel =

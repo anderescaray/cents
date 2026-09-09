@@ -174,7 +174,19 @@ data class Position(
                 )
             }
 
-    val marketValue: Money? get() = quote?.let { quantity * it.price }
+    /**
+     * The quote, but only when it is denominated the way this holding is.
+     *
+     * Quotes are keyed by symbol and shared between accounts, so one can arrive carrying a
+     * currency this holding does not use — an install that predates D2 can still hold two.
+     * [Money] refuses to add euros to dollars, by design, and that refusal is an exception:
+     * thrown from inside the portfolio's `combine` it would take the whole Investments tab
+     * down rather than mispricing one row. So a mismatch reads as **no price**, which is the
+     * same thing the screen already knows how to say.
+     */
+    val usableQuote: PriceQuote? get() = quote?.takeIf { it.price.currency == holding.currency }
+
+    val marketValue: Money? get() = usableQuote?.let { quantity * it.price }
 
     val unrealisedPnl: Money? get() = marketValue?.let { it - costBasis }
 
@@ -219,9 +231,18 @@ data class Portfolio(
         openPositions
             .groupBy { it.holding.currency }
             .map { (currency, held) -> totalFor(currency, held) }
-            .filter { it.marketValue.minorUnits != 0L || it.unpricedCount > 0 }
             .sortedBy { it.currency }
 
+    /**
+     * One currency's total. [PortfolioTotal.marketValue] is **null when nothing in it has a
+     * price**, rather than zero.
+     *
+     * Folding over an empty list of priced positions gives 0,00, and a card reading
+     * "Value: 0,00 € · Cost: 0,00 €" over a portfolio somebody has spent real money on is the
+     * exact failure `Position.marketValue` refuses to commit one row at a time: it is a number,
+     * and numbers get believed. The filter that used to hide such a card had the mirror
+     * problem — a portfolio genuinely priced at zero disappeared, cost basis and all.
+     */
     private fun totalFor(
         currency: String,
         held: List<Position>,
@@ -229,29 +250,42 @@ data class Portfolio(
         val priced = held.filter { it.marketValue != null }
         return PortfolioTotal(
             currency = currency,
-            marketValue = priced.fold(Money.zero(currency)) { acc, position -> acc + position.marketValue!! },
-            costBasis = priced.fold(Money.zero(currency)) { acc, position -> acc + position.costBasis },
+            marketValue =
+                if (priced.isEmpty()) {
+                    null
+                } else {
+                    priced.fold(Money.zero(currency)) { acc, position -> acc + position.marketValue!! }
+                },
+            costBasis = held.fold(Money.zero(currency)) { acc, position -> acc + position.costBasis },
+            pricedCostBasis = priced.fold(Money.zero(currency)) { acc, position -> acc + position.costBasis },
             unpricedCount = held.size - priced.size,
         )
     }
 }
 
-/** One currency's worth of the portfolio, and how much of it could not be priced. */
+/**
+ * One currency's worth of the portfolio, and how much of it could not be priced.
+ *
+ * [costBasis] is what *everything* held cost, because that much is known whether or not a price
+ * is; [marketValue] and [profit] are null until at least one position has a price, and profit is
+ * measured against [pricedCostBasis] so it compares like with like — the value of the priced
+ * half against what that same half cost.
+ */
 data class PortfolioTotal(
     val currency: String,
-    val marketValue: Money,
+    val marketValue: Money?,
     val costBasis: Money,
+    val pricedCostBasis: Money,
     val unpricedCount: Int,
 ) {
-    val profit: Money get() = marketValue - costBasis
+    val profit: Money? get() = marketValue?.let { it - pricedCostBasis }
 
     val profitRatio: Double?
-        get() =
-            if (costBasis.minorUnits == 0L) {
-                null
-            } else {
-                profit.minorUnits.toDouble() / costBasis.minorUnits.toDouble()
-            }
+        get() {
+            val gain = profit ?: return null
+            if (pricedCostBasis.minorUnits == 0L) return null
+            return gain.minorUnits.toDouble() / pricedCostBasis.minorUnits.toDouble()
+        }
 }
 
 /**

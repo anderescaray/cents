@@ -14,7 +14,6 @@
     <string name="investments_total_value">Value: %1$s</string>
     <string name="investments_total_cost">Cost: %1$s</string>
     <string name="investments_total_profit">Profit: %1$s</string>
-    <string name="investments_total_unpriced">%1$d of these have no price yet and are left out of the total.</string>
     <string name="investments_class_stock">Stocks</string>
     <string name="investments_class_etf">ETFs</string>
     <string name="investments_class_index_fund">Index funds</string>
@@ -67,7 +66,6 @@
     <string name="holding_delete">Delete this holding</string>
     <string name="holding_delete_title">Delete %1$s?</string>
     <string name="holding_delete_message">It holds no trades, so it can be removed for good.</string>
-    <string name="holding_delete_message_trades">Its %1$d recorded trades go with it, and that cannot be undone.</string>
 
     <!-- The trade form -->
     <string name="trade_new_title">New trade</string>
@@ -85,4 +83,6 @@
     <string name="trade_delete">Delete this trade</string>
     <string name="trade_delete_title">Delete this trade?</string>
     <string name="trade_delete_message">The position and its average cost are recalculated without it.</string>
+    <string name="holding_save_failed_message">That account already holds this symbol. Open the holding that is there instead of adding a second row for the same thing.</string>
+    <string name="trade_save_failed_message">The holding this trade belongs to is no longer there. Nothing was recorded.</string>
 </resources>

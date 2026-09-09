@@ -83,6 +83,30 @@ class PortfolioScreenTest {
     }
 
     @Test
+    fun `a totals card with nothing priced says so instead of showing zero`() {
+        showing(
+            PortfolioUiState(
+                loading = false,
+                hasAccount = true,
+                groups = listOf(PortfolioGroup(AssetClass.STOCK, listOf(position(priced = false)))),
+                totals =
+                    listOf(
+                        PortfolioTotal(
+                            currency = "EUR",
+                            marketValue = null,
+                            costBasis = Money(20_000, "EUR"),
+                            pricedCostBasis = Money(0, "EUR"),
+                            unpricedCount = 1,
+                        ),
+                    ),
+            ),
+        )
+
+        compose.onNodeWithText("Value: 0,00 €").assertDoesNotExist()
+        compose.onNodeWithText("One of these has no price yet and is left out of the total.").assertIsDisplayed()
+    }
+
+    @Test
     fun `with no account there is nothing to add a holding to, so nothing offers it`() {
         showing(PortfolioUiState(loading = false, hasAccount = false))
 
@@ -137,6 +161,7 @@ class PortfolioScreenTest {
             currency = "EUR",
             marketValue = Money(25_000, "EUR"),
             costBasis = Money(20_000, "EUR"),
+            pricedCostBasis = Money(20_000, "EUR"),
             unpricedCount = 0,
         )
 }

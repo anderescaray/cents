@@ -107,8 +107,8 @@ parallel work demand it.
 | 0 | Project skeleton, CI, theme, navigation | **Done** |
 | 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
 | 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
-| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | Next |
-| 4 | Investment portfolio with live prices and P&L | Planned |
+| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | Next · transfers first, because investments need them |
+| 4 | Investment portfolio with live prices and P&L | **Started early** · portfolio and manual prices built, provider next |
 | 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | Planned |
 | 6 | Widget, animations, Baseline Profile, accessibility | Planned |
 

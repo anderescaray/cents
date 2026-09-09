@@ -2,6 +2,7 @@
     <!-- Tabs -->
     <string name="tab_transactions">Movimientos</string>
     <string name="tab_accounts">Cuentas</string>
+    <string name="tab_investments">Inversiones</string>
     <string name="tab_reports">Informes</string>
     <string name="tab_settings">Ajustes</string>
 

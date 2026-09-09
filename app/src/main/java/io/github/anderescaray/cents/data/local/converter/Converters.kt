@@ -8,7 +8,8 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Room type converters.
+ * Room type converters. The investments ones live in [InvestmentConverters], so that adding a
+ * feature does not mean editing a class every other feature also edits.
  *
  * Enums are stored by **name**, never by ordinal: an ordinal silently remaps every stored
  * row the day someone reorders the enum. Dates are stored as epoch day and instants as

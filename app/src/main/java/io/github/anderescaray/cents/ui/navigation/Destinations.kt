@@ -28,6 +28,9 @@ sealed interface Destination {
     data object Accounts : Destination
 
     @Serializable
+    data object Investments : Destination
+
+    @Serializable
     data object Reports : Destination
 
     @Serializable
@@ -65,6 +68,36 @@ sealed interface Destination {
     @Serializable
     data class AccountEdit(
         val accountId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
+    /** One holding: its position, its price and the trades behind it. */
+    @Serializable
+    data class HoldingDetail(
+        val holdingId: Long,
+    ) : Destination
+
+    /** [holdingId] is [HoldingEdit.NEW] when the screen is creating one. */
+    @Serializable
+    data class HoldingEdit(
+        val holdingId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
+    /**
+     * A purchase or a sale. [tradeId] is [TradeForm.NEW] when recording one, and the holding
+     * is always known: a trade with no holding is not a record of anything.
+     */
+    @Serializable
+    data class TradeForm(
+        val holdingId: Long,
+        val tradeId: Long = NEW,
     ) : Destination {
         companion object {
             const val NEW = 0L
@@ -119,6 +152,17 @@ enum class TopLevelTab(
         owns = listOf(Destination.AccountDetail::class),
         labelRes = R.string.tab_accounts,
         iconRes = R.drawable.ic_tab_accounts,
+    ),
+    INVESTMENTS(
+        destination = Destination.Investments,
+        owns =
+            listOf(
+                Destination.HoldingDetail::class,
+                Destination.HoldingEdit::class,
+                Destination.TradeForm::class,
+            ),
+        labelRes = R.string.tab_investments,
+        iconRes = R.drawable.ic_tab_investments,
     ),
     REPORTS(
         destination = Destination.Reports,

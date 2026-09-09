@@ -67,7 +67,10 @@ class HomeViewModelTest {
     @Test
     fun `a stored section that is no longer a tab reads as no section at all`() =
         runTest {
-            layouts.layout.update { it.copy(lastSection = "INVESTMENTS") }
+            // The name here has to be one no tab answers to. It used to be "INVESTMENTS",
+            // which stopped working the day investments became a section — which is the exact
+            // scenario this test exists for, arriving from the other direction.
+            layouts.layout.update { it.copy(lastSection = "BUDGETS") }
 
             viewModel.state.test {
                 assertNull(awaitStateThat { it.loaded }.lastSection)

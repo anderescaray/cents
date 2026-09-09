@@ -18,8 +18,11 @@ import java.time.Instant
 /**
  * Translation between the storage shape and the domain shape.
  *
- * Kept in one file on purpose: when the schema changes, every place that needs updating is
- * here rather than scattered across repositories.
+ * Kept in one file per area on purpose: when the schema changes, every place that needs
+ * updating is here rather than scattered across repositories. The investments ones are in
+ * [InvestmentMappers.kt][io.github.anderescaray.cents.data.repository.toDomain], for the same
+ * reason their converters and their Hilt module are their own: a feature should add a file
+ * rather than edit one every other feature also edits.
  */
 
 fun AccountEntity.toDomain(): Account =

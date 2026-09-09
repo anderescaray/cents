@@ -32,6 +32,10 @@ import io.github.anderescaray.cents.ui.feature.filters.TransactionFiltersScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeUiState
 import io.github.anderescaray.cents.ui.feature.home.HomeViewModel
+import io.github.anderescaray.cents.ui.feature.investments.HoldingDetailScreen
+import io.github.anderescaray.cents.ui.feature.investments.HoldingEditScreen
+import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
+import io.github.anderescaray.cents.ui.feature.investments.TradeFormScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
@@ -137,6 +141,7 @@ private fun CentsNavHost(
         transactionRoutes(navController)
         accountRoutes(navController)
         categoryRoutes(navController)
+        investmentRoutes(navController)
 
         composable<Destination.Reports> {
             ReportsScreen(
@@ -217,6 +222,42 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
     }
     composable<Destination.AccountEdit> {
         AccountEditScreen(onDone = { navController.popBackStack() })
+    }
+}
+
+/** The portfolio, one holding on its own, and the two forms behind them. */
+private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
+    composable<Destination.Investments> {
+        PortfolioScreen(
+            onAddHolding = {
+                navController.navigate(Destination.HoldingEdit()) { launchSingleTop = true }
+            },
+            onOpenHolding = { id ->
+                navController.navigate(Destination.HoldingDetail(id)) { launchSingleTop = true }
+            },
+        )
+    }
+    composable<Destination.HoldingDetail> {
+        HoldingDetailScreen(
+            onBack = { navController.popBackStack() },
+            onEdit = { id ->
+                navController.navigate(Destination.HoldingEdit(holdingId = id)) { launchSingleTop = true }
+            },
+            onAddTrade = { holdingId ->
+                navController.navigate(Destination.TradeForm(holdingId = holdingId)) { launchSingleTop = true }
+            },
+            onOpenTrade = { holdingId, tradeId ->
+                navController.navigate(Destination.TradeForm(holdingId = holdingId, tradeId = tradeId)) {
+                    launchSingleTop = true
+                }
+            },
+        )
+    }
+    composable<Destination.HoldingEdit> {
+        HoldingEditScreen(onDone = { navController.popBackStack() })
+    }
+    composable<Destination.TradeForm> {
+        TradeFormScreen(onDone = { navController.popBackStack() })
     }
 }
 

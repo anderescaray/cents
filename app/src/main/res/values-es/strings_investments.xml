@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- La cartera -->
+    <string name="investments_empty_title">Todavía no tienes nada</string>
+    <string name="investments_empty_message">Añade lo que tengas — una acción, un ETF, un fondo indexado o un activo cripto — y registra lo que pagaste por ello.</string>
+    <string name="investments_empty_no_account">Una inversión necesita una cuenta donde vivir. Crea una en Cuentas y vuelve aquí.</string>
+    <string name="investments_add">Añadir una posición</string>
+    <string name="investments_total_value">Valor: %1$s</string>
+    <string name="investments_total_cost">Coste: %1$s</string>
+    <string name="investments_total_profit">Ganancia: %1$s</string>
+    <string name="investments_total_unpriced">%1$d de ellas no tienen precio todavía y quedan fuera del total.</string>
+    <string name="investments_class_stock">Acciones</string>
+    <string name="investments_class_etf">ETF</string>
+    <string name="investments_class_index_fund">Fondos indexados</string>
+    <string name="investments_class_crypto">Cripto</string>
+    <string name="investments_no_price">Sin precio todavía</string>
+    <string name="investments_units">%1$s unidades</string>
+
+    <!-- Una posición -->
+    <string name="holding_price_header">Precio</string>
+    <string name="holding_price_row">Último precio</string>
+    <string name="holding_price_set">Poner un precio</string>
+    <string name="holding_price_asof">A fecha de %1$s</string>
+    <string name="holding_price_manual_footer">Escrito por ti. Los precios vendrán de internet en una versión posterior; hasta entonces, es el número del que salen todos los totales de esta pantalla.</string>
+    <string name="holding_position_header">Posición</string>
+    <string name="holding_position_quantity">Cantidad</string>
+    <string name="holding_position_average">Coste medio</string>
+    <string name="holding_position_cost">Lo que costó</string>
+    <string name="holding_position_value">Lo que vale</string>
+    <string name="holding_position_unrealised">Ganancia si vendieras ahora</string>
+    <string name="holding_position_realised">Ganancia ya realizada</string>
+    <string name="holding_position_closed">No queda nada. Todas las unidades compradas se han vendido.</string>
+    <string name="holding_trades_header">Operaciones</string>
+    <string name="holding_trades_empty">No hay operaciones. Añade la compra con la que empezó esta posición.</string>
+    <string name="holding_add_trade">Registrar una operación</string>
+    <string name="holding_edit">Editar esta posición</string>
+    <string name="holding_trade_buy">Compra de %1$s</string>
+    <string name="holding_trade_sell">Venta de %1$s</string>
+    <string name="holding_trade_at">a %1$s cada una</string>
+
+    <!-- El diálogo de precio -->
+    <string name="price_dialog_title">Último precio conocido</string>
+    <string name="price_dialog_message">Lo que vale una unidad, y cuándo era cierto.</string>
+    <string name="price_dialog_placeholder">Precio por unidad</string>
+    <string name="price_dialog_date">Fecha del precio</string>
+
+    <!-- El editor de posiciones -->
+    <string name="holding_new_title">Nueva posición</string>
+    <string name="holding_edit_title">Posición</string>
+    <string name="holding_field_symbol">Símbolo</string>
+    <string name="holding_field_symbol_placeholder">NVDA, IE00B4L5Y983, BTC</string>
+    <string name="holding_field_symbol_footer">El ticker, el ISIN o el símbolo cripto. Es contra lo que se guarda el precio, para que dos cuentas con lo mismo coincidan en cuánto vale.</string>
+    <string name="holding_field_name">Nombre</string>
+    <string name="holding_field_name_placeholder">NVIDIA</string>
+    <string name="holding_field_class">Tipo</string>
+    <string name="holding_field_account">Cuenta</string>
+    <string name="holding_field_account_footer">En qué cuenta está. Es la cuenta a la que transfieres dinero antes de comprar.</string>
+    <string name="holding_field_note">Nota</string>
+    <string name="holding_field_note_placeholder">Opcional</string>
+    <string name="holding_duplicate">Esa cuenta ya tiene %1$s. Ábrela en vez de añadir otra fila para lo mismo.</string>
+    <string name="holding_delete">Eliminar esta posición</string>
+    <string name="holding_delete_title">¿Eliminar %1$s?</string>
+    <string name="holding_delete_message">No tiene operaciones, así que se puede eliminar del todo.</string>
+    <string name="holding_delete_message_trades">Sus %1$d operaciones se van con ella, y eso no se puede deshacer.</string>
+
+    <!-- El formulario de operación -->
+    <string name="trade_new_title">Nueva operación</string>
+    <string name="trade_edit_title">Operación</string>
+    <string name="trade_side_buy">Compra</string>
+    <string name="trade_side_sell">Venta</string>
+    <string name="trade_field_quantity">Cantidad</string>
+    <string name="trade_field_quantity_placeholder">Cuántas unidades</string>
+    <string name="trade_field_price">Precio por unidad</string>
+    <string name="trade_field_fee">Comisión</string>
+    <string name="trade_field_date">Fecha</string>
+    <string name="trade_total_buy">Esta compra costó %1$s, comisión incluida.</string>
+    <string name="trade_total_sell">Esta venta devolvió %1$s, ya descontada la comisión.</string>
+    <string name="trade_too_much">Solo tienes %1$s. Una venta no puede sacar más de lo que entró.</string>
+    <string name="trade_delete">Eliminar esta operación</string>
+    <string name="trade_delete_title">¿Eliminar esta operación?</string>
+    <string name="trade_delete_message">La posición y su coste medio se recalculan sin ella.</string>
+</resources>

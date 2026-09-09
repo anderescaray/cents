@@ -32,12 +32,19 @@ internal fun clearanceBetween(
     return (distance - radii) / minOf(first.diameter, second.diameter)
 }
 
-private const val DEFAULT_DIAMETER = 0.36f
+/**
+ * Slightly smaller than the four-section canvas started with, because a fifth section arrived
+ * with the portfolio and five bubbles at the old size could not be laid out clear of each other
+ * *and* stay whole when the phone is turned on its side. It changes nothing for a bubble the
+ * owner has already moved: only unplaced ones are laid out from here.
+ */
+private const val DEFAULT_DIAMETER = 0.34f
 
 private val DEFAULT_PLACEMENTS =
     listOf(
-        BubblePlacement(centerX = 0.30f, centerY = 0.22f, diameter = DEFAULT_DIAMETER),
-        BubblePlacement(centerX = 0.71f, centerY = 0.38f, diameter = DEFAULT_DIAMETER),
-        BubblePlacement(centerX = 0.29f, centerY = 0.56f, diameter = DEFAULT_DIAMETER),
-        BubblePlacement(centerX = 0.70f, centerY = 0.74f, diameter = DEFAULT_DIAMETER),
+        BubblePlacement(centerX = 0.29f, centerY = 0.18f, diameter = DEFAULT_DIAMETER),
+        BubblePlacement(centerX = 0.71f, centerY = 0.34f, diameter = DEFAULT_DIAMETER),
+        BubblePlacement(centerX = 0.30f, centerY = 0.50f, diameter = DEFAULT_DIAMETER),
+        BubblePlacement(centerX = 0.70f, centerY = 0.66f, diameter = DEFAULT_DIAMETER),
+        BubblePlacement(centerX = 0.31f, centerY = 0.82f, diameter = DEFAULT_DIAMETER),
     )

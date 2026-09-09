@@ -29,47 +29,27 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D12 — a holding priced in dollars
+### D18 — what happens when the provider answers in dollars
 
-**What is at stake.** A holding carries the currency its instrument is priced in, and the app
-writes the device's currency into it today (D2: one currency, no picker). That is right for a
-euro-denominated ETF and wrong for NVDA, which is priced in dollars whatever you spend in — PRD
-§4.5 is explicit that **investments are the one place conversion comes back**.
+**Only exists because D13 was answered.** You chose to keep everything in euros and convert by
+hand (D12), and you chose **Twelve Data** (D13) — which will answer in **dollars** for NVDA and
+in euros for a UCITS ETF. So the provider branch has to do something about a price that arrives
+in the wrong currency, and "convert yourself" cannot be the answer once the app is the one
+fetching it.
 
-Nothing is broken while every price is typed by hand: you type what the position is worth in
-euros and the arithmetic is sound. It stops being sound the day prices come from a provider,
-because the provider will answer in dollars.
+**Options.** **A** — the app fetches an FX rate alongside the price, converts, and stores euros,
+with the row saying it was converted and when. **B** — only instruments the provider quotes in
+euros refresh themselves; a dollar-priced one keeps its hand-typed price, and the app says why it
+is not refreshing. **C** — store the dollar price as it comes and show it in dollars, which is
+D12's option B arriving through the back door.
 
-**Options.** **A** — holdings stay in the device's currency, and a dollar instrument is entered
-in euros by hand. **B** — a holding carries its own currency, the portfolio shows a subtotal per
-currency and no grand total (what the Accounts tab already does when accounts disagree). **C** —
-a rate is fetched with the prices, and totals are labelled *approximate*.
+**Recommendation: A.** It is what "I want to see euros" means once a machine is doing the
+fetching, and Twelve Data has the FX endpoint. The cost is that a converted price is only as good
+as its rate, so the row has to say so — a number that says *converted at 1,08 on 9 Sep* is
+honest; the same number with nothing next to it is not.
 
-**Recommendation: B now, C when the provider branch lands.** B costs a picker on the holding
-form and is honest; C is a real feature with a rate, a date and an "approximately" behind it,
-and it belongs with the provider rather than ahead of it.
-
-**Default until answered:** A. The holding form does not ask, and every holding is created in
-the account's currency.
-
-**Answer:**
-
-### D13 — which market data provider
-
-**What is at stake.** PRD §8 has carried this since the beginning and §5.1 narrowed it to four
-candidates: **Finnhub**, **Twelve Data**, **Financial Modeling Prep**, **EODHD**. It is your
-call rather than the agent's for one reason: **it needs an account and a key**, and only you can
-create one (C5). The key goes in `local.properties`, which is git-ignored (rule 6).
-
-The other half of the question is your index funds. A fund identified by an ISIN is the hard
-tier in §5.1 — almost no free provider covers it — so it is either tracked by its equivalent
-ETF, or its price stays typed by hand while everything else refreshes itself.
-
-**Recommendation: Twelve Data or Finnhub**, on European coverage and free-tier limits, with
-index funds tracked by their equivalent ETF and the ISIN kept in the holding's note.
-
-**Default until answered:** every price is typed by hand, which is what ships today. The
-`PriceProvider` interface is what the next branch adds; nothing about it is decided by waiting.
+**Default until answered:** A, with the conversion visible on the row. Nothing is built yet:
+`feat/price-provider` is the branch, and it needs your API key before it can run at all.
 
 **Answer:**
 
@@ -97,6 +77,12 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D12 | What happens to a holding priced in dollars? | **Everything stays in euros, converted by hand.** No currency picker on the holding form: a dollar instrument is entered at what it is worth in euros, the way the rest of the app works (D2). The `currency` column stays on the row for the day that changes, and D18 above is the part of this that a provider forces open. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C4 |
+| D13 | Which market data provider? | **Twelve Data**, for European coverage on the free tier — the ETFs are UCITS and listed in Europe. Built behind the `PriceProvider` interface PRD §5.1 makes mandatory, so swapping costs one class. **Blocked until the owner creates an account and puts the key in `local.properties`** (C5, rule 6). | 2026-09-09 · `feat/price-provider` (not built) |
+| D14 | Index funds by ISIN, or by the equivalent ETF? | **The equivalent ETF.** A fund's ISIN is the hard tier in PRD §5.1 and no free provider covers it; the ETF that follows the same index is priced, accessible and moves near-identically. The tracking difference is real and is the price of the whole portfolio refreshing itself. The ISIN goes in the holding's note. | 2026-09-09 · PRD §5.1, §8 |
+| D15 | Backup: manual to a file, or automatic to Drive? | **Both, in that order.** Manual export first — a file the owner owns, no account and no third party — and automatic backup as a later branch on top of it, with its own answers about encryption and what a restore overwrites. | 2026-09-09 · PRD §8, Phase 3 |
+| D16 | Is SQLCipher worth it, with a biometric lock coming? | **No.** Android encrypts the device and no other app can read this one's files; SQLCipher mainly answers root access and physical extraction, at the price of a dependency, slower writes, and a key that can be lost along with the data it protects. The biometric lock is the protection that gets built. | 2026-09-09 · PRD §8, Phase 3 |
+| D17 | Should a fully sold holding stay in the portfolio? | **No, keep it hidden.** The portfolio answers *what do I hold*, and a row worth nothing under that heading is noise. What it made is still recorded, so a "closed positions" view can be built the day it is missed — the gap is written down in `PLAN.md` C4 rather than left to be rediscovered. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C4 |
 | D11 | Where do investments live, and how does money reach them? | **A fifth bubble and tab**, holdings grouped into **stocks, ETFs, index funds and crypto**, and the portfolio is **not a separate world**: an investments account appears in the Accounts tab, money is transferred into it, and cash sitting there is what buys a holding. Prices are typed by hand for now, with a provider next. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C3 |
 | D10 | Should a *spending by weekday* bar open the movements behind it? | **B** — `TransactionFilter` grows a `weekday`, and the Filters form shows a section for it, so a bar drills down like every other chart and the narrowing is visible and clearable. Built in `feat/reports-by-weekday` (2026-09-04): the DAO's filter query gained a weekday clause (`strftime('%w')` rotated onto ISO numbering), the form a "Weekday" section in locale order, and the new view drills each day row down to that weekday inside the period. | 2026-09-04 · `feat/reports-by-weekday`, `PLAN.md` C3 |
 | D9 | Phase 2 with one agent, or three? | **Three.** The reason to wait was that Vico and `ui/feature/reports` were shared foundations, and `CLAUDE.md` §7 builds those once and serially; #20 merged them, so that argument is spent. The four remaining PRD §4.3 views — balance over time, spending by weekday, period comparison, single-category detail — split three ways cleanly. Run on Claude Code's worktree parallelism rather than waiting for the harness, which amends D5's *how* and nothing else. | 2026-08-30 · `PLAN.md` Part B §3, D5 above |

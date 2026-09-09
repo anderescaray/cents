@@ -496,6 +496,22 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
+**Both branches of 2026-09-09 are merged** — #43, the device walk, and #44, the investments
+portfolio — so `main` carries **Room v2, the first migration, the fifth section and 426 tests**.
+That merge is what unblocks the queue: `feat/transfers` needs schema v3 on top of v2, and
+`feat/export` needs holdings and trades to exist, and both of those were the reason nothing else
+could be built while #44 sat open (the stacking rule in C4).
+
+**Six decisions were answered the same day** — D12 through D17 — and one was opened by them: D18
+asks what the app does when Twelve Data answers in dollars, because "keep everything in euros"
+and "fetch prices automatically" cannot both be true without something converting. Its default is
+to convert and say so on the row.
+
+**The next branch is `feat/transfers`**, which is Phase 3's first piece arriving inside Phase 4
+because D11's model needs it: money has to reach the investments account before a purchase can
+spend it. After it, `feat/buying-spends-the-cash` finishes what D11 described.
+`feat/price-provider` stays blocked on an API key only the owner can create (D13).
+
 **Where this session stopped (2026-09-09), second half.** With the phone not to hand, the owner
 asked for investments — Phase 4 — to be started alongside the device walk waiting for review.
 **D11 was asked and answered in the same session**, and settled four things: a fifth bubble and
@@ -1115,8 +1131,28 @@ Phase 4 rather than being skipped.
       beside a 400 € position.
 
 - [ ] **`feat/price-provider`** — prices from the internet, behind the `PriceProvider` interface
-      PRD §5.1 makes mandatory, with the cache and the age of a quote already built.
-      **Blocked on D13**: it needs an account and a key, and only the owner can create one (C5).
+      PRD §5.1 makes mandatory, with the cache and the age of a quote already built. **D13 is
+      answered: Twelve Data**, chosen for European coverage on the free tier, and **D14** says an
+      index fund is priced by its equivalent ETF rather than by an ISIN no free provider carries.
+      **Still blocked on the owner**: it needs an account and an API key in `local.properties`,
+      and only they can create one (C5, rule 6). **D18** is the question it opens — what the app
+      does when the answer arrives in dollars — and its default is to convert and say so.
+
+### Phase 3 — the parts of it the answers of 2026-09-09 defined
+
+Transfers are listed above, inside Phase 4, because investments need them. These are the rest, in
+the order the roadmap puts them, and all three now have their questions answered.
+
+- [ ] **`feat/export`** — **D15: a manual export first**, a file the owner owns, with no account
+      and no third party in it. It reads every table, holdings and trades included, which is
+      why it waited for the investments schema — that landed with #44, so nothing blocks it now.
+- [ ] **`feat/backup`** — the automatic half of D15, on top of the export. It carries its own
+      questions — what is encrypted, and what a restore overwrites — which get asked when it is
+      built rather than guessed at now.
+- [ ] **`feat/biometric-lock`** — and **D16 settles what is under it: no SQLCipher.** Android
+      encrypts the device and no other app can read these files; what SQLCipher answers is root
+      access and physical extraction, at the price of a dependency, slower writes and a key that
+      can be lost with the data. The lock is the protection that gets built.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -1163,15 +1199,19 @@ parallelism.
   what was bought and at what price, and the account's balance does not move — because moving it
   needs the transfer machinery, which is Phase 3 and is the next branch. Until then the portfolio
   and the balances are two true statements that do not add up to net worth.
-- **No conversion, so a dollar holding is entered in euros.** Every holding is created in its
-  account's currency (D2), and the portfolio totals per currency rather than across them. PRD
-  §4.5 says investments are where conversion has to come back; D12 is the question, and
-  the column is already on the row, so answering it costs no migration.
-- **A fully sold holding disappears from the portfolio.** It has no quantity, so it has nothing
-  to be worth, and listing it would put a row worth 0,00 € under a heading about what is held.
-  What it made is still recorded and still reachable — but only while some of it is held, which
-  means realised profit on a closed position is currently write-only. A "closed positions"
-  section is the fix when somebody misses it.
+- **No conversion, and that is now the answer rather than the gap.** D12 was answered on
+  2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
+  and there is no currency picker on the holding form. The `currency` column stays on the row —
+  the portfolio still totals per currency, so an install that somehow holds two does not add
+  them — but no conversion is built and none is planned for the app the owner types into. What is
+  *not* settled is what a **provider** does when it answers in dollars, which is D18 and belongs
+  to `feat/price-provider`.
+- **A fully sold holding disappears from the portfolio, and the owner chose that** (D17,
+  2026-09-09). It has no quantity, so it has nothing to be worth, and a row worth 0,00 € under a
+  heading about what is held is noise. The cost is real and is written down rather than argued
+  away: realised profit on a closed position is recorded and currently unreachable, so a "closed
+  positions" section is the fix the day it is missed. Walk step `i8` is where that judgement gets
+  made with the phone in hand.
 - **The portfolio is rebuilt in Kotlin whenever anything changes.** One query for holdings, one
   for *every* trade, one for every price, combined and folded. It is bounded by how many times
   the owner has traded rather than by how long they have used the app, and it is the honest shape

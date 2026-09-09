@@ -8,7 +8,9 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Position
+import io.github.anderescaray.cents.domain.model.Quantity
 import io.github.anderescaray.cents.domain.model.Trade
+import io.github.anderescaray.cents.domain.model.divideRoundingHalfUp
 import io.github.anderescaray.cents.domain.repository.HoldingRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.repository.PriceQuoteRepository
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.math.BigInteger
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
@@ -42,10 +45,26 @@ data class HoldingDetailUiState(
     val gone: Boolean get() = !loading && position == null
 }
 
+/**
+ * Which number the owner is typing when they price a holding.
+ *
+ * Both say the same thing and the app stores the same thing either way — one price per unit. The
+ * choice exists because the *question* differs: a broker's app shows you both, and being made to
+ * divide one by the other before you can type it is how a correction becomes arithmetic homework.
+ */
+enum class PriceBasis {
+    /** What one unit is worth. */
+    PER_UNIT,
+
+    /** What the whole position is worth. Divided by the quantity to get the price. */
+    TOTAL,
+}
+
 /** The price being typed, which is form state rather than something the database knows yet. */
 @Immutable
 data class PriceEntryState(
     val editing: Boolean = false,
+    val basis: PriceBasis = PriceBasis.PER_UNIT,
     val input: String = AmountEntry.EMPTY,
     val date: LocalDate = LocalDate.EPOCH,
     val pickingDate: Boolean = false,
@@ -112,6 +131,27 @@ class HoldingDetailViewModel
             priceForm.update { it.copy(input = AmountEntry.sanitize(typed)) }
         }
 
+        /**
+         * Switches between typing a unit price and typing what the whole position is worth,
+         * converting what is already there so the number on screen keeps meaning the same money.
+         */
+        fun onPriceBasisChanged(basis: PriceBasis) {
+            val quantity = uiState.value.position?.quantity ?: return
+            priceForm.update { form ->
+                if (form.basis == basis || form.input.isEmpty()) {
+                    form.copy(basis = basis)
+                } else {
+                    val typed = Money(AmountEntry.toMinorUnits(form.input), CURRENCY_PLACEHOLDER)
+                    val converted =
+                        when (basis) {
+                            PriceBasis.TOTAL -> (quantity * typed).minorUnits
+                            PriceBasis.PER_UNIT -> unitPriceFrom(typed.minorUnits, quantity)
+                        }
+                    form.copy(basis = basis, input = AmountEntry.fromMinorUnits(converted))
+                }
+            }
+        }
+
         fun openPriceDatePicker() {
             priceForm.update { it.copy(pickingDate = true) }
         }
@@ -130,10 +170,18 @@ class HoldingDetailViewModel
          * second, or its age — the one thing that says how much to trust it — would be wrong.
          */
         fun savePrice() {
-            val holding = uiState.value.position?.holding ?: return
+            val position = uiState.value.position ?: return
+            val holding = position.holding
             val form = priceForm.value
             if (form.input.isEmpty()) return
-            val minorUnits = AmountEntry.toMinorUnits(form.input)
+            val typed = AmountEntry.toMinorUnits(form.input)
+            // Whichever way it was typed, one price per unit is what is stored: a total is a
+            // fact about a quantity, and a quantity changes the next time anything is traded.
+            val minorUnits =
+                when (form.basis) {
+                    PriceBasis.PER_UNIT -> typed
+                    PriceBasis.TOTAL -> unitPriceFrom(typed, position.quantity)
+                }
             viewModelScope.launch {
                 priceQuoteRepository.setManualPrice(
                     symbol = holding.symbol,
@@ -161,7 +209,34 @@ class HoldingDetailViewModel
 
         fun today(): LocalDate = LocalDate.now(clock)
 
+        /**
+         * The price one unit must be for [totalMinor] to be what the whole position is worth.
+         *
+         * Through [BigInteger] for the reason `Quantity.times` is: the numerator is a value in
+         * cents multiplied by the eight-decimal scale, which leaves a `Long` behind at figures
+         * this app will really see. A position of nothing has no unit price, so it keeps what
+         * was typed rather than dividing by zero.
+         */
+        private fun unitPriceFrom(
+            totalMinor: Long,
+            quantity: Quantity,
+        ): Long =
+            if (quantity.isZero) {
+                totalMinor
+            } else {
+                divideRoundingHalfUp(
+                    BigInteger.valueOf(totalMinor) * BigInteger.valueOf(Quantity.SCALE),
+                    BigInteger.valueOf(quantity.scaled),
+                )
+            }
+
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+
+            /**
+             * The currency is irrelevant while converting between two ways of writing the same
+             * number: both sides are the holding's own, and nothing here leaves this file.
+             */
+            const val CURRENCY_PLACEHOLDER = "XXX"
         }
     }

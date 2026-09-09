@@ -25,6 +25,12 @@ import java.math.BigInteger
  * a rounded average by a quantity re-rounds on every sale, and those errors accumulate in the
  * one direction. Taking the same *fraction* of the basis that was sold is exact, and it leaves
  * a fully-sold position at a cost basis of exactly zero rather than at four cents.
+ *
+ * **A correction is not a trade and is not treated as one.** It states the quantity held on its
+ * date and moves no money: what the owner paid is what they paid, and no profit is realised by
+ * discovering that a number was wrong. Units appearing costs nothing (a split, a bonus, a
+ * purchase recorded elsewhere) and the average per unit falls; units disappearing takes their
+ * share of the cost with them, because they were never held.
  */
 fun positionFrom(
     holding: Holding,
@@ -41,6 +47,24 @@ fun positionFrom(
             TradeSide.BUY -> {
                 quantity += trade.quantity
                 basisMinor += trade.net.minorUnits
+            }
+
+            TradeSide.CORRECTION -> {
+                // The owner saying what they actually hold, which is an **absolute** quantity
+                // rather than a difference: if the real cause turns up later and gets recorded —
+                // the purchase that was forgotten, say — the correction must not then add its
+                // units a second time. Everything traded after it still moves from here.
+                val corrected = if (trade.quantity.isNegative) Quantity.ZERO else trade.quantity
+                // Money does not move. Fewer units than the app thought means those units were
+                // never really held, so their cost leaves with them — proportionally, the way a
+                // sale takes cost out, but with no proceeds and therefore no profit or loss to
+                // realise. More units means they arrived without being paid for (a split, a
+                // bonus, a purchase already recorded elsewhere), so the cost stays where it is
+                // and the average per unit falls, which is exactly what a split does.
+                if (corrected < quantity) {
+                    basisMinor -= proportionOf(basisMinor, quantity - corrected, quantity)
+                }
+                quantity = corrected
             }
 
             TradeSide.SELL -> {

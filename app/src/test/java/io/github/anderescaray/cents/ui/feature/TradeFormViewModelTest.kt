@@ -206,6 +206,149 @@ class TradeFormViewModelTest {
             )
         }
 
+    @Test
+    fun `a correction opens on what the app believes is held`() =
+        runTest {
+            database.tradeDao().insert(trade(holdingId, units = 50, pricePerUnitMinor = 1_000))
+
+            val viewModel = correctionFor()
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.quantityInput.isNotEmpty() }
+
+                // The number the owner is about to disagree with, ready to be typed over.
+                assertEquals(TradeSide.CORRECTION, state.side)
+                assertEquals("50", state.quantityInput)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a correction saves units and no money at all`() =
+        runTest {
+            database.tradeDao().insert(trade(holdingId, units = 50, pricePerUnitMinor = 1_000))
+
+            val viewModel = correctionFor()
+            viewModel.uiState.test {
+                awaitStateThat { it.quantityInput.isNotEmpty() }
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onQuantityTyped("60")
+
+            viewModel.uiState.test {
+                assertTrue(awaitStateThat { it.quantity == Quantity.ofUnits(60) }.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.save()
+
+            val saved =
+                database
+                    .tradeDao()
+                    .observeForHolding(holdingId)
+                    .first()
+                    .first()
+            assertEquals(TradeSide.CORRECTION, saved.side)
+            assertEquals(Quantity.ofUnits(60).scaled, saved.quantityScaled)
+            assertEquals("a correction moves no money", 0L, saved.pricePerUnitMinor)
+            assertEquals(0L, saved.feeMinor)
+        }
+
+    @Test
+    fun `switching to correct carries no price over from what was being typed`() =
+        runTest {
+            database.tradeDao().insert(trade(holdingId, units = 50, pricePerUnitMinor = 1_000))
+
+            // Someone starts recording a purchase, then realises what they want is a correction.
+            val viewModel = formFor()
+            viewModel.onQuantityTyped("5")
+            viewModel.onPriceTyped("123,45")
+            viewModel.onFeeTyped("2")
+            viewModel.uiState.test {
+                // The wait names what the switch below depends on: the position has to have been
+                // read before the form can pre-fill the number it is about to be corrected from.
+                awaitStateThat { it.priceInput.isNotEmpty() && it.heldElsewhere == Quantity.ofUnits(50) }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            viewModel.onSideChanged(TradeSide.CORRECTION)
+            viewModel.uiState.test {
+                awaitStateThat { it.isCorrection && it.quantityInput == "50" }
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.save()
+
+            val saved =
+                database
+                    .tradeDao()
+                    .observeForHolding(holdingId)
+                    .first()
+                    .first()
+            assertEquals(TradeSide.CORRECTION, saved.side)
+            assertEquals("the price typed for the purchase must not follow it", 0L, saved.pricePerUnitMinor)
+            assertEquals(0L, saved.feeMinor)
+        }
+
+    @Test
+    fun `correcting to nothing is allowed, unlike a trade of nothing`() =
+        runTest {
+            database.tradeDao().insert(trade(holdingId, units = 50, pricePerUnitMinor = 1_000))
+
+            val viewModel = correctionFor()
+            viewModel.uiState.test {
+                awaitStateThat { it.quantityInput.isNotEmpty() }
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onQuantityTyped("0")
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.quantity == Quantity.ZERO }
+
+                // "I actually hold nothing" is a real thing to say; a purchase of nothing is not.
+                assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a correction is never refused for being bigger than the position`() =
+        runTest {
+            database.tradeDao().insert(trade(holdingId, units = 3, pricePerUnitMinor = 10_000))
+
+            val viewModel = correctionFor()
+            viewModel.uiState.test {
+                awaitStateThat { it.quantityInput.isNotEmpty() }
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onQuantityTyped("400")
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.quantity == Quantity.ofUnits(400) }
+
+                // The sale check exists because a sale takes units out. A correction says what
+                // is there, so "more than the app thought" is the entire point of it.
+                assertFalse(state.sellsMoreThanHeld)
+                assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    private fun correctionFor(): TradeFormViewModel =
+        viewModels.keep(
+            TradeFormViewModel(
+                RoomTradeRepository(database.tradeDao(), clock),
+                RoomHoldingRepository(database.holdingDao(), clock),
+                RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
+                clock,
+                SavedStateHandle(
+                    mapOf(
+                        "holdingId" to holdingId,
+                        "tradeId" to Destination.TradeForm.NEW,
+                        "correcting" to true,
+                    ),
+                ),
+            ),
+        )
+
     private fun formFor(tradeId: Long = Destination.TradeForm.NEW): TradeFormViewModel =
         viewModels.keep(
             TradeFormViewModel(
@@ -213,7 +356,9 @@ class TradeFormViewModelTest {
                 RoomHoldingRepository(database.holdingDao(), clock),
                 RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
                 clock,
-                SavedStateHandle(mapOf("holdingId" to holdingId, "tradeId" to tradeId)),
+                SavedStateHandle(
+                    mapOf("holdingId" to holdingId, "tradeId" to tradeId, "correcting" to false),
+                ),
             ),
         )
 }

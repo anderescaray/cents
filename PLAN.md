@@ -496,6 +496,18 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
+**The owner asked for one more thing on 2026-09-09, and it is built.** Seeing the portfolio
+described, they asked to type prices as a **total in euros** rather than per unit, and to be able
+to say *"it says 50, I really have 60"*. Both are on `feat/correct-what-you-hold`: a segmented
+control on the price editor, and a third kind of entry — a **correction** — that states what is
+held without moving money and without deleting anything already recorded. 441 tests.
+
+**They also had to be told what the app was already doing**, which is worth remembering: they
+believed NVDA was being tracked in dollars. It is not, and D18 is exactly why — the app holds
+`NVD.DE`, the Frankfurt listing, quoted in euros. The words that carry that are the symbol
+field's footer and walk step `i2`, and if the misunderstanding survived a whole conversation it
+will survive the footer, so watch for it on the phone.
+
 **Both branches of 2026-09-09 are merged** — #43, the device walk, and #44, the investments
 portfolio — so `main` carries **Room v2, the first migration, the fifth section and 426 tests**.
 That merge is what unblocks the queue: `feat/transfers` needs schema v3 on top of v2, and
@@ -600,8 +612,8 @@ unmerged one.
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
-| Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand. Room v2, and the first migration this project has shipped |
-| Tests | 426, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
+| Tests | 441, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1117,6 +1129,31 @@ Phase 4 rather than being skipped.
         as the Reports tab and the canvas.
       *Done when:* what is held can be recorded, priced by hand, and read back with its profit.
       **Done**, 426 tests.
+
+- [x] **`feat/correct-what-you-hold`** — the owner asked for two things after the portfolio
+      landed, and they turn out to be one: *"I want it in euros, and I want to be able to correct
+      the amount when it says 50 and I really have 60."*
+      - **Typing what the whole lot is worth.** The price editor gained a segmented control:
+        **Per unit** or **Total value**. Both store the same thing — one price per unit, because
+        a total is a fact about a quantity and the quantity changes with the next trade — and
+        switching converts what is already typed rather than clearing it. It exists because a
+        broker's app shows both, and making the owner divide one by the other before they can
+        type is how correcting a number turns into arithmetic homework.
+      - **Correcting the quantity, as a record rather than an overwrite.** `TradeSide` gained
+        **`CORRECTION`**, which needed no migration: `side` is stored as a name and this is a new
+        name. It states the quantity held **on its date** rather than a difference, so recording
+        the real cause later — the purchase that was forgotten — cannot count it twice. It moves
+        no money: finding more units costs nothing and lowers the average (which is what a split
+        does), finding fewer takes their share of the cost with them, and **neither realises a
+        profit**, because discovering that a number was wrong is not a trade.
+      - The form is the same one, with a third segment. On a correction the price and fee fields
+        are gone rather than ignorable, the quantity field opens on what the app believes is
+        held, and zero is allowed — *"I actually hold nothing"* is a legitimate thing to say
+        about a position the app believes in, which a purchase of nothing is not.
+      - Reached from the **Quantity row itself**, so the correction is offered where the disputed
+        number is read rather than from a menu somewhere else.
+      *Done when:* the app agrees with the broker without anything being deleted. **Done**,
+      441 tests.
 
 - [ ] **`feat/transfers`** — Phase 3's first piece, needed here: **money has to be able to reach
       the investments account**. A transfer is a paired outflow and inflow linked by one

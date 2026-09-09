@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The investments section's own strings.
+
+    A file of its own, the way each report view has one: a resource file per feature is one more
+    thing a feature adds instead of a place several of them collide.
+-->
+<resources>
+    <!-- The portfolio -->
+    <string name="investments_empty_title">Nothing held yet</string>
+    <string name="investments_empty_message">Add what you hold — a stock, an ETF, an index fund or a crypto asset — and record what you paid for it.</string>
+    <string name="investments_empty_no_account">An investment needs an account to live in. Create one in Accounts first, then come back.</string>
+    <string name="investments_add">Add a holding</string>
+    <string name="investments_total_value">Value: %1$s</string>
+    <string name="investments_total_cost">Cost: %1$s</string>
+    <string name="investments_total_profit">Profit: %1$s</string>
+    <string name="investments_class_stock">Stocks</string>
+    <string name="investments_class_etf">ETFs</string>
+    <string name="investments_class_index_fund">Index funds</string>
+    <string name="investments_class_crypto">Crypto</string>
+    <string name="investments_no_price">No price yet</string>
+    <string name="investments_units">%1$s units</string>
+
+    <!-- One holding -->
+    <string name="holding_price_header">Price</string>
+    <string name="holding_price_row">Last price</string>
+    <string name="holding_price_set">Set a price</string>
+    <string name="holding_price_asof">As of %1$s</string>
+    <string name="holding_price_manual_footer">Typed by you. Prices come from the internet in a later version; until then this is the number every total on this screen is built from.</string>
+    <string name="holding_position_header">Position</string>
+    <string name="holding_position_quantity">Quantity</string>
+    <string name="holding_position_average">Average cost</string>
+    <string name="holding_position_cost">What it cost</string>
+    <string name="holding_position_value">What it is worth</string>
+    <string name="holding_position_unrealised">Profit if sold now</string>
+    <string name="holding_position_realised">Profit already taken</string>
+    <string name="holding_position_closed">Nothing held. Every unit bought has been sold.</string>
+    <string name="holding_trades_header">Trades</string>
+    <string name="holding_trades_empty">No trades recorded. Add the purchase that started this holding.</string>
+    <string name="holding_add_trade">Record a trade</string>
+    <string name="holding_edit">Edit this holding</string>
+    <string name="holding_trade_buy">Bought %1$s</string>
+    <string name="holding_trade_sell">Sold %1$s</string>
+    <string name="holding_trade_at">at %1$s each</string>
+
+    <!-- The price dialog -->
+    <string name="price_dialog_title">Last known price</string>
+    <string name="price_dialog_message">What one unit is worth, and when that was true.</string>
+    <string name="price_dialog_placeholder">Price per unit</string>
+    <string name="price_dialog_date">Price date</string>
+
+    <!-- The holding editor -->
+    <string name="holding_new_title">New holding</string>
+    <string name="holding_edit_title">Holding</string>
+    <string name="holding_field_symbol">Symbol</string>
+    <string name="holding_field_symbol_placeholder">NVDA, IE00B4L5Y983, BTC</string>
+    <string name="holding_field_symbol_footer">The ticker, ISIN or crypto symbol. It is what a price is stored against, so two accounts holding the same thing agree about what it is worth.</string>
+    <string name="holding_field_name">Name</string>
+    <string name="holding_field_name_placeholder">NVIDIA</string>
+    <string name="holding_field_class">Kind</string>
+    <string name="holding_field_account">Account</string>
+    <string name="holding_field_account_footer">Which account this is held in. It is the account you transfer money into before buying.</string>
+    <string name="holding_field_note">Note</string>
+    <string name="holding_field_note_placeholder">Optional</string>
+    <string name="holding_duplicate">That account already holds %1$s. Open it instead of adding a second row for the same thing.</string>
+    <string name="holding_delete">Delete this holding</string>
+    <string name="holding_delete_title">Delete %1$s?</string>
+    <string name="holding_delete_message">It holds no trades, so it can be removed for good.</string>
+
+    <!-- The trade form -->
+    <string name="trade_new_title">New trade</string>
+    <string name="trade_edit_title">Trade</string>
+    <string name="trade_side_buy">Buy</string>
+    <string name="trade_side_sell">Sell</string>
+    <string name="trade_field_quantity">Quantity</string>
+    <string name="trade_field_quantity_placeholder">How many units</string>
+    <string name="trade_field_price">Price per unit</string>
+    <string name="trade_field_fee">Fee</string>
+    <string name="trade_field_date">Date</string>
+    <string name="trade_total_buy">This purchase cost %1$s, the fee included.</string>
+    <string name="trade_total_sell">This sale returned %1$s, the fee taken off.</string>
+    <string name="trade_too_much">You only hold %1$s. A sale cannot take out more than went in.</string>
+    <string name="trade_delete">Delete this trade</string>
+    <string name="trade_delete_title">Delete this trade?</string>
+    <string name="trade_delete_message">The position and its average cost are recalculated without it.</string>
+    <string name="holding_save_failed_message">That account already holds this symbol. Open the holding that is there instead of adding a second row for the same thing.</string>
+    <string name="trade_save_failed_message">The holding this trade belongs to is no longer there. Nothing was recorded.</string>
+</resources>

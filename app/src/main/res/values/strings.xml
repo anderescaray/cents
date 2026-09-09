@@ -4,6 +4,7 @@
     <!-- Tabs -->
     <string name="tab_transactions">Transactions</string>
     <string name="tab_accounts">Accounts</string>
+    <string name="tab_investments">Investments</string>
     <string name="tab_reports">Reports</string>
     <string name="tab_settings">Settings</string>
 

@@ -10,7 +10,11 @@ import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
+import io.github.anderescaray.cents.data.local.dao.HoldingDao
+import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
+import io.github.anderescaray.cents.data.local.dao.TradeDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
+import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
 import javax.inject.Singleton
 
 @Module
@@ -25,7 +29,11 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
-    ): CentsDatabase = Room.databaseBuilder(context, CentsDatabase::class.java, CentsDatabase.NAME).build()
+    ): CentsDatabase =
+        Room
+            .databaseBuilder(context, CentsDatabase::class.java, CentsDatabase.NAME)
+            .addMigrations(*ALL_MIGRATIONS)
+            .build()
 
     @Provides
     fun provideAccountDao(database: CentsDatabase): AccountDao = database.accountDao()
@@ -35,4 +43,13 @@ object DatabaseModule {
 
     @Provides
     fun provideTransactionDao(database: CentsDatabase): TransactionDao = database.transactionDao()
+
+    @Provides
+    fun provideHoldingDao(database: CentsDatabase): HoldingDao = database.holdingDao()
+
+    @Provides
+    fun provideTradeDao(database: CentsDatabase): TradeDao = database.tradeDao()
+
+    @Provides
+    fun providePriceQuoteDao(database: CentsDatabase): PriceQuoteDao = database.priceQuoteDao()
 }

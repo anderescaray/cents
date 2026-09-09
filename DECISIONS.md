@@ -29,8 +29,49 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-**Nothing is waiting here right now.** D10 was answered B and shipped in
-`feat/reports-by-weekday`; it is in the *Answered* table below.
+### D12 — a holding priced in dollars
+
+**What is at stake.** A holding carries the currency its instrument is priced in, and the app
+writes the device's currency into it today (D2: one currency, no picker). That is right for a
+euro-denominated ETF and wrong for NVDA, which is priced in dollars whatever you spend in — PRD
+§4.5 is explicit that **investments are the one place conversion comes back**.
+
+Nothing is broken while every price is typed by hand: you type what the position is worth in
+euros and the arithmetic is sound. It stops being sound the day prices come from a provider,
+because the provider will answer in dollars.
+
+**Options.** **A** — holdings stay in the device's currency, and a dollar instrument is entered
+in euros by hand. **B** — a holding carries its own currency, the portfolio shows a subtotal per
+currency and no grand total (what the Accounts tab already does when accounts disagree). **C** —
+a rate is fetched with the prices, and totals are labelled *approximate*.
+
+**Recommendation: B now, C when the provider branch lands.** B costs a picker on the holding
+form and is honest; C is a real feature with a rate, a date and an "approximately" behind it,
+and it belongs with the provider rather than ahead of it.
+
+**Default until answered:** A. The holding form does not ask, and every holding is created in
+the account's currency.
+
+**Answer:**
+
+### D13 — which market data provider
+
+**What is at stake.** PRD §8 has carried this since the beginning and §5.1 narrowed it to four
+candidates: **Finnhub**, **Twelve Data**, **Financial Modeling Prep**, **EODHD**. It is your
+call rather than the agent's for one reason: **it needs an account and a key**, and only you can
+create one (C5). The key goes in `local.properties`, which is git-ignored (rule 6).
+
+The other half of the question is your index funds. A fund identified by an ISIN is the hard
+tier in §5.1 — almost no free provider covers it — so it is either tracked by its equivalent
+ETF, or its price stays typed by hand while everything else refreshes itself.
+
+**Recommendation: Twelve Data or Finnhub**, on European coverage and free-tier limits, with
+index funds tracked by their equivalent ETF and the ISIN kept in the holding's note.
+
+**Default until answered:** every price is typed by hand, which is what ships today. The
+`PriceProvider` interface is what the next branch adds; nothing about it is decided by waiting.
+
+**Answer:**
 
 ---
 
@@ -56,6 +97,7 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D11 | Where do investments live, and how does money reach them? | **A fifth bubble and tab**, holdings grouped into **stocks, ETFs, index funds and crypto**, and the portfolio is **not a separate world**: an investments account appears in the Accounts tab, money is transferred into it, and cash sitting there is what buys a holding. Prices are typed by hand for now, with a provider next. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C3 |
 | D10 | Should a *spending by weekday* bar open the movements behind it? | **B** — `TransactionFilter` grows a `weekday`, and the Filters form shows a section for it, so a bar drills down like every other chart and the narrowing is visible and clearable. Built in `feat/reports-by-weekday` (2026-09-04): the DAO's filter query gained a weekday clause (`strftime('%w')` rotated onto ISO numbering), the form a "Weekday" section in locale order, and the new view drills each day row down to that weekday inside the period. | 2026-09-04 · `feat/reports-by-weekday`, `PLAN.md` C3 |
 | D9 | Phase 2 with one agent, or three? | **Three.** The reason to wait was that Vico and `ui/feature/reports` were shared foundations, and `CLAUDE.md` §7 builds those once and serially; #20 merged them, so that argument is spent. The four remaining PRD §4.3 views — balance over time, spending by weekday, period comparison, single-category detail — split three ways cleanly. Run on Claude Code's worktree parallelism rather than waiting for the harness, which amends D5's *how* and nothing else. | 2026-08-30 · `PLAN.md` Part B §3, D5 above |
 | D8 | Bubbles instead of a tab bar? | **Yes, after Phase 1 exits**, as a launcher: tapping a bubble expands it to fill the screen in under 500 ms, the tab bar shows inside a section but can be collapsed, and every piece of that state survives a restart. **Built 2026-09-08** in `feat/bubble-launcher` (#41), with the costs it turned out to carry — accessibility above all — recorded in the ADR. | 2026-08-20, built 2026-09-08 · [`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md), `PLAN.md` C3 |

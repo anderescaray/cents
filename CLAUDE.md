@@ -202,8 +202,16 @@ came from, income against expenses per month, a balance line, spending by day of
 period against the one before it or against the same period last year (#42), and one category
 followed over twelve periods — all under one period control and one account picker, with a
 slice, a bar or a point opening the movements behind it. A new view there is an additive unit;
-what it costs is spelled out in `ui/feature/reports/ReportSection.kt`. 369 tests run on the JVM,
-so CI covers the database and the UI without a device.
+what it costs is spelled out in `ui/feature/reports/ReportSection.kt`.
+**Phase 4 has begun early, and deliberately** (D11, 2026-09-09): the app has a fifth section,
+**Investments** — holdings grouped into stocks, ETFs, index funds and crypto, the trades behind
+each one, an average cost that survives a partial sale, and what it is worth at a price typed by
+hand. It brought **Room v2 and this project's first migration and migration test**, which is the
+pattern every later schema change follows (rule 9). Two things it leaves to the next branches:
+a purchase does not yet take money out of its account (that needs transfers, which are Phase 3),
+and no price comes from the internet (D13 asks which provider, and it needs a key only the owner
+can create).
+426 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

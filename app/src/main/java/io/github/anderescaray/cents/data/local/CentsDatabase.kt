@@ -4,11 +4,18 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import io.github.anderescaray.cents.data.local.converter.Converters
+import io.github.anderescaray.cents.data.local.converter.InvestmentConverters
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
+import io.github.anderescaray.cents.data.local.dao.HoldingDao
+import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
+import io.github.anderescaray.cents.data.local.dao.TradeDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
+import io.github.anderescaray.cents.data.local.entity.HoldingEntity
+import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.TradeEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 
 @Database(
@@ -16,11 +23,14 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
         AccountEntity::class,
         CategoryEntity::class,
         TransactionEntity::class,
+        HoldingEntity::class,
+        TradeEntity::class,
+        PriceQuoteEntity::class,
     ],
     version = CentsDatabase.VERSION,
     exportSchema = true,
 )
-@TypeConverters(Converters::class)
+@TypeConverters(Converters::class, InvestmentConverters::class)
 abstract class CentsDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
 
@@ -28,8 +38,15 @@ abstract class CentsDatabase : RoomDatabase() {
 
     abstract fun transactionDao(): TransactionDao
 
+    abstract fun holdingDao(): HoldingDao
+
+    abstract fun tradeDao(): TradeDao
+
+    abstract fun priceQuoteDao(): PriceQuoteDao
+
     companion object {
-        const val VERSION = 1
+        /** v2 (2026-09-09) added holdings, trades and price quotes. See `Migrations.kt`. */
+        const val VERSION = 2
         const val NAME = "cents.db"
     }
 }

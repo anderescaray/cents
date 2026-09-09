@@ -27,6 +27,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("TooManyFunctions")
 @Singleton
 class RoomAccountRepository
     @Inject
@@ -107,6 +108,8 @@ class RoomAccountRepository
         }
 
         override suspend fun countTransactions(id: Long): Int = accountDao.countTransactions(id)
+
+        override suspend fun countHoldings(id: Long): Int = accountDao.countHoldings(id)
     }
 
 @Singleton

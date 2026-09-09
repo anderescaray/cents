@@ -24,8 +24,11 @@ import java.util.Locale
  * locale appears only in [format] and [separatorFor], at the last moment, exactly as it does
  * in [MoneyFormatter].
  *
- * The rules, all of them enforced by [sanitize] so the keypad and the amount filter cannot
- * drift apart:
+ * The rules, all of them enforced by [sanitize] — which is [DecimalEntry]'s, shared with the
+ * quantity field a trade is typed into — so no two fields can drift apart about what a
+ * half-typed number means. Both decimal separators are accepted from a keyboard whatever the
+ * locale says, because refusing the "wrong" one leaves the owner tapping a key that does
+ * nothing; the keypad shows the one this phone writes, from [separatorFor]. The rules:
  *
  * - **At most two digits after the separator.** A third does not go in, rather than being
  *   accepted and rounded away — the owner's explicit answer, and the honest one: a digit
@@ -45,14 +48,6 @@ object AmountEntry {
 
     /** Locale-independent, because this is state and not display. */
     const val SEPARATOR = '.'
-
-    /**
-     * Both separators are accepted from a keyboard. A phone set to English offers a `.` and
-     * one set to Spanish a `,`, and a hardware or third-party keyboard may offer either
-     * whatever the locale says; refusing the "wrong" one would leave the owner tapping a key
-     * that does nothing. The keypad has a single key, labelled by [separatorFor].
-     */
-    private const val ACCEPTED_SEPARATORS = ".,"
 
     /**
      * Two, because the app works in one currency — the device's — and it has cents (D2).
@@ -85,37 +80,7 @@ object AmountEntry {
      * there it would turn a stray second comma into a hundredfold error. Predictable beats
      * clever when the stakes are what an amount is worth.
      */
-    fun sanitize(typed: String): String {
-        val text = StringBuilder()
-        var separated = false
-        var fraction = 0
-        for (character in typed) {
-            when {
-                character.isDigit() && separated -> {
-                    if (fraction < FRACTION_DIGITS) {
-                        text.append(character)
-                        fraction++
-                    }
-                }
-
-                character.isDigit() -> {
-                    // A lone leading zero is a placeholder, not a digit: 0 then 7 is 7.
-                    if (text.length == 1 && text[0] == ZERO) {
-                        text[0] = character
-                    } else if (text.length < MAX_WHOLE_DIGITS) {
-                        text.append(character)
-                    }
-                }
-
-                character in ACCEPTED_SEPARATORS && !separated -> {
-                    separated = true
-                    if (text.isEmpty()) text.append(ZERO)
-                    text.append(SEPARATOR)
-                }
-            }
-        }
-        return text.toString()
-    }
+    fun sanitize(typed: String): String = DecimalEntry.sanitize(typed, FRACTION_DIGITS, MAX_WHOLE_DIGITS)
 
     /** One keystroke: a digit, or the separator key. */
     fun append(

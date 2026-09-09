@@ -19,7 +19,7 @@ class HomeCanvasGeometryTest {
     }
 
     @Test
-    fun `the four start clear of each other on a phone held upright`() {
+    fun `they start clear of each other on a phone held upright`() {
         val placements = TopLevelTab.entries.mapIndexed { index, _ -> defaultPlacement(index) }
 
         for (i in placements.indices) {
@@ -45,9 +45,10 @@ class HomeCanvasGeometryTest {
     }
 
     @Test
-    fun `a fifth section would be placed rather than crash`() {
-        // Nothing offers one today, and the canvas should not be what stops it.
-        assertEquals(defaultPlacement(0), defaultPlacement(4))
+    fun `a section beyond the ones laid out is placed rather than crashing`() {
+        // Five sections exist and five placements are written down. A sixth should land
+        // somewhere rather than fall off the end of the list — it wraps.
+        assertEquals(defaultPlacement(0), defaultPlacement(TopLevelTab.entries.size))
     }
 
     private companion object {

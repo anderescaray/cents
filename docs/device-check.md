@@ -19,7 +19,8 @@ blind — `feat/account-deletion`, `chore/single-currency`, `feat/swipe-to-delet
 views, the account picker and the direction toggle were built — and extended on 2026-09-09 to
 cover the two things that landed after that text was written: the year-on-year segment (#42),
 and the canvas of bubbles the app now opens on (#41), which changes the first thing this walk
-sees.
+sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
+the same day, on a phone nobody has held it on either.
 
 ```bash
 adb devices                  # the phone is there and authorised
@@ -512,12 +513,15 @@ is supposed to do; below is how to tell whether it does.
 
 ### b1 · Four bubbles, named, drifting gently
 
-The app opens on the canvas: **Transactions**, **Accounts**, **Reports**, **Settings**, staggered
-rather than in a grid, each drifting with a small continuous motion. No tab bar under them.
+The app opens on the canvas: **Transactions**, **Accounts**, **Investments**, **Reports**,
+**Settings** — five since the portfolio arrived — staggered rather than in a grid, each drifting
+with a small continuous motion. No tab bar under them.
 
 > **Wrong looks like** bubbles that visibly jump into place a moment after the screen appears
 > (they are drawn only once the stored layout has been read, exactly so that cannot happen), a
-> bubble under the status bar clock, or a fifth thing on the canvas.
+> bubble under the status bar clock, or two of them overlapping before anybody has dragged one.
+> The five are slightly smaller than the four used to be — that is deliberate, and it is what
+> keeps them clear of each other when the phone is turned on its side (b4).
 
 ### b2 · A bubble stays where you put it
 
@@ -609,8 +613,8 @@ growing into it.
 ### b10 · TalkBack can reach every section
 
 Also a device setting, so also the owner's. Turn TalkBack on and swipe through the canvas. Each
-bubble is announced by its section name, in tab order — Transactions, Accounts, Reports, Settings
-— and double-tapping opens it. The section name must be read **once**, not twice.
+bubble is announced by its section name, in tab order — Transactions, Accounts, Investments,
+Reports, Settings — and double-tapping opens it. The section name must be read **once**, not twice.
 
 > **Wrong looks like** a bubble announced as an unlabelled button, an order that follows where
 > the bubbles happen to sit rather than the tab order, or the name read twice because the icon
@@ -618,3 +622,131 @@ bubble is announced by its section name, in tab order — Transactions, Accounts
 >
 > **Known and not a bug:** there is no gesture-free way to *move* a bubble. TalkBack can open
 > them; dragging is a drag. Reset (b8) is the escape hatch (C4).
+
+---
+
+## Walk 6 — the investments section (`feat/investments-portfolio`)
+
+Added 2026-09-09 with #44, and **none of it has been on a phone**. It is the newest section and
+the one where a wrong number is hardest to notice, because unlike a balance there is nothing to
+check it against except the broker's own app — so bring that, and check the two of them against
+each other.
+
+Walk it with **one account you can call a broker**, and be ready to type prices by hand: nothing
+here comes from the internet yet (D13).
+
+### i1 · The section exists, and says what to do when it is empty
+
+Open the **Investments** bubble. With nothing held it says so. With no account at all it says
+something different — that an investment needs an account to live in — and offers no **+**,
+because there would be nowhere to put what you added.
+
+> **Wrong looks like** an empty list with no words, a **+** that opens a form you cannot save,
+> or the same message in both situations. They are different problems and the app should not
+> pretend otherwise.
+
+### i2 · Adding a holding asks four things and refuses a fifth
+
+Tap **+**. Type a symbol — `NVDA` — and watch it upper-case itself as you type; give it a name;
+pick a kind; check that the account row shows the account you expected. Save.
+
+Now add a second holding with the **same symbol in the same account**. The footer under the
+symbol must say that account already holds it, and **Save must be off**.
+
+> **Wrong looks like** the second one saving. Two rows for one instrument split a single
+> position in half, and every average, total and profit on the screen would then be right about
+> each half and wrong about the holding.
+
+### i3 · A purchase is typed the way the keypad taught you
+
+Open the holding, tap **Record a trade**, leave it on **Buy**. Type a quantity of `2,5`, a price
+of `123,45` and a fee of `1,20`. The footer must say what the purchase cost **including the
+fee**: 309,83 €.
+
+Check it against your broker's confirmation. Then try a quantity of `0,000000019` — the ninth
+decimal must not go in.
+
+> **Wrong looks like** the footer showing 308,63 € (the fee dropped) or 12.345,00 € (the price
+> read as cents, the mistake `05` exists to catch). The quantity allows eight decimals because
+> crypto needs them; money still allows two.
+
+### i4 · Nothing is worth anything until you say what it is worth
+
+Back on the holding, the value at the top and the **Price** row both say *no price yet*, and the
+portfolio lists it with the same words rather than with 0,00 €. The totals card says how many
+holdings it left out.
+
+Tap **Set a price**, type one, set the date to when it was true — not necessarily today — and
+save. Everything above it fills in: what it is worth, the profit if sold now, and the percentage.
+
+> **Wrong looks like** a 0,00 € anywhere before a price is set. A number gets believed; "no
+> price yet" does not. Also wrong: the price row not saying **as of** the date you chose.
+
+### i5 · The average cost survives a partial sale
+
+Buy `10` at `10` €, then buy `10` more at `20` €. The average must read 15,00 € and the cost
+300,00 €.
+
+Now **sell 10** at `30` €. Check all four numbers: quantity 10, **average still 15,00 €**, cost
+150,00 €, and **profit already taken** 150,00 €.
+
+> **Wrong looks like** the average moving after a sale — a sale removes cost at what you paid on
+> average, not at what it sold for — or the remaining cost reading 100,00 € (the first ten) or
+> 200,00 € (the last ten). This is the arithmetic everything else on the screen rests on.
+
+### i6 · Selling more than you hold is refused, and says how much there is
+
+With those 10 units held, record a sale of `12`. The footer must say you only hold 10, and
+**Save must be off**.
+
+> **Wrong looks like** it saving and quietly selling only what was there. You meant one of two
+> things — a wrong quantity or a missing purchase — and recording neither is the honest answer.
+
+### i7 · The kinds are separate, and the totals are one
+
+Add an ETF and a crypto asset, each with a price. The portfolio lists them under **their own
+headings**, in the order Stocks, ETFs, Index funds, Crypto — and a heading with nothing under it
+does not appear at all.
+
+The card at the top adds up everything that has a price. Do the arithmetic by hand once.
+
+> **Wrong looks like** an empty heading, a holding under the wrong one, or a total that does not
+> match the rows. If some holdings have no price the total says how many it left out — it must
+> never quietly include them as zero.
+
+### i8 · A sold-out holding leaves the list
+
+Sell everything you hold of one instrument. It disappears from the portfolio.
+
+> That is deliberate — it has no quantity, so it has nothing to be worth — but it also means
+> what it *made* is no longer reachable, which is written down as a known gap (C4). If it reads
+> as losing history rather than as tidying up, say so in `FEEDBACK.md`: that is a judgement only
+> you can make.
+
+### i9 · Deleting a holding says what goes with it
+
+Open a holding with trades and tap **Delete this holding**. The confirmation must name **how
+many trades** go with it and say it cannot be undone. Cancel. Then try one with no trades: the
+message must be the shorter one.
+
+> **Wrong looks like** deleting on the first tap, a message that does not mention the trades, or
+> the plural reading "Its 1 recorded trades".
+
+### i10 · An account holding investments cannot be deleted
+
+Go to **Accounts**, swipe the broker account, and try to delete it. You must be told it holds
+investments and how many, with one button to acknowledge it.
+
+> **Wrong looks like** being offered *"it holds no movements, so it can be removed for good"* and
+> then an error saying something was recorded while you were deciding — the exact dead end this
+> check exists to remove. Also wrong: the account disappearing, which would take your recorded
+> trades with it.
+
+### i11 · The fifth tab behaves like the other four
+
+Inside Investments, the tab bar shows five tabs and Investments is the lit one. Open a holding,
+then a trade, and check the bar stays on **Investments** the whole way down. Press back from the
+section root: you land on the canvas (b7).
+
+> **Wrong looks like** the bar lighting Transactions over a holding — the case #40 fixed for
+> accounts — or five tabs that no longer fit the width of the phone.

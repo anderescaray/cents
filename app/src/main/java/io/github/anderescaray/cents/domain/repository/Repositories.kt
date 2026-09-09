@@ -12,6 +12,12 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
+/**
+ * @suppress TooManyFunctions — an account's surface is wide because "delete" has three honest
+ * meanings (D7) and two things can refuse it, movements and holdings. Splitting the interface
+ * would put the counts on one side of a seam and the deletions they gate on the other.
+ */
+@Suppress("TooManyFunctions")
 interface AccountRepository {
     fun observeAccounts(includeArchived: Boolean = false): Flow<List<Account>>
 
@@ -64,6 +70,16 @@ interface AccountRepository {
 
     /** Zero means the account can be deleted outright instead of archived. */
     suspend fun countTransactions(id: Long): Int
+
+    /**
+     * How many investments are held in this account.
+     *
+     * Non-zero means it cannot be deleted at all by this flow: a holding's account is
+     * `RESTRICT` like a movement's, but none of the three removals above touches holdings, so
+     * every one of them would be refused by the database. The count exists so the owner is
+     * told that instead of being offered a delete that cannot work.
+     */
+    suspend fun countHoldings(id: Long): Int
 }
 
 interface CategoryRepository {

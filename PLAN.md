@@ -496,23 +496,46 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
-**Where this session stopped (2026-09-09).** Nothing was left to build: everything C3 lists is
-merged, `FEEDBACK.md` is empty and `DECISIONS.md` is empty. What was left was the walk that
-turns that into knowledge. `docs/device-walk-phase-2` carries **the second run of
-[`docs/device-check.md`](docs/device-check.md)**, written across two sessions and now finished:
+**Where this session stopped (2026-09-09), second half.** With the phone not to hand, the owner
+asked for investments — Phase 4 — to be started alongside the device walk waiting for review.
+**D11 was asked and answered in the same session**, and settled four things: a fifth bubble and
+tab, holdings grouped into stocks, ETFs, index funds and crypto, an investments account that
+lives in the Accounts tab like any other, and manual prices now with a provider later.
+`feat/investments-portfolio` builds all of it — Room v2 and **the project's first migration and
+migration test**, `Quantity` as an exact integer, a cost basis that survives a partial sale, and
+a portfolio that says *no price yet* rather than showing zero. 426 JVM tests, green twice on a
+clean run.
+
+**Two things it deliberately did not do.** A purchase does not yet take money out of the account:
+that needs transfers, which are Phase 3, and which are now the next branch precisely because
+D11's model needs them. And no price comes from the internet — **D13 asks which provider, because
+it needs a key only the owner can create** (C5). Both are in C4 and in the C3 list.
+
+**The investments section has its own walk, written after #43 merged.** It could not be written
+while that branch was open — `docs/device-check.md` was being rewritten there, and a Walk 6
+alongside it would have conflicted hunk for hunk (the stacking rule in C4). Once #43 landed, this
+branch rebased onto it and added **Walk 6 (i1–i11)**: the empty states, the duplicate symbol, a
+purchase typed with its fee, a price that has a date, **the average cost surviving a partial
+sale** — the arithmetic everything else rests on — an oversized sale being refused, the headings,
+deleting a holding, and the account that cannot be deleted because it holds investments. Walk 5
+also gained its fifth bubble.
+
+**Where this session stopped (2026-09-09), first half.** Everything C3 listed was merged,
+`FEEDBACK.md` was empty and `DECISIONS.md` was empty. What was left was the walk that turns that
+into knowledge. `docs/device-walk-phase-2` carried **the second run of
+[`docs/device-check.md`](docs/device-check.md)**, written across two sessions and finished there:
 the Phase 2 steps r9–r18 that were sitting uncommitted in the working copy, plus **r19** for the
 year-on-year segment and a new **Walk 5 (b1–b10)** for the canvas — the two things that merged
-*after* that text was written. It also fixes what the canvas made stale: the walk used to open
+*after* that text was written. It also fixed what the canvas made stale: the walk used to open
 on a list, and step 01 is now the canvas, 02 goes through it, 07 asks whether reopening in the
 last section reads right, and r18's "Back returns to Reports" is no longer true. Tab names in the
-walk now say **Transactions**, which is what the bar says, rather than "Movements". `main` was
-green on the full gates before any of it: **369 JVM tests**.
+walk now say **Transactions**, which is what the bar says, rather than "Movements". Merged as
+**#43**.
 
-**The next step is the owner's, and it is the phone.** Neither of the two things that merged on
-2026-09-08 after the walk text was written — #41, the canvas, and #42, year-on-year — has been
-seen on a device, and neither has any of Phase 2. The walk is written to be handed to someone
-with the phone in their hand; what it turns up goes in `FEEDBACK.md`, and that becomes the
-next branch.
+**The next step is the owner's, and it is the phone.** Nothing on the Reports tab, none of the
+canvas and none of the portfolio has been seen on a device. The walk is written to be handed to
+someone with the phone in their hand; what it turns up goes in `FEEDBACK.md`, and that becomes
+the next branch.
 
 **Where the session before it stopped (2026-09-08).** Four things landed, in this order.
 `feat/reports-by-weekday` merged as **#39**, so **PRD §4.3 is complete and Phase 2's chart work
@@ -554,13 +577,14 @@ unmerged one.
 | Database | Room v1: `accounts`, `categories`, `transactions`. Balances computed in SQL, foreign keys `RESTRICT`, schema exported to `app/schemas/` |
 | Domain | `Money` (exact minor units + currency), `Account`, `Category`, `Transaction`, repository interfaces with Room implementations |
 | Design system | iOS-flavoured tokens and components, including a row that swipes sideways to delete and a search field — see [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
-| Navigation | A canvas of bubbles the app opens on, four tabs underneath it, type-safe routes and push/pop transitions. A tab owns the screens pushed inside it, so the bar stays lit on the tab you are in and a slide travels the way you moved; a section is pushed on top of the canvas, so back from a section root returns there |
+| Navigation | A canvas of bubbles the app opens on, five tabs underneath it, type-safe routes and push/pop transitions. A tab owns the screens pushed inside it, so the bar stays lit on the tab you are in and a slide travels the way you moved; a section is pushed on top of the canvas, so back from a section root returns there |
 | Transactions | List grouped by day with a monthly summary, and one form that adds and edits: minor-unit keypad, date picker, note, and a delete that can be undone from the list. Searchable, and filterable by date range, account, category, kind and amount |
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
-| Tests | 369, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand. Room v2, and the first migration this project has shipped |
+| Tests | 426, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1007,6 +1031,93 @@ charts at once is how a phase turns into a month.
       actually says — **Transactions**, not "Movements".
       *Done when:* the owner can walk the app end to end from this file without knowing the code.
 
+### Phase 4 — begun early, deliberately: what the money is invested in
+
+**Out of roadmap order, and that was the owner's call** (2026-09-09). Phase 3 — transfers,
+recurring rules, export — is unbuilt, and `CLAUDE.md` §9 says not to jump a phase without
+agreeing on it first. The agreement is D11. What it costs is written into the branch list below:
+the owner's model of investments *needs* a transfer, so Phase 3's first piece arrives inside
+Phase 4 rather than being skipped.
+
+- [x] **`feat/investments-portfolio`** — the portfolio, at manual prices. **D11 answered the four
+      questions it needed**: a fifth bubble and tab, holdings grouped by asset class, an
+      investments account that lives in the Accounts tab like any other, and prices typed by hand
+      until a provider arrives.
+      - **Room v2, and the first migration this project has ever shipped.** Three tables —
+        `holdings`, `trades`, `price_quotes` — purely additive, with `CentsDatabaseMigrationTest`
+        building a *real* v1 database from the exported `1.json`, putting money in it, migrating,
+        and checking both that the money survived and that Room agrees to open what came out.
+        That test is the pattern every later schema change follows (rule 9), and it closes the C4
+        gap that said no migration test existed.
+      - **A quantity is an exact integer too.** `Quantity` holds hundred-millionths of a unit,
+        because half a share and 0.00000001 BTC are both real, and a `Double` holding either is a
+        portfolio that does not reconcile with the broker's own app. Multiplying one by a price
+        goes through `BigInteger`: the product overflows a `Long` long before either factor is
+        unreasonable, and overflowing silently would render a negative portfolio.
+      - **A cost basis is a fold, not a `GROUP BY`** — the one aggregation in this app that is
+        not pushed into SQLite, because a sale removes cost *at the average paid so far*, so each
+        trade has to be applied to the result of the one before it. It is bounded by how many
+        times one instrument has been traded. The basis is reduced **proportionally** rather than
+        by a rounded average, so selling everything leaves exactly zero rather than four cents.
+      - **A price is stored against the symbol, not the holding.** The same instrument held in
+        two accounts cannot be worth two different things. Every quote carries the date it was
+        *true* — a price read on Friday and typed on Sunday is Friday's — and every screen shows
+        that age, because until a provider lands the whole portfolio rests on it.
+      - **A holding with no price says so, and is left out of the total**, which then says how
+        many it left out. A portfolio showing 0,00 € for something nobody has priced is worse
+        than one that admits it does not know: the first is a number, and numbers get believed.
+      - **The canvas has a fifth bubble**, so the default arrangement was re-laid out and the
+        default diameter is slightly smaller — five at the old size could not be both clear of
+        each other and whole when the phone is turned on its side. It changes nothing for a
+        bubble already moved: only unplaced ones are laid out from the defaults.
+      - Deleting a holding takes its trades with it, in one transaction, behind a confirmation
+        that says how many go — the bargain D7 struck for accounts, applied to the same shape of
+        problem. A duplicate symbol in one account is refused by a unique index *and* by the
+        form, so the owner gets a reason instead of a constraint violation.
+      - **What review caught was mostly about money that is not there.** A total over a portfolio
+        nobody has priced folded to 0,00 € and rendered it — the failure a single unpriced row
+        already refused to commit, one level up; a total is now null until something in it has a
+        price, and profit is measured against what the *priced* half cost. A sale bigger than the
+        position clamped its quantity but not its money, booking proceeds for units that were
+        never held and calling the result *realised*. A quote is shared by symbol, so one stored
+        in another currency reached `Money`'s refusal to add euros to dollars from inside the
+        portfolio's `combine`, which would have taken the whole tab down rather than mispricing
+        one row — a mismatch now reads as no price.
+      - **And one thing this branch broke elsewhere.** `holdings.accountId` is `RESTRICT`, but
+        the account-deletion flow only ever counted movements: an account holding investments and
+        no movements took the "nothing lives in it" path, hit the constraint, and reported *"try
+        again"* — advice that could never work. Deleting such an account is now refused with a
+        reason, which is a third answer rather than a variation on D7's two: a movement can be
+        moved to another account, a holding cannot, and nothing here is going to delete somebody's
+        recorded trades as a side effect of tidying an account list.
+      - The holding editor also learned three things: archived accounts are listed (a holding does
+        not stop existing because its account was put away, and the currency used to fall through
+        to a hard-coded default), the duplicate check runs one query at a time so a stale answer
+        cannot clear the warning, and a write the database refuses becomes an alert rather than an
+        exception escaping the view model.
+      - It also carries **Walk 6 of the device check** (`i1`–`i11`), added after #43 merged and
+        this branch rebased onto it, so the portfolio can be walked on the phone in the same pass
+        as the Reports tab and the canvas.
+      *Done when:* what is held can be recorded, priced by hand, and read back with its profit.
+      **Done**, 426 tests.
+
+- [ ] **`feat/transfers`** — Phase 3's first piece, needed here: **money has to be able to reach
+      the investments account**. A transfer is a paired outflow and inflow linked by one
+      `transferId`, excluded from every income and expense report (PRD §3) — get that
+      wrong and every statistic in the app inflates. Schema v3, a migration and its test.
+      *Done when:* moving 500 € from Checking to Broker changes both balances and no chart.
+
+- [ ] **`feat/buying-spends-the-cash`** — what D11 actually described, finished. A purchase takes
+      its cost out of the account's cash and a sale puts it back, using the same exclusion the
+      transfer above establishes, so an investments account's balance reads as **uninvested cash**
+      and the portfolio value sits beside it rather than inside it.
+      *Done when:* transfer 1.000 €, buy 400 € of NVDA, and the account shows 600 € of cash
+      beside a 400 € position.
+
+- [ ] **`feat/price-provider`** — prices from the internet, behind the `PriceProvider` interface
+      PRD §5.1 makes mandatory, with the cache and the age of a quote already built.
+      **Blocked on D13**: it needs an account and a key, and only the owner can create one (C5).
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -1038,6 +1149,39 @@ parallelism.
   trend needs history. The rule it keeps is that the period decides the bucket, so no two
   points anywhere on the tab are different lengths of time. Anything later that assumes "a
   report only ever touches the selected range" has to account for this one.
+- **An account holding investments cannot be deleted at all.** Not archived-instead, not
+  reassigned: refused, with a message naming how many holdings are in the way. A movement can be
+  moved to another account and a holding cannot, and deleting one would take its recorded trades
+  with it — a decision that belongs to whoever is looking at the portfolio. The fix, when it is
+  wanted, is a fourth answer in the removal sheet, not a quiet cascade.
+- **A quote stored in a currency the holding does not use reads as no price.** It is the honest
+  answer without a conversion rate (D12) and it cannot arrive at all on a single-currency install;
+  what it means in practice is that an install predating D2 could show *no price yet* for
+  something it does have a price for, until a new one is typed.
+- **Buying does not spend anything yet.** D11 describes money transferred into an investments
+  account and then allocated to a holding; this branch built the second half. A purchase records
+  what was bought and at what price, and the account's balance does not move — because moving it
+  needs the transfer machinery, which is Phase 3 and is the next branch. Until then the portfolio
+  and the balances are two true statements that do not add up to net worth.
+- **No conversion, so a dollar holding is entered in euros.** Every holding is created in its
+  account's currency (D2), and the portfolio totals per currency rather than across them. PRD
+  §4.5 says investments are where conversion has to come back; D12 is the question, and
+  the column is already on the row, so answering it costs no migration.
+- **A fully sold holding disappears from the portfolio.** It has no quantity, so it has nothing
+  to be worth, and listing it would put a row worth 0,00 € under a heading about what is held.
+  What it made is still recorded and still reachable — but only while some of it is held, which
+  means realised profit on a closed position is currently write-only. A "closed positions"
+  section is the fix when somebody misses it.
+- **The portfolio is rebuilt in Kotlin whenever anything changes.** One query for holdings, one
+  for *every* trade, one for every price, combined and folded. It is bounded by how many times
+  the owner has traded rather than by how long they have used the app, and it is the honest shape
+  for an aggregation SQL cannot express (see `positionFrom`). If a portfolio ever gets slow, the
+  split is one query per holding's totals plus the fold only where a sale exists.
+- **Nothing checks that a symbol is real.** "NVDAA" is accepted and will simply never be priced.
+  Validating it means asking a provider, which is D13's branch.
+- **A trade carries no note in the form.** The column exists and the model carries it; the form
+  does not offer it, because a trade is already four fields and the note had no obvious question
+  to answer. It costs one row the day somebody misses it.
 - **Do not branch off an unmerged branch when the merge will be a squash.** `main` squash-merges,
   so a stacked branch carries commits whose content arrives on `main` as one different commit,
   and rebasing then conflicts on every hunk. It happened on 2026-09-03 and the fix was to rebuild

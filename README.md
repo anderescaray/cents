@@ -7,13 +7,19 @@ spending analytics, and an investment portfolio priced from live market data.
 Built with Kotlin and Jetpack Compose. All data stays on the device — no backend, no user
 accounts, no telemetry.
 
-> **Status: Phase 1 of 6 complete.** Recording money works end to end: accounts, categories,
-> transactions and balances that trace back to the movements behind them; a list grouped by
-> day that can be searched and filtered by date range, account, category, kind and amount; and
-> deletion that asks the right question — including what should become of the movements inside
-> an account you are removing. Nothing is seeded: every row in the app is one the owner typed.
-> **Phase 2, analytics, is next.** 143 tests run on the JVM, so CI covers the database and the
-> UI without a device. The roadmap below tracks progress honestly.
+> **Status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
+> Recording money works end to end: accounts, categories, transactions and balances that trace
+> back to the movements behind them; a list grouped by day that can be searched and filtered by
+> date range, account, category, kind and amount; and deletion that asks the right question —
+> including what should become of the movements inside an account you are removing. Nothing is
+> seeded: every row in the app is one the owner typed. **Analytics is built:** a Reports tab
+> with six views — where the money went or came from, income against expenses, balance over
+> time, spending by weekday, this period against the last or against the same period last year,
+> and one category followed over twelve periods — all under one period control and one account
+> picker, and every chart drills down to the movements behind it. The app opens on a **canvas of
+> bubbles**, one per section ([ADR 0002](docs/decisions/0002-bubble-launcher.md)). 369 tests run
+> on the JVM, so CI covers the database and the UI without a device. The roadmap below tracks
+> progress honestly.
 
 ---
 
@@ -47,7 +53,10 @@ The app is Material 3 underneath and iOS on the surface: inset grouped lists, la
 collapsing titles, a bottom tab bar, iOS-style switches, alerts and action sheets,
 horizontal push/pop transitions and the Inter typeface. No screen is assembled from default
 Material widgets and there is no dynamic colour. The reasoning is in
-[`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md).
+[`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md), and the one
+deliberate departure — the app opens on a canvas of draggable bubbles rather than on a tab, with
+the tab bar kept for moving between sections once you are inside one — is in
+[`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md).
 
 ## Architecture
 
@@ -97,8 +106,8 @@ parallel work demand it.
 |---|---|---|
 | 0 | Project skeleton, CI, theme, navigation | **Done** |
 | 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
-| 2 | Analytics: by category, income vs expenses, by weekday, period comparison | **Next** |
-| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | Planned |
+| 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
+| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | Next |
 | 4 | Investment portfolio with live prices and P&L | Planned |
 | 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | Planned |
 | 6 | Widget, animations, Baseline Profile, accessibility | Planned |

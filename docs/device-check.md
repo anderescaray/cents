@@ -15,7 +15,11 @@ decimal went in anyway"* is a complete entry.
 **When to run it.** After any run of branches built without a device attached, and before
 closing a phase. First run: 2026-08-21, closing Phase 1, after four branches had been built
 blind — `feat/account-deletion`, `chore/single-currency`, `feat/swipe-to-delete` and
-`feat/transaction-filters`.
+`feat/transaction-filters`. Second run: 2026-09-08, closing Phase 2, after all six PRD §4.3
+views, the account picker and the direction toggle were built — and extended on 2026-09-09 to
+cover the two things that landed after that text was written: the year-on-year segment (#42),
+and the canvas of bubbles the app now opens on (#41), which changes the first thing this walk
+sees.
 
 ```bash
 adb devices                  # the phone is there and authorised
@@ -33,20 +37,26 @@ adb uninstall io.github.anderescaray.cents    # only when a *fresh install* is t
 These are the checks that close a phase, and they run **in order**: each one leaves the state
 the next one needs.
 
-### 01 · The first screen is empty, and says so in words
+### 01 · The first screen is the canvas, and everything behind it is empty
 
-Transactions and Accounts both empty, Settings → Categories empty. Empty is the correct state
-on a fresh install, not a bug.
+Changed 2026-09-08. The app no longer opens on a list: a fresh install opens on the **canvas of
+four bubbles** — Transactions, Accounts, Reports, Settings — with no tab bar under them
+(ADR 0002). Walk 5 is the canvas itself; here it is only the way in.
 
-> **Wrong looks like** a `Cash` account, or any category you did not type. That would mean the
-> removal of first-run seeding regressed (D1).
+Open each bubble in turn. Transactions and Accounts are both empty, Settings → Categories is
+empty. Empty is the correct state on a fresh install, not a bug.
+
+> **Wrong looks like** a `Cash` account, or any category you did not type — that would mean the
+> removal of first-run seeding regressed (D1) — or the app opening straight onto a tab, which
+> would mean the canvas is not the start destination.
 
 ### 02 · The front door leads somewhere
 
-On Transactions, tap **+** with no account existing. It should walk you into creating one.
+Open **Transactions** from the canvas and tap **+** with no account existing. It should walk you
+into creating one.
 
 > **Wrong looks like** an empty account field with no way forward. This path used to be an
-> edge case and is now the first thing anyone sees.
+> edge case and is now the first thing anyone sees after the canvas.
 
 ### 03 · Creating an account never asks which currency
 
@@ -108,7 +118,11 @@ arithmetic yourself: opening balance, plus income, minus expenses.
 Swipe the app away from the recents list — not just Home — and reopen it. Accounts, categories,
 movements and balances all still there.
 
-> **Wrong looks like** anything missing.
+It reopens on **the section you were last in**, not on the canvas — that is what D8 asked for,
+and it means the bubbles are usually not what you see on launch. It is one flag to change if it
+reads wrong in the hand, so say so in `FEEDBACK.md` either way (C4).
+
+> **Wrong looks like** anything missing, or the app reopening on a section you were never in.
 
 ---
 
@@ -224,12 +238,16 @@ rather than vanishing under your finger — and then `5`, which must take the fo
 
 ---
 
-## Walk 4 — the charts (`feat/reports-charts`)
+## Walk 4 — the charts and analytics (Phase 2)
 
-Added 2026-08-27. **Nothing in this section has ever been on a phone**: the branch was built
-with no device attached, and every judgement below is one a test cannot make. Walk it with at
-least three expenses in two different categories, and one income, so the charts have something
-to draw.
+Added 2026-08-27, extended 2026-09-08 to cover all six PRD §4.3 views, the account picker,
+the direction toggle and all drill-downs. **Nothing in this section has ever been seen on a
+phone**: the views were built across multiple branches with no device attached, and every
+judgement below is one a test cannot make.
+
+Walk it with at least **two accounts**, at least **three expenses in two different categories**
+(mixing weekdays and weekends), and at least **one income movement**, so every chart, picker
+and verdict has real data to draw.
 
 ### r1 · The ring is legible, not a colour wheel
 
@@ -238,7 +256,7 @@ enough that thin slices are still visible, and the rows beneath it in the same c
 
 > **Wrong looks like** slices too thin to see, two categories you cannot tell apart, or a row
 > whose swatch does not match its slice. The ring is 220 dp tall with a 104 dp hole — two
-> constants at the bottom of `ReportCharts.kt`.
+> constants at the bottom of `SpendingSection.kt`.
 
 ### r2 · The percentages and the total agree with each other
 
@@ -248,42 +266,48 @@ to 100.
 > **Wrong looks like** them not adding up. Uncategorized spending is deliberately its own
 > slice; if you have any, it is the grey one with no name of its own.
 
-### r3 · The period selector actually re-asks the question
+### r3 · The period selector re-asks every question
 
-Move through **Week → Month → Quarter → Year**. Both charts must change together, and Year
-should show twelve month columns, including empty ones as gaps in the bars rather than as
-missing months.
+Move through **Week → Month → Quarter → Year**. Every section on the tab must change together:
+the ring, monthly flow, balance line, weekday bars, period comparison, and category trend.
+Year should show twelve month columns on the flow chart (including empty ones as gaps in the
+bars rather than as missing months), and the category trend should switch its bucket size to
+follow the preset (weeks for Week, months for Month, quarters for Quarter, years for Year).
 
-> **Wrong looks like** one chart updating and the other not, or a year with only the months
-> that had movements in them.
+> **Wrong looks like** one chart updating and another not, a year with only the months that had
+> movements in them, or the trend line keeping monthly points under a Year selection.
 
 ### r4 · Custom opens on the period you were already looking at
 
-From **Month**, tap **Custom**. The two date rows must show the month you were just looking at
-— not today twice, and not blank. Then change one of them and watch both charts follow.
+From **Month**, tap **Custom**. Two date rows appear: **From** and **To**. They must show the
+month you were just looking at — not today twice, and not blank. Then tap one of them, pick a
+different date, and watch every section follow. Try picking a **From** date that is after
+**To**: the app must straighten the dates rather than refusing them or drawing blank charts.
 
-> **Wrong looks like** the d5 dead end one screen over: dates that cannot be reached, or a
-> range that resets every time you touch it.
+> **Wrong looks like** the d5 dead end one screen over: dates that cannot be reached, a range
+> that resets every time you touch it, or an inverted range producing a blank screen with no
+> explanation.
 
 ### r5 · Green is money in, red is money out — in both themes
 
-Switch the phone to dark and back. The two column colours must stay the same two colours the
-transaction list uses for amounts, and the axis labels must stay readable.
+Switch the phone to dark and back. The flow chart columns (green income, red expenses), the
+balance line (green above opening balance, red below), the weekday bars (red), and the axis
+labels must all stay readable and consistent with the app's palette.
 
 > **Wrong looks like** a purple or teal column, which would mean Vico's Material defaults
 > leaked through (ADR 0001, and check e2).
 
-### r6 · Scrolling the tab stays smooth
+### r6 · Scrolling the tab stays smooth with all six sections
 
-Scroll Reports up and down a few times with a year selected.
+Scroll Reports up and down a few times with a year selected and all six sections loaded.
 
 > **Wrong looks like** the charts stuttering or visibly re-animating on every scroll — that
-> would mean the chart model is being rebuilt during recomposition rather than only when the
-> totals change. Remember the debug-build caveat at the top of this file before judging.
+> would mean chart models are being rebuilt during recomposition rather than only when totals
+> change. Remember the debug-build caveat at the top of this file before judging.
 
 ### r7 · A slice opens the movements behind it, and they add up
 
-Tap a category **row** under the ring. The Movements tab should open already narrowed, and
+Tap a category **row** under the ring. The Transactions tab should open already narrowed, and
 the amounts on it should add up to the amount that row showed. Then come back and tap the
 **ring itself**, on the same slice.
 
@@ -294,8 +318,303 @@ the amounts on it should add up to the amount that row showed. Then come back an
 
 ### r8 · Coming back from a drill-down leaves the app somewhere sensible
 
-After r7, tap **Reports** again, then **Movements** again.
+After r7, tap **Reports** again, then **Transactions** again.
 
 > **Wrong looks like** two copies of the movements list on the back stack — one filtered, one
 > not — or the filter silently still applied when you did not expect it. The filter is
 > deliberately in memory only, so it survives moving between tabs but not restarting the app.
+
+### r9 · The ring shows income too, and flips cleanly
+
+Above the ring, tap the **Income** segment on the Expenses/Income toggle.
+The section header must switch from **Where the money went** to **Where the money came from**,
+and the total row from **Total spent** to **Total earned**. The ring redraws with income
+categories in their own colours. If you have no income in the period, it shows an empty message
+("Nothing came in during this period.").
+
+Now scroll down until the ring is completely off-screen, then scroll back up: the toggle must
+still be on **Income**. Then tap an income slice or row: the Transactions tab must open filtered
+to that category and strictly to **Income** movements.
+
+> **Wrong looks like** the header still saying "Where the money went" or the total saying
+> "Total spent" over income, slices mixing colours during the transition, the toggle quietly
+> reverting to Expenses when scrolled off-screen, or an income slice opening expense movements.
+
+### r10 · The account picker narrows every view at once
+
+Look just below the period selector. With at least two accounts in the database, an **Account**
+section appears with **All accounts** followed by each account by name (with an archived badge
+if archived).
+
+Tap one specific account. Every section below must narrow to that account's data simultaneously:
+the ring, monthly flow, balance line, weekday bars, period comparison, and category trend.
+Then tap **All accounts** to restore the full picture.
+
+> **Wrong looks like** the account picker appearing when you only have one account (it should
+> hide itself entirely), an archived account with history missing from the choices, or one
+> section updating while another still shows totals for all accounts.
+
+### r11 · An account drill-down never leaks another account's money
+
+In the account picker, select one specific account. Then tap any category row under the ring.
+The Transactions tab opens filtered to that category and period. Look at the movements listed:
+every movement must belong to the selected account. Tap the **Filters** button at the top right:
+the **Account** row must show that specific account ticked, not "Every account".
+
+> **Wrong looks like** a drill-down opening movements from other accounts, or dropping the
+> account filter when handing over to the Transactions tab. A report for one account must never
+> drill into everyone's money.
+
+### r12 · The balance line starts from what you had, not from zero
+
+Scroll to **Balance over time**. Look at the line and the three rows beneath it: **Started
+with**, **Ended with**, and **Change**.
+
+The line must start from the balance carried into the period (opening balances plus all earlier
+movements), not from zero. The y-axis must frame the line tightly with a small margin above and
+below — it must not be dragged down to zero, which would turn a 200 € move on a 5.000 € balance
+into a dead flat line at the top of the box.
+
+The line is green above the starting balance and red below it. Check the arithmetic: **Started
+with** plus **Change** must equal **Ended with**. If viewing the current month ending today on
+"All accounts", **Ended with** must match the total balance on the Accounts tab.
+
+> **Wrong looks like** the line starting at 0,00 €, a flat line at the very top of a tall empty
+> box, **Change** glowing green when your balance dropped, or **Ended with** disagreeing with
+> the Accounts tab balance for today.
+
+### r13 · Spending by weekday answers whether weekends wreck you
+
+Scroll to **Spending by weekday**. Seven red columns show your spending for each day of the
+week. Below the chart, **Total spent** must match the ring's expense total for the same period.
+
+The seven day rows are listed in your device locale's day order (e.g. Monday to Sunday), each
+with its total. Read the footer beneath the section: it compares spending *per day* on the
+weekend (Saturday and Sunday averaged) against weekdays (the other five averaged), and gives
+the verdict.
+
+> **Wrong looks like** the seven day rows not adding up to the Total spent row, income movements
+> being included in the bars (the chart is strictly expenses), or the footer comparing raw
+> two-day weekend totals against raw five-day weekday totals rather than spending per day.
+
+### r14 · A weekday row drills down to that day of the week
+
+In **Spending by weekday**, tap a day row that has spending (e.g. **Saturday**).
+The Transactions tab opens immediately. The top card says **Matches** with the count and sum of
+movements recorded on that weekday in the period.
+
+Tap **Filters**: the **Weekday** section must show **Saturday** ticked, with the date range
+still set to your report's period. Tap **Show everything** on the Matches card to clear the
+filter.
+
+> **Wrong looks like** tapping a day row doing nothing, opening movements from other days of the
+> week, or the Weekday filter being applied invisibly without appearing on the Filters form.
+> Also wrong: tapping the chart columns trying to drill down — only the day rows below are
+> tappable.
+
+### r15 · This period against the last compares like with like
+
+Scroll to **This period against the last**. Two pairs of opposing bars appear: Income and
+Expenses. The past period is grey; the current period is accent blue.
+
+Check the three change rows: **Income**, **Expenses**, and **Net**. Check the tinting:
+- Income: earning more is green, earning less is red.
+- Expenses: spending *more* is **red**, spending *less* is **green**.
+- Net: a higher net is green, a lower net is red.
+
+If the current period is still running (e.g. today is mid-month), check the footer: it must
+state that the period is compared against the same elapsed stretch of the previous period.
+
+> **Wrong looks like** heavier spending showing as green "+50,00 €" (spending more is worse,
+> not better), or a partial month being compared against the entire previous month (which
+> would falsely report spending down 80% early in the month).
+
+### r16 · The previous period row opens the past, not the present
+
+At the bottom of **This period against the last**, tap the row labelled **Movements in the
+previous period**. The subtitle shows the exact date range of the comparison period.
+
+Tapping it opens the Transactions tab narrowed to that previous date stretch. Check the dates on
+the movements: they must all fall within that previous range. If an account was chosen in the
+picker, all movements must belong to that account.
+
+> **Wrong looks like** the row opening the current period instead of the previous one, opening
+> the full month when the comparison was clamped to partial dates, or failing to carry the
+> selected account filter.
+
+### r17 · One category over time follows the category you pick
+
+Scroll to **One category over time**. The chart shows a line across twelve buckets (months if
+on Month preset, weeks if on Week preset), drawn in that category's custom colour.
+
+Tap the category row (**Tap to follow a different category**). A list of your categories
+expands inline, with a tick next to the currently selected one. Tap a different category: the
+list collapses, the line redraws in the new category's colour, and the summary rows update:
+**This period** and **Against the usual** (comparing this period to the average of the earlier
+eleven buckets).
+
+Switch to another tab (e.g. Accounts) and come back to Reports. The watched category must still
+be the one you just selected.
+
+> **Wrong looks like** the line drawn in a generic grey or blue instead of the category's
+> colour, the choice list failing to expand or collapse, the selection resetting when switching
+> tabs, or "Against the usual" comparing against only the single previous month instead of the
+> eleven-month average.
+
+### r18 · Clearing any drill-down is one tap from the list
+
+From any section (the ring, a weekday row, or the previous period row), drill down into the
+Transactions tab. The list shows the filtered movements with the **Matches** card.
+
+Tap **Show everything** at the bottom of the Matches card. The list instantly returns to the
+full, unfiltered movement history, the search box is cleared, and the badge on the Filters
+button disappears. Tap **Back** (system gesture): since the movements list is a section root,
+you land back on the **canvas** — not on Reports, and not outside the app.
+
+> **Wrong looks like** having to open the Filters screen and clear checkboxes by hand, stale
+> search text lingering after clearing, pressing Back cycling through multiple copies of the
+> movements list on the back stack, or Back closing the app — which is what it used to do
+> before the canvas became the floor of the stack (b7).
+
+### r19 · This period against last year is a second question, not a second answer
+
+Added 2026-09-08 with #42. In **This period against the last**, tap the second segment,
+**Same period last year**.
+
+The header must change to **This period against last year**, the grey legend to **Same period
+last year**, and the drill-down row at the foot to **Movements in the same period last year**.
+The bars and all three change rows redraw against the year-ago period. Flip back and forth a
+few times: it must answer instantly, because both comparisons are read at once rather than one
+query being re-run on each flip.
+
+Then check the two things the arithmetic can get wrong:
+
+- **A running period is clamped on both sides.** On the ninth of a month, "this period" is nine
+  days, and it must be compared against the *first nine days* of the same month last year — the
+  footer says so. Against the whole month it would read as spending down ~70% for most of every
+  month.
+- **The drill-down goes back a year.** Tap the row: the movements must all fall inside last
+  year's range, and if an account is chosen in the picker they must all belong to it.
+
+> **Wrong looks like** the segment changing the words but not the numbers, the footer still
+> saying "the previous one" under the year-ago segment, a February compared against a stretch
+> that is not February (leap years are the case that breaks this), or the row opening the
+> previous *period* while the chart shows last *year*.
+
+---
+
+## Walk 5 — the canvas of bubbles (`feat/bubble-launcher`)
+
+Added 2026-09-08 with #41, and **none of it has been on a phone**: it is the app's front door,
+it is built out of drag and pinch gestures, and a gesture is the thing this repo's tests can
+least honestly claim to have checked. [`ADR 0002`](decisions/0002-bubble-launcher.md) is what it
+is supposed to do; below is how to tell whether it does.
+
+### b1 · Four bubbles, named, drifting gently
+
+The app opens on the canvas: **Transactions**, **Accounts**, **Reports**, **Settings**, staggered
+rather than in a grid, each drifting with a small continuous motion. No tab bar under them.
+
+> **Wrong looks like** bubbles that visibly jump into place a moment after the screen appears
+> (they are drawn only once the stored layout has been read, exactly so that cannot happen), a
+> bubble under the status bar clock, or a fifth thing on the canvas.
+
+### b2 · A bubble stays where you put it
+
+Drag each bubble somewhere deliberate — one hard against a corner, one to the bottom edge.
+Then swipe the app away from recents and reopen it. Every bubble is where you left it.
+
+Try to drag one off the screen: it must stop at the edge with the whole circle still visible,
+and the one at the bottom must not hand your drag to the system gesture bar.
+
+> **Wrong looks like** a bubble half off the screen, a bubble that springs back after you lift
+> your finger, or an arrangement that resets on restart. **Bubbles are allowed to overlap** once
+> you have dragged them — that is deliberate, not a bug (C4).
+
+### b3 · Pinch resizes, with a floor and a ceiling
+
+Pinch a bubble larger and smaller. It has both a smallest size — never below a comfortable tap
+target — and a largest, a little under two thirds of the screen's shorter side. Both limits
+should feel like limits, not like the gesture breaking.
+
+> **Wrong looks like** a bubble you can shrink to a dot you can no longer hit, or grow until it
+> covers the others. If one ever does become unusable, Settings → **Reset the bubble layout**
+> (b8) is the way out, and reaching for it counts as a finding worth writing down.
+
+### b4 · Turning the phone keeps a bubble the size it was in your hand
+
+Arrange the bubbles, then rotate the phone to landscape and back. A bubble must be about the
+same physical size in both, and still whole and on screen — its size is measured against the
+screen's **shorter** side for exactly this reason.
+
+> **Wrong looks like** a bubble taller than the landscape screen, one cropped by an edge, or an
+> arrangement that comes back rearranged after rotating twice.
+
+### b5 · The tap is one motion, and it is quick
+
+Tap a bubble. It grows into the section — one continuous shape, no sideways slide — and the
+section fades in over it, all comfortably inside half a second.
+
+Now tap one bubble and immediately tap a *different* one. You must land in the section you
+tapped first; the second tap must not move the growing shape to another bubble.
+
+> **Wrong looks like** a cross-fade instead of a growing shape, a horizontal slide arguing with
+> the expansion, a stutter partway through, or landing in a section you did not tap.
+
+### b6 · Inside a section the tab bar is back, and the grabber puts it away
+
+Inside any section the bottom tab bar is showing, and it moves you between sections without
+going back to the canvas. Tap the small **grabber** above it: the bar collapses and the grabber
+stays. Tap it again to bring the bar back.
+
+Leave it collapsed, close the app from recents, and reopen: it must still be collapsed.
+
+> **Wrong looks like** the bar hidden with no grabber left to bring it back, the grabber missing
+> its spoken label, or the collapsed state forgotten on restart.
+
+### b7 · Back means the canvas, whether or not the bar is showing
+
+From a section root — the movements list, the accounts list — press back. You return to the
+canvas, and this must be true both with the tab bar showing and with it collapsed.
+
+Then the case that used to be broken: from **Reports**, tap a ring slice to drill into
+Transactions, and press back. You must end up in the app, not out of it.
+
+> **Wrong looks like** back leaving the app from a section root, back doing two different things
+> depending on whether the bar is collapsed, or back from a drill-down closing the app.
+
+### b8 · Resetting the layout asks first, and rescues the canvas
+
+Settings → Home → **Reset the bubble layout**. It must ask before doing anything (rule 7), and
+confirming puts all four bubbles back where a fresh install has them, at their original size.
+
+> **Wrong looks like** it resetting on the first tap with no question — an arrangement made by
+> hand can only be rebuilt by hand — or the reset leaving one bubble where it was.
+
+### b9 · With animations off, nothing drifts and nothing grows
+
+A device setting, so it is the owner's (C5). Turn the system animations off — Settings →
+Accessibility → **Remove animations**, or Developer options with all three animation scales at
+off — then open Cents.
+
+The bubbles must sit still, and tapping one must open its section **immediately** rather than
+growing into it.
+
+> **Wrong looks like** the drift still running, or the expansion still animating. The rule is
+> that an invisible animation is still one the device asked not to run.
+>
+> **Known and not a bug:** the setting is read when the canvas is drawn, not watched. Changing
+> it while Cents is already open leaves the drift running until the next launch (C4).
+
+### b10 · TalkBack can reach every section
+
+Also a device setting, so also the owner's. Turn TalkBack on and swipe through the canvas. Each
+bubble is announced by its section name, in tab order — Transactions, Accounts, Reports, Settings
+— and double-tapping opens it. The section name must be read **once**, not twice.
+
+> **Wrong looks like** a bubble announced as an unlabelled button, an order that follows where
+> the bubbles happen to sit rather than the tab order, or the name read twice because the icon
+> is described separately.
+>
+> **Known and not a bug:** there is no gesture-free way to *move* a bubble. TalkBack can open
+> them; dragging is a drag. Reset (b8) is the escape hatch (C4).

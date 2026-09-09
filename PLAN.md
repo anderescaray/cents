@@ -496,13 +496,32 @@ disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separabl
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
 serial anyway** for the views after that, so ask before forking.
 
-**Where the last session stopped (2026-09-08).** Three things landed, in this order.
+**Where this session stopped (2026-09-09).** Nothing was left to build: everything C3 lists is
+merged, `FEEDBACK.md` is empty and `DECISIONS.md` is empty. What was left was the walk that
+turns that into knowledge. `docs/device-walk-phase-2` carries **the second run of
+[`docs/device-check.md`](docs/device-check.md)**, written across two sessions and now finished:
+the Phase 2 steps r9–r18 that were sitting uncommitted in the working copy, plus **r19** for the
+year-on-year segment and a new **Walk 5 (b1–b10)** for the canvas — the two things that merged
+*after* that text was written. It also fixes what the canvas made stale: the walk used to open
+on a list, and step 01 is now the canvas, 02 goes through it, 07 asks whether reopening in the
+last section reads right, and r18's "Back returns to Reports" is no longer true. Tab names in the
+walk now say **Transactions**, which is what the bar says, rather than "Movements". `main` was
+green on the full gates before any of it: **369 JVM tests**.
+
+**The next step is the owner's, and it is the phone.** Neither of the two things that merged on
+2026-09-08 after the walk text was written — #41, the canvas, and #42, year-on-year — has been
+seen on a device, and neither has any of Phase 2. The walk is written to be handed to someone
+with the phone in their hand; what it turns up goes in `FEEDBACK.md`, and that becomes the
+next branch.
+
+**Where the session before it stopped (2026-09-08).** Four things landed, in this order.
 `feat/reports-by-weekday` merged as **#39**, so **PRD §4.3 is complete and Phase 2's chart work
 is done**. `fix/the-tab-bar-knows-where-you-are` merged as **#40**, closing the one case #31 left
-open: a pushed screen now carries the tab it belongs to. And `feat/bubble-launcher` builds **D8**
-— the app opens on a canvas of bubbles, and the tab bar is what you use once you are inside a
-section. It ships **ADR 0002**, because ADR 0001 specifies a tab bar and rule 12 makes that
-binding. 362 JVM tests, green twice on a clean run.
+open: a pushed screen now carries the tab it belongs to. `feat/bubble-launcher` merged as **#41**
+and builds **D8** — the app opens on a canvas of bubbles, and the tab bar is what you use once
+you are inside a section. It ships **ADR 0002**, because ADR 0001 specifies a tab bar and rule 12
+makes that binding. And `feat/reports-year-on-year` merged as **#42**, closing the C4 gap that
+said the period comparison had only half of what PRD §4.3 asks for. 369 JVM tests.
 
 **Two agents ran side by side for the first time on 2026-09-08**, and not the way §3.1 describes:
 the owner drove a second agent in *this* working copy rather than in a worktree, on
@@ -518,9 +537,8 @@ each day row down to that weekday inside the period. Before it, the previous fou
 merged: #34 (the ring shows income), #35 (reports narrowed to one account), #36 (this period
 against the last) and #37 (one category over time). 317 JVM tests, green locally on a clean run.
 
-**The next branch** is whatever `FEEDBACK.md` turns up on the next device walk, or the deferred
-work in C4 (the dashboard of cards in C7) — none of it decided.
-`DECISIONS.md` is empty.
+**The next branch** is whatever `FEEDBACK.md` turns up on the walk above, or the deferred work
+in C4 (the dashboard of cards in C7) — none of it decided. `DECISIONS.md` is empty.
 
 Two things carried over that no test can settle, both in C4 below: **nobody has seen any of
 Phase 2 on a phone**, and a branch should start from `main` rather than stacking on an
@@ -541,8 +559,8 @@ unmerged one.
 | Categories | The owner's own: nothing is seeded, and they are created, renamed, recoloured, dragged into order, archived and deleted from Settings → Categories — by opening one, or by swiping its row |
 | Accounts | The tab is real: balances computed from the movements behind them, create, edit, archive, restore, and an account detail with its own month summary and movements. Deleting one that holds movements asks what should become of them — move them to another account, or delete them too — whether that is reached from the editor or by swiping the row |
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
-| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it**, and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
-| Tests | 362, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
+| Tests | 369, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -960,7 +978,34 @@ charts at once is how a phase turns into a month.
         reset now asks first (rule 7), because an arrangement made by hand can only be rebuilt by
         hand.
       *Done when:* the app opens on the canvas, a bubble stays where it was put across a restart,
-      and every section is still reachable without a gesture. **Done**, 362 tests.
+      and every section is still reachable without a gesture. **Merged as #41**, 362 tests.
+
+- [x] **`feat/reports-year-on-year`** — merged (#42), and it closes a C4 gap rather than opening a
+      view: PRD §4.3 asks for "this month vs last **and** vs the same month last year", and only
+      the first half existed. A segmented control above the comparison picks which, on the shape
+      the ring's Expense/Income toggle established, and both sides are queried at once so the
+      toggle answers instantly.
+      The arithmetic is where a year-on-year comparison goes wrong, and both traps are held: a
+      **running period is clamped on both sides** — the first nine days of this month against the
+      first nine days of the same month last year, not against the whole of it, which is the same
+      mistake `comparedWith` was already built to avoid one period back — and a **calendar shape
+      stays a calendar shape across a leap year**, so February against February rather than
+      February against twenty-eight days of an earlier March. The drill-down row follows the
+      segment, so tapping it under "same period last year" opens last year's range.
+
+- [x] **`docs/device-walk-phase-2`** — the walk, not a feature. It finishes the second run of
+      [`docs/device-check.md`](docs/device-check.md), which had been written up to r18 in a
+      working copy and never committed, and brings it level with what merged afterwards: **r19**
+      for the year-on-year segment, and **Walk 5 (b1–b10)** for the canvas — drag, pinch,
+      rotation, the expansion, the tab bar's grabber, back, reset, and the two steps that need a
+      device setting and are therefore the owner's (animations off, TalkBack).
+      It also repairs what #41 made stale, which is the part worth noticing: **the walk used to
+      open on a list and the app now opens on the canvas**, so step 01 was checking a screen that
+      is no longer first, and r18 asserted that back from a drill-down returns to Reports when it
+      now returns to the canvas. A device walk that is wrong about the app is worse than no walk,
+      because a correct app reads as a failure. Tab names were also brought to what the bar
+      actually says — **Transactions**, not "Movements".
+      *Done when:* the owner can walk the app end to end from this file without knowing the code.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -999,13 +1044,17 @@ parallelism.
   the branch as a single commit on the merged `main` — `git checkout -B <branch> origin/main`
   followed by `git checkout <old tip> -- .`, which works only because the stacked tree is a strict
   superset. Cheaper to wait for the merge.
-- **Nobody has seen Phase 2 on a phone.** Every view on the Reports tab is verified by JVM tests
-  and by nothing else: the ring's Expense/Income toggle, the account picker above the charts, the
-  comparison columns and the trend line have never been rendered on a device. The device walk in
-  `docs/device-check.md` predates all of them. On 2026-09-03 the phone reached adb once as
-  `device` but was asleep, and every later attempt saw it absent or `offline` — over USB and over
-  wireless debugging, whose mDNS advertised nothing. Screenshots need it awake and unlocked, and
-  unlocking is the owner's (C5).
+- **Nobody has seen Phase 2 — or the canvas — on a phone.** Every view on the Reports tab is
+  verified by JVM tests and by nothing else: the ring's Expense/Income toggle, the account picker
+  above the charts, the comparison columns and both its segments, and the trend line have never
+  been rendered on a device. Neither has the bubble canvas, which is worse in kind rather than in
+  degree — it is the app's front door and it is made of drag and pinch gestures, which is exactly
+  what a Robolectric test can least honestly claim to have checked. **The walk itself is no longer
+  the gap**: `docs/device-check.md` now covers all of it (r1–r19 and Walk 5), and what is missing
+  is a phone and an hour. On 2026-09-03 the phone reached adb once as `device` but was asleep, and
+  every later attempt saw it absent or `offline` — over USB and over wireless debugging, whose
+  mDNS advertised nothing. Screenshots need it awake and unlocked, and unlocking is the owner's
+  (C5).
 - **A report's idea of "today" is fixed when its flow is built.** The period comparison and
   the trend both read the clock once, when the scope changes, so an app left open across
   midnight keeps yesterday's clamp — a movement dated today is left out of "this period" until
@@ -1293,31 +1342,31 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**Read [`FEEDBACK.md`](FEEDBACK.md) first, and fix whatever is under *Open* there.** The device
-pass — [`docs/device-check.md`](docs/device-check.md) — happened on 2026-08-21, after four
-branches had been built with no phone attached; what it turned up comes before any Phase 2
-code. One branch per problem, so each is reviewable on its
-own and revertible on its own.
+**Walk the app on the phone, with [`docs/device-check.md`](docs/device-check.md) open.** That is
+the whole of it, and it is the owner's (C5): every branch of Phase 2 and the canvas in front of
+it were built with no device attached, so the only thing standing between "the tests are green"
+and "the app works" is an hour with the phone in hand.
 
-**Then answer [`DECISIONS.md`](DECISIONS.md) D9 — one agent or three — and build
-`feat/reports-charts`.**
+```bash
+adb devices                  # awake, unlocked, authorised
+./gradlew installDebug
+```
 
-Phase 1 closed on 2026-08-21. Phase 2 is the first phase that *may* be run in parallel, and
-`PLAN.md` has said from the beginning that starting that is a deliberate decision rather than
-something to drift into. D5 already settled *how* it runs (the owner's own harness, at most
-three agents); D9 is *whether it starts now*, and its default is **one agent for the first
-reports branch**, because that branch adds Vico to the version catalog and creates
-`ui/feature/reports` — shared foundations that `CLAUDE.md` §7 says are built once, serially,
-before anything forks.
+Walk 1 (`01`–`07`) is the exit criteria and runs in order. Walk 4 (`r1`–`r19`) is the Reports
+tab, and Walk 5 (`b1`–`b10`) is the canvas — those two are the ones nobody has seen. Anything
+that goes wrong goes in [`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the next
+branch: an *Open* entry there outranks anything planned.
 
-Then: **spending by category**, then **income vs expenses per month**, and nothing else in that
-branch (D4).
+**If the walk is clean**, nothing is waiting: `DECISIONS.md` is empty, C3 has no unchecked
+branch, and what is left is deferred work nobody has chosen yet — the dashboard of cards in C7,
+or any of the gaps in C4. Choosing between them is the owner's, and Phase 3 (transfers,
+recurring rules) is the roadmap's own answer.
 
-**Two things carried over from Phase 1 that no test can settle.** Neither blocks Phase 2, and
-both are worth a few minutes with the phone in hand, because the last four branches were built
-without a device attached:
+**Two questions the walk should settle**, both written into it rather than left to be
+remembered:
 
-- **The swipe to delete.** Its thresholds — half the revealed button to park open, 60% of the
-  row to fire — are two constants at the bottom of `CentsSwipeableRow.kt`.
-- **Search and filters.** Whether the filter form is the right shape at six sections, and
-  whether the Matches summary says what you actually want to know.
+- **`07`** — the app reopens on the section that was last open, not on the canvas, so the
+  bubbles are usually not what you see on launch. That is what D8 asked for; whether it is what
+  it should do is a thing only the hand can say. It is one flag either way.
+- **`b3`/`b8`** — whether a bubble can be pinched or dragged somewhere unusable, and whether
+  **Reset the bubble layout** is a real escape hatch or a thing you would never find in time.

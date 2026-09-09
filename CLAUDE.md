@@ -206,12 +206,14 @@ what it costs is spelled out in `ui/feature/reports/ReportSection.kt`.
 **Phase 4 has begun early, and deliberately** (D11, 2026-09-09): the app has a fifth section,
 **Investments** — holdings grouped into stocks, ETFs, index funds and crypto, the trades behind
 each one, an average cost that survives a partial sale, and what it is worth at a price typed by
-hand. It brought **Room v2 and this project's first migration and migration test**, which is the
-pattern every later schema change follows (rule 9). Two things it leaves to the next branches:
+hand — per unit or as a total, whichever the broker is showing — and what is held can be
+**corrected** when the two disagree, as a record rather than an overwrite. It brought **Room v2
+and this project's first migration and migration test**, which is the pattern every later schema
+change follows (rule 9). Two things it leaves to the next branches:
 a purchase does not yet take money out of its account (that needs transfers, which are Phase 3),
 and no price comes from the internet (D13 asks which provider, and it needs a key only the owner
 can create).
-426 tests run on the JVM, so CI covers the database and the UI without a device.
+441 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

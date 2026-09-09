@@ -79,4 +79,12 @@
     <string name="trade_delete_message">La posición y su coste medio se recalculan sin ella.</string>
     <string name="holding_save_failed_message">Esa cuenta ya tiene ese símbolo. Abre la posición que ya está en vez de añadir otra fila para lo mismo.</string>
     <string name="trade_save_failed_message">La posición a la que pertenece esta operación ya no está. No se ha registrado nada.</string>
+    <string name="trade_side_correction">Corregir</string>
+    <string name="trade_correction_title">Corregir lo que tienes</string>
+    <string name="trade_field_actually_held">Cuántas tienes en realidad</string>
+    <string name="trade_correction_footer">Escribe lo que tienes de verdad y pasa a ser la verdad desde esta fecha — no se mueve dinero y no se borra nada de lo ya registrado. Ahora mismo la app cree que son %1$s.</string>
+    <string name="holding_trade_correction">Corregido a %1$s</string>
+    <string name="price_basis_per_unit">Por unidad</string>
+    <string name="price_basis_total">Valor total</string>
+    <string name="price_field_total">Lo que vale todo junto</string>
 </resources>

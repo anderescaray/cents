@@ -85,4 +85,12 @@
     <string name="trade_delete_message">The position and its average cost are recalculated without it.</string>
     <string name="holding_save_failed_message">That account already holds this symbol. Open the holding that is there instead of adding a second row for the same thing.</string>
     <string name="trade_save_failed_message">The holding this trade belongs to is no longer there. Nothing was recorded.</string>
+    <string name="trade_side_correction">Correct</string>
+    <string name="trade_correction_title">Correct what you hold</string>
+    <string name="trade_field_actually_held">How many you actually hold</string>
+    <string name="trade_correction_footer">Type what you really hold and it becomes the truth from this date on — no money moves, and nothing already recorded is deleted. The app currently thinks it is %1$s.</string>
+    <string name="holding_trade_correction">Corrected to %1$s</string>
+    <string name="price_basis_per_unit">Per unit</string>
+    <string name="price_basis_total">Total value</string>
+    <string name="price_field_total">What the whole lot is worth</string>
 </resources>

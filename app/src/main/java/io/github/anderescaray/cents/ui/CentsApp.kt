@@ -246,6 +246,11 @@ private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
             onAddTrade = { holdingId ->
                 navController.navigate(Destination.TradeForm(holdingId = holdingId)) { launchSingleTop = true }
             },
+            onCorrect = { holdingId ->
+                navController.navigate(Destination.TradeForm(holdingId = holdingId, correcting = true)) {
+                    launchSingleTop = true
+                }
+            },
             onOpenTrade = { holdingId, tradeId ->
                 navController.navigate(Destination.TradeForm(holdingId = holdingId, tradeId = tradeId)) {
                     launchSingleTop = true

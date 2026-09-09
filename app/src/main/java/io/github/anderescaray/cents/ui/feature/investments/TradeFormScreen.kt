@@ -61,7 +61,14 @@ fun TradeFormScreen(
                 .imePadding(),
     ) {
         CentsModalBar(
-            title = stringResource(if (state.isNew) R.string.trade_new_title else R.string.trade_edit_title),
+            title =
+                stringResource(
+                    when {
+                        state.isCorrection -> R.string.trade_correction_title
+                        state.isNew -> R.string.trade_new_title
+                        else -> R.string.trade_edit_title
+                    },
+                ),
             cancelLabel = stringResource(R.string.action_cancel),
             onCancel = onDone,
             confirmLabel = stringResource(R.string.action_save),
@@ -195,6 +202,10 @@ private fun TradeFields(
 @Composable
 private fun footerFor(state: TradeFormUiState): String =
     when {
+        state.isCorrection -> {
+            stringResource(R.string.trade_correction_footer, QuantityEntry.format(state.heldElsewhere))
+        }
+
         state.sellsMoreThanHeld -> {
             stringResource(R.string.trade_too_much, QuantityEntry.format(state.heldElsewhere))
         }

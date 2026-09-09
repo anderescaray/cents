@@ -19,10 +19,19 @@ enum class AssetClass {
     CRYPTO,
 }
 
-/** Whether a trade added to the position or took away from it. */
+/**
+ * What a recorded entry did to the position.
+ *
+ * [BUY] and [SELL] are movements of money and units together. [CORRECTION] is neither: it is the
+ * owner saying what they *actually* hold when the app and the broker disagree — a forgotten
+ * purchase, a share split, a bonus unit, a platform that rounds differently. It moves units
+ * without money, and it says the quantity **as of that date** rather than a difference, so
+ * fixing the underlying mistake later cannot make it count twice.
+ */
 enum class TradeSide {
     BUY,
     SELL,
+    CORRECTION,
 }
 
 /** Where a price came from, so a screen can say how much to trust it. */
@@ -123,11 +132,20 @@ data class Trade(
     val date: LocalDate,
     val note: String?,
 ) {
-    /** What the trade moved, before the fee. */
-    val gross: Money get() = quantity * pricePerUnit
+    /** True when this is the owner correcting what they hold rather than trading. */
+    val isCorrection: Boolean get() = side == TradeSide.CORRECTION
+
+    /** What the trade moved, before the fee. A correction moves no money at all. */
+    val gross: Money get() = if (isCorrection) Money.zero(pricePerUnit.currency) else quantity * pricePerUnit
 
     /** What it cost (a buy) or returned (a sale), the fee counted against you either way. */
-    val net: Money get() = if (side == TradeSide.BUY) gross + fee else gross - fee
+    val net: Money
+        get() =
+            when (side) {
+                TradeSide.BUY -> gross + fee
+                TradeSide.SELL -> gross - fee
+                TradeSide.CORRECTION -> Money.zero(pricePerUnit.currency)
+            }
 }
 
 /** The last known price of an instrument, and how old it is. */

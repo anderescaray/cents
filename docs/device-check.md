@@ -682,8 +682,16 @@ Back on the holding, the value at the top and the **Price** row both say *no pri
 portfolio lists it with the same words rather than with 0,00 €. The totals card says how many
 holdings it left out.
 
-Tap **Set a price**, type one, set the date to when it was true — not necessarily today — and
-save. Everything above it fills in: what it is worth, the profit if sold now, and the percentage.
+Tap **Set a price**. Two segments appear: **Per unit** and **Total value** — type whichever your
+broker is showing you, set the date to when it was true (not necessarily today), and save.
+Everything above fills in: what it is worth, the profit if sold now, and the percentage.
+
+Then reopen it and switch the segment without typing anything. The number must convert rather
+than reset: four units at 150,00 shows 600,00 under **Total value**, and switching back shows
+150,00 again.
+
+> **Wrong looks like** the two segments disagreeing about the same money, the field emptying when
+> you switch, or a total that does not divide back into the price it saved.
 
 > **Wrong looks like** a 0,00 € anywhere before a price is set. A number gets believed; "no
 > price yet" does not. Also wrong: the price row not saying **as of** the date you chose.
@@ -756,3 +764,35 @@ section root: you land on the canvas (b7).
 
 > **Wrong looks like** the bar lighting Transactions over a holding — the case #40 fixed for
 > accounts — or five tabs that no longer fit the width of the phone.
+
+### i12 · Correcting what you hold, when the app and the broker disagree
+
+The number that matters most on this screen is the one you can check against your broker, so this
+is the step where you make them agree.
+
+Tap the **Quantity** row in **Position**. The trade form opens on a third segment, **Correct**,
+already filled in with what the app believes you hold — and the two money fields are gone,
+because a correction moves units, not money. Type what you really hold and save.
+
+Check the four numbers underneath: the quantity is what you typed; **what it cost is unchanged**,
+because you did not spend anything by discovering the number was wrong; the average per unit has
+moved, since the same money now covers a different number of units; and **profit already taken
+has not moved at all**.
+
+> **Wrong looks like** the cost changing, a profit or loss appearing out of a correction, or the
+> form asking you for a price. Also wrong: the field opening empty rather than on the number you
+> are about to disagree with.
+
+### i13 · A correction is a record, not an overwrite
+
+Look at the **Trades** list. The correction is in it, reading *Corrected to …* with its date and
+no amount of money beside it. Nothing you recorded before has been deleted.
+
+Now the case this design exists for: if you later find the *reason* — a purchase you never
+recorded — add it as a normal **Buy** dated before the correction. The quantity must stay what
+you corrected it to rather than growing by the units you just added, and the cost must now
+include what you actually paid.
+
+> **Wrong looks like** the earlier purchase pushing the quantity past what you said you hold —
+> that would mean the correction recorded a difference rather than a fact — or the correction
+> vanishing from the list once its cause was explained.

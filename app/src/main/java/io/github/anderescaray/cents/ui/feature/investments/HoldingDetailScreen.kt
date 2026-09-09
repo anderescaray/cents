@@ -28,6 +28,7 @@ import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -49,6 +50,7 @@ fun HoldingDetailScreen(
     onBack: () -> Unit,
     onEdit: (Long) -> Unit,
     onAddTrade: (Long) -> Unit,
+    onCorrect: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
     viewModel: HoldingDetailViewModel = hiltViewModel(),
 ) {
@@ -77,7 +79,7 @@ fun HoldingDetailScreen(
 
         valueHeader(position)
         priceSection(position, price, viewModel)
-        positionSection(position)
+        positionSection(position, onCorrect = { onCorrect(position.holding.id) })
         tradesSection(state.trades, position, onOpenTrade)
 
         actions(onAddTrade = { onAddTrade(position.holding.id) }, onDelete = viewModel::requestDeletion)
@@ -171,72 +173,10 @@ private fun LazyListScope.valueHeader(position: Position) {
     }
 }
 
-private fun LazyListScope.priceSection(
+private fun LazyListScope.positionSection(
     position: Position,
-    price: PriceEntryState,
-    viewModel: HoldingDetailViewModel,
+    onCorrect: () -> Unit,
 ) {
-    item(key = "price") {
-        CentsListSection(
-            header = stringResource(R.string.holding_price_header),
-            footer = stringResource(R.string.holding_price_manual_footer),
-        ) {
-            if (price.editing) {
-                CentsTextField(
-                    value = AmountEntry.toTypedText(price.input),
-                    onValueChange = viewModel::onPriceTyped,
-                    placeholder = stringResource(R.string.price_dialog_placeholder),
-                    numeric = true,
-                    showSeparator = true,
-                )
-                CentsListRow(
-                    title = stringResource(R.string.price_dialog_date),
-                    value = price.date.relativeLabel(viewModel.today()),
-                    onClick = viewModel::openPriceDatePicker,
-                )
-                CentsListRow(
-                    title = stringResource(R.string.action_save),
-                    onClick = viewModel::savePrice,
-                    showSeparator = true,
-                )
-                CentsListRow(
-                    title = stringResource(R.string.action_cancel),
-                    onClick = viewModel::cancelEditingPrice,
-                    showSeparator = false,
-                )
-            } else {
-                // The *usable* quote: one stored in another currency values nothing, so showing
-                // it as the last price would explain none of what the rows above say.
-                val quote = position.usableQuote
-                CentsListRow(
-                    title = stringResource(R.string.holding_price_row),
-                    subtitle =
-                        quote?.let {
-                            stringResource(
-                                R.string.holding_price_asof,
-                                it.asOf
-                                    .atZone(ZoneId.systemDefault())
-                                    .toLocalDate()
-                                    .relativeLabel(),
-                            )
-                        },
-                    value =
-                        quote?.let { MoneyFormatter.format(it.price) }
-                            ?: stringResource(R.string.investments_no_price),
-                    valueColor = if (quote == null) CentsTheme.colors.secondaryLabel else CentsTheme.colors.label,
-                    showSeparator = true,
-                )
-                CentsListRow(
-                    title = stringResource(R.string.holding_price_set),
-                    onClick = viewModel::startEditingPrice,
-                    showSeparator = false,
-                )
-            }
-        }
-    }
-}
-
-private fun LazyListScope.positionSection(position: Position) {
     item(key = "position") {
         CentsListSection(
             header = stringResource(R.string.holding_position_header),
@@ -245,6 +185,10 @@ private fun LazyListScope.positionSection(position: Position) {
             CentsListRow(
                 title = stringResource(R.string.holding_position_quantity),
                 value = QuantityEntry.format(position.quantity),
+                // Correcting is offered from the row that shows the number being disputed,
+                // rather than from a menu somewhere else on the screen.
+                showChevron = true,
+                onClick = onCorrect,
             )
             position.averageCost?.let { average ->
                 CentsListRow(
@@ -315,10 +259,23 @@ private fun TradeRow(
     val bought = trade.side == TradeSide.BUY
     val quantity = QuantityEntry.format(trade.quantity)
     val price = MoneyFormatter.format(trade.pricePerUnit)
+    val title =
+        when (trade.side) {
+            TradeSide.BUY -> stringResource(R.string.holding_trade_buy, quantity)
+            TradeSide.SELL -> stringResource(R.string.holding_trade_sell, quantity)
+            TradeSide.CORRECTION -> stringResource(R.string.holding_trade_correction, quantity)
+        }
     CentsListRow(
-        title = stringResource(if (bought) R.string.holding_trade_buy else R.string.holding_trade_sell, quantity),
-        subtitle = trade.date.relativeLabel() + " · " + stringResource(R.string.holding_trade_at, price),
-        value = MoneyFormatter.format(trade.net),
+        title = title,
+        // A correction has no price to show, because it moved no money. Showing "at 0,00 € each"
+        // would be a number where there is not one.
+        subtitle =
+            if (trade.isCorrection) {
+                trade.date.relativeLabel()
+            } else {
+                trade.date.relativeLabel() + " · " + stringResource(R.string.holding_trade_at, price)
+            },
+        value = if (trade.isCorrection) null else MoneyFormatter.format(trade.net),
         // A sale is money coming back, which is the same green the movement list gives income.
         valueColor = if (bought) CentsTheme.colors.label else CentsTheme.colors.positive,
         showChevron = true,

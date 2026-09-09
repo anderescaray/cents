@@ -66,8 +66,20 @@ data class TradeFormUiState(
     val sellsMoreThanHeld: Boolean
         get() = side == TradeSide.SELL && quantity > heldElsewhere
 
+    val isCorrection: Boolean get() = side == TradeSide.CORRECTION
+
+    /**
+     * A correction needs no price and no fee: it moves units, not money. It may also be zero —
+     * "I actually hold nothing" is a legitimate thing to say about a position the app believes
+     * in, and it is the only entry in this form allowed to be.
+     */
     val canSave: Boolean
-        get() = !quantity.isZero && priceInput.isNotEmpty() && !sellsMoreThanHeld && !saving
+        get() =
+            when {
+                saving -> false
+                isCorrection -> quantityInput.isNotEmpty()
+                else -> !quantity.isZero && priceInput.isNotEmpty() && !sellsMoreThanHeld
+            }
 }
 
 /**
@@ -93,11 +105,13 @@ class TradeFormViewModel
         private val route = savedStateHandle.toRoute<Destination.TradeForm>()
         private val holdingId: Long = route.holdingId
         private val tradeId: Long? = route.tradeId.takeIf { it != Destination.TradeForm.NEW }
+        private val opensAsCorrection: Boolean = route.correcting && tradeId == null
 
         private val form =
             MutableStateFlow(
                 TradeFormUiState(
                     isNew = tradeId == null,
+                    side = if (opensAsCorrection) TradeSide.CORRECTION else TradeSide.BUY,
                     date = LocalDate.now(clock),
                     today = LocalDate.now(clock),
                 ),
@@ -115,12 +129,26 @@ class TradeFormViewModel
             val held = portfolioRepository.observePosition(holdingId).first()?.quantity ?: Quantity.ZERO
 
             form.update { state ->
-                state
-                    .withFieldsOf(trade)
-                    .copy(
-                        currency = holding?.currency ?: state.currency,
-                        heldElsewhere = heldWithout(trade, held),
-                    )
+                val loaded =
+                    state
+                        .withFieldsOf(trade)
+                        .copy(
+                            currency = holding?.currency ?: state.currency,
+                            heldElsewhere = heldWithout(trade, held),
+                        )
+                // A correction opens on what the app believes is held, and that is only knowable
+                // once the position has been read — so it is filled in here rather than at
+                // construction, where the answer would have been zero.
+                //
+                // The condition is "the form is on a correction and has no quantity yet", not
+                // "the form opened as one": switching to Correct before this finished loading
+                // asked `heldElsewhere` a question it could not answer, and left the field empty
+                // in exactly the case it exists to fill.
+                if (loaded.isCorrection && loaded.quantityInput.isEmpty()) {
+                    loaded.copy(quantityInput = QuantityEntry.fromQuantity(loaded.heldElsewhere))
+                } else {
+                    loaded
+                }
             }
         }
 
@@ -157,7 +185,16 @@ class TradeFormViewModel
             }
 
         fun onSideChanged(side: TradeSide) {
-            form.update { it.copy(side = side) }
+            form.update { state ->
+                // Coming into a correction, the field starts on what the app currently believes
+                // is held — the number the owner is about to disagree with. Typing over it is
+                // the whole gesture, and starting from empty would make them look it up first.
+                if (side == TradeSide.CORRECTION && !state.isCorrection) {
+                    state.copy(side = side, quantityInput = QuantityEntry.fromQuantity(state.heldElsewhere))
+                } else {
+                    state.copy(side = side)
+                }
+            }
         }
 
         fun onQuantityTyped(typed: String) {
@@ -211,14 +248,17 @@ class TradeFormViewModel
             if (!state.canSave) return
             form.update { it.copy(saving = true) }
             viewModelScope.launch {
+                val zero = Money.zero(state.currency)
                 val trade =
                     Trade(
                         id = tradeId ?: 0L,
                         holdingId = holdingId,
                         side = state.side,
                         quantity = state.quantity,
-                        pricePerUnit = state.pricePerUnit,
-                        fee = state.fee,
+                        // A correction stores no money at all, rather than whatever happened to
+                        // be left in the fields before the segment was switched.
+                        pricePerUnit = if (state.isCorrection) zero else state.pricePerUnit,
+                        fee = if (state.isCorrection) zero else state.fee,
                         date = state.date,
                         note = null,
                     )

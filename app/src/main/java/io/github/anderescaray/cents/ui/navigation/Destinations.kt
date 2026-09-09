@@ -98,6 +98,8 @@ sealed interface Destination {
     data class TradeForm(
         val holdingId: Long,
         val tradeId: Long = NEW,
+        /** Opens straight on the correction segment: the owner is fixing a number, not trading. */
+        val correcting: Boolean = false,
     ) : Destination {
         companion object {
             const val NEW = 0L

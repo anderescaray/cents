@@ -347,6 +347,40 @@ class TransactionFormViewModelTest {
         }
 
     @Test
+    fun `a movement that exists is not offered Transfer as a third answer`() =
+        runTest {
+            val accountId = database.accountDao().insert(account(name = "Checking"))
+            val id =
+                transactions.addTransaction(
+                    Transaction(
+                        id = 0,
+                        accountId = accountId,
+                        categoryId = null,
+                        kind = TransactionKind.EXPENSE,
+                        amount = Money(50_000, "EUR"),
+                        date = LocalDate.of(2026, 7, 4),
+                        note = null,
+                    ),
+                )
+
+            val editor = formFor(id)
+
+            editor.uiState.test {
+                // Choosing it leaves for an empty transfer form, and this movement would be
+                // left behind rather than converted: the owner would save the transfer and
+                // own both. Expense and Income stay offered, because those two are the same
+                // record with its direction flipped.
+                assertFalse(awaitStateThat { it.isEditing }.canBecomeTransfer)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            viewModel.uiState.test {
+                assertTrue(awaitItem().canBecomeTransfer)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `correcting an amount rewrites the movement instead of recording a second one`() =
         runTest {
             val accountId = database.accountDao().insert(account())

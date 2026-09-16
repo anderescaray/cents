@@ -41,6 +41,13 @@ data class TransferFormUiState(
     /** What the move cost. Empty is the usual case, and reads as zero. */
     val feeInput: String = AmountEntry.EMPTY,
     val accounts: List<Account> = emptyList(),
+    /**
+     * Whether [accounts] has actually been read, which an empty list alone does not say.
+     *
+     * Without it the form paints *"create a second account"* for the frame before the query
+     * comes back — telling a two-account install it has one, on the way to every transfer.
+     */
+    val accountsLoaded: Boolean = false,
     val fromAccountId: Long? = null,
     val toAccountId: Long? = null,
     val typing: TransferField = TransferField.AMOUNT,
@@ -81,7 +88,15 @@ data class TransferFormUiState(
         }
 
     /** A transfer needs two accounts to exist at all, which a fresh install does not have. */
-    val needsSecondAccount: Boolean get() = accounts.size < 2
+    val needsSecondAccount: Boolean get() = accountsLoaded && accounts.size < 2
+
+    /**
+     * Whether the kind can still be changed from here.
+     *
+     * Only while recording a new one. Leaving for the movement form would leave a transfer that
+     * already exists standing — both its legs — and add a third row on top of them.
+     */
+    val canChangeKind: Boolean get() = !isEditing
 
     /**
      * Zero is not a transfer, and neither is money sent to the account it is already in.
@@ -143,8 +158,15 @@ class TransferFormViewModel
 
         val uiState: StateFlow<TransferFormUiState> = form.asStateFlow()
 
-        /** Whether the accounts have actually arrived; an empty list alone does not say. */
-        private var accountsLoaded = false
+        /**
+         * Every account, archived ones included, kept unfiltered.
+         *
+         * What reaches the state is the *pruned* list, so re-deriving from `state.accounts`
+         * would filter an already-filtered list — and an archived account dropped before the
+         * transfer that uses it had loaded could never come back. It is the same reason
+         * `TransactionFormViewModel` keeps `allCategories` beside the offered ones.
+         */
+        private var allAccounts: List<Account> = emptyList()
 
         init {
             viewModelScope.launch { load() }
@@ -153,8 +175,11 @@ class TransferFormViewModel
                 // into an account that was archived afterwards still shows where the money
                 // went instead of quietly emptying the row.
                 accountRepository.observeAccounts(includeArchived = true).collect { accounts ->
-                    accountsLoaded = true
-                    form.update { it.withAccounts(accounts) }
+                    allAccounts = accounts
+                    // The flag goes on before the list is derived, not after: `withAccounts`
+                    // reads it to decide whether a chosen destination may be pruned, and on
+                    // this emission the answer is known.
+                    form.update { it.copy(accountsLoaded = true).withAccounts(accounts) }
                 }
             }
         }
@@ -177,7 +202,10 @@ class TransferFormViewModel
                         date = transfer.date,
                         note = transfer.note.orEmpty(),
                         currency = transfer.amount.currency,
-                    ).withAccounts(state.accounts)
+                        // Whichever of this and the accounts flow lands second re-derives from
+                        // the full list, so the order they arrive in cannot decide whether an
+                        // archived account is still offered.
+                    ).withAccounts(allAccounts)
             }
         }
 
@@ -240,7 +268,7 @@ class TransferFormViewModel
                 val account = state.accounts.firstOrNull { it.id == id }
                 state
                     .copy(fromAccountId = id, currency = account?.currency ?: state.currency)
-                    .withAccounts(state.accounts)
+                    .withAccounts(allAccounts)
             }
 
         fun selectTo(id: Long) = form.update { it.copy(toAccountId = id) }

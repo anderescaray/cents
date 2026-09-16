@@ -180,6 +180,7 @@ private fun FormFields(
             EntryKindControl(
                 selected =
                     if (state.kind == TransactionKind.INCOME) EntryKind.INCOME else EntryKind.EXPENSE,
+                includeTransfer = state.canBecomeTransfer,
                 onSelect = { entry ->
                     when (entry) {
                         EntryKind.EXPENSE -> viewModel.setKind(TransactionKind.EXPENSE)

@@ -176,12 +176,14 @@ private fun FormFields(
             }
         }
 
-        item(key = "kind") {
-            EntryKindControl(
-                selected = EntryKind.TRANSFER,
-                onSelect = { kind -> if (kind != EntryKind.TRANSFER) onSwitchKind(kind) },
-                modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
-            )
+        if (state.canChangeKind) {
+            item(key = "kind") {
+                EntryKindControl(
+                    selected = EntryKind.TRANSFER,
+                    onSelect = { kind -> if (kind != EntryKind.TRANSFER) onSwitchKind(kind) },
+                    modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+                )
+            }
         }
 
         accountSections(state = state, viewModel = viewModel, onCreateAccount = onCreateAccount)

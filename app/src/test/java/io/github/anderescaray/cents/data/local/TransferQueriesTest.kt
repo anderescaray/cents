@@ -146,6 +146,54 @@ class TransferQueriesTest {
         }
 
     @Test
+    fun `the uncategorized filter means what the ring's slice meant`() =
+        runTest {
+            world()
+            val dao = database.transactionDao()
+
+            val uncategorized =
+                dao
+                    .observeFilteredWithNames(
+                        accountId = null,
+                        categoryId = null,
+                        uncategorized = true,
+                        kind = null,
+                        from = from,
+                        to = to,
+                        weekday = null,
+                        minAmountMinor = null,
+                        maxAmountMinor = null,
+                        query = null,
+                    ).first()
+
+            // A leg carries no category because a transfer is not classified, not because
+            // nobody has got round to classifying it. The ring's *Uncategorized* slice counted
+            // no legs, so the list it drills into must not show them — otherwise tapping a
+            // 20 € slice opens a 500 € transfer.
+            assertTrue(
+                "a transfer leg is not an unclassified movement",
+                uncategorized.none { it.transferId != null },
+            )
+
+            // And the list at large still shows them, because they happened.
+            val everything =
+                dao
+                    .observeFilteredWithNames(
+                        accountId = null,
+                        categoryId = null,
+                        uncategorized = false,
+                        kind = null,
+                        from = from,
+                        to = to,
+                        weekday = null,
+                        minAmountMinor = null,
+                        maxAmountMinor = null,
+                        query = null,
+                    ).first()
+            assertEquals(2, everything.count { it.transferId != null })
+        }
+
+    @Test
     fun `deleting one account takes whole transfers with it, counted first`() =
         runTest {
             val world = world()

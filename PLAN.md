@@ -614,7 +614,7 @@ unmerged one.
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
 | Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
 | Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
-| Tests | 465, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 470, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1161,7 +1161,7 @@ Phase 4 rather than being skipped.
       `transferId`, excluded from every income and expense report (PRD §3) — get that
       wrong and every statistic in the app inflates. Schema v3, a migration and its test.
       *Done when:* moving 500 € from Checking to Broker changes both balances and no chart.
-      **Done**, 465 tests. What it actually settled, beyond the plan above:
+      **Done**, 470 tests. What it actually settled, beyond the plan above:
       - **One column, and no transfers table.** A transfer is a *relationship between two
         movements*, so giving it a table of its own would mean the same amount written twice and
         free to disagree with the balances it is made of. `transactions` gained one nullable
@@ -1299,7 +1299,10 @@ parallelism.
   shows the arriving side of every transfer in the period. The rows read as transfers and are
   excluded from the totals above them, so nothing adds up wrongly — but *Income* is not quite
   what they are. The filter form gaining a transfers switch is one more section on a form that
-  already has six, and it waits for somebody to actually want it.
+  already has six, and it waits for somebody to actually want it. **The *uncategorized* filter is
+  the one case already closed**, because it is not a preference but a drill-down: the ring's
+  *Uncategorized* slice counts no legs, so the list behind it shows none either. A leg has no
+  category because a transfer is not classified, not because nobody got round to it.
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —

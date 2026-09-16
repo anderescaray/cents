@@ -10,9 +10,11 @@ import io.github.anderescaray.cents.data.repository.RoomTransferRepository
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.Transfer
+import io.github.anderescaray.cents.domain.repository.TransferRepository
 import io.github.anderescaray.cents.ui.feature.transferform.TransferField
 import io.github.anderescaray.cents.ui.feature.transferform.TransferFormViewModel
 import io.github.anderescaray.cents.ui.navigation.Destination
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -31,6 +33,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -155,7 +158,7 @@ class TransferFormViewModelTest {
                         toAccountId = savings,
                         amount = Money(50_000, "EUR"),
                         fee = Money(300, "EUR"),
-                        date = java.time.LocalDate.of(2026, 9, 14),
+                        date = LocalDate.of(2026, 9, 14),
                         note = "To the broker",
                     ),
                 )
@@ -174,6 +177,69 @@ class TransferFormViewModelTest {
         }
 
     @Test
+    fun `a transfer that exists is not offered the other two kinds`() =
+        runTest {
+            val id = savedTransfer()
+
+            val recording = readyForm()
+            val editing = readyForm(transferId = id)
+
+            editing.uiState.test {
+                // Leaving for the movement form would leave both of this transfer's legs
+                // standing and add a third row on top of them: the owner would save one
+                // movement and own three.
+                assertFalse(awaitStateThat { it.isEditing }.canChangeKind)
+                cancelAndIgnoreRemainingEvents()
+            }
+            recording.uiState.test {
+                assertTrue(awaitStateThat { it.accountsLoaded }.canChangeKind)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an account archived after the transfer was recorded is still shown as its destination`() =
+        runTest {
+            val id = savedTransfer()
+            database.accountDao().setArchived(savings, archived = true)
+
+            // The form loads two things independently: the transfer, and the accounts it can
+            // offer. **The accounts are made to land first here, deliberately.** In that order
+            // the list is filtered while nothing is selected yet, so an archived account is
+            // dropped from it — and re-deriving from the filtered list can never bring it back.
+            // Left to their own timing the two usually settle the other way round, which is why
+            // this is gated rather than left to chance: a race that only sometimes loses is one
+            // a test only sometimes catches.
+            val gate = CompletableDeferred<Unit>()
+            val viewModel = formFor(transferId = id, gate = gate)
+            viewModel.uiState.first { it.accountsLoaded }
+            gate.complete(Unit)
+
+            viewModel.uiState.test {
+                // Archiving means stop offering it, not pretend the money never went there.
+                val state = awaitStateThat { it.isEditing }
+                assertEquals(savings, state.toAccountId)
+                assertEquals(listOf("Checking", "Savings"), state.accounts.map { it.name })
+                assertFalse(state.needsSecondAccount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an empty form does not claim there is one account before it has looked`() =
+        runTest {
+            val viewModel = formFor()
+
+            viewModel.uiState.test {
+                // The first state is the one the screen paints, and "create a second account"
+                // is a wrong thing to say to a two-account install on the way to every
+                // transfer.
+                assertFalse(awaitItem().needsSecondAccount)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `deleting a transfer takes both legs`() =
         runTest {
             val id =
@@ -184,7 +250,7 @@ class TransferFormViewModelTest {
                         toAccountId = savings,
                         amount = Money(50_000, "EUR"),
                         fee = Money.zero("EUR"),
-                        date = java.time.LocalDate.of(2026, 9, 14),
+                        date = LocalDate.of(2026, 9, 14),
                         note = null,
                     ),
                 )
@@ -222,6 +288,19 @@ class TransferFormViewModelTest {
      * about to prune — a race no finger can lose, and one that would make this file flaky
      * rather than informative.
      */
+    private suspend fun savedTransfer(): Long =
+        RoomTransferRepository(database.transactionDao(), database, clock).saveTransfer(
+            Transfer(
+                id = Transfer.NEW,
+                fromAccountId = checking,
+                toAccountId = savings,
+                amount = Money(50_000, "EUR"),
+                fee = Money.zero("EUR"),
+                date = LocalDate.of(2026, 9, 14),
+                note = null,
+            ),
+        )
+
     private suspend fun readyForm(
         transferId: Long = Destination.TransferForm.NEW,
         amountInput: String = "",
@@ -234,13 +313,38 @@ class TransferFormViewModelTest {
     private fun formFor(
         transferId: Long = Destination.TransferForm.NEW,
         amountInput: String = "",
-    ): TransferFormViewModel =
-        viewModels.keep(
+        gate: CompletableDeferred<Unit>? = null,
+    ): TransferFormViewModel {
+        val repository = RoomTransferRepository(database.transactionDao(), database, clock)
+        return viewModels.keep(
             TransferFormViewModel(
-                RoomTransferRepository(database.transactionDao(), database, clock),
+                gate?.let { HeldBack(repository, it) } ?: repository,
                 RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                 SavedStateHandle(mapOf("transferId" to transferId, "amountInput" to amountInput)),
                 clock,
             ),
         )
+    }
+}
+
+/**
+ * The real repository with its read held at the door, so a test can decide which of the form's
+ * two loads lands first.
+ *
+ * Only [findTransfer] is gated, because that is the one the form races against the accounts
+ * flow. Everything else goes straight through: a fake that reimplemented the writes would be
+ * testing itself.
+ */
+private class HeldBack(
+    private val real: TransferRepository,
+    private val gate: CompletableDeferred<Unit>,
+) : TransferRepository {
+    override suspend fun findTransfer(transferId: Long): Transfer? {
+        gate.await()
+        return real.findTransfer(transferId)
+    }
+
+    override suspend fun saveTransfer(transfer: Transfer): Long = real.saveTransfer(transfer)
+
+    override suspend fun deleteTransfer(transferId: Long) = real.deleteTransfer(transferId)
 }

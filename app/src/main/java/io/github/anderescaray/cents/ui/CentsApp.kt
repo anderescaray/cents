@@ -20,9 +20,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabBarShelf
 import io.github.anderescaray.cents.ui.components.CentsTabItem
+import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
@@ -40,6 +42,7 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
+import io.github.anderescaray.cents.ui.feature.transferform.TransferFormScreen
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 
@@ -174,6 +177,14 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
                     launchSingleTop = true
                 }
             },
+            // A transfer leg opens the transfer, not the movement form: editing one side of
+            // a pair on a form that knows nothing about the other is how the two stop
+            // agreeing about how much money moved.
+            onOpenTransfer = { id ->
+                navController.navigate(Destination.TransferForm(transferId = id)) {
+                    launchSingleTop = true
+                }
+            },
             onOpenFilters = {
                 navController.navigate(Destination.TransactionFilters) { launchSingleTop = true }
             },
@@ -189,7 +200,41 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
             // more empty screen between the owner and their first category.
             onCreateCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
             onCreateAccount = { navController.navigate(Destination.AccountEdit()) },
+            onSwitchToTransfer = { amount ->
+                navController.switchForm<Destination.TransactionForm>(
+                    Destination.TransferForm(amountInput = amount),
+                )
+            },
         )
+    }
+    composable<Destination.TransferForm> {
+        TransferFormScreen(
+            onDone = { navController.popBackStack() },
+            onSwitchKind = { kind, amount ->
+                navController.switchForm<Destination.TransferForm>(
+                    Destination.TransactionForm(
+                        amountInput = amount,
+                        kind = if (kind == EntryKind.INCOME) TransactionKind.INCOME else TransactionKind.EXPENSE,
+                    ),
+                )
+            },
+            onCreateAccount = { navController.navigate(Destination.AccountEdit()) },
+        )
+    }
+}
+
+/**
+ * Replaces the entry form on screen with the other one, rather than stacking it on top.
+ *
+ * The two forms are one choice with three settings, so back from either has to return where
+ * the owner came from — the list, or an account — and not to the form they were just looking
+ * at. Popping the one being left is what makes the segmented control feel like a switch
+ * rather than a journey, and what stops a few changes of mind building a pile of forms.
+ */
+private inline fun <reified T : Destination> NavHostController.switchForm(destination: Destination) {
+    navigate(destination) {
+        launchSingleTop = true
+        popUpTo<T> { inclusive = true }
     }
 }
 
@@ -215,6 +260,11 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
             },
             onOpenTransaction = { id ->
                 navController.navigate(Destination.TransactionForm(transactionId = id)) {
+                    launchSingleTop = true
+                }
+            },
+            onOpenTransfer = { id ->
+                navController.navigate(Destination.TransferForm(transferId = id)) {
                     launchSingleTop = true
                 }
             },

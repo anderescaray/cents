@@ -211,4 +211,23 @@
     <string name="settings_reset_home_title">¿Restablecer las burbujas?</string>
     <string name="settings_reset_home_message">Las burbujas vuelven al sitio que tienen en una instalación nueva. Cómo las habías colocado no se guarda.</string>
     <string name="settings_reset_home_confirm">Restablecer</string>
+
+    <!-- Traspasos -->
+    <string name="kind_transfer">Traspaso</string>
+    <string name="add_transfer_title">Nuevo traspaso</string>
+    <string name="edit_transfer_title">Editar traspaso</string>
+    <string name="transfer_from">Desde</string>
+    <string name="transfer_to">A</string>
+    <string name="transfer_swap">Intercambiar las cuentas</string>
+    <string name="field_fee">Comisión</string>
+    <string name="transfer_fee_footer">La comisión sale de la cuenta de origen, además del importe. Ninguno de los dos lados cuenta como ingreso ni como gasto: un traspaso es dinero que cambia de bolsillo, no dinero ganado ni gastado.</string>
+    <string name="transfer_leaving_footer">De la cuenta de origen salen %1$s, y a la otra llega el importe de arriba.</string>
+    <string name="transfer_delete">Eliminar traspaso</string>
+    <string name="transfer_delete_title">¿Eliminar este traspaso?</string>
+    <string name="transfer_delete_message">Se van los dos lados y los dos saldos vuelven a como estaban. Este no se puede deshacer.</string>
+    <string name="transfer_needs_two_accounts">Crea una segunda cuenta</string>
+    <string name="transfer_needs_two_accounts_footer">Un traspaso mueve dinero entre dos cuentas tuyas, así que tiene que haber un sitio al que llevarlo.</string>
+    <string name="transfer_row">Traspaso</string>
+    <string name="transfer_row_to">Traspaso a %1$s</string>
+    <string name="transfer_row_from">Traspaso desde %1$s</string>
 </resources>

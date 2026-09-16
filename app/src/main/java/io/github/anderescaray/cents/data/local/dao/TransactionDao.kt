@@ -11,7 +11,30 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
 
+/**
+ * The ledger.
+ *
+ * **One rule runs through every query here: an income-and-expense report carries
+ * `transferId IS NULL`, and a balance does not.** Moving 500 € from checking to savings is
+ * not spending 500 € (PRD §3), so counting a transfer leg as an expense inflates every
+ * statistic in the app — and the same money arriving on the other side inflates income too.
+ * A balance is the opposite case: the money really did leave one account and arrive in
+ * another, so a balance that skipped the legs would disagree with the bank.
+ *
+ * Which is which, so a new query has somewhere to look:
+ *
+ * - **Excluded** — [observeTotalsBetween], [observeAccountTotalsBetween],
+ *   [observeTotalsByCategory], [observeMonthlyTotals], [observeTotalsByWeekday],
+ *   [observeCategoriesWithMovements], [observeCategoryDailyTotals]. The last two would
+ *   exclude them anyway, since a transfer leg has no category and they join on one; the
+ *   clause is written out regardless, so the rule is "every report query has it" rather
+ *   than "every report query except the two you have to reason about".
+ * - **Included** — [observeBalanceBefore], [observeDailyNet] and `AccountDao`'s balances.
+ * - **Shown** — the list queries. A transfer is something that happened and has to be
+ *   visible, findable and openable; it is the *totals* it must stay out of.
+ */
 @Dao
+@Suppress("TooManyFunctions")
 interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC, id DESC")
     fun observeAll(): Flow<List<TransactionEntity>>
@@ -57,6 +80,63 @@ interface TransactionDao {
     suspend fun deleteById(id: Long)
 
     /**
+     * Both legs of one transfer, oldest row first — which is the outgoing one, because it is
+     * written first and lends the pair its id.
+     *
+     * The caller does not rely on that order: it picks the legs apart by their [kind], since
+     * an ordering that happens to be right is the kind of thing a later `ORDER BY` quietly
+     * breaks. Returning both rather than a shaped object is deliberate — a transfer *is* two
+     * movements, and the domain shape is assembled one layer up.
+     */
+    @Query("SELECT * FROM transactions WHERE transferId = :transferId ORDER BY id")
+    suspend fun findTransferLegs(transferId: Long): List<TransactionEntity>
+
+    /**
+     * Stamps the pair id onto the leg that generated it.
+     *
+     * The outgoing leg is inserted before its id exists, so it is written twice: once to get
+     * a row id, once to carry it. Both writes are inside the same database transaction as the
+     * incoming leg, so a half-formed transfer is never visible to anything.
+     */
+    @Query("UPDATE transactions SET transferId = :transferId, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setTransferId(
+        id: Long,
+        transferId: Long,
+        updatedAt: Instant,
+    )
+
+    /** Both legs at once: half a transfer is money that arrived from nowhere. */
+    @Query("DELETE FROM transactions WHERE transferId = :transferId")
+    suspend fun deleteTransfer(transferId: Long): Int
+
+    /** Every transfer this account is one side of, for a deletion that has to take them whole. */
+    @Query("SELECT DISTINCT transferId FROM transactions WHERE accountId = :accountId AND transferId IS NOT NULL")
+    suspend fun transferIdsInAccount(accountId: Long): List<Long>
+
+    @Query("DELETE FROM transactions WHERE transferId IN (:transferIds)")
+    suspend fun deleteTransfers(transferIds: List<Long>): Int
+
+    /**
+     * Legs living in *other* accounts that would go with this account's deletion.
+     *
+     * Deleting an account and its movements takes whole transfers with it, because a leg
+     * whose counterpart is gone is money that arrived from nowhere. Those far legs are rows
+     * in accounts the owner is not deleting, and their balances change — so the confirmation
+     * has to count them rather than name only what lives in the account being removed.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM transactions
+        WHERE accountId <> :accountId
+          AND transferId IN (
+              SELECT transferId FROM transactions
+              WHERE accountId = :accountId AND transferId IS NOT NULL
+          )
+        """,
+    )
+    suspend fun countTransferLegsOutside(accountId: Long): Int
+
+    /**
      * The list, narrowed by whatever the owner asked for.
      *
      * Every parameter is optional, and each clause is written so that an unset one costs
@@ -80,10 +160,20 @@ interface TransactionDao {
         """
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
-               t.date AS date, t.note AS note,
+               t.date AS date, t.note AS note, t.transferId AS transferId,
                a.name AS accountName,
                c.name AS categoryName,
-               c.colorArgb AS categoryColorArgb
+               c.colorArgb AS categoryColorArgb,
+               CASE
+                   WHEN t.transferId IS NULL THEN NULL
+                   ELSE (
+                       SELECT a2.name
+                       FROM transactions t2
+                       INNER JOIN accounts a2 ON a2.id = t2.accountId
+                       WHERE t2.transferId = t.transferId AND t2.id <> t.id
+                       LIMIT 1
+                   )
+               END AS counterpartAccountName
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
@@ -127,10 +217,20 @@ interface TransactionDao {
         """
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
-               t.date AS date, t.note AS note,
+               t.date AS date, t.note AS note, t.transferId AS transferId,
                a.name AS accountName,
                c.name AS categoryName,
-               c.colorArgb AS categoryColorArgb
+               c.colorArgb AS categoryColorArgb,
+               CASE
+                   WHEN t.transferId IS NULL THEN NULL
+                   ELSE (
+                       SELECT a2.name
+                       FROM transactions t2
+                       INNER JOIN accounts a2 ON a2.id = t2.accountId
+                       WHERE t2.transferId = t.transferId AND t2.id <> t.id
+                       LIMIT 1
+                   )
+               END AS counterpartAccountName
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
@@ -146,6 +246,7 @@ interface TransactionDao {
                COALESCE(SUM(CASE WHEN kind = 'EXPENSE' THEN amountMinor ELSE 0 END), 0) AS expenseMinor
         FROM transactions
         WHERE date BETWEEN :from AND :to
+          AND transferId IS NULL
         """,
     )
     fun observeTotalsBetween(
@@ -159,6 +260,7 @@ interface TransactionDao {
                COALESCE(SUM(CASE WHEN kind = 'EXPENSE' THEN amountMinor ELSE 0 END), 0) AS expenseMinor
         FROM transactions
         WHERE accountId = :accountId AND date BETWEEN :from AND :to
+          AND transferId IS NULL
         """,
     )
     fun observeAccountTotalsBetween(
@@ -204,6 +306,7 @@ interface TransactionDao {
         WHERE t.kind = :kind
           AND t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
+          AND t.transferId IS NULL
         GROUP BY t.categoryId
         ORDER BY totalMinor DESC, categoryName ASC
         """,
@@ -235,6 +338,7 @@ interface TransactionDao {
         FROM transactions t
         WHERE t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
+          AND t.transferId IS NULL
         GROUP BY month
         ORDER BY month
         """,
@@ -267,6 +371,7 @@ interface TransactionDao {
         WHERE t.kind = :kind
           AND t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
+          AND t.transferId IS NULL
         GROUP BY weekday
         ORDER BY weekday
         """,
@@ -299,6 +404,10 @@ interface TransactionDao {
      * Two scalar sub-selects rather than a join: an account with no movements must still
      * contribute its opening balance, and a `LEFT JOIN` filtered on the transaction's date
      * gets that wrong in a way that is easy to write and hard to see.
+     *
+     * **Transfer legs count here**, unlike in every income-and-expense query on this DAO.
+     * This is a balance, and the money really moved: leaving the legs out would start the
+     * line from a number the Accounts tab disagrees with.
      */
     @Query(
         """
@@ -339,6 +448,11 @@ interface TransactionDao {
      * [DayNet.netMinor] is signed, because a cumulative balance adds and subtracts rather
      * than carrying two columns; [DayNet.movementCount] is what tells an empty period apart
      * from a period whose income and expenses happened to cancel out exactly.
+     *
+     * **Transfer legs count here too.** Over every account a transfer nets to zero and the
+     * line is flat through it, which is the truth: the money changed pockets. Narrowed to one
+     * account it is a real step up or down, which is also the truth, and dropping it would
+     * draw a balance that ends somewhere the account is not.
      */
     @Query(
         """
@@ -394,6 +508,7 @@ interface TransactionDao {
         INNER JOIN categories c ON c.id = t.categoryId
         WHERE t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
+          AND t.transferId IS NULL
         GROUP BY t.categoryId
         ORDER BY totalMinor DESC, categoryName ASC
         """,
@@ -425,6 +540,7 @@ interface TransactionDao {
         WHERE t.categoryId = :categoryId
           AND t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
+          AND t.transferId IS NULL
         GROUP BY t.date
         ORDER BY t.date
         """,
@@ -448,6 +564,13 @@ interface TransactionDao {
      * in, and the balance query sums the amounts and labels the result with the *account's*
      * currency — so moving euros into a dollar account would not convert anything, it would
      * quietly make that account's balance a sum of two different currencies.
+     *
+     * Transfer legs travel with everything else, which can leave a transfer whose two legs
+     * are now in the same account. It is left standing rather than rewritten: the pair still
+     * nets to zero, it is still out of every report, and the alternatives are worse — undoing
+     * the `transferId` would turn it into a real income and a real expense and inflate both,
+     * and deleting it would destroy history inside an operation whose whole promise is that
+     * nothing is lost. `PLAN.md` C4 records it.
      */
     @Query("UPDATE transactions SET accountId = :toId, updatedAt = :updatedAt WHERE accountId = :fromId")
     suspend fun reassignAccount(
@@ -471,9 +594,20 @@ data class TransactionWithNames(
     val currency: String,
     val date: java.time.LocalDate,
     val note: String?,
+    val transferId: Long?,
     val accountName: String,
     val categoryName: String?,
     val categoryColorArgb: Int?,
+    /**
+     * The other end of the transfer, and null for an ordinary movement.
+     *
+     * A row reading *"Transfer"* with the account it is already filed under says nothing; the
+     * one thing worth knowing about a leg is where the money went or came from. It is
+     * resolved in SQL, in a subquery guarded by `transferId IS NULL` so that an ordinary
+     * movement — which is nearly all of them — pays nothing for it, and indexed on
+     * `transferId` so the leg that does pay looks up one row rather than scanning the ledger.
+     */
+    val counterpartAccountName: String?,
 )
 
 /** Income and expense totals for a period, summed in SQL. */

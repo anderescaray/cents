@@ -60,6 +60,16 @@ data class AccountRemovalState(
     val name: String = "",
     val step: RemovalStep = RemovalStep.NONE,
     val transactionCount: Int = 0,
+    /**
+     * How many movements the destructive path actually removes.
+     *
+     * The same as [transactionCount] until the account is one side of a transfer: a transfer
+     * goes whole, so the leg living in the *other* account goes too, and that account's
+     * balance changes. Reassignment moves only what is inside this account, so it keeps using
+     * [transactionCount] — the two numbers are two different questions, and answering both
+     * with one of them is how a confirmation ends up naming the wrong amount of history.
+     */
+    val removedCount: Int = 0,
     /** Investments held in it. Any at all is what [RemovalStep.BLOCKED_BY_HOLDINGS] says. */
     val holdingCount: Int = 0,
     /** Accounts the movements could move into: active, not this one, same currency. */
@@ -67,6 +77,9 @@ data class AccountRemovalState(
 ) {
     /** True while the owner is being asked something about deleting this account. */
     val asking: Boolean get() = step != RemovalStep.NONE
+
+    /** The destructive path reaches into other accounts, so it has to say so. */
+    val removalReachesTransfers: Boolean get() = removedCount > transactionCount
 
     /**
      * Reassignment needs somewhere to reassign to. When there is nowhere, the choice is
@@ -116,6 +129,7 @@ class AccountRemoval(
     ) {
         scope.launch {
             val count = repository.countTransactions(id)
+            val removed = repository.countTransactionsRemovedWith(id)
             val holdings = repository.countHoldings(id)
             val targets = reassignTargets(id)
             question.value =
@@ -133,6 +147,7 @@ class AccountRemoval(
                             else -> RemovalStep.CHOOSE
                         },
                     transactionCount = count,
+                    removedCount = removed,
                     holdingCount = holdings,
                     reassignTargets = targets,
                 )

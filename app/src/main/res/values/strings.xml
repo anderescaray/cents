@@ -214,4 +214,23 @@
     <string name="settings_reset_home_title">Reset the bubble layout?</string>
     <string name="settings_reset_home_message">The bubbles go back where a fresh install has them. How you arranged them is not kept.</string>
     <string name="settings_reset_home_confirm">Reset</string>
+
+    <!-- Transfers -->
+    <string name="kind_transfer">Transfer</string>
+    <string name="add_transfer_title">New transfer</string>
+    <string name="edit_transfer_title">Edit transfer</string>
+    <string name="transfer_from">From</string>
+    <string name="transfer_to">To</string>
+    <string name="transfer_swap">Swap them</string>
+    <string name="field_fee">Fee</string>
+    <string name="transfer_fee_footer">A fee comes out of the account the money leaves, on top of the amount. Neither side counts as income or spending: a transfer is money changing pockets, not money earned or gone.</string>
+    <string name="transfer_leaving_footer">%1$s leaves the account it comes from, and the amount above arrives in the other one.</string>
+    <string name="transfer_delete">Delete transfer</string>
+    <string name="transfer_delete_title">Delete this transfer?</string>
+    <string name="transfer_delete_message">Both sides of it go and both balances change back. There is no undo for this one.</string>
+    <string name="transfer_needs_two_accounts">Create a second account</string>
+    <string name="transfer_needs_two_accounts_footer">A transfer moves money between two of your own accounts, so there has to be somewhere for it to go.</string>
+    <string name="transfer_row">Transfer</string>
+    <string name="transfer_row_to">Transfer to %1$s</string>
+    <string name="transfer_row_from">Transfer from %1$s</string>
 </resources>

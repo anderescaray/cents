@@ -209,11 +209,20 @@ each one, an average cost that survives a partial sale, and what it is worth at 
 hand — per unit or as a total, whichever the broker is showing — and what is held can be
 **corrected** when the two disagree, as a record rather than an overwrite. It brought **Room v2
 and this project's first migration and migration test**, which is the pattern every later schema
-change follows (rule 9). Two things it leaves to the next branches:
-a purchase does not yet take money out of its account (that needs transfers, which are Phase 3),
-and no price comes from the internet (D13 asks which provider, and it needs a key only the owner
-can create).
-441 tests run on the JVM, so CI covers the database and the UI without a device.
+change follows (rule 9).
+
+**Money can now move between accounts.** `feat/transfers` brought Phase 3's first piece forward,
+because the investments section needs it: a transfer is **two ordinary rows sharing one
+`transferId`** — no transfers table, so the amount that left and the amount that arrived are the
+same facts the balances are made of — with an optional fee that is the difference between them.
+Every balance counts a transfer and **no income-or-expense report does**, which is the one thing
+this feature must not get wrong: counting a leg as spending inflates every statistic in the app,
+and the same money arriving on the other side inflates income too. It is reached as a third
+segment on the entry form, it reads on the list as *Transfer to Savings*, and it took **Room v3**.
+Still left to the next branches: a purchase does not yet take money out of its account
+(`feat/buying-spends-the-cash`, now unblocked), and no price comes from the internet (D13 names
+the provider, and it needs a key only the owner can create).
+465 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

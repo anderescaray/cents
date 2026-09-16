@@ -37,8 +37,9 @@ import io.github.anderescaray.cents.ui.components.CentsKeypad
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
-import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.components.EntryKind
+import io.github.anderescaray.cents.ui.components.EntryKindControl
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -50,6 +51,7 @@ fun TransactionFormScreen(
     onDone: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
     onCreateAccount: () -> Unit,
+    onSwitchToTransfer: (String) -> Unit,
     viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -87,6 +89,9 @@ fun TransactionFormScreen(
             state = state,
             viewModel = viewModel,
             keypad = keypad,
+            // The amount travels with the switch: realising halfway through that this is a
+            // transfer should not cost what has already been typed.
+            onSwitchToTransfer = { onSwitchToTransfer(state.amountInput) },
             onAmountTapped = {
                 // Clearing focus is what lowers the system keyboard; without it the two
                 // would be stacked on each other.
@@ -144,6 +149,7 @@ private fun FormFields(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
     keypad: AmountKeypadState,
+    onSwitchToTransfer: () -> Unit,
     onAmountTapped: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
     onCreateAccount: () -> Unit,
@@ -171,14 +177,21 @@ private fun FormFields(
         }
 
         item(key = "kind") {
-            // Resolved here: a lambda passed to a component is not a composable scope.
-            val expenseLabel = stringResource(R.string.kind_expense)
-            val incomeLabel = stringResource(R.string.kind_income)
-            CentsSegmentedControl(
-                options = listOf(TransactionKind.EXPENSE, TransactionKind.INCOME),
-                selected = state.kind,
-                onSelect = viewModel::setKind,
-                label = { kind -> if (kind == TransactionKind.EXPENSE) expenseLabel else incomeLabel },
+            EntryKindControl(
+                selected =
+                    if (state.kind == TransactionKind.INCOME) EntryKind.INCOME else EntryKind.EXPENSE,
+                onSelect = { entry ->
+                    when (entry) {
+                        EntryKind.EXPENSE -> viewModel.setKind(TransactionKind.EXPENSE)
+
+                        EntryKind.INCOME -> viewModel.setKind(TransactionKind.INCOME)
+
+                        // The third answer is a different screen, because a transfer has two
+                        // accounts and no category. It replaces this one rather than stacking
+                        // on it — see `switchForm` in CentsApp.
+                        EntryKind.TRANSFER -> onSwitchToTransfer()
+                    }
+                },
                 modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
             )
         }

@@ -126,9 +126,16 @@ private fun ConfirmDestructiveAlert(
         title = stringResource(R.string.account_delete_everything_title, state.name),
         message =
             pluralStringResource(
-                R.plurals.account_delete_everything_message,
-                state.transactionCount,
-                state.transactionCount,
+                // A transfer goes whole, so a delete that reaches one changes a balance in an
+                // account the owner is not deleting. That is a different sentence, not a
+                // bigger number in the same one.
+                if (state.removalReachesTransfers) {
+                    R.plurals.account_delete_everything_with_transfers
+                } else {
+                    R.plurals.account_delete_everything_message
+                },
+                state.removedCount,
+                state.removedCount,
             ),
         confirmLabel = stringResource(R.string.action_delete),
         onConfirm = removal::confirmDestructive,

@@ -87,11 +87,10 @@ class TransactionFormViewModel
         savedStateHandle: SavedStateHandle,
         clock: Clock,
     ) : ViewModel() {
+        private val route = savedStateHandle.toRoute<Destination.TransactionForm>()
+
         private val transactionId: Long? =
-            savedStateHandle
-                .toRoute<Destination.TransactionForm>()
-                .transactionId
-                .takeIf { it != Destination.TransactionForm.NEW }
+            route.transactionId.takeIf { it != Destination.TransactionForm.NEW }
 
         private val today = LocalDate.now(clock)
 
@@ -107,7 +106,18 @@ class TransactionFormViewModel
          */
         val isNewRecord: Boolean = transactionId == null
 
-        private val form = MutableStateFlow(TransactionFormUiState(date = today, today = today))
+        private val form =
+            MutableStateFlow(
+                TransactionFormUiState(
+                    // What was typed and chosen on the transfer form before the owner decided
+                    // this was an ordinary movement after all. Both are ignored when opening
+                    // one that already exists: [load] overwrites them with what was recorded.
+                    kind = route.kind,
+                    amountInput = route.amountInput,
+                    date = today,
+                    today = today,
+                ),
+            )
 
         val uiState: StateFlow<TransactionFormUiState> = form.asStateFlow()
 

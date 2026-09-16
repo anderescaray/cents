@@ -20,7 +20,9 @@ views, the account picker and the direction toggle were built — and extended o
 cover the two things that landed after that text was written: the year-on-year segment (#42),
 and the canvas of bubbles the app now opens on (#41), which changes the first thing this walk
 sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
-the same day, on a phone nobody has held it on either.
+the same day, on a phone nobody has held it on either — and on 2026-09-16 with **Walk 7**, for
+transfers, which is the one feature here whose failure is invisible on the screen that records
+it: a transfer can move both balances correctly and still leak into every chart.
 
 ```bash
 adb devices                  # the phone is there and authorised
@@ -796,3 +798,119 @@ include what you actually paid.
 > **Wrong looks like** the earlier purchase pushing the quantity past what you said you hold —
 > that would mean the correction recorded a difference rather than a fact — or the correction
 > vanishing from the list once its cause was explained.
+
+## Walk 7 — transfers (`feat/transfers`)
+
+Added 2026-09-16, and **none of it has been on a phone**. This is the walk where the app is most
+easily right in a way you cannot see: a transfer that moves the balances correctly but leaks into
+a chart looks perfectly normal on the screen where it was recorded, and shows up as a month where
+you apparently earned 500 € you did not.
+
+Walk it with **two accounts you can tell apart** — call them Checking and Savings — and with
+something already recorded this month, so the totals have a before and an after.
+
+### t1 · The entry form has a third answer
+
+Tap **+** on Transactions. The control at the top now reads **Expense · Income · Transfer**. Type
+an amount first — say `500` — and *then* tap **Transfer**.
+
+The screen changes: two accounts instead of one, no category, a **Fee** row. **The 500 you typed
+is still there.**
+
+> **Wrong looks like** the amount clearing, or the transfer form arriving on top of the movement
+> form — press back once and you should be on the list, not looking at the form you just left.
+
+### t2 · It refuses to guess where the money goes
+
+The **From** section opens on your first account. **To** has nothing ticked and **Save is off**.
+Pick Savings; Save comes on.
+
+Check that **From** and **To** never offer the same account at once, and that **Swap the accounts**
+turns the transfer around without clearing what you typed.
+
+> **Wrong looks like** a destination chosen for you. Moving money into an account you did not
+> name is the one mistake this form must not make on your behalf.
+
+### t3 · Both balances move, by the right amounts
+
+Save it. Go to **Accounts** and check both numbers by hand: Checking is 500 € lighter, Savings is
+500 € heavier, and the two changes are equal and opposite.
+
+> **Wrong looks like** one side moving, both sides moving the same way, or a balance that changes
+> by an amount you did not type.
+
+### t4 · And no chart moved at all
+
+Now the point of the whole feature. Open **Transactions** and read **This month**: income and
+expenses must be **exactly what they were before you recorded the transfer**. Open **Reports** and
+check the same, on the period covering today:
+
+- the ring — on **Expense** and on **Income** — has no new slice, and no *Uncategorized* slice
+  that was not there before;
+- **Income and expenses** has the same two bars for this month;
+- **This period against the last** has not moved;
+- the **balance line** *has* moved, because that is a balance rather than a flow.
+
+> **Wrong looks like** 500 € of income, 500 € of expense, or an *Uncategorized* slice appearing.
+> Any of those means the exclusion is missing from one query, and every statistic in the app is
+> inflated by every transfer you ever record.
+
+### t5 · A leg says where the money went, and opens the transfer
+
+Back on the list, find the two rows. In Checking's account detail the row reads **Transfer to
+Savings**; in Savings it reads **Transfer from Checking**. Neither says *Uncategorized*, and the
+arriving one is **not** written in the green income is written in.
+
+Tap either one. You get the **transfer**, with both accounts and the amount — not a movement form
+showing one half of it.
+
+> **Wrong looks like** a row called *Uncategorized*, a green +500 that reads as a payday, or a
+> movement form that lets you change one side of a pair on its own.
+
+### t6 · The fee comes out of the account it left
+
+Record a second transfer of 100 € with a **Fee** of 3 €. Tap the Fee row first and watch the
+keypad start typing into *it* rather than into the amount — the big number greys out, the fee row
+turns blue.
+
+The footer under the section should say that 103,00 € leaves the account it comes from. Save, and
+check the balances: the source is 103 € lighter, the destination 100 € heavier.
+
+Then open **Reports** again: **the 3 € is not spending**. It is inside the transfer (PRD §4.2), so
+it appears in no ring and no expense total.
+
+> **Wrong looks like** the destination receiving 103 €, the fee being typed into the amount, or
+> 3 € turning up in the ring's *Uncategorized* slice.
+
+### t7 · Editing a transfer edits both halves
+
+Open the first transfer and swap its two accounts, then save. Both balances must swap with it —
+Checking back up, Savings back down — with no third row appearing anywhere.
+
+> **Wrong looks like** a new pair of rows beside the old one, or one side pointing at the new
+> account while the other still points at the old one.
+
+### t8 · Deleting one takes both, and says so first
+
+Open a transfer and tap **Delete transfer**. The alert must say that *both* sides go and that this
+one cannot be undone — there is no Undo banner for a transfer (C4), unlike a movement.
+
+Confirm, and check both balances return to what they were.
+
+### t9 · Deleting an account tells the truth about transfers
+
+Go to **Accounts**, swipe **Savings**, and choose to delete it *with its movements*. Read the
+second confirmation: the number must count the far legs living in Checking too, and the wording
+must say that the balance of the account at the other end changes.
+
+Cancel. Then, if you do go through with it on a throwaway account, check Checking afterwards: no
+row saying *Transfer to* something that no longer exists.
+
+> **Wrong looks like** a count naming only what lived in Savings, or a half transfer left behind
+> in Checking — money that now appears to have arrived from nowhere.
+
+### t10 · With one account, the form says why it cannot
+
+On a fresh install with a single account, choose **Transfer**. It should say a transfer needs
+somewhere to go and offer to create a second account, rather than showing two pickers with the
+same one account in both.

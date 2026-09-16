@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
@@ -40,10 +41,41 @@ sealed interface Destination {
      * The movement form, adding when [transactionId] is [TransactionForm.NEW] and editing
      * an existing movement otherwise. One screen for both: the fields are identical, and a
      * second copy of them would be a second place for them to drift.
+     *
+     * [amountInput] and [kind] are what the owner had typed and chosen on the *transfer* form
+     * before deciding this was an ordinary movement after all. They are ignored when opening
+     * something that already exists, which carries its own.
      */
     @Serializable
     data class TransactionForm(
         val transactionId: Long = NEW,
+        val amountInput: String = "",
+        val kind: TransactionKind = TransactionKind.EXPENSE,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
+    /**
+     * The transfer form: money moving between two of the owner's own accounts. Adding when
+     * [transferId] is [TransferForm.NEW], editing an existing transfer otherwise.
+     *
+     * Its own route rather than a mode of [TransactionForm], because a transfer asks for two
+     * accounts and no category — one form serving both would be a form made of conditionals.
+     * The two are stitched together by the control at the top of each: choosing a kind the
+     * current screen cannot record navigates to the one that can, **replacing** it rather than
+     * stacking on it, so back from either goes where the owner came from rather than to the
+     * form they just left.
+     *
+     * [amountInput] is what has been typed so far, in [io.github.anderescaray.cents.ui.util.AmountEntry]'s
+     * canonical form. It travels across that switch so that realising halfway through that
+     * this is a transfer does not cost the amount.
+     */
+    @Serializable
+    data class TransferForm(
+        val transferId: Long = NEW,
+        val amountInput: String = "",
     ) : Destination {
         companion object {
             const val NEW = 0L

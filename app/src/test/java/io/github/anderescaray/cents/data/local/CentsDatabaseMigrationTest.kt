@@ -3,12 +3,14 @@ package io.github.anderescaray.cents.data.local
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import io.github.anderescaray.cents.data.local.migration.MIGRATION_1_2
+import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
 import io.github.anderescaray.cents.domain.model.AssetClass
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -17,19 +19,23 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * The first migration test in this project, and the shape the rest follow.
+ * Every migration this database has, tested from the schema that actually shipped.
  *
- * **What it actually proves.** A v1 database is built from the *exported* `1.json` rather than
- * from hand-written SQL — so it is the schema that really shipped — rows are put in it, and
- * then Room is opened on it with [MIGRATION_1_2]. Two things then have to hold, and the second
- * is the one that catches a typo in a migration:
+ * **What it proves.** A database is built from an *exported* schema file rather than from
+ * hand-written SQL — so it is the version that really ran on the phone — rows are put in it,
+ * and then Room is opened on it with the migrations. Two things then have to hold, and the
+ * second is the one that catches a typo in a migration:
  *
- * 1. **Nothing already recorded is lost.** The account and the movement written at v1 are still
- *    there afterwards, with the same values.
- * 2. **Room accepts the result.** After running a migration, Room compares the database against
- *    the schema it expects and refuses to open one that differs by so much as an index. So a
- *    migration that creates a column of the wrong type, or forgets an index, fails here rather
- *    than on the owner's phone — where it would mean an app that cannot start.
+ * 1. **Nothing already recorded is lost.** The account and the movement written before the
+ *    migration are still there afterwards, with the same values.
+ * 2. **Room accepts the result.** After running a migration, Room compares the database
+ *    against the schema it expects and refuses to open one that differs by so much as an
+ *    index. So a migration that creates a column of the wrong type, or forgets an index,
+ *    fails here rather than on the owner's phone — where it would mean an app that cannot
+ *    start.
+ *
+ * Both hops are covered, and from both ends: an install that predates investments migrates
+ * the whole way in one go, and one that stopped at v2 takes the single step to v3.
  */
 @RunWith(RobolectricTestRunner::class)
 class CentsDatabaseMigrationTest {
@@ -46,7 +52,7 @@ class CentsDatabaseMigrationTest {
     @Test
     fun `a version 1 database keeps its money and gains the investments tables`() =
         runTest {
-            createVersionOne()
+            createVersion(1)
 
             val database = openWithMigrations()
             try {
@@ -72,13 +78,77 @@ class CentsDatabaseMigrationTest {
         }
 
     @Test
+    fun `a version 2 database keeps its money and gains the transfer column`() =
+        runTest {
+            createVersion(2)
+
+            val database = openWithMigrations()
+            try {
+                val transactions = database.transactionDao().observeAll().first()
+                assertEquals("the movement written at v2 should survive", 1, transactions.size)
+                assertEquals(2_550L, transactions.single().amountMinor)
+                // What a movement recorded before transfers existed is: an ordinary expense,
+                // and not half of anything.
+                assertNull(
+                    "a movement from before transfers belongs to no transfer",
+                    transactions.single().transferId,
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a transfer can be written into a migrated database`() =
+        runTest {
+            createVersion(2)
+
+            val database = openWithMigrations()
+            try {
+                val dao = database.transactionDao()
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val second =
+                    database.accountDao().insert(
+                        account(name = "Savings"),
+                    )
+                val outId =
+                    dao.insert(
+                        transaction(accountId = accountId, kind = TransactionKind.EXPENSE, amountMinor = 50_000),
+                    )
+                dao.setTransferId(id = outId, transferId = outId, updatedAt = FIXED_INSTANT)
+                dao.insert(
+                    transaction(
+                        accountId = second,
+                        kind = TransactionKind.INCOME,
+                        amountMinor = 50_000,
+                        transferId = outId,
+                    ),
+                )
+
+                // The index the migration creates is what this reads through, so a column
+                // added but not indexed would still pass — and a missing index would have
+                // failed the schema check above anyway.
+                assertEquals(2, dao.findTransferLegs(outId).size)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `the migrated schema is one Room agrees to open`() =
         runTest {
-            createVersionOne()
+            createVersion(1)
 
             // Opening is the assertion: Room validates every table, column and index against
-            // the schema it expects for version 2, and throws if the migration produced
-            // anything else. Reading from a new table forces that check to happen here.
+            // the schema it expects for the current version, and throws if the migrations
+            // produced anything else. Reading from a new table forces that check to happen
+            // here.
             val database = openWithMigrations()
             try {
                 assertTrue(
@@ -106,18 +176,20 @@ class CentsDatabaseMigrationTest {
                 ApplicationProvider.getApplicationContext(),
                 CentsDatabase::class.java,
                 TEST_DATABASE,
-            ).addMigrations(MIGRATION_1_2)
+            ).addMigrations(*ALL_MIGRATIONS)
             .build()
 
     /**
-     * A real version 1 database, created from the committed `1.json`.
+     * A real database at [version], created from the committed schema Room exported for it.
      *
      * Typing the old DDL out here would test this file against itself: the version that
-     * shipped is the one Room exported, so that is the one the migration has to be able to
-     * start from.
+     * shipped is the one Room exported, so that is the one a migration has to be able to
+     * start from. The same account and movement go into every version, so what survives is
+     * compared against the same numbers whichever hop is under test.
      */
-    private fun createVersionOne() {
-        val schema = JSONObject(File(SCHEMA_DIRECTORY, "1.json").readText()).getJSONObject("database")
+    private fun createVersion(version: Int) {
+        val schema =
+            JSONObject(File(SCHEMA_DIRECTORY, "$version.json").readText()).getJSONObject("database")
         val database = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
         try {
             val entities = schema.getJSONArray("entities")
@@ -149,7 +221,7 @@ class CentsDatabaseMigrationTest {
                     "(accountId, categoryId, kind, amountMinor, currency, date, createdAt, updatedAt) " +
                     "VALUES (1, NULL, 'EXPENSE', 2550, 'EUR', 20684, 1755511200000, 1755511200000)",
             )
-            database.version = 1
+            database.version = version
         } finally {
             database.close()
         }

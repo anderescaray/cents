@@ -45,8 +45,12 @@ abstract class CentsDatabase : RoomDatabase() {
     abstract fun priceQuoteDao(): PriceQuoteDao
 
     companion object {
-        /** v2 (2026-09-09) added holdings, trades and price quotes. See `Migrations.kt`. */
-        const val VERSION = 2
+        /**
+         * v2 (2026-09-09) added holdings, trades and price quotes; v3 (2026-09-16) added
+         * `transactions.transferId`, which is what pairs the two legs of a transfer. See
+         * `Migrations.kt`.
+         */
+        const val VERSION = 3
         const val NAME = "cents.db"
     }
 }

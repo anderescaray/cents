@@ -31,4 +31,8 @@
         <item quantity="one">Su única operación registrada se va con ella, y eso no se puede deshacer.</item>
         <item quantity="other">Sus %1$d operaciones registradas se van con ella, y eso no se puede deshacer.</item>
     </plurals>
+    <plurals name="account_delete_everything_with_transfers">
+        <item quantity="one">Un movimiento se va con ella, definitivamente — y eso incluye el otro lado de cada traspaso en el que participa esta cuenta, así que el saldo de la cuenta del otro extremo también cambia. Esto no se puede deshacer.</item>
+        <item quantity="other">%1$d movimientos se van con ella, definitivamente — y eso incluye el otro lado de cada traspaso en el que participa esta cuenta, así que los saldos de las cuentas del otro extremo también cambian. Esto no se puede deshacer.</item>
+    </plurals>
 </resources>

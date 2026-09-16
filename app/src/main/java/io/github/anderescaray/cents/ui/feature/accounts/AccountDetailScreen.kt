@@ -23,6 +23,8 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.movementTitle
+import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -39,6 +41,7 @@ fun AccountDetailScreen(
     onBack: () -> Unit,
     onEdit: (Long) -> Unit,
     onOpenTransaction: (Long) -> Unit,
+    onOpenTransfer: (Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -77,7 +80,7 @@ fun AccountDetailScreen(
             emptyState()
         }
 
-        state.days.forEach { day -> movementDay(day, state.today, onOpenTransaction) }
+        state.days.forEach { day -> movementDay(day, state.today, onOpenTransaction, onOpenTransfer) }
     }
 }
 
@@ -140,25 +143,24 @@ private fun LazyListScope.movementDay(
     day: AccountDay,
     today: LocalDate,
     onOpenTransaction: (Long) -> Unit,
+    onOpenTransfer: (Long) -> Unit,
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
             day.items.forEachIndexed { index, details ->
                 val movement = details.transaction
+                val transferId = movement.transferId
                 CentsListRow(
-                    title =
-                        details.categoryName
-                            ?: stringResource(R.string.transactions_uncategorized),
+                    title = details.movementTitle(),
                     subtitle = movement.note?.takeIf { it.isNotBlank() },
                     value = MoneyFormatter.formatSigned(movement.signedAmount),
-                    valueColor =
-                        if (movement.kind == TransactionKind.INCOME) {
-                            CentsTheme.colors.positive
-                        } else {
-                            CentsTheme.colors.label
-                        },
+                    valueColor = details.movementValueColor(),
                     showSeparator = index != day.items.lastIndex,
-                    onClick = { onOpenTransaction(movement.id) },
+                    // A leg opens the transfer it belongs to: the other half has to change
+                    // with it, and it lives in an account this screen is not showing.
+                    onClick = {
+                        if (transferId != null) onOpenTransfer(transferId) else onOpenTransaction(movement.id)
+                    },
                 )
             }
         }

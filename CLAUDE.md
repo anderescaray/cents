@@ -222,7 +222,7 @@ segment on the entry form, it reads on the list as *Transfer to Savings*, and it
 Still left to the next branches: a purchase does not yet take money out of its account
 (`feat/buying-spends-the-cash`, now unblocked), and no price comes from the internet (D13 names
 the provider, and it needs a key only the owner can create).
-465 tests run on the JVM, so CI covers the database and the UI without a device.
+470 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

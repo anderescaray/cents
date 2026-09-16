@@ -63,6 +63,16 @@ data class TransactionFormUiState(
 
     /** An amount of zero is not a movement, and every movement needs an account. */
     val canSave: Boolean get() = amount.minorUnits > 0 && selectedAccountId != null && !saving
+
+    /**
+     * Whether *Transfer* is offered as a third answer.
+     *
+     * Only while recording something new. Choosing it leaves for the transfer form, and a
+     * movement that already exists would be left behind rather than converted — the owner would
+     * save the transfer and own both. Expense and Income stay offered either way: those two are
+     * the same record with its direction flipped.
+     */
+    val canBecomeTransfer: Boolean get() = !isEditing
 }
 
 /** A placeholder until an account is known; never what a movement is actually saved as. */

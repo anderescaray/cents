@@ -148,6 +148,14 @@ interface TransactionDao {
      * means "never classified", so [uncategorized] carries the question that a null id would
      * otherwise swallow.
      *
+     * **[uncategorized] is the one narrowing here that also excludes transfer legs**, which is
+     * not an exception to the rule at the top of this file but the same rule reaching a filter.
+     * A leg carries no category because a transfer is not classified, not because nobody has got
+     * round to classifying it — and this filter is what the ring's *Uncategorized* slice drills
+     * into. That slice counted no legs, so a list that showed them would not be the slice's
+     * movements: it would be the slice plus every transfer in the period, each one typically far
+     * larger than anything in it.
+     *
      * [query] arrives already wrapped in `%` and with LIKE's own wildcards escaped, so a
      * search for "50%" looks for that text and not for "50 followed by anything".
      *
@@ -179,7 +187,7 @@ interface TransactionDao {
         LEFT JOIN categories c ON c.id = t.categoryId
         WHERE (:accountId IS NULL OR t.accountId = :accountId)
           AND (:categoryId IS NULL OR t.categoryId = :categoryId)
-          AND (:uncategorized = 0 OR t.categoryId IS NULL)
+          AND (:uncategorized = 0 OR (t.categoryId IS NULL AND t.transferId IS NULL))
           AND (:kind IS NULL OR t.kind = :kind)
           AND (:from IS NULL OR t.date >= :from)
           AND (:to IS NULL OR t.date <= :to)

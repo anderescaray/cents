@@ -614,7 +614,7 @@ unmerged one.
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
 | Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
 | Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
-| Tests | 465, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 470, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1161,7 +1161,7 @@ Phase 4 rather than being skipped.
       `transferId`, excluded from every income and expense report (PRD §3) — get that
       wrong and every statistic in the app inflates. Schema v3, a migration and its test.
       *Done when:* moving 500 € from Checking to Broker changes both balances and no chart.
-      **Done**, 465 tests. What it actually settled, beyond the plan above:
+      **Done**, 470 tests. What it actually settled, beyond the plan above:
       - **One column, and no transfers table.** A transfer is a *relationship between two
         movements*, so giving it a table of its own would mean the same amount written twice and
         free to disagree with the balances it is made of. `transactions` gained one nullable
@@ -1197,6 +1197,19 @@ Phase 4 rather than being skipped.
         that changes a balance somewhere else, the confirmation counts those rows and says so in
         its own sentence rather than quietly growing a number. Reassignment is the case left
         standing on purpose, in C4.
+      - **The review pass landed after the merge, as #48.** `/code-review` finished just as #47
+        went in, and found three behaviour bugs worth knowing about, all of them the same shape:
+        a rule applied in one place and not in its neighbour. The kind control was offered while
+        *editing*, so an existing movement could be "turned into" a transfer while quietly
+        staying where it was — save it and you owned both. `load()` re-derived the account list
+        from the already-pruned one, so an archived destination could vanish from a transfer
+        being edited, depending on which of two loads landed first. And the `uncategorized`
+        filter never gained the `transferId IS NULL` its own chart had, so the ring's
+        *Uncategorized* slice drilled into a list containing every transfer leg in the period.
+        Two smaller ones and a dead import came with them. **It also went red on CI for a reason
+        it did not cause** — a family of tests that read the database immediately after a write
+        through a view model, which races it; that is fixed across the suite and written up in
+        C4, because it is easy to write the racing way and it passes until it does not.
 
 - [ ] **`feat/buying-spends-the-cash`** — what D11 actually described, finished. A purchase takes
       its cost out of the account's cash and a sale puts it back, using the same exclusion the
@@ -1299,7 +1312,10 @@ parallelism.
   shows the arriving side of every transfer in the period. The rows read as transfers and are
   excluded from the totals above them, so nothing adds up wrongly — but *Income* is not quite
   what they are. The filter form gaining a transfers switch is one more section on a form that
-  already has six, and it waits for somebody to actually want it.
+  already has six, and it waits for somebody to actually want it. **The *uncategorized* filter is
+  the one case already closed**, because it is not a preference but a drill-down: the ring's
+  *Uncategorized* slice counts no legs, so the list behind it shows none either. A leg has no
+  category because a transfer is not classified, not because nobody got round to it.
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —
@@ -1325,6 +1341,15 @@ parallelism.
 - **A trade carries no note in the form.** The column exists and the model carries it; the form
   does not offer it, because a trade is already four fields and the note had no obvious question
   to answer. It costs one row the day somebody misses it.
+- **A test that writes through a view model and then reads the database has to wait.** `save()`
+  launches into `viewModelScope` and the write lands on Room's executor, so the next line races
+  it: the flow's first emission can predate the row. It passes on a quiet machine and loses on a
+  loaded one — `HoldingEditViewModelTest` and `HoldingPriceEntryTest` went red on CI on 2026-09-16
+  having been green locally and on their own PR. The fix is the idiom the category tests already
+  used: wait for `finished` before reading, or, where the write has no `finished` to wait on
+  (`savePrice`), read the flow with a predicate rather than taking its first emission. Every site
+  in the suite was corrected then; a new one is easy to write the racing way, and it will pass
+  until it does not.
 - **Do not branch off an unmerged branch when the merge will be a squash.** `main` squash-merges,
   so a stacked branch carries commits whose content arrives on `main` as one different commit,
   and rebasing then conflicts on every hunk. It happened on 2026-09-03 and the fix was to rebuild

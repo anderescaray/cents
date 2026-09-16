@@ -85,7 +85,9 @@ class HoldingPriceEntryTest {
             viewModel.onPriceTyped("600")
             viewModel.savePrice()
 
-            val stored = database.priceQuoteDao().observeBySymbol("NVD.DE").first()
+            // `savePrice()` has no `finished` to wait on, so the row itself is the signal:
+            // the flow re-emits when the write lands, and its first emission can predate it.
+            val stored = database.priceQuoteDao().observeBySymbol("NVD.DE").first { it != null }
             assertEquals(15_000L, stored?.priceMinor)
 
             viewModel.uiState.test {
@@ -135,7 +137,9 @@ class HoldingPriceEntryTest {
             viewModel.onPriceTyped("100,10")
             viewModel.savePrice()
 
-            val stored = database.priceQuoteDao().observeBySymbol("NVD.DE").first()
+            // `savePrice()` has no `finished` to wait on, so the row itself is the signal:
+            // the flow re-emits when the write lands, and its first emission can predate it.
+            val stored = database.priceQuoteDao().observeBySymbol("NVD.DE").first { it != null }
             assertEquals(2_503L, stored?.priceMinor)
         }
 
@@ -153,7 +157,9 @@ class HoldingPriceEntryTest {
             viewModel.onPriceDateSelected(viewModel.today().minusDays(3))
             viewModel.savePrice()
 
-            val stored = database.priceQuoteDao().observeBySymbol("NVD.DE").first()
+            // `savePrice()` has no `finished` to wait on, so the row itself is the signal:
+            // the flow re-emits when the write lands, and its first emission can predate it.
+            val stored = database.priceQuoteDao().observeBySymbol("NVD.DE").first { it != null }
             val expected =
                 viewModel
                     .today()

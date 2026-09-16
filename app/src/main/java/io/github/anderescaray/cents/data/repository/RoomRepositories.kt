@@ -225,8 +225,24 @@ class RoomTransactionRepository
         }
 
         override suspend fun updateTransaction(transaction: Transaction) {
-            val createdAt = transactionDao.findById(transaction.id)?.createdAt ?: clock.instant()
-            transactionDao.update(transaction.toEntity(createdAt = createdAt, updatedAt = clock.instant()))
+            val stored = transactionDao.findById(transaction.id)
+            transactionDao.update(
+                transaction
+                    .toEntity(
+                        // Keep the original creation instant: an edit is not a re-creation.
+                        createdAt = stored?.createdAt ?: clock.instant(),
+                        updatedAt = clock.instant(),
+                    )
+                    // And keep whatever pairs it, for the same reason and a sharper one. Nothing
+                    // routes a transfer leg into the movement form today — both lists send a leg
+                    // to the transfer instead — so a domain object reaching here carries the
+                    // default `transferId = null`. If one ever does arrive, dropping the pair id
+                    // would not fail: it would quietly turn one leg into a real income or
+                    // expense, counted by every report, and leave the other pointing at a
+                    // transfer that no longer exists. The invariant is held by this repository
+                    // rather than by a foreign key, so it is held here too.
+                    .copy(transferId = stored?.transferId),
+            )
         }
 
         override suspend fun deleteTransaction(id: Long) {

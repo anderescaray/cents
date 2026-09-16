@@ -38,11 +38,13 @@ class TabOwnershipTest {
 
     @Test
     fun `a screen two tabs can reach is claimed by neither`() {
-        // The movement form opens from the list and from an account; the account editor from
-        // Accounts, from an account's detail and from the form; the category editor from
-        // Settings and from the form. Naming an owner for any of them would pick one of two
+        // The movement form opens from the list and from an account, and the transfer form
+        // from both of those and from the movement form; the account editor from Accounts,
+        // from an account's detail and from the form; the category editor from Settings and
+        // from the form. Naming an owner for any of them would pick one of two
         // truths, so the tab the owner was already in is what stands.
         assertEquals(null, tabOwning(Destination.TransactionForm::class))
+        assertEquals(null, tabOwning(Destination.TransferForm::class))
         assertEquals(null, tabOwning(Destination.AccountEdit::class))
         assertEquals(null, tabOwning(Destination.CategoryEdit::class))
     }

@@ -26,12 +26,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.PeriodSummary
-import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSearchField
+import io.github.anderescaray.cents.ui.components.movementTitle
+import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -42,6 +43,7 @@ import java.time.LocalDate
 fun TransactionsScreen(
     onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
+    onOpenTransfer: (Long) -> Unit,
     onOpenFilters: () -> Unit,
     viewModel: TransactionsViewModel = hiltViewModel(),
 ) {
@@ -52,6 +54,7 @@ fun TransactionsScreen(
             state = state,
             onAddTransaction = onAddTransaction,
             onOpenTransaction = onOpenTransaction,
+            onOpenTransfer = onOpenTransfer,
             onOpenFilters = onOpenFilters,
             onQueryChange = viewModel::setQuery,
             onClearFilter = viewModel::clearFilter,
@@ -78,6 +81,7 @@ internal fun TransactionsList(
     state: TransactionsUiState,
     onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
+    onOpenTransfer: (Long) -> Unit,
     onOpenFilters: () -> Unit,
     onQueryChange: (String) -> Unit,
     onClearFilter: () -> Unit,
@@ -109,7 +113,7 @@ internal fun TransactionsList(
         if (state.isEmpty) {
             if (state.isNarrowed) noMatchesState(onClearFilter) else emptyState()
         }
-        state.days.forEach { day -> day(day, state.today, onOpenTransaction) }
+        state.days.forEach { day -> day(day, state.today, onOpenTransaction, onOpenTransfer) }
     }
 }
 
@@ -316,25 +320,24 @@ private fun LazyListScope.day(
     day: TransactionDay,
     today: LocalDate,
     onOpenTransaction: (Long) -> Unit,
+    onOpenTransfer: (Long) -> Unit,
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
             day.items.forEachIndexed { index, details ->
                 val transaction = details.transaction
+                val transferId = transaction.transferId
                 CentsListRow(
-                    title =
-                        details.categoryName
-                            ?: stringResource(R.string.transactions_uncategorized),
+                    title = details.movementTitle(),
                     subtitle = transaction.note?.takeIf { it.isNotBlank() } ?: details.accountName,
                     value = MoneyFormatter.formatSigned(transaction.signedAmount),
-                    valueColor =
-                        if (transaction.kind == TransactionKind.INCOME) {
-                            CentsTheme.colors.positive
-                        } else {
-                            CentsTheme.colors.label
-                        },
+                    valueColor = details.movementValueColor(),
                     showSeparator = index != day.items.lastIndex,
-                    onClick = { onOpenTransaction(transaction.id) },
+                    // A leg opens the transfer it belongs to, because the other half has to
+                    // change with it.
+                    onClick = {
+                        if (transferId != null) onOpenTransfer(transferId) else onOpenTransaction(transaction.id)
+                    },
                 )
             }
         }

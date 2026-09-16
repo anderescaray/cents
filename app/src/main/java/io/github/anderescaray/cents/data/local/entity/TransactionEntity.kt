@@ -15,6 +15,12 @@ import java.time.LocalDate
  * amounts and a kind means two sources of truth that can disagree, and a single wrong
  * sign silently corrupts every total in the app.
  *
+ * A row with a [transferId] is **one leg of a transfer** rather than a movement of its own:
+ * money that left one of the owner's accounts and arrived in another. Both legs carry the
+ * same [transferId], and every income-and-expense report excludes them — moving 500 € from
+ * checking to savings is not spending 500 € (PRD §3). Balances count them, because the money
+ * really did move.
+ *
  * Deleting an account or a category that still has transactions is refused by the
  * foreign keys ([ForeignKey.RESTRICT]); both are archived instead.
  */
@@ -39,6 +45,7 @@ import java.time.LocalDate
         Index(value = ["categoryId"]),
         Index(value = ["date"]),
         Index(value = ["accountId", "date"]),
+        Index(value = ["transferId"]),
     ],
 )
 data class TransactionEntity(
@@ -54,6 +61,15 @@ data class TransactionEntity(
     val currency: String,
     val date: LocalDate,
     val note: String? = null,
+    /**
+     * The transfer this row is one leg of, and null for an ordinary movement.
+     *
+     * It is the row id of the outgoing leg, which is where the value comes from and why no
+     * counter or extra table is needed: a row id is already unique and already exists by the
+     * time the second leg is written. The pair is written in one database transaction, so a
+     * leg with nobody on the other end is not a state this app can produce.
+     */
+    val transferId: Long? = null,
     val attachmentUri: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,

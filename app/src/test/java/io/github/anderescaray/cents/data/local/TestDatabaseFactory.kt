@@ -68,6 +68,8 @@ fun transaction(
     currency: String = "EUR",
     date: LocalDate = LocalDate.of(2026, 8, 18),
     note: String? = null,
+    /** Set on both legs of a transfer, and null for an ordinary movement. */
+    transferId: Long? = null,
 ) = TransactionEntity(
     accountId = accountId,
     categoryId = categoryId,
@@ -76,6 +78,7 @@ fun transaction(
     currency = currency,
     date = date,
     note = note,
+    transferId = transferId,
     createdAt = FIXED_INSTANT,
     updatedAt = FIXED_INSTANT,
 )

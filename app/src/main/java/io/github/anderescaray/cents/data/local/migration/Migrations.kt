@@ -6,13 +6,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /**
  * Every schema change this database has ever had, in order.
  *
- * **The first migration in the project**, and the pattern the rest follow. Three rules, all of
- * them learned from other people's data loss rather than from this app's:
+ * Three rules, all of them learned from other people's data loss rather than from this app's:
  *
  * 1. **The statements are written out, not generated.** Room compares the migrated database
  *    against the schema it expects and refuses to open one that differs by a single index, so
- *    the DDL below is copied from the exported `2.json` rather than typed from the entity
- *    classes. `CentsDatabaseMigrationTest` is what proves the copy is faithful.
+ *    the DDL below is copied from the exported schema of the version each migration produces,
+ *    rather than typed from the entity classes. `CentsDatabaseMigrationTest` is what proves
+ *    the copy is faithful, and it starts each one from the schema that really shipped.
  * 2. **A migration is never edited once it has shipped.** It has already run on the owner's
  *    phone; changing it changes only what *new* installs get, and the two silently diverge.
  *    A mistake is corrected by the next migration, in the open.
@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    from `DatabaseModule`, so a missing migration is a crash in development rather than an
  *    erased financial history on a real device.
  */
-val ALL_MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_1_2)
+val ALL_MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
 /**
  * v1 to v2 — the investments tables.
@@ -79,6 +79,29 @@ val MIGRATION_1_2 =
                     "`asOf` INTEGER NOT NULL, " +
                     "`source` TEXT NOT NULL, " +
                     "PRIMARY KEY(`symbol`))",
+            )
+        }
+    }
+
+/**
+ * v2 to v3 — the column that pairs the two legs of a transfer.
+ *
+ * Additive as well, and deliberately the smallest change that could carry transfers: one
+ * nullable column and its index. Every movement recorded before transfers existed gets
+ * `NULL`, which is exactly what it is — an ordinary income or expense, and not half of
+ * anything.
+ *
+ * `ALTER TABLE ... ADD COLUMN` is the one schema change SQLite performs in place, so nothing
+ * here copies the ledger into a new table. The index matters more than it looks: the list
+ * resolves each transfer leg's counterpart account with a lookup by `transferId`, and without
+ * it that is a scan of every movement ever recorded, once per visible row.
+ */
+val MIGRATION_2_3 =
+    object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `transactions` ADD COLUMN `transferId` INTEGER")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_transferId` ON `transactions` (`transferId`)",
             )
         }
     }

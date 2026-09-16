@@ -613,7 +613,8 @@ unmerged one.
 | First run | **Nothing is seeded.** A fresh install has no accounts and no categories; every row in the app is one the owner typed |
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
 | Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
-| Tests | 441, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
+| Tests | 465, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1155,16 +1156,53 @@ Phase 4 rather than being skipped.
       *Done when:* the app agrees with the broker without anything being deleted. **Done**,
       441 tests.
 
-- [ ] **`feat/transfers`** — Phase 3's first piece, needed here: **money has to be able to reach
+- [x] **`feat/transfers`** — Phase 3's first piece, needed here: **money has to be able to reach
       the investments account**. A transfer is a paired outflow and inflow linked by one
       `transferId`, excluded from every income and expense report (PRD §3) — get that
       wrong and every statistic in the app inflates. Schema v3, a migration and its test.
       *Done when:* moving 500 € from Checking to Broker changes both balances and no chart.
+      **Done**, 465 tests. What it actually settled, beyond the plan above:
+      - **One column, and no transfers table.** A transfer is a *relationship between two
+        movements*, so giving it a table of its own would mean the same amount written twice and
+        free to disagree with the balances it is made of. `transactions` gained one nullable
+        `transferId` and its index; the value is the row id of the outgoing leg, which is unique
+        by construction and already exists by the time the second leg is written. Room v3 and
+        `MIGRATION_2_3`, one `ALTER TABLE ... ADD COLUMN` — the one change SQLite makes in place,
+        so nothing copies the ledger.
+      - **The rule is written once and applied eight times.** Every income-and-expense query on
+        `TransactionDao` carries `transferId IS NULL`; every balance query deliberately does not,
+        because the money really moved. Two of the eight — the trend's two queries — would exclude
+        legs anyway through their `INNER JOIN` on a category; the clause is written out regardless,
+        so the rule is *every report query has it* rather than *every report query except the two
+        you have to reason about*. `TransferQueriesTest` asks all of them about the same transfer.
+      - **The fee is the difference between the legs, not a third row.** 500 € sent with a 3 €
+        fee leaves 503 € and lands 500 €, and the fee is read back as what is missing. It cannot
+        drift from the balances because it is not stored anywhere else, and it stays out of the
+        expense reports because PRD §4.2 puts it inside the transfer rather than beside it.
+      - **The third segment is a different screen, and that is the point.** A transfer has two
+        accounts and no category, so folding it into the movement form would have made every
+        section of that form a conditional. `EntryKind` gives both forms the same three-way
+        control, and choosing a kind the current screen cannot record **replaces** it rather than
+        stacking on it — so back still means the list, and a few changes of mind do not build a
+        pile of forms. The amount typed so far travels across as a route argument.
+      - **A leg reads as what it is.** It has no category, so the movement row would have called
+        it *Uncategorized* and filed it beside the things that genuinely want classifying. It now
+        says *Transfer to Savings*, resolved in SQL by a subquery guarded on `transferId IS NULL`
+        so ordinary movements pay nothing for it, and it is written in the ordinary colour rather
+        than income's green. Tapping either leg opens the **transfer**, because editing one side
+        on a form that knows nothing about the other is how the two stop agreeing.
+      - **And one thing this branch found elsewhere.** Deleting an account *and its movements*
+        would have orphaned the far leg of every transfer it was part of — money arriving from
+        nowhere, in an account the owner was not deleting. Transfers now go whole, and because
+        that changes a balance somewhere else, the confirmation counts those rows and says so in
+        its own sentence rather than quietly growing a number. Reassignment is the case left
+        standing on purpose, in C4.
 
 - [ ] **`feat/buying-spends-the-cash`** — what D11 actually described, finished. A purchase takes
       its cost out of the account's cash and a sale puts it back, using the same exclusion the
-      transfer above establishes, so an investments account's balance reads as **uninvested cash**
-      and the portfolio value sits beside it rather than inside it.
+      transfer above establishes — which now exists, so this is the next branch and nothing
+      blocks it — so an investments account's balance reads as **uninvested cash** and the
+      portfolio value sits beside it rather than inside it.
       *Done when:* transfer 1.000 €, buy 400 € of NVDA, and the account shows 600 € of cash
       beside a 400 € position.
 
@@ -1240,10 +1278,28 @@ parallelism.
   what it means in practice is that an install predating D2 could show *no price yet* for
   something it does have a price for, until a new one is typed.
 - **Buying does not spend anything yet.** D11 describes money transferred into an investments
-  account and then allocated to a holding; this branch built the second half. A purchase records
-  what was bought and at what price, and the account's balance does not move — because moving it
-  needs the transfer machinery, which is Phase 3 and is the next branch. Until then the portfolio
-  and the balances are two true statements that do not add up to net worth.
+  account and then allocated to a holding; #44 built the second half and `feat/transfers` built
+  the machinery the first half needs. A purchase still records what was bought and at what price
+  without the account's balance moving, so the portfolio and the balances remain two true
+  statements that do not add up to net worth — `feat/buying-spends-the-cash` is what closes it,
+  and it is now unblocked.
+- **A transfer reassigned into its own counterpart is left standing.** Deleting an account by
+  moving its movements elsewhere moves transfer legs too, so a transfer can end up with both legs
+  in one account: a row saying *Transfer to Checking*, read in Checking. It changes no balance
+  (the pair nets to zero) and no report (both legs are still excluded), and the two alternatives
+  are worse — clearing the `transferId` would turn it into a real income and a real expense and
+  inflate both by the amount, and deleting the pair would destroy history inside an operation
+  whose whole promise is that nothing is lost. The honest fix, if it is ever wanted, is for the
+  reassignment sheet to name those transfers before it runs.
+- **A deleted transfer has no undo.** A deleted movement can be put back from the banner on the
+  list; a transfer cannot, because the buffer behind that banner holds one movement and half a
+  transfer restored is money arriving from nowhere. What it has instead is a confirmation saying
+  both sides go. Widening the buffer to a pair is the fix the day it is missed.
+- **The kind filter still sorts transfer legs by their kind.** Filtering the list to *Income*
+  shows the arriving side of every transfer in the period. The rows read as transfers and are
+  excluded from the totals above them, so nothing adds up wrongly — but *Income* is not quite
+  what they are. The filter form gaining a transfers switch is one more section on a form that
+  already has six, and it waits for somebody to actually want it.
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —
@@ -1275,14 +1331,16 @@ parallelism.
   the branch as a single commit on the merged `main` — `git checkout -B <branch> origin/main`
   followed by `git checkout <old tip> -- .`, which works only because the stacked tree is a strict
   superset. Cheaper to wait for the merge.
-- **Nobody has seen Phase 2 — or the canvas — on a phone.** Every view on the Reports tab is
+- **Nobody has seen Phase 2, the canvas, the portfolio or transfers on a phone.** Every view on the Reports tab is
   verified by JVM tests and by nothing else: the ring's Expense/Income toggle, the account picker
   above the charts, the comparison columns and both its segments, and the trend line have never
   been rendered on a device. Neither has the bubble canvas, which is worse in kind rather than in
   degree — it is the app's front door and it is made of drag and pinch gestures, which is exactly
   what a Robolectric test can least honestly claim to have checked. **The walk itself is no longer
-  the gap**: `docs/device-check.md` now covers all of it (r1–r19 and Walk 5), and what is missing
-  is a phone and an hour. On 2026-09-03 the phone reached adb once as `device` but was asleep, and
+  the gap**: `docs/device-check.md` now covers all of it (r1–r19, and Walks 5 to 7), and what is
+  missing is a phone and an hour. Transfers joined that list on 2026-09-16, and they are the worst
+  of it to leave unwalked — a transfer that moves both balances correctly and still leaks into a
+  chart looks completely normal on the screen that recorded it. On 2026-09-03 the phone reached adb once as `device` but was asleep, and
   every later attempt saw it absent or `offline` — over USB and over wireless debugging, whose
   mDNS advertised nothing. Screenshots need it awake and unlocked, and unlocking is the owner's
   (C5).

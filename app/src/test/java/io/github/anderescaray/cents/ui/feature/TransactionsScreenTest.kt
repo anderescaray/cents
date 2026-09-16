@@ -1,9 +1,12 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.Transaction
@@ -37,6 +40,8 @@ class TransactionsScreenTest {
     val composeRule = createComposeRule()
 
     private var cleared = 0
+    private val openedMovements = mutableListOf<Long>()
+    private val openedTransfers = mutableListOf<Long>()
 
     @Test
     fun `an unfiltered list carries no control it has no use for`() {
@@ -96,6 +101,35 @@ class TransactionsScreenTest {
         composeRule.onNodeWithTag(SHOW_EVERYTHING_TAG).assertExists()
     }
 
+    @Test
+    fun `a transfer leg names the account at the other end rather than reading as uncategorized`() {
+        setContent(unfiltered().copy(days = listOf(TransactionDay(TODAY, listOf(leg(), arriving())))))
+
+        // Neither leg has a category, and *Uncategorized* is what a movement row would call
+        // that — filing a transfer beside the movements that genuinely want classifying.
+        composeRule.onNodeWithText("Transfer to Savings").assertExists()
+        composeRule.onNodeWithText("Transfer from Checking").assertExists()
+        composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping a leg opens the transfer rather than the movement behind it`() {
+        setContent(unfiltered().copy(days = listOf(TransactionDay(TODAY, listOf(leg())))))
+
+        // The row's own click action, rather than a tap at its coordinates: on Robolectric's
+        // small default screen this row sits under the collapsing title, so a synthetic touch
+        // is swallowed before it arrives. What is being proved is where the row leads.
+        composeRule.onNodeWithText("Transfer to Savings").assertHasClickAction()
+        composeRule
+            .onNodeWithText("Transfer to Savings")
+            .performSemanticsAction(SemanticsActions.OnClick)
+
+        // Editing one side on a form that knows nothing about the other is how the two stop
+        // agreeing about how much money moved.
+        assertEquals(listOf(77L), openedTransfers)
+        assertEquals(emptyList<Long>(), openedMovements)
+    }
+
     private fun unfiltered() =
         TransactionsUiState(
             days = listOf(TransactionDay(TODAY, listOf(details()))),
@@ -131,13 +165,54 @@ class TransactionsScreenTest {
             categoryColorArgb = null,
         )
 
+    /** The side money left: an expense in Checking, belonging to transfer 77. */
+    private fun leg() =
+        TransactionDetails(
+            transaction =
+                Transaction(
+                    id = 2,
+                    accountId = 1,
+                    categoryId = null,
+                    kind = TransactionKind.EXPENSE,
+                    amount = Money(50_000, "EUR"),
+                    date = TODAY,
+                    note = null,
+                    transferId = 77,
+                ),
+            accountName = "Checking",
+            categoryName = null,
+            categoryColorArgb = null,
+            counterpartAccountName = "Savings",
+        )
+
+    /** The side it arrived on, read from the other account. */
+    private fun arriving() =
+        TransactionDetails(
+            transaction =
+                Transaction(
+                    id = 3,
+                    accountId = 2,
+                    categoryId = null,
+                    kind = TransactionKind.INCOME,
+                    amount = Money(50_000, "EUR"),
+                    date = TODAY,
+                    note = null,
+                    transferId = 77,
+                ),
+            accountName = "Savings",
+            categoryName = null,
+            categoryColorArgb = null,
+            counterpartAccountName = "Checking",
+        )
+
     private fun setContent(state: TransactionsUiState) {
         composeRule.setContent {
             CentsTheme {
                 TransactionsList(
                     state = state,
                     onAddTransaction = {},
-                    onOpenTransaction = {},
+                    onOpenTransaction = { openedMovements += it },
+                    onOpenTransfer = { openedTransfers += it },
                     onOpenFilters = {},
                     onQueryChange = {},
                     onClearFilter = { cleared++ },

@@ -32,6 +32,10 @@ interface AccountDao {
     /**
      * Opening balance plus every movement, per account. Income adds, expense subtracts;
      * the aggregation happens in SQLite so the app never walks thousands of rows in Kotlin.
+     *
+     * A transfer's legs are movements like any other here, and deliberately so: a balance is
+     * where the money is, and a transfer moved it. Only the income-and-expense reports leave
+     * them out — see `TransactionDao`.
      */
     @Query(
         """

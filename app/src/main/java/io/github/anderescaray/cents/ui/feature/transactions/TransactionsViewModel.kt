@@ -175,16 +175,26 @@ class TransactionsViewModel
  *
  * Null when the matched movements do not share a currency: adding euros to dollars needs a
  * rate the app does not have (rule 2, `DECISIONS.md` D2).
+ *
+ * **Transfer legs are left out**, the same way every report query leaves them out: money moved
+ * between the owner's own accounts was neither earned nor spent. They stay *on* the list —
+ * they happened, and they have to be findable — so a filtered list can legitimately show rows
+ * this total does not count. The currency is read from every row, legs included, because a
+ * total the app refuses to add up is a fact about what was matched rather than about what was
+ * counted.
  */
 private fun List<TransactionDetails>.summarise(): PeriodSummary? {
     val currency = map { it.transaction.amount.currency }.distinct().singleOrNull() ?: return null
     val zero = Money.zero(currency)
+    val movements = filterNot { it.transaction.isTransferLeg }
     return PeriodSummary(
         income =
-            filter { it.transaction.kind == TransactionKind.INCOME }
+            movements
+                .filter { it.transaction.kind == TransactionKind.INCOME }
                 .fold(zero) { total, details -> total + details.transaction.amount },
         expenses =
-            filter { it.transaction.kind == TransactionKind.EXPENSE }
+            movements
+                .filter { it.transaction.kind == TransactionKind.EXPENSE }
                 .fold(zero) { total, details -> total + details.transaction.amount },
     )
 }

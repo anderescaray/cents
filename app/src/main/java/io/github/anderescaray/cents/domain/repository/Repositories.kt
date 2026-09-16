@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.Transfer
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -70,6 +71,16 @@ interface AccountRepository {
 
     /** Zero means the account can be deleted outright instead of archived. */
     suspend fun countTransactions(id: Long): Int
+
+    /**
+     * How many movements [deleteAccountWithTransactions] would actually remove.
+     *
+     * More than [countTransactions] when the account is one side of a transfer: the far leg
+     * lives in another account and goes too, because half a transfer is money that arrived
+     * from nowhere. Those rows change a balance the owner was not deleting, so the
+     * confirmation counts them rather than naming only what is inside this account.
+     */
+    suspend fun countTransactionsRemovedWith(id: Long): Int
 
     /**
      * How many investments are held in this account.
@@ -145,4 +156,30 @@ interface TransactionRepository {
     suspend fun updateTransaction(transaction: Transaction)
 
     suspend fun deleteTransaction(id: Long)
+}
+
+/**
+ * Moving money between the owner's own accounts.
+ *
+ * Its own interface rather than four more methods on [TransactionRepository], because every
+ * operation here writes **two rows or none**: a transfer is the pair, and a caller that could
+ * reach one leg on its own is a caller that can leave money arriving from nowhere. Nothing in
+ * this interface hands out a single leg.
+ */
+interface TransferRepository {
+    /** The transfer behind either of its legs, assembled from both. Null if it is gone. */
+    suspend fun findTransfer(transferId: Long): Transfer?
+
+    /**
+     * Writes a transfer, whole: both legs in one database transaction, and the pair id
+     * returned.
+     *
+     * Saving an existing one rewrites both legs rather than patching whichever changed — the
+     * accounts can have swapped, and a partial update is how a transfer ends up with two
+     * outgoing halves.
+     */
+    suspend fun saveTransfer(transfer: Transfer): Long
+
+    /** Removes both legs. There is no version of this that removes one. */
+    suspend fun deleteTransfer(transferId: Long)
 }

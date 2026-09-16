@@ -31,4 +31,8 @@
         <item quantity="one">Its one recorded trade goes with it, and that cannot be undone.</item>
         <item quantity="other">Its %1$d recorded trades go with it, and that cannot be undone.</item>
     </plurals>
+    <plurals name="account_delete_everything_with_transfers">
+        <item quantity="one">One movement goes with it, for good — and that includes the far side of every transfer this account is part of, so the balance of the account at the other end changes too. This cannot be undone.</item>
+        <item quantity="other">%1$d movements go with it, for good — and that includes the far side of every transfer this account is part of, so the balances of the accounts at the other end change too. This cannot be undone.</item>
+    </plurals>
 </resources>

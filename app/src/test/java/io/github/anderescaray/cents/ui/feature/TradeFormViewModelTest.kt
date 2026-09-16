@@ -341,8 +341,14 @@ class TradeFormViewModelTest {
     private fun correctionFor(): TradeFormViewModel =
         viewModels.keep(
             TradeFormViewModel(
-                RoomTradeRepository(database.tradeDao(), clock),
-                RoomHoldingRepository(database.holdingDao(), clock),
+                RoomTradeRepository(
+                    database.tradeDao(),
+                    database.holdingDao(),
+                    database.transactionDao(),
+                    database,
+                    clock,
+                ),
+                RoomHoldingRepository(database.holdingDao(), database.transactionDao(), database, clock),
                 RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
                 clock,
                 SavedStateHandle(
@@ -358,8 +364,14 @@ class TradeFormViewModelTest {
     private fun formFor(tradeId: Long = Destination.TradeForm.NEW): TradeFormViewModel =
         viewModels.keep(
             TradeFormViewModel(
-                RoomTradeRepository(database.tradeDao(), clock),
-                RoomHoldingRepository(database.holdingDao(), clock),
+                RoomTradeRepository(
+                    database.tradeDao(),
+                    database.holdingDao(),
+                    database.transactionDao(),
+                    database,
+                    clock,
+                ),
+                RoomHoldingRepository(database.holdingDao(), database.transactionDao(), database, clock),
                 RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
                 clock,
                 SavedStateHandle(

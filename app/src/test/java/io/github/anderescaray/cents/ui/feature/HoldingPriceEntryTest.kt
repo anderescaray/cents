@@ -173,9 +173,15 @@ class HoldingPriceEntryTest {
         viewModels.keep(
             HoldingDetailViewModel(
                 RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
-                RoomTradeRepository(database.tradeDao(), clock),
+                RoomTradeRepository(
+                    database.tradeDao(),
+                    database.holdingDao(),
+                    database.transactionDao(),
+                    database,
+                    clock,
+                ),
                 RoomPriceQuoteRepository(database.priceQuoteDao()),
-                RoomHoldingRepository(database.holdingDao(), clock),
+                RoomHoldingRepository(database.holdingDao(), database.transactionDao(), database, clock),
                 clock,
                 SavedStateHandle(mapOf("holdingId" to holdingId)),
             ),

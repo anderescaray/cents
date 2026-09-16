@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    from `DatabaseModule`, so a missing migration is a crash in development rather than an
  *    erased financial history on a real device.
  */
-val ALL_MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+val ALL_MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
 /**
  * v1 to v2 — the investments tables.
@@ -102,6 +102,32 @@ val MIGRATION_2_3 =
             db.execSQL("ALTER TABLE `transactions` ADD COLUMN `transferId` INTEGER")
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_transactions_transferId` ON `transactions` (`transferId`)",
+            )
+        }
+    }
+
+/**
+ * v3 to v4 — the column that ties a movement to the trade it paid for.
+ *
+ * Additive, like the two before it: one nullable column and its index. Every movement recorded
+ * before this got `NULL`, which is what it is — money that really was spent or earned, rather
+ * than money that changed shape.
+ *
+ * **The foreign key is not added here, and it is not missing either.** SQLite cannot add a
+ * constraint to an existing table, so `ALTER TABLE ... ADD COLUMN ... REFERENCES` is the only
+ * form it accepts, and Room compares what it finds against what the entity declares. The column
+ * is therefore declared with its reference inline, exactly as the exported `4.json` spells it —
+ * which is what `CentsDatabaseMigrationTest` proves by opening the result.
+ */
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE `transactions` ADD COLUMN `tradeId` INTEGER " +
+                    "REFERENCES `trades`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_tradeId` ON `transactions` (`tradeId`)",
             )
         }
     }

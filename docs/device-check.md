@@ -21,8 +21,10 @@ cover the two things that landed after that text was written: the year-on-year s
 and the canvas of bubbles the app now opens on (#41), which changes the first thing this walk
 sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
 the same day, on a phone nobody has held it on either — and on 2026-09-16 with **Walk 7**, for
-transfers, which is the one feature here whose failure is invisible on the screen that records
-it: a transfer can move both balances correctly and still leak into every chart.
+transfers and for the cash a purchase spends — the features here whose failure is invisible on
+the screen that records them: a transfer can move both balances correctly and still leak into
+every chart, and a purchase can look perfectly recorded while the account it was paid from never
+notices.
 
 ```bash
 adb devices                  # the phone is there and authorised
@@ -799,7 +801,7 @@ include what you actually paid.
 > that would mean the correction recorded a difference rather than a fact — or the correction
 > vanishing from the list once its cause was explained.
 
-## Walk 7 — transfers (`feat/transfers`)
+## Walk 7 — transfers, and the cash a trade spends (`feat/transfers`, `feat/buying-spends-the-cash`)
 
 Added 2026-09-16, and **none of it has been on a phone**. This is the walk where the app is most
 easily right in a way you cannot see: a transfer that moves the balances correctly but leaks into
@@ -914,3 +916,41 @@ row saying *Transfer to* something that no longer exists.
 On a fresh install with a single account, choose **Transfer**. It should say a transfer needs
 somewhere to go and offer to create a second account, rather than showing two pickers with the
 same one account in both.
+
+### t11 · Buying spends the account, and the account says so
+
+This is the step that ties the two halves of the app together, and it is the one to walk slowly.
+
+Transfer **1.000 €** into your broker account (t1–t3), then go to **Investments** and record a
+purchase of **400 €** of something — two units at 200 €, say.
+
+Go back to **Accounts**. The broker account reads **600 €**: that is the cash left in it, not the
+money you put there. Open it, and the purchase is in the list, reading **Bought NVD.DE** in the
+ordinary colour rather than income's green. Tap it: you get the **trade**, not a movement form.
+
+Now **Reports**, on a period covering today: nothing moved. No new expense, no new slice, no
+*Uncategorized*.
+
+> **Wrong looks like** the account still reading 1.000 €, a 400 € expense in the ring, a row
+> called *Uncategorized*, or a movement form that lets you change the 400 € without the trade
+> knowing.
+
+### t12 · Selling gives it back, gain and all
+
+Sell the same units for **500 €**. The account goes to **1.100 €** — the profit arrives as real
+money, because it did.
+
+Then delete the sale. The account returns to 600 €, and the row goes with it. Delete the holding
+itself, and every purchase it made disappears from the account too, with the balance back to
+1.000 €.
+
+> **Wrong looks like** a sale that leaves the balance where it was, a deleted trade whose money
+> stays gone, or a deleted holding that leaves its purchases sitting in the account with nothing
+> to explain them.
+
+### t13 · A correction still costs nothing
+
+Correct a quantity (i12). The account balance must not move by a cent: discovering that a number
+was wrong is not a purchase.
+
+> **Wrong looks like** any change to the balance at all.

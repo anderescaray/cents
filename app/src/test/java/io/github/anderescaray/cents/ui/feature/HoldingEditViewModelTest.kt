@@ -206,7 +206,7 @@ class HoldingEditViewModelTest {
     private fun editorFor(holdingId: Long = Destination.HoldingEdit.NEW): HoldingEditViewModel =
         viewModels.keep(
             HoldingEditViewModel(
-                RoomHoldingRepository(database.holdingDao(), clock),
+                RoomHoldingRepository(database.holdingDao(), database.transactionDao(), database, clock),
                 RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                 SavedStateHandle(mapOf("holdingId" to holdingId)),
             ),

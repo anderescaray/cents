@@ -91,6 +91,7 @@ fun TransactionEntity.toDomain(): Transaction =
         date = date,
         note = note,
         transferId = transferId,
+        tradeId = tradeId,
     )
 
 fun Transaction.toEntity(
@@ -107,6 +108,7 @@ fun Transaction.toEntity(
         date = date,
         note = note,
         transferId = transferId,
+        tradeId = tradeId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -123,11 +125,14 @@ fun TransactionWithNames.toDomain(): TransactionDetails =
                 date = date,
                 note = note,
                 transferId = transferId,
+                tradeId = tradeId,
             ),
         accountName = accountName,
         categoryName = categoryName,
         categoryColorArgb = categoryColorArgb,
         counterpartAccountName = counterpartAccountName,
+        tradeSymbol = tradeSymbol,
+        tradeHoldingId = tradeHoldingId,
     )
 
 fun PeriodTotals.toSummary(currency: String): PeriodSummary =

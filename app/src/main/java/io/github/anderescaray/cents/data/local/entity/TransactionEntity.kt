@@ -21,6 +21,12 @@ import java.time.LocalDate
  * checking to savings is not spending 500 € (PRD §3). Balances count them, because the money
  * really did move.
  *
+ * A row with a [tradeId] is the same idea one step along: **the cash a purchase took out of the
+ * account, or a sale put back**. Buying 400 € of shares is not spending 400 €, it is holding the
+ * same money in a different shape — so it is excluded from the reports exactly as a transfer leg
+ * is, and counted by the balance exactly as one is, which is what makes an investments account's
+ * balance read as the cash left in it.
+ *
  * Deleting an account or a category that still has transactions is refused by the
  * foreign keys ([ForeignKey.RESTRICT]); both are archived instead.
  */
@@ -39,6 +45,12 @@ import java.time.LocalDate
             childColumns = ["categoryId"],
             onDelete = ForeignKey.RESTRICT,
         ),
+        ForeignKey(
+            entity = TradeEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tradeId"],
+            onDelete = ForeignKey.RESTRICT,
+        ),
     ],
     indices = [
         Index(value = ["accountId"]),
@@ -46,6 +58,7 @@ import java.time.LocalDate
         Index(value = ["date"]),
         Index(value = ["accountId", "date"]),
         Index(value = ["transferId"]),
+        Index(value = ["tradeId"]),
     ],
 )
 data class TransactionEntity(
@@ -70,6 +83,16 @@ data class TransactionEntity(
      * leg with nobody on the other end is not a state this app can produce.
      */
     val transferId: Long? = null,
+    /**
+     * The trade whose cash this row is, and null for an ordinary movement.
+     *
+     * `RESTRICT` rather than `CASCADE`, and deliberately: the two are written and removed
+     * together by `RoomTradeRepository`, inside one database transaction, so the cascade would
+     * never fire — and rule 8 is a standing instruction not to let a delete somewhere else
+     * quietly rewrite recorded history here. A constraint violation is a bug reaching the
+     * surface; a silent cascade is the same bug not reaching it.
+     */
+    val tradeId: Long? = null,
     val attachmentUri: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,

@@ -614,7 +614,8 @@ unmerged one.
 | Reports | The tab reads the database: a ring that answers **where the money went or where it came from**, income against expenses per month, a balance line over the period, **spending by day of the week**, **this period against the one before it — or against the same period last year** — and **one category followed over twelve periods**, all under one period control and one account picker. A slice, a weekday row or the previous-period row opens the movements behind it. All six PRD §4.3 views exist |
 | Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
 | Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
-| Tests | 470, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Investments and cash | A purchase takes its cost out of the account it is held in and a sale puts it back, so **a broker account's balance is the cash left in it** and the portfolio sits beside it rather than inside it. The movement carries a `tradeId`, obeys the same exclusion a transfer leg does, reads as *Bought NVD.DE* and opens the trade. Room v4 |
+| Tests | 484, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1211,13 +1212,36 @@ Phase 4 rather than being skipped.
         through a view model, which races it; that is fixed across the suite and written up in
         C4, because it is easy to write the racing way and it passes until it does not.
 
-- [ ] **`feat/buying-spends-the-cash`** — what D11 actually described, finished. A purchase takes
+- [x] **`feat/buying-spends-the-cash`** — what D11 actually described, finished. A purchase takes
       its cost out of the account's cash and a sale puts it back, using the same exclusion the
-      transfer above establishes — which now exists, so this is the next branch and nothing
-      blocks it — so an investments account's balance reads as **uninvested cash** and the
-      portfolio value sits beside it rather than inside it.
+      transfer above establishes, so an investments account's balance reads as **uninvested cash**
+      and the portfolio value sits beside it rather than inside it.
       *Done when:* transfer 1.000 €, buy 400 € of NVDA, and the account shows 600 € of cash
-      beside a 400 € position.
+      beside a 400 € position. **Done**, 484 tests. What it settled on the way:
+      - **A purchase is two records, not one fact stored twice.** The trade says what was bought;
+        a movement in the holding's account says the money left. They answer different questions
+        — one is about units, the other about a balance — and `RoomTradeRepository` writes,
+        rewrites and removes them inside one `withTransaction`, for the reason the transfer's two
+        legs are written that way: nothing but that class enforces the pairing.
+      - **The derived alternative was tried on paper and is wrong.** Cash could have been
+        computed as *balance minus what was invested*, with no schema change and no second row —
+        and it gets the cash right while getting the **account** wrong: a sale for more than was
+        paid never reaches the balance, so an account that really holds 1.100 € keeps reporting
+        1.000 €. Writing the movement keeps `balance = opening + movements` true, which is the
+        invariant every other screen in the app is built on.
+      - **Room v4, `MIGRATION_3_4`.** One nullable `tradeId` and its index — and its foreign key,
+        which is the one wrinkle: SQLite cannot add a constraint to an existing table, so the
+        column is declared with `REFERENCES` inline, exactly as the exported `4.json` spells it.
+        The migration test proves Room accepts the result and that the key really arrived.
+      - **The exclusion rule now has two members and one sentence.** A report counts rows that
+        are money earned or spent; a balance counts every row. Both a transfer leg and a trade's
+        cash are neither earned nor spent, and the `TransactionDao` header says so once for both.
+      - **`RESTRICT`, not `CASCADE`** — so deleting a trade means deleting its movement first, on
+        purpose and in the open. Rule 8 is a standing instruction not to let a delete elsewhere
+        quietly rewrite recorded history here, and a cascade is exactly that mechanism.
+      - A purchase reads as **Bought NVD.DE** rather than *Uncategorized*, in the ordinary colour
+        rather than income's green, and opens the trade — the third case of the rule transfers
+        established, so where a row leads now lives beside how it reads, in `MovementRow.kt`.
 
 - [ ] **`feat/price-provider`** — prices from the internet, behind the `PriceProvider` interface
       PRD §5.1 makes mandatory, with the cache and the age of a quote already built. **D13 is
@@ -1290,12 +1314,19 @@ parallelism.
   answer without a conversion rate (D12) and it cannot arrive at all on a single-currency install;
   what it means in practice is that an install predating D2 could show *no price yet* for
   something it does have a price for, until a new one is typed.
-- **Buying does not spend anything yet.** D11 describes money transferred into an investments
-  account and then allocated to a holding; #44 built the second half and `feat/transfers` built
-  the machinery the first half needs. A purchase still records what was bought and at what price
-  without the account's balance moving, so the portfolio and the balances remain two true
-  statements that do not add up to net worth — `feat/buying-spends-the-cash` is what closes it,
-  and it is now unblocked.
+- **Net worth is cash plus the portfolio, and nothing adds the two up for you.** Buying now
+  spends the account's cash, so a broker account's balance is the money left in it and the
+  portfolio is what the rest became — two numbers that no longer overlap and no longer contradict
+  each other. What there still is not is a screen that adds them: the Accounts tab totals
+  balances and the Investments tab totals positions, and the owner does the last sum. That is a
+  deliberate stopping point rather than an oversight, because adding them means deciding whether
+  an unpriced holding counts as nothing or makes the total unknowable — the same question
+  `PortfolioTotal` already answers for one tab, and the answer has to be the same on both.
+- **A trade recorded before its account existed in this form still has no cash row.** Nothing
+  backfills: `MIGRATION_3_4` gives every existing movement a null `tradeId`, and every trade
+  recorded before it keeps its balance untouched. Editing such a trade writes the movement it
+  never had, which is right but is also the only way it happens. Backfilling would mean inventing
+  movements on dates the owner never saw, and an account's history is not the place to guess.
 - **A transfer reassigned into its own counterpart is left standing.** Deleting an account by
   moving its movements elsewhere moves transfer legs too, so a transfer can end up with both legs
   in one account: a row saying *Transfer to Checking*, read in Checking. It changes no balance

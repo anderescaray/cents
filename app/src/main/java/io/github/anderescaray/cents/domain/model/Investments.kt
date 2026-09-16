@@ -146,6 +146,27 @@ data class Trade(
                 TradeSide.SELL -> gross - fee
                 TradeSide.CORRECTION -> Money.zero(pricePerUnit.currency)
             }
+
+    /**
+     * What this did to the cash in the account the holding lives in: **negative when it took
+     * money out**.
+     *
+     * A purchase spends the account's cash and a sale returns it, which is what makes an
+     * investments account's balance read as the money left in it rather than as the money ever
+     * put into it. A correction moves nothing, because discovering that a number was wrong
+     * costs nothing.
+     *
+     * It is signed rather than a pair of cases so that the one awkward trade — a sale whose fee
+     * swallows its proceeds — comes out as money *leaving* without anybody having to remember
+     * that it can.
+     */
+    val cashDelta: Money
+        get() =
+            when (side) {
+                TradeSide.BUY -> -net
+                TradeSide.SELL -> net
+                TradeSide.CORRECTION -> Money.zero(pricePerUnit.currency)
+            }
 }
 
 /** The last known price of an instrument, and how old it is. */

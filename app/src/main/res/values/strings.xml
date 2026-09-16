@@ -233,4 +233,9 @@
     <string name="transfer_row">Transfer</string>
     <string name="transfer_row_to">Transfer to %1$s</string>
     <string name="transfer_row_from">Transfer from %1$s</string>
+
+    <!-- What a trade did to the cash in its account -->
+    <string name="trade_row">Investment</string>
+    <string name="trade_row_bought">Bought %1$s</string>
+    <string name="trade_row_sold">Sold %1$s</string>
 </resources>

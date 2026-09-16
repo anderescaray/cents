@@ -33,6 +33,7 @@ import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSearchField
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
+import io.github.anderescaray.cents.ui.components.open
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -44,6 +45,7 @@ fun TransactionsScreen(
     onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
+    onOpenTrade: (Long, Long) -> Unit,
     onOpenFilters: () -> Unit,
     viewModel: TransactionsViewModel = hiltViewModel(),
 ) {
@@ -55,6 +57,7 @@ fun TransactionsScreen(
             onAddTransaction = onAddTransaction,
             onOpenTransaction = onOpenTransaction,
             onOpenTransfer = onOpenTransfer,
+            onOpenTrade = onOpenTrade,
             onOpenFilters = onOpenFilters,
             onQueryChange = viewModel::setQuery,
             onClearFilter = viewModel::clearFilter,
@@ -82,6 +85,7 @@ internal fun TransactionsList(
     onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
+    onOpenTrade: (Long, Long) -> Unit,
     onOpenFilters: () -> Unit,
     onQueryChange: (String) -> Unit,
     onClearFilter: () -> Unit,
@@ -113,7 +117,9 @@ internal fun TransactionsList(
         if (state.isEmpty) {
             if (state.isNarrowed) noMatchesState(onClearFilter) else emptyState()
         }
-        state.days.forEach { day -> day(day, state.today, onOpenTransaction, onOpenTransfer) }
+        state.days.forEach { day ->
+            day(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade)
+        }
     }
 }
 
@@ -321,22 +327,20 @@ private fun LazyListScope.day(
     today: LocalDate,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
+    onOpenTrade: (Long, Long) -> Unit,
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
             day.items.forEachIndexed { index, details ->
                 val transaction = details.transaction
-                val transferId = transaction.transferId
                 CentsListRow(
                     title = details.movementTitle(),
                     subtitle = transaction.note?.takeIf { it.isNotBlank() } ?: details.accountName,
                     value = MoneyFormatter.formatSigned(transaction.signedAmount),
                     valueColor = details.movementValueColor(),
                     showSeparator = index != day.items.lastIndex,
-                    // A leg opens the transfer it belongs to, because the other half has to
-                    // change with it.
                     onClick = {
-                        if (transferId != null) onOpenTransfer(transferId) else onOpenTransaction(transaction.id)
+                        details.open(onOpenTransaction, onOpenTransfer, onOpenTrade)
                     },
                 )
             }

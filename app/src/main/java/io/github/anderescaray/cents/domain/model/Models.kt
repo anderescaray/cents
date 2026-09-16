@@ -48,6 +48,13 @@ data class Transaction(
      * was neither earned nor spent (PRD §3).
      */
     val transferId: Long? = null,
+    /**
+     * The trade this is the cash of, and null for an ordinary movement.
+     *
+     * Money that went into a holding or came back out of one. Like a transfer leg it moves a
+     * balance and no report: buying 400 € of shares is the same money in a different shape.
+     */
+    val tradeId: Long? = null,
 ) {
     /** The amount as it affects a balance: negative for an expense. */
     val signedAmount: Money
@@ -55,6 +62,12 @@ data class Transaction(
 
     /** Half of a transfer rather than a movement of its own. */
     val isTransferLeg: Boolean get() = transferId != null
+
+    /** The cash behind a purchase or a sale rather than a movement of its own. */
+    val isTradeCash: Boolean get() = tradeId != null
+
+    /** Neither earned nor spent: money that only changed shape or changed pockets. */
+    val movesNoIncomeOrExpense: Boolean get() = isTransferLeg || isTradeCash
 }
 
 /** A transaction joined with the names it needs to be shown in a list. */
@@ -65,6 +78,10 @@ data class TransactionDetails(
     val categoryColorArgb: Int?,
     /** Where the money went, or came from, when this is a transfer leg. Null otherwise. */
     val counterpartAccountName: String? = null,
+    /** What was bought or sold, when this is the cash of a trade. Null otherwise. */
+    val tradeSymbol: String? = null,
+    /** Which holding that trade belongs to, so the row can open it. */
+    val tradeHoldingId: Long? = null,
 )
 
 /**

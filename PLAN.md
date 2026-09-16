@@ -1356,14 +1356,34 @@ parallelism.
   the branch as a single commit on the merged `main` — `git checkout -B <branch> origin/main`
   followed by `git checkout <old tip> -- .`, which works only because the stacked tree is a strict
   superset. Cheaper to wait for the merge.
-- **Nobody has seen Phase 2, the canvas, the portfolio or transfers on a phone.** Every view on the Reports tab is
+- **The first migration this project shipped has now run on the owner's own data.** On
+  2026-09-16 the phone came back to adb and `installDebug` went onto an install dating from
+  2026-09-02 — that is, a **v1 database**, made before investments existed. It cold-started with
+  no `FATAL` and no `AndroidRuntime` line, so `MIGRATION_1_2` and `MIGRATION_2_3` both ran in
+  sequence over real accounts and real movements, and Room opened what came out. Until then every
+  migration here had been proved only against a database a test had built. It is evidence rather
+  than a guarantee — one install, one path — but it is the path that matters, and the pattern
+  rule 9 asks for now has a device behind it.
+- **The canvas overlaps itself on the tablet in landscape, and nobody has decided whether that is
+  wrong.** The same launch rendered five bubbles stacked into two overlapping columns on a
+  2560×1600 screen held sideways. Two explanations fit and a screenshot cannot separate them: the
+  layout saved in September, made when there were four bubbles and the screen was upright, meeting
+  a rotation it was never placed for — which is what ADR 0002 says happens, since a bubble keeps
+  the size and position it was given — or the five-bubble default simply not fitting a short
+  screen, which is the thing #44 resized the defaults to avoid. **Settings → Reset the bubble
+  layout separates them in one tap**, and that tap is the owner's (C5). Walk step `b4` is where it
+  gets judged.
+- **Nobody has walked Phase 2, the canvas, the portfolio or transfers on a phone.** Every view on the Reports tab is
   verified by JVM tests and by nothing else: the ring's Expense/Income toggle, the account picker
   above the charts, the comparison columns and both its segments, and the trend line have never
   been rendered on a device. Neither has the bubble canvas, which is worse in kind rather than in
   degree — it is the app's front door and it is made of drag and pinch gestures, which is exactly
   what a Robolectric test can least honestly claim to have checked. **The walk itself is no longer
   the gap**: `docs/device-check.md` now covers all of it (r1–r19, and Walks 5 to 7), and what is
-  missing is a phone and an hour. Transfers joined that list on 2026-09-16, and they are the worst
+  missing is an hour. **The phone is no longer missing either**: it was offline to adb through
+  most of 2026-09-16 — surviving `adb reconnect` and a server restart, and ending up enumerating
+  with no serial at all — and came back after a replug, with the current build installed and
+  cold-started on it. Transfers joined that list on 2026-09-16, and they are the worst
   of it to leave unwalked — a transfer that moves both balances correctly and still leaks into a
   chart looks completely normal on the screen that recorded it. On 2026-09-03 the phone reached adb once as `device` but was asleep, and
   every later attempt saw it absent or `offline` — over USB and over wireless debugging, whose

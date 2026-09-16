@@ -134,9 +134,14 @@ class HoldingEditViewModelTest {
 
             viewModel.uiState.test {
                 awaitStateThat { it.canSave }
+                viewModel.save()
+                // `save()` launches into the view model's scope and the write lands on Room's
+                // executor, so reading the database on the next line races it. `finished` is
+                // set after the write returns, which is what makes this deterministic rather
+                // than usually-fast-enough.
+                awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
-            viewModel.save()
 
             val saved =
                 database

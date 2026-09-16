@@ -73,9 +73,12 @@ class TradeFormViewModelTest {
 
             viewModel.uiState.test {
                 assertTrue(awaitStateThat { it.canSave }.canSave)
+                viewModel.save()
+                // The write goes to Room's executor; `finished` is set once it has returned.
+                // Reading the database without waiting for it races the write.
+                awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
-            viewModel.save()
 
             val saved =
                 database
@@ -196,6 +199,7 @@ class TradeFormViewModelTest {
 
             val viewModel = formFor(tradeId = tradeId)
             viewModel.confirmDeletion()
+            viewModel.uiState.first { it.finished }
 
             assertTrue(
                 database
@@ -240,6 +244,7 @@ class TradeFormViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
             viewModel.save()
+            viewModel.uiState.first { it.finished }
 
             val saved =
                 database
@@ -276,6 +281,7 @@ class TradeFormViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
             viewModel.save()
+            viewModel.uiState.first { it.finished }
 
             val saved =
                 database

@@ -1328,6 +1328,15 @@ parallelism.
 - **A trade carries no note in the form.** The column exists and the model carries it; the form
   does not offer it, because a trade is already four fields and the note had no obvious question
   to answer. It costs one row the day somebody misses it.
+- **A test that writes through a view model and then reads the database has to wait.** `save()`
+  launches into `viewModelScope` and the write lands on Room's executor, so the next line races
+  it: the flow's first emission can predate the row. It passes on a quiet machine and loses on a
+  loaded one — `HoldingEditViewModelTest` and `HoldingPriceEntryTest` went red on CI on 2026-09-16
+  having been green locally and on their own PR. The fix is the idiom the category tests already
+  used: wait for `finished` before reading, or, where the write has no `finished` to wait on
+  (`savePrice`), read the flow with a predicate rather than taking its first emission. Every site
+  in the suite was corrected then; a new one is easy to write the racing way, and it will pass
+  until it does not.
 - **Do not branch off an unmerged branch when the merge will be a squash.** `main` squash-merges,
   so a stacked branch carries commits whose content arrives on `main` as one different commit,
   and rebasing then conflicts on every hunk. It happened on 2026-09-03 and the fix was to rebuild

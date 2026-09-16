@@ -120,9 +120,12 @@ class TransferFormViewModelTest {
 
             viewModel.uiState.test {
                 assertTrue(awaitStateThat { it.canSave }.canSave)
+                viewModel.save()
+                // The write lands on Room's executor, so reading the database on the next
+                // line races it. `finished` is set once it has returned.
+                awaitStateThat { it.finished }
                 cancelAndIgnoreRemainingEvents()
             }
-            viewModel.save()
 
             val rows = database.transactionDao().observeAll().first()
             assertEquals(2, rows.size)
@@ -257,6 +260,7 @@ class TransferFormViewModelTest {
 
             val viewModel = readyForm(transferId = id)
             viewModel.confirmDeletion()
+            viewModel.uiState.first { it.finished }
 
             assertTrue(
                 database

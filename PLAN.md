@@ -1197,6 +1197,19 @@ Phase 4 rather than being skipped.
         that changes a balance somewhere else, the confirmation counts those rows and says so in
         its own sentence rather than quietly growing a number. Reassignment is the case left
         standing on purpose, in C4.
+      - **The review pass landed after the merge, as #48.** `/code-review` finished just as #47
+        went in, and found three behaviour bugs worth knowing about, all of them the same shape:
+        a rule applied in one place and not in its neighbour. The kind control was offered while
+        *editing*, so an existing movement could be "turned into" a transfer while quietly
+        staying where it was — save it and you owned both. `load()` re-derived the account list
+        from the already-pruned one, so an archived destination could vanish from a transfer
+        being edited, depending on which of two loads landed first. And the `uncategorized`
+        filter never gained the `transferId IS NULL` its own chart had, so the ring's
+        *Uncategorized* slice drilled into a list containing every transfer leg in the period.
+        Two smaller ones and a dead import came with them. **It also went red on CI for a reason
+        it did not cause** — a family of tests that read the database immediately after a write
+        through a view model, which races it; that is fixed across the suite and written up in
+        C4, because it is easy to write the racing way and it passes until it does not.
 
 - [ ] **`feat/buying-spends-the-cash`** — what D11 actually described, finished. A purchase takes
       its cost out of the account's cash and a sale puts it back, using the same exclusion the

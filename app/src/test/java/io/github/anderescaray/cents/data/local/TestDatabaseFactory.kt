@@ -70,6 +70,8 @@ fun transaction(
     note: String? = null,
     /** Set on both legs of a transfer, and null for an ordinary movement. */
     transferId: Long? = null,
+    /** Set on the cash a purchase took out of the account, or a sale put back. */
+    tradeId: Long? = null,
 ) = TransactionEntity(
     accountId = accountId,
     categoryId = categoryId,
@@ -79,6 +81,7 @@ fun transaction(
     date = date,
     note = note,
     transferId = transferId,
+    tradeId = tradeId,
     createdAt = FIXED_INSTANT,
     updatedAt = FIXED_INSTANT,
 )

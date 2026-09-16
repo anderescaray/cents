@@ -47,10 +47,11 @@ abstract class CentsDatabase : RoomDatabase() {
     companion object {
         /**
          * v2 (2026-09-09) added holdings, trades and price quotes; v3 (2026-09-16) added
-         * `transactions.transferId`, which is what pairs the two legs of a transfer. See
-         * `Migrations.kt`.
+         * `transactions.transferId`, which pairs the two legs of a transfer; v4 (2026-09-16)
+         * added `transactions.tradeId`, which ties a purchase to the cash it took out of the
+         * account. See `Migrations.kt`.
          */
-        const val VERSION = 3
+        const val VERSION = 4
         const val NAME = "cents.db"
     }
 }

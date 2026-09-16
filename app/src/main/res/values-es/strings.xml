@@ -230,4 +230,9 @@
     <string name="transfer_row">Traspaso</string>
     <string name="transfer_row_to">Traspaso a %1$s</string>
     <string name="transfer_row_from">Traspaso desde %1$s</string>
+
+    <!-- Lo que una operacion hizo con el efectivo de su cuenta -->
+    <string name="trade_row">Inversión</string>
+    <string name="trade_row_bought">Compra de %1$s</string>
+    <string name="trade_row_sold">Venta de %1$s</string>
 </resources>

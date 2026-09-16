@@ -42,6 +42,7 @@ class TransactionsScreenTest {
     private var cleared = 0
     private val openedMovements = mutableListOf<Long>()
     private val openedTransfers = mutableListOf<Long>()
+    private val openedTrades = mutableListOf<Pair<Long, Long>>()
 
     @Test
     fun `an unfiltered list carries no control it has no use for`() {
@@ -130,6 +131,25 @@ class TransactionsScreenTest {
         assertEquals(emptyList<Long>(), openedMovements)
     }
 
+    @Test
+    fun `a purchase says what was bought and opens the trade behind it`() {
+        setContent(unfiltered().copy(days = listOf(TransactionDay(TODAY, listOf(purchase())))))
+
+        // Without this it reads *Uncategorized* with an amount, which says nothing about the
+        // one thing worth knowing.
+        composeRule.onNodeWithText("Bought NVD.DE").assertExists()
+        composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
+
+        composeRule
+            .onNodeWithText("Bought NVD.DE")
+            .performSemanticsAction(SemanticsActions.OnClick)
+
+        // The money is a consequence of the units: editing it on its own would make the two
+        // disagree about what the purchase was.
+        assertEquals(listOf(9L to 42L), openedTrades)
+        assertEquals(emptyList<Long>(), openedMovements)
+    }
+
     private fun unfiltered() =
         TransactionsUiState(
             days = listOf(TransactionDay(TODAY, listOf(details()))),
@@ -163,6 +183,27 @@ class TransactionsScreenTest {
             accountName = "Checking",
             categoryName = "Groceries",
             categoryColorArgb = null,
+        )
+
+    /** The cash a purchase took out: an expense in Checking, belonging to trade 42. */
+    private fun purchase() =
+        TransactionDetails(
+            transaction =
+                Transaction(
+                    id = 4,
+                    accountId = 1,
+                    categoryId = null,
+                    kind = TransactionKind.EXPENSE,
+                    amount = Money(40_000, "EUR"),
+                    date = TODAY,
+                    note = null,
+                    tradeId = 42,
+                ),
+            accountName = "Broker",
+            categoryName = null,
+            categoryColorArgb = null,
+            tradeSymbol = "NVD.DE",
+            tradeHoldingId = 9,
         )
 
     /** The side money left: an expense in Checking, belonging to transfer 77. */
@@ -213,6 +254,7 @@ class TransactionsScreenTest {
                     onAddTransaction = {},
                     onOpenTransaction = { openedMovements += it },
                     onOpenTransfer = { openedTransfers += it },
+                    onOpenTrade = { holdingId, tradeId -> openedTrades += holdingId to tradeId },
                     onOpenFilters = {},
                     onQueryChange = {},
                     onClearFilter = { cleared++ },

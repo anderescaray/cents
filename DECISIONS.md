@@ -29,9 +29,39 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-**Nothing is waiting here right now.** D12 through D18 were all answered on 2026-09-09 and are in
-the *Answered* table below; D18 was answered the same day it was asked, and its answer removed a
-feature rather than adding one.
+### D19 · Is there a net worth figure, and what does an unpriced holding do to it?
+
+**Asked 2026-09-16, on finishing `feat/buying-spends-the-cash`.** Until that branch, an
+investments account's balance and the portfolio overlapped: the account showed every euro ever
+transferred in, and the portfolio showed what those euros had become. They no longer overlap — a
+purchase takes its cost out of the account — so for the first time the two numbers *add up*:
+**cash in the accounts, plus what the holdings are worth, is net worth.**
+
+Nothing performs that addition. The Accounts tab totals balances, the Investments tab totals
+positions, and you do the last sum in your head.
+
+What is at stake is not the arithmetic but the honesty of it, and it is the same question
+`PortfolioTotal` already answers inside the portfolio: **a holding nobody has priced has no
+value**, so a total that includes it is either wrong or is quietly counting it as zero. The
+portfolio's answer is to give the total for the priced half and say how many it left out. A net
+worth figure has to make the same choice, and it is more exposed: it is the number that gets
+believed.
+
+- **A.** A net worth line, on the Accounts tab, equal to cash plus the priced portfolio — saying
+  how many holdings were left out whenever any were. Consistent with what the portfolio already
+  does, at the price of a number that moves when a price is typed rather than when money moves.
+- **B.** No figure until **everything** is priced, and a line saying what is missing instead.
+  Harder to live with while prices are typed by hand, and much less so once a provider lands.
+- **C.** Nothing, and the sum stays in your head. Honest, costs nothing, and is what happens if
+  this is never answered.
+
+**Recommendation: A**, because it is the rule the app already applies one screen down, and two
+screens giving different answers to "what about the unpriced one" is worse than either answer.
+
+**Default until answered: C.** Nothing is built, the two tabs keep their own totals, and
+`PLAN.md` C4 records the gap.
+
+**Answer:**
 
 ---
 

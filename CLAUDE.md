@@ -219,10 +219,14 @@ Every balance counts a transfer and **no income-or-expense report does**, which 
 this feature must not get wrong: counting a leg as spending inflates every statistic in the app,
 and the same money arriving on the other side inflates income too. It is reached as a third
 segment on the entry form, it reads on the list as *Transfer to Savings*, and it took **Room v3**.
-Still left to the next branches: a purchase does not yet take money out of its account
-(`feat/buying-spends-the-cash`, now unblocked), and no price comes from the internet (D13 names
-the provider, and it needs a key only the owner can create).
-470 tests run on the JVM, so CI covers the database and the UI without a device.
+**And buying now spends the cash.** A purchase takes its cost out of the account the holding
+lives in and a sale puts it back, so a broker account's **balance is the money still in it** and
+the portfolio is what the rest became — two numbers that no longer overlap. The movement carries
+a `tradeId`, obeys the same exclusion a transfer leg does, and reads as *Bought NVD.DE*. **Room
+v4.** What is left to the next branches: no price comes from the internet (D13 names the
+provider, and it needs a key only the owner can create), and nothing adds cash and portfolio into
+one net-worth figure.
+484 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

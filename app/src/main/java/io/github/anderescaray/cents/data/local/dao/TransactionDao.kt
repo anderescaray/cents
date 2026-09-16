@@ -14,24 +14,30 @@ import java.time.LocalDate
 /**
  * The ledger.
  *
- * **One rule runs through every query here: an income-and-expense report carries
- * `transferId IS NULL`, and a balance does not.** Moving 500 € from checking to savings is
- * not spending 500 € (PRD §3), so counting a transfer leg as an expense inflates every
- * statistic in the app — and the same money arriving on the other side inflates income too.
- * A balance is the opposite case: the money really did leave one account and arrive in
- * another, so a balance that skipped the legs would disagree with the bank.
+ * **One rule runs through every query here: an income-and-expense report counts only rows that
+ * are money earned or money spent, and a balance counts every row.** Two kinds of movement are
+ * neither earned nor spent, and both are real:
+ *
+ * - a **transfer leg** (`transferId`), because moving 500 € from checking to savings is not
+ *   spending 500 € (PRD §3) — and the same money arriving on the other side is not income;
+ * - the **cash behind a trade** (`tradeId`), because buying 400 € of shares is the same money in
+ *   a different shape. Counting either as an expense inflates every statistic in the app.
+ *
+ * A balance is the opposite case: the money really did leave the account, so a balance that
+ * skipped these rows would disagree with the bank — and for an investments account it is exactly
+ * what makes the balance read as the cash left in it.
  *
  * Which is which, so a new query has somewhere to look:
  *
  * - **Excluded** — [observeTotalsBetween], [observeAccountTotalsBetween],
  *   [observeTotalsByCategory], [observeMonthlyTotals], [observeTotalsByWeekday],
  *   [observeCategoriesWithMovements], [observeCategoryDailyTotals]. The last two would
- *   exclude them anyway, since a transfer leg has no category and they join on one; the
+ *   exclude them anyway, since neither kind carries a category and they join on one; the
  *   clause is written out regardless, so the rule is "every report query has it" rather
  *   than "every report query except the two you have to reason about".
  * - **Included** — [observeBalanceBefore], [observeDailyNet] and `AccountDao`'s balances.
- * - **Shown** — the list queries. A transfer is something that happened and has to be
- *   visible, findable and openable; it is the *totals* it must stay out of.
+ * - **Shown** — the list queries. Both kinds are things that happened and have to be visible,
+ *   findable and openable; it is the *totals* they must stay out of.
  */
 @Dao
 @Suppress("TooManyFunctions")
@@ -109,6 +115,35 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE transferId = :transferId")
     suspend fun deleteTransfer(transferId: Long): Int
 
+    /**
+     * The cash a trade moved, if it moved any.
+     *
+     * A correction moves none, so it has no row — and a purchase recorded before this column
+     * existed has none either. Both read as null here, which is the same answer: the account's
+     * balance was never touched by that trade.
+     */
+    @Query("SELECT * FROM transactions WHERE tradeId = :tradeId LIMIT 1")
+    suspend fun findTradeCash(tradeId: Long): TransactionEntity?
+
+    /** Removes it, for a trade that is being deleted or that has stopped moving money. */
+    @Query("DELETE FROM transactions WHERE tradeId = :tradeId")
+    suspend fun deleteTradeCash(tradeId: Long): Int
+
+    /**
+     * The cash of every trade against one holding, for a holding being deleted whole.
+     *
+     * `transactions.tradeId` is `RESTRICT`, so these rows have to go before the trades they
+     * point at — and they are movements in an account, so leaving them behind would leave that
+     * account's balance short by money whose reason no longer exists.
+     */
+    @Query(
+        """
+        DELETE FROM transactions
+        WHERE tradeId IN (SELECT id FROM trades WHERE holdingId = :holdingId)
+        """,
+    )
+    suspend fun deleteCashForHolding(holdingId: Long): Int
+
     /** Every transfer this account is one side of, for a deletion that has to take them whole. */
     @Query("SELECT DISTINCT transferId FROM transactions WHERE accountId = :accountId AND transferId IS NOT NULL")
     suspend fun transferIdsInAccount(accountId: Long): List<Long>
@@ -148,13 +183,13 @@ interface TransactionDao {
      * means "never classified", so [uncategorized] carries the question that a null id would
      * otherwise swallow.
      *
-     * **[uncategorized] is the one narrowing here that also excludes transfer legs**, which is
-     * not an exception to the rule at the top of this file but the same rule reaching a filter.
-     * A leg carries no category because a transfer is not classified, not because nobody has got
-     * round to classifying it — and this filter is what the ring's *Uncategorized* slice drills
-     * into. That slice counted no legs, so a list that showed them would not be the slice's
-     * movements: it would be the slice plus every transfer in the period, each one typically far
-     * larger than anything in it.
+     * **[uncategorized] is the one narrowing here that also excludes transfer legs and trade
+     * cash**, which is not an exception to the rule at the top of this file but the same rule
+     * reaching a filter. Neither carries a category because neither is classified, not because
+     * nobody has got round to classifying them — and this filter is what the ring's
+     * *Uncategorized* slice drills into. That slice counted neither, so a list that showed them
+     * would not be the slice's movements: it would be the slice plus every transfer and every
+     * purchase in the period, each one typically far larger than anything in it.
      *
      * [query] arrives already wrapped in `%` and with LIKE's own wildcards escaped, so a
      * search for "50%" looks for that text and not for "50 followed by anything".
@@ -168,7 +203,8 @@ interface TransactionDao {
         """
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
-               t.date AS date, t.note AS note, t.transferId AS transferId,
+               t.date AS date, t.note AS note,
+               t.transferId AS transferId, t.tradeId AS tradeId,
                a.name AS accountName,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
@@ -181,13 +217,29 @@ interface TransactionDao {
                        WHERE t2.transferId = t.transferId AND t2.id <> t.id
                        LIMIT 1
                    )
-               END AS counterpartAccountName
+               END AS counterpartAccountName,
+               CASE
+                   WHEN t.tradeId IS NULL THEN NULL
+                   ELSE (
+                       SELECT h.symbol
+                       FROM trades tr
+                       INNER JOIN holdings h ON h.id = tr.holdingId
+                       WHERE tr.id = t.tradeId
+                   )
+               END AS tradeSymbol,
+               CASE
+                   WHEN t.tradeId IS NULL THEN NULL
+                   ELSE (SELECT tr.holdingId FROM trades tr WHERE tr.id = t.tradeId)
+               END AS tradeHoldingId
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
         WHERE (:accountId IS NULL OR t.accountId = :accountId)
           AND (:categoryId IS NULL OR t.categoryId = :categoryId)
-          AND (:uncategorized = 0 OR (t.categoryId IS NULL AND t.transferId IS NULL))
+          AND (
+            :uncategorized = 0
+            OR (t.categoryId IS NULL AND t.transferId IS NULL AND t.tradeId IS NULL)
+          )
           AND (:kind IS NULL OR t.kind = :kind)
           AND (:from IS NULL OR t.date >= :from)
           AND (:to IS NULL OR t.date <= :to)
@@ -225,7 +277,8 @@ interface TransactionDao {
         """
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
-               t.date AS date, t.note AS note, t.transferId AS transferId,
+               t.date AS date, t.note AS note,
+               t.transferId AS transferId, t.tradeId AS tradeId,
                a.name AS accountName,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
@@ -238,7 +291,20 @@ interface TransactionDao {
                        WHERE t2.transferId = t.transferId AND t2.id <> t.id
                        LIMIT 1
                    )
-               END AS counterpartAccountName
+               END AS counterpartAccountName,
+               CASE
+                   WHEN t.tradeId IS NULL THEN NULL
+                   ELSE (
+                       SELECT h.symbol
+                       FROM trades tr
+                       INNER JOIN holdings h ON h.id = tr.holdingId
+                       WHERE tr.id = t.tradeId
+                   )
+               END AS tradeSymbol,
+               CASE
+                   WHEN t.tradeId IS NULL THEN NULL
+                   ELSE (SELECT tr.holdingId FROM trades tr WHERE tr.id = t.tradeId)
+               END AS tradeHoldingId
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
@@ -255,6 +321,7 @@ interface TransactionDao {
         FROM transactions
         WHERE date BETWEEN :from AND :to
           AND transferId IS NULL
+          AND tradeId IS NULL
         """,
     )
     fun observeTotalsBetween(
@@ -269,6 +336,7 @@ interface TransactionDao {
         FROM transactions
         WHERE accountId = :accountId AND date BETWEEN :from AND :to
           AND transferId IS NULL
+          AND tradeId IS NULL
         """,
     )
     fun observeAccountTotalsBetween(
@@ -315,6 +383,7 @@ interface TransactionDao {
           AND t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
           AND t.transferId IS NULL
+          AND t.tradeId IS NULL
         GROUP BY t.categoryId
         ORDER BY totalMinor DESC, categoryName ASC
         """,
@@ -347,6 +416,7 @@ interface TransactionDao {
         WHERE t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
           AND t.transferId IS NULL
+          AND t.tradeId IS NULL
         GROUP BY month
         ORDER BY month
         """,
@@ -380,6 +450,7 @@ interface TransactionDao {
           AND t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
           AND t.transferId IS NULL
+          AND t.tradeId IS NULL
         GROUP BY weekday
         ORDER BY weekday
         """,
@@ -517,6 +588,7 @@ interface TransactionDao {
         WHERE t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
           AND t.transferId IS NULL
+          AND t.tradeId IS NULL
         GROUP BY t.categoryId
         ORDER BY totalMinor DESC, categoryName ASC
         """,
@@ -549,6 +621,7 @@ interface TransactionDao {
           AND t.date BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.accountId = :accountId)
           AND t.transferId IS NULL
+          AND t.tradeId IS NULL
         GROUP BY t.date
         ORDER BY t.date
         """,
@@ -603,6 +676,7 @@ data class TransactionWithNames(
     val date: java.time.LocalDate,
     val note: String?,
     val transferId: Long?,
+    val tradeId: Long?,
     val accountName: String,
     val categoryName: String?,
     val categoryColorArgb: Int?,
@@ -616,6 +690,16 @@ data class TransactionWithNames(
      * `transferId` so the leg that does pay looks up one row rather than scanning the ledger.
      */
     val counterpartAccountName: String?,
+    /**
+     * What was bought or sold, and where to find it — null for an ordinary movement.
+     *
+     * A purchase's row would otherwise read *Uncategorized* with an amount, which says nothing
+     * about the one thing worth knowing. Both are resolved in SQL by subqueries guarded on
+     * `tradeId IS NULL`, so the movements that are not trades — nearly all of them — pay
+     * nothing, and the ones that are look up a row by primary key.
+     */
+    val tradeSymbol: String?,
+    val tradeHoldingId: Long?,
 )
 
 /** Income and expense totals for a period, summed in SQL. */

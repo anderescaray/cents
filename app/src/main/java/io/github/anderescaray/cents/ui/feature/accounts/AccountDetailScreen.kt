@@ -24,6 +24,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
+import io.github.anderescaray.cents.ui.components.open
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -41,6 +42,7 @@ fun AccountDetailScreen(
     onEdit: (Long) -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
+    onOpenTrade: (Long, Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,7 +81,9 @@ fun AccountDetailScreen(
             emptyState()
         }
 
-        state.days.forEach { day -> movementDay(day, state.today, onOpenTransaction, onOpenTransfer) }
+        state.days.forEach { day ->
+            movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade)
+        }
     }
 }
 
@@ -143,22 +147,20 @@ private fun LazyListScope.movementDay(
     today: LocalDate,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
+    onOpenTrade: (Long, Long) -> Unit,
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
             day.items.forEachIndexed { index, details ->
                 val movement = details.transaction
-                val transferId = movement.transferId
                 CentsListRow(
                     title = details.movementTitle(),
                     subtitle = movement.note?.takeIf { it.isNotBlank() },
                     value = MoneyFormatter.formatSigned(movement.signedAmount),
                     valueColor = details.movementValueColor(),
                     showSeparator = index != day.items.lastIndex,
-                    // A leg opens the transfer it belongs to: the other half has to change
-                    // with it, and it lives in an account this screen is not showing.
                     onClick = {
-                        if (transferId != null) onOpenTransfer(transferId) else onOpenTransaction(movement.id)
+                        details.open(onOpenTransaction, onOpenTransfer, onOpenTrade)
                     },
                 )
             }

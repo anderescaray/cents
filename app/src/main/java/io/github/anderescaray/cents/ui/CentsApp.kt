@@ -185,6 +185,13 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
                     launchSingleTop = true
                 }
             },
+            // And a purchase opens the trade behind it, for the same reason: the money is a
+            // consequence of the units, and editing it on its own would make the two disagree.
+            onOpenTrade = { holdingId, tradeId ->
+                navController.navigate(Destination.TradeForm(holdingId = holdingId, tradeId = tradeId)) {
+                    launchSingleTop = true
+                }
+            },
             onOpenFilters = {
                 navController.navigate(Destination.TransactionFilters) { launchSingleTop = true }
             },
@@ -265,6 +272,11 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
             },
             onOpenTransfer = { id ->
                 navController.navigate(Destination.TransferForm(transferId = id)) {
+                    launchSingleTop = true
+                }
+            },
+            onOpenTrade = { holdingId, tradeId ->
+                navController.navigate(Destination.TradeForm(holdingId = holdingId, tradeId = tradeId)) {
                     launchSingleTop = true
                 }
             },

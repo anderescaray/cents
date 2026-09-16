@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.data.local
 
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -7,10 +8,12 @@ import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -135,6 +138,58 @@ class CentsDatabaseMigrationTest {
                 // added but not indexed would still pass — and a missing index would have
                 // failed the schema check above anyway.
                 assertEquals(2, dao.findTransferLegs(outId).size)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a version 3 database keeps its money and gains the trade column`() =
+        runTest {
+            createVersion(3)
+
+            val database = openWithMigrations()
+            try {
+                val transactions = database.transactionDao().observeAll().first()
+                assertEquals("the movement written at v3 should survive", 1, transactions.size)
+                assertEquals(2_550L, transactions.single().amountMinor)
+                assertNull(
+                    "a movement from before investments spent anything paid for no trade",
+                    transactions.single().tradeId,
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `the cash a purchase takes out can be written into a migrated database`() =
+        runTest {
+            createVersion(3)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val holdingId = database.holdingDao().insert(holding(accountId, symbol = "NVD.DE"))
+                val tradeId = database.tradeDao().insert(trade(holdingId))
+
+                // `ALTER TABLE ... ADD COLUMN ... REFERENCES` is the only form SQLite accepts
+                // for a constraint on an existing table, so this is where it is proved that the
+                // reference really arrived rather than the column landing bare.
+                val movementId =
+                    database.transactionDao().insert(
+                        transaction(accountId = accountId, amountMinor = 10_000, tradeId = tradeId),
+                    )
+                assertEquals(tradeId, database.transactionDao().findById(movementId)?.tradeId)
+                assertThrows(SQLiteConstraintException::class.java) {
+                    runBlocking { database.tradeDao().deleteById(tradeId) }
+                }
             } finally {
                 database.close()
             }

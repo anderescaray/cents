@@ -621,7 +621,8 @@ unmerged one.
 | App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
 | Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
 | Recurring | Rent, Netflix and the salary record themselves. A rule is a **template**: each launch it writes whatever has fallen due, once, and the movements it makes are ordinary from that moment on. Settings › Subscriptions lists them with **what they come to per month and per year** — the figure the screen exists for — and a cancelled subscription is **stopped**, never erased. Room v5 |
-| Tests | 605, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Variable bills | A subscription whose amount changes — the electricity — is marked **ask me the amount**, and what the app refuses to guess waits on the Subscriptions screen instead of being invented. Several are answered in one sitting, each recorded **on the day it fell due** rather than the day it was answered; *there was no bill that month* is its own gesture, because it is not a zero |
+| Tests | 620, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1464,6 +1465,36 @@ the order the roadmap puts them, and all three now have their questions answered
         nowhere to record cannot be repaired by moving movements elsewhere. A category can go:
         the rule keeps working and its movements arrive unclassified.
 
+- [x] **`feat/subscription-amounts`** — **D23, first half: somewhere to answer a bill the app
+      would not guess.** `feat/recurring-rules` stored a *variable amount* mode and skipped it,
+      which was honest and useless: the refusal to invent a figure was indistinguishable from the
+      feature not working. **Done**, 620 tests, **no schema change**. What it settled:
+      - **The waiting list is derived, not stored.** A rule already remembers how far it has got,
+        so what is pending is what `dueOccurrences` returns for a variable rule — answering one
+        writes the movement and moves that watermark, in one transaction. A table of pending rows
+        would be a second place for "has this period been dealt with" to be true, and the two
+        would eventually disagree.
+      - **Only the oldest occurrence of each rule is offered**, with a count of what is behind it.
+        The watermark is a single date, so recording March would take January and February with
+        it in silence. One at a time is what makes that impossible rather than merely unlikely,
+        and the repository refuses a date that is not the oldest rather than trusting the screen.
+      - **It is recorded on the day it fell due, not the day it was answered.** A bill opened a
+        week late still belongs to the period it was for; dating it by when somebody got round to
+        it would move money between months in every chart in the app.
+      - **A row left empty is left alone, and skipping is a separate gesture.** Blank means *not
+        this one yet*. *There was no bill that month* is a real answer and is **not** a zero — a
+        zero is a figure that would sit in the charts saying the month cost nothing.
+      - **The estimate on the rule earns its keep.** It is the placeholder on the screen that
+        asks, and it stands in for the real figure in the monthly total — leaving variable rules
+        out of that total would understate the month by exactly the bills that are hardest to
+        predict. The caption says a guess is in there rather than letting the number look like
+        arithmetic.
+- [ ] **`feat/subscription-reminders`** — D23's second half: the notifications. Per rule, a list
+      of offsets in days, before or after the date, as many as wanted; a variable rule's reminder
+      sends you to the screen above, and a fixed rule can opt into a single heads-up (*Spotify is
+      paid in 3 days*) and is silent otherwise. Needs `POST_NOTIFICATIONS` on Android 13+, a
+      WorkManager daily check, and a schema change for the offsets.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -1821,15 +1852,21 @@ parallelism.
 - **The undo window is six seconds, counted by the buffer itself and held in memory.**
   Closing the app forgets the deletion. That is the intent: an undo that survives a
   restart is a recycle bin, which is a different feature.
-- **A rule set to *ask me the amount* records nothing at all.** `RuleMode.CONFIRM` is
-  recognised, stored and skipped by the generator, and its watermark is left untouched so the
-  backlog is still waiting when proposals are built. Today it is a rule that reminds nobody of
-  anything — the screen says so in the footer, which is the least dishonest version of a setting
-  that does less than it sounds like.
+- **A variable bill waits to be noticed.** It appears on the Subscriptions screen and nowhere
+  else — no notification, no badge on the canvas — so a rule set to *ask me the amount* is only
+  as useful as how often the owner opens that screen. That is exactly what
+  `feat/subscription-reminders` is for (D23).
+- **Only the oldest waiting occurrence of each rule can be answered.** With three months of
+  electricity behind you they are answered oldest first, one save at a time, and the row says how
+  many are behind it. Answering out of order would move the rule's watermark past the ones before
+  it, which is why the repository refuses rather than trusting the screen.
+- **Skipping a waiting occurrence cannot be undone from the screen that did it.** Nothing was
+  recorded, so there is nothing to restore — but the rule has moved past that period, and getting
+  it back means moving the rule's start date, which is obscure. The confirmation is what stands
+  in the way.
 - **Generation runs when the app comes to the front, and nowhere else.** No WorkManager, no
   notification: a phone left untouched for a week records the rent when it is next opened, dated
-  correctly. PRD §4.4's reminders are a separate piece of work, and they are what would make a
-  `CONFIRM` rule useful.
+  correctly. PRD §4.4's reminders are `feat/subscription-reminders`.
 - **Editing a rule changes what it writes next, never what it has written.** Raise Netflix from
   12,99 to 14,99 and the charges already recorded keep the old price — which is correct, because
   that is what was paid — but there is no way to correct a past charge from the rule. The
@@ -1968,11 +2005,11 @@ and only shows up later as a month that is quietly wrong. Anything that goes wro
 [`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the next branch: an *Open* entry there
 outranks anything planned.
 
-**If the walk is clean**, one branch is waiting and it waits on the owner: `feat/backup` needs
-a Google Cloud OAuth client only they can create (D22). **D23** is the one open question —
-whether a subscription should ever interrupt you — and answering it is what makes a *confirm
-first* rule useful. Everything else is deferred work nobody has chosen: the dashboard of cards
-in C7, or any of the gaps in C4.
+**If the walk is clean**, the next branch is **`feat/subscription-reminders`** — D23's second
+half, the notifications — and nothing is blocking it. The only thing waiting on the owner is
+`feat/backup`, which needs a Google Cloud OAuth client only they can create (D22). Everything
+after that is deferred work nobody has chosen: the dashboard of cards in C7, or any of the gaps
+in C4.
 
 **Two questions the walk should settle**, both written into it rather than left to be
 remembered:

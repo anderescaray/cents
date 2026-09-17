@@ -40,6 +40,7 @@ import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
 import io.github.anderescaray.cents.ui.feature.investments.PriceUpdateScreen
 import io.github.anderescaray.cents.ui.feature.investments.TradeFormScreen
 import io.github.anderescaray.cents.ui.feature.recurring.GenerateDueMovements
+import io.github.anderescaray.cents.ui.feature.recurring.PendingChargesScreen
 import io.github.anderescaray.cents.ui.feature.recurring.RuleFormScreen
 import io.github.anderescaray.cents.ui.feature.recurring.SubscriptionsScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
@@ -366,10 +367,16 @@ private fun NavGraphBuilder.recurringRoutes(navController: NavHostController) {
         SubscriptionsScreen(
             onBack = { navController.popBackStack() },
             onNewRule = { navController.navigate(Destination.RuleForm()) { launchSingleTop = true } },
+            onOpenPending = {
+                navController.navigate(Destination.PendingCharges) { launchSingleTop = true }
+            },
             onEditRule = { id ->
                 navController.navigate(Destination.RuleForm(ruleId = id)) { launchSingleTop = true }
             },
         )
+    }
+    composable<Destination.PendingCharges> {
+        PendingChargesScreen(onDone = { navController.popBackStack() })
     }
     composable<Destination.RuleForm> {
         RuleFormScreen(

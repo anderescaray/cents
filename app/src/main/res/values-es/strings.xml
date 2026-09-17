@@ -301,6 +301,7 @@
     <string name="subscriptions_empty">Aún no se repite nada</string>
     <string name="subscriptions_empty_footer">Añade el alquiler, el móvil, ese streaming que se te había olvidado. Cents apunta cada uno cuando toca y suma lo que te cuestan al mes.</string>
     <string name="subscriptions_total_caption">%1$s al año</string>
+    <string name="subscriptions_total_caption_estimate">%1$s al año, contando lo que esperas que cuesten las variables</string>
     <string name="subscriptions_mixed_currency">Están en monedas distintas, así que no se pueden sumar.</string>
     <string name="subscriptions_active_header">Activas</string>
     <string name="subscriptions_stopped_header">Paradas</string>
@@ -331,7 +332,7 @@
     <string name="rule_field_mode">Cómo se apunta</string>
     <string name="rule_mode_automatic">Apúntalo por mí</string>
     <string name="rule_mode_confirm">Pregúntame el importe</string>
-    <string name="rule_field_mode_footer">Elige la segunda cuando el importe cambia cada vez, como la luz. Cents no se inventa un número que nadie le ha dicho: por ahora esas reglas no apuntan nada y la factura la metes tú.</string>
+    <string name="rule_field_mode_footer">Elige la segunda cuando el importe cambia cada vez, como la luz. Cents no se inventa un número que nadie le ha dicho, así que te espera en la pantalla de Suscripciones. El importe de arriba es lo que crees que costará: hace de sustituto en el total mensual hasta que digas el de verdad.</string>
     <string name="rule_write_failed">No se ha podido guardar. No ha cambiado nada.</string>
     <string name="rule_stop">Parar esta suscripción</string>
     <string name="rule_delete">Eliminar</string>
@@ -343,4 +344,20 @@
     <string name="rule_stop_footer">Ha apuntado movimientos, así que esto la para. Tu historial no se reescribe nunca.</string>
     <string name="rule_delete_kept_message">Los %1$d movimientos que apuntó se quedan exactamente donde están: ese dinero se gastó de verdad. Solo desaparece la suscripción.</string>
     <string name="rule_delete_kept_footer">Está parada, así que ya no apunta nada nuevo. Eliminarla ahora deja donde está cada movimiento que hizo.</string>
+
+    <!-- Recibos que la app no se inventa (D23) -->
+    <string name="pending_title">Importes</string>
+    <string name="pending_header">Esperando un importe</string>
+    <string name="pending_footer">Escribe lo que ha costado cada uno. Se apunta el día que tocaba, no hoy, así que un recibo que contestes tarde sigue contando en el mes al que pertenece.</string>
+    <string name="pending_empty_title">No hay nada esperando</string>
+    <string name="pending_empty_footer">Aquí esperan las suscripciones marcadas como «pregúntame el importe». Cents nunca se inventa una cifra.</string>
+    <string name="pending_skip">Saltar</string>
+    <string name="pending_skip_title">¿Ese mes no hubo %1$s?</string>
+    <string name="pending_skip_message">No se apunta nada y Cents pasa al siguiente. No es lo mismo que cero: un cero se quedaría en tus gráficos, y esto es que simplemente no ocurrió.</string>
+    <string name="pending_skip_action">No hubo</string>
+    <string name="pending_failed_title">No se ha apuntado</string>
+    <string name="pending_failed_message">Algo lo contestó antes que tú, así que no se ha escrito nada. La lista se ha vuelto a leer: lo que ves ahora es lo que está esperando de verdad.</string>
+    <string name="subscriptions_waiting_header">Esperando un importe</string>
+    <string name="subscriptions_waiting_footer">Les tocaba y Cents no sabe cuánto han costado. No se apunta nada hasta que lo digas tú.</string>
+    <string name="subscriptions_waiting_value">Poner</string>
 </resources>

@@ -221,9 +221,16 @@ rather than from the one before it, so a monthly rule on the 31st clamps in Febr
 in March, and each rule's watermark is written in the same database transaction as the movements
 it describes, so a run killed halfway leaves nothing behind. A rule entered late writes the
 charges it missed. Cancelling a subscription **stops** it — rule 8, as an operation — and only a
-stopped one can then be deleted, with its movements left standing. A rule set to *ask me the
-amount* records nothing at all rather than asserting a number nobody has seen; the reminders that
-would make it useful are not built. **Room v5.**
+stopped one can then be deleted, with its movements left standing. **Room v5.**
+**And the bills it will not guess have somewhere to be answered.** D23 was settled on 2026-09-17:
+a subscription marked *ask me the amount* — the electricity — waits on the Subscriptions screen
+instead of asserting a figure nobody has seen, and several are answered in one sitting. Each is
+recorded **on the day it fell due**, not the day it was answered, so a bill opened late still
+counts in its own month; a row left blank is left alone, and *there was no bill that month* is a
+separate gesture, because it is not a zero. Only the **oldest** waiting occurrence of each rule is
+offered at a time — the watermark is a single date, so answering out of order would swallow the
+periods before it. What is still missing is the other half of D23: the notifications that would
+tell the owner a bill is waiting, which is `feat/subscription-reminders`.
 
 **Money can now move between accounts.** `feat/transfers` brought Phase 3's first piece forward,
 because the investments section needs it: a transfer is **two ordinary rows sharing one
@@ -267,7 +274,7 @@ row left empty left alone. **A purchase can also be recorded as 500 € of somet
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-605 tests run on the JVM, so CI covers the database and the UI without a device.
+620 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

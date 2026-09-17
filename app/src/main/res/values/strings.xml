@@ -304,6 +304,7 @@
     <string name="subscriptions_empty">Nothing repeats yet</string>
     <string name="subscriptions_empty_footer">Add the rent, the phone bill, the streaming you forgot about. Cents records each one when it falls due and adds up what they cost you every month.</string>
     <string name="subscriptions_total_caption">%1$s a year</string>
+    <string name="subscriptions_total_caption_estimate">%1$s a year, including what you expect the variable ones to be</string>
     <string name="subscriptions_mixed_currency">These are in different currencies, so they cannot be added up.</string>
     <string name="subscriptions_active_header">Active</string>
     <string name="subscriptions_stopped_header">Stopped</string>
@@ -334,7 +335,7 @@
     <string name="rule_field_mode">Recording</string>
     <string name="rule_mode_automatic">Record it for me</string>
     <string name="rule_mode_confirm">Ask me the amount</string>
-    <string name="rule_field_mode_footer">Choose the second one when the amount changes every time, like electricity. Cents will not invent a number it has not been told: for now those rules record nothing at all, and you enter the bill yourself.</string>
+    <string name="rule_field_mode_footer">Choose the second one when the amount changes every time, like electricity. Cents will not invent a number nobody has told it, so instead it waits for you on the Subscriptions screen. The amount above is what you expect it to be — it stands in for the real one in the monthly total until you say.</string>
     <string name="rule_write_failed">That could not be saved. Nothing has changed.</string>
     <string name="rule_stop">Stop this subscription</string>
     <string name="rule_delete">Delete</string>
@@ -346,4 +347,20 @@
     <string name="rule_stop_footer">It has recorded movements, so stopping is what this does. Your history is never rewritten.</string>
     <string name="rule_delete_kept_message">The %1$d movements it recorded stay exactly where they are — that money really was spent. Only the subscription itself goes.</string>
     <string name="rule_delete_kept_footer">It is stopped, so it records nothing new. Deleting it now leaves every movement it made where it is.</string>
+
+    <!-- Bills the app will not guess (D23) -->
+    <string name="pending_title">Amounts</string>
+    <string name="pending_header">Waiting for an amount</string>
+    <string name="pending_footer">Type what each one actually came to. Each is recorded on the day it fell due, not today — so a bill you answer late still counts in the month it was for.</string>
+    <string name="pending_empty_title">Nothing is waiting</string>
+    <string name="pending_empty_footer">This is where subscriptions set to “ask me the amount” wait for a figure. Cents never invents one.</string>
+    <string name="pending_skip">Skip</string>
+    <string name="pending_skip_title">No %1$s that month?</string>
+    <string name="pending_skip_message">Nothing is recorded for it and Cents moves on to the next one. That is not the same as zero — a zero would sit in your charts, and this simply did not happen.</string>
+    <string name="pending_skip_action">There was none</string>
+    <string name="pending_failed_title">That was not recorded</string>
+    <string name="pending_failed_message">Something answered it before you did, so nothing was written. The list has been read again — what you see now is what is really waiting.</string>
+    <string name="subscriptions_waiting_header">Waiting for an amount</string>
+    <string name="subscriptions_waiting_footer">These fell due and Cents does not know what they came to. Nothing is recorded for them until you say.</string>
+    <string name="subscriptions_waiting_value">Enter</string>
 </resources>

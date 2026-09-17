@@ -1224,14 +1224,47 @@ Open it and look: the button now says **Delete**, and the line under it says the
 
 ### s7 · An amount that varies
 
-Add one with **Ask me the amount**: *Electricity*, `60`, **Every month**, starting last month.
+Add one with **Ask me the amount**: *Electricity*, `60`, **Every month**, starting **three months
+ago**.
 
-Nothing is recorded for it. That is deliberate and today it is all it does — the app will not
-assert a number nobody has seen, and the reminders that would make it useful are not built.
+Nothing appears in Movements — the app will not assert a figure nobody has seen. Instead the
+Subscriptions screen grows a section at the top, **Waiting for an amount**, with *Electricity* in
+it and the date of the oldest one it is waiting on.
 
-> **Wrong looks like** 60 € appearing in Movements anyway.
+> **Wrong looks like** 60 € appearing in Movements anyway, or nothing appearing anywhere, which
+> would make an honest refusal indistinguishable from a broken feature.
 
-### s8 · The account underneath
+### s8 · Answering it
+
+Tap that row. The screen lists what is waiting, with **60,00 €** as the placeholder — what you
+said you expected — and *"2 more after this"* underneath, because three months fell due.
+
+Type what the first month actually came to and **Save**. In Movements it is dated **the day it
+fell due**, not today. Open Subscriptions again: the next month is now waiting.
+
+> **Wrong looks like** the charge dated today. A bill answered late belongs to the month it was
+> for, and dating it by when you got round to it moves money between months in every chart.
+
+### s9 · The month there was no bill
+
+Swipe one of the waiting rows sideways: **Skip**. It asks first, and says why it is not the same
+as typing zero.
+
+Confirm. Nothing is recorded, and the next one takes its place.
+
+> **Wrong looks like** a 0,00 € movement appearing. A zero is a figure that sits in the charts
+> saying the month cost nothing; this is the absence of one.
+
+### s10 · The total says it is guessing
+
+Back on Subscriptions, the line under the monthly figure now ends with *"including what you expect
+the variable ones to be"*.
+
+> **Wrong looks like** the electricity being left out of the total altogether — that understates
+> the month by exactly the bills that are hardest to predict — or the caption not saying a guess
+> is in there.
+
+### s11 · The account underneath
 
 Try to delete the account the rent records into (**Accounts**, swipe the row, or open it and
 scroll down).

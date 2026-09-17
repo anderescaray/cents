@@ -51,6 +51,7 @@ import java.time.LocalDate
 fun SubscriptionsScreen(
     onBack: () -> Unit,
     onNewRule: () -> Unit,
+    onOpenPending: () -> Unit,
     onEditRule: (Long) -> Unit,
     viewModel: SubscriptionsViewModel = hiltViewModel(),
 ) {
@@ -67,6 +68,9 @@ fun SubscriptionsScreen(
             return@CentsLargeTitleScaffold
         }
 
+        // Above the total, because it is the only thing on this screen that is asking for
+        // something rather than reporting it.
+        waitingSection(state, onOpenPending)
         totalHeader(state)
         activeRules(state, onEditRule, viewModel::setActive)
         stoppedRules(state, onEditRule, viewModel::setActive)
@@ -133,7 +137,11 @@ private fun LazyListScope.totalHeader(state: SubscriptionsUiState) {
                         stringResource(R.string.subscriptions_mixed_currency)
                     } else {
                         stringResource(
-                            R.string.subscriptions_total_caption,
+                            if (state.includesEstimates) {
+                                R.string.subscriptions_total_caption_estimate
+                            } else {
+                                R.string.subscriptions_total_caption
+                            },
                             MoneyFormatter.format(requireNotNull(state.yearlyOutgoing)),
                         )
                     },
@@ -142,6 +150,40 @@ private fun LazyListScope.totalHeader(state: SubscriptionsUiState) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
             )
+        }
+    }
+}
+
+/**
+ * The bills the app would not guess.
+ *
+ * A rule set to *ask me the amount* records nothing until somebody says what it came to, and
+ * this is where that is visible — otherwise the honest refusal to invent a number is
+ * indistinguishable from the feature quietly not working.
+ */
+private fun LazyListScope.waitingSection(
+    state: SubscriptionsUiState,
+    onOpen: () -> Unit,
+) {
+    if (state.pending.isEmpty()) return
+    item(key = "waiting") {
+        CentsListSection(
+            header = stringResource(R.string.subscriptions_waiting_header),
+            footer = stringResource(R.string.subscriptions_waiting_footer),
+        ) {
+            state.pending.forEachIndexed { index, charge ->
+                key(charge.rule.id) {
+                    CentsListRow(
+                        title = charge.rule.name,
+                        subtitle = charge.dueDate.relativeLabel(state.today),
+                        value = stringResource(R.string.subscriptions_waiting_value),
+                        valueColor = CentsTheme.colors.accent,
+                        showChevron = true,
+                        showSeparator = index != state.pending.lastIndex,
+                        onClick = onOpen,
+                    )
+                }
+            }
         }
     }
 }

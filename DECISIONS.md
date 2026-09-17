@@ -29,46 +29,13 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-**One question is waiting: D23, below.** D20 and D22 were both answered on 2026-09-17 and are
+**Nothing is waiting here right now.** D20, D22 and D23 were all answered on 2026-09-17 and are
 in the *Answered* table below.
 
 Two doors were left open rather than closed, and neither is a question for the agent. **D20**
 settled that no free provider carries this portfolio's listings, so prices are typed — paying for
 one would restore D18 exactly, and that is a decision about money. **D22** chose Drive for
 backups, and it waits on an OAuth client only the owner can create.
-
-### D23 · Should a subscription ever interrupt you?
-
-**Asked 2026-09-17**, on finishing `feat/recurring-rules`. Rules with a known amount now record
-themselves silently, which is right — a banner every morning saying the app did the thing it
-exists to do would be in the way. But two cases have no answer yet, and both are about a
-notification, which is the one thing in this app that would reach outside it.
-
-- **A rule set to *ask me the amount*** (the electricity bill) currently records **nothing**. It
-  is stored, it is listed, and the generator skips it — because the app is not entitled to assert
-  a number nobody has seen (PRD §4.4). To become useful it has to ask, and asking means either a
-  notification on the day, or a row waiting inside the app that the owner has to think to look at.
-- **PRD §4.4 also names reminders** for a charge that is coming: *rent in three days*. Same
-  question, same mechanism.
-
-- **A. Nothing leaves the app.** Due proposals wait on the Subscriptions screen with a count
-  beside it, and the owner deals with them when they next open Cents. No notification permission,
-  no interruptions, and the failure mode is forgetting.
-- **B. A notification when something is waiting**, and only then — never for a rule that recorded
-  itself. Needs `POST_NOTIFICATIONS` on Android 13+, which is one dialog the first time, and
-  WorkManager to fire it on the right day.
-- **C. Both, in that order**: build the in-app queue first, add the notification on top of it
-  later if forgetting turns out to be real.
-
-**Recommendation: C.** The queue is the part that has to exist either way — a notification with
-nowhere to land is nothing — and whether it needs a nudge is a thing a month of using it answers
-better than either of us can now.
-
-**Default until answered: nothing is built.** *Ask me the amount* keeps recording nothing and
-says so on the screen, and `PLAN.md` C4 records it as a gap rather than a bug.
-
-**Answer:**
-
 
 New questions get added here as they come up, each with a default so that an unanswered one
 never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty
@@ -92,6 +59,7 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D23 | Should a subscription ever interrupt you? | **Yes, and only on the owner’s terms — which is C, with more detail than the question had.** A subscription can be marked **variable amount**, and only those get asked about: a notification **N days before or after** the date, **as many as you like** per rule, each one reminding you to put in what it actually came to. A **fixed** subscription is silent by default and can opt in to a single heads-up — *Spotify is paid in 3 days* — with N chosen per rule. Nothing is ever announced after the fact for a rule that recorded itself. **It lands in two branches, because the second needs the first:** somewhere to answer a variable bill has to exist before a notification can send you there. | 2026-09-17 · `feat/subscription-amounts` (the answering), then `feat/subscription-reminders` (the notifications) |
 | D22 | Where does an automatic backup go? | **Google Drive, and only a backup — no sync.** It survives the phone being lost, which is the case a backup most exists for, and it costs an OAuth client the owner creates in Google Cloud Console (nothing secret reaches the repo: an Android client is matched by package name and signing certificate). **The owner asked whether this means the same data on a phone and a tablet, and the honest answer is no** — a restore replaces everything (D21), so two devices recording would diverge silently and whichever restored next would destroy its own changes. Confirmed after that was explained: **one device records**, the other gets the data by restoring. Real sync is a different feature needing a conflict model and a backend this app has deliberately never had (§1), and it is not being built. | 2026-09-17 · `feat/backup` (not built — waiting on the credential) |
 | D20 | The free tier cannot price the listings D18 chose. Which way out? | **None of them, for now — make typing fast instead.** The owner asked for "the euros I put into each asset, kept up to date from the internet, however you do it, or failing that a way to update it by hand", and the measurements say the first half is not available free: Twelve Data refuses XETR listings on `basic`, Finnhub's free tier is US-only, EODHD's free plan is US exchanges. **Converting does not rescue it**, which is the finding that settles this: a UCITS ETF like `VWCE` has no US listing to convert *from* — it is a European-only instrument, and a US proxy is a different fund. So conversion would automate the stocks and leave the ETFs, which is most of the point. Typing is therefore how prices get in, and `feat/prices-in-one-place` makes that one screen instead of one visit per holding. **Paying is the open door**: it is A in the list above, and it would restore D18 exactly. | 2026-09-17 · `feat/prices-in-one-place`, PRD §5.1 |
 | D21 | What does a restore do to what is already on the phone? | **Replace everything**, behind a confirmation naming both halves — what the file holds, and what is about to go — shown only after the file has been read, so those numbers are checkable. Merging needs id remapping and duplicate detection for a case that barely exists with one owner; refusing unless the app is empty is useless exactly when it is needed. **Encryption stays out** for the same reason D16 gave, and comes back when a backup goes somewhere the owner does not control. | 2026-09-17 · `feat/restore`, `RoomBackupRepository.restore` |

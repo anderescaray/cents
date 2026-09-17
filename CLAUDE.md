@@ -250,8 +250,11 @@ setting has been read.
 that no free provider carries this portfolio's listings — and that converting from a US listing
 cannot rescue a UCITS ETF, which has no US listing to convert from — so typing is how prices get
 in rather than a fallback. Every open holding is priced from one screen, under one date, with a
-row left empty left alone.
-558 tests run on the JVM, so CI covers the database and the UI without a device.
+row left empty left alone. **A purchase can also be recorded as 500 € of something** rather than
+as units × price, which is how the platform sells it: units are still what is stored, because
+that is what a sale reduces and a price multiplies, and the footer says how many it came to
+before the save.
+562 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

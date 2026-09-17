@@ -91,6 +91,35 @@ value class Quantity(
         private val SCALE_BIG: BigInteger = BigInteger.valueOf(SCALE)
 
         fun ofUnits(units: Long): Quantity = Quantity(units * SCALE)
+
+        /**
+         * How many units [amount] buys at [unitPrice].
+         *
+         * This is how a broker like Trade Republic is actually used: you spend 500 €, and how
+         * many units that came to is something the platform works out and tells you afterwards.
+         * The app stores units because every later number — the average cost, a partial sale,
+         * what it is worth now — is about units; so the euros are turned into units here, once,
+         * at the moment of typing.
+         *
+         * Eight decimals is fine enough that nothing is lost on the way. One unit-step at a
+         * price of 116,22 € is about a hundred-thousandth of a cent, so multiplying the result
+         * back by the price returns the amount that was typed, to the cent.
+         *
+         * A price of zero buys nothing rather than everything: it is the one input that cannot
+         * be divided by, and a trade at no price is not a purchase.
+         */
+        fun forAmount(
+            amount: Money,
+            unitPrice: Money,
+        ): Quantity {
+            if (unitPrice.minorUnits == 0L) return ZERO
+            return Quantity(
+                divideRoundingHalfUp(
+                    BigInteger.valueOf(amount.minorUnits) * SCALE_BIG,
+                    BigInteger.valueOf(unitPrice.minorUnits),
+                ),
+            )
+        }
     }
 }
 

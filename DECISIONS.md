@@ -29,38 +29,13 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-> **D20 was answered on 2026-09-17** and is in the table below. What it settled is that no free
-> provider carries this portfolio's listings, so prices are typed — and the door it left open is
-> paying for one, which is a decision about money rather than about code.
+**Nothing is waiting here right now.** D20 and D22 were both answered on 2026-09-17 and are in
+the *Answered* table below.
 
-### D22 · Where does an automatic backup go?
-
-**Asked 2026-09-17**, on finishing the restore. D15 said manual export first and automatic backup
-after; the manual half is built in both directions now, and what is left is a copy that happens
-**without being asked for** — which is the failure mode backups are famous for, since every
-export so far is one the owner remembered to make.
-
-- **A. A scheduled local copy** into a folder chosen once, kept by the system's persisted
-  permission. Needs nothing from anybody, no account and no third party, and it survives the app
-  being uninstalled if the folder is somewhere ordinary like Documents. It does **not** survive
-  the phone being lost, which is the case a backup most exists for.
-- **B. Google Drive**, which is what D15 originally weighed. It survives the phone, and it needs
-  an **OAuth client the owner creates in Google Cloud Console**, tied to the app's signing
-  certificate — the same shape of blocker as D13's API key, and worth knowing before the branch
-  is built rather than after. It also puts the ledger somewhere the owner does not control, which
-  is where encryption stops being a question D16 can wave away.
-- **C. Both**, local first and Drive later on top of it — which is D15's own shape, applied one
-  level down.
-
-**Recommendation: A now, and C's second half only if the phone being lost is the case worth
-solving.** A is a week of nothing-in-the-way; B is an afternoon of code behind a credential and a
-new answer about encryption.
-
-**Default until answered: nothing.** Exports stay manual, and `PLAN.md` C4 records that nothing
-backs up on its own.
-
-**Answer:**
-
+Two doors were left open rather than closed, and neither is a question for the agent. **D20**
+settled that no free provider carries this portfolio's listings, so prices are typed — paying for
+one would restore D18 exactly, and that is a decision about money. **D22** chose Drive for
+backups, and it waits on an OAuth client only the owner can create.
 
 New questions get added here as they come up, each with a default so that an unanswered one
 never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty
@@ -84,6 +59,7 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D22 | Where does an automatic backup go? | **Google Drive, and only a backup — no sync.** It survives the phone being lost, which is the case a backup most exists for, and it costs an OAuth client the owner creates in Google Cloud Console (nothing secret reaches the repo: an Android client is matched by package name and signing certificate). **The owner asked whether this means the same data on a phone and a tablet, and the honest answer is no** — a restore replaces everything (D21), so two devices recording would diverge silently and whichever restored next would destroy its own changes. Confirmed after that was explained: **one device records**, the other gets the data by restoring. Real sync is a different feature needing a conflict model and a backend this app has deliberately never had (§1), and it is not being built. | 2026-09-17 · `feat/backup` (not built — waiting on the credential) |
 | D20 | The free tier cannot price the listings D18 chose. Which way out? | **None of them, for now — make typing fast instead.** The owner asked for "the euros I put into each asset, kept up to date from the internet, however you do it, or failing that a way to update it by hand", and the measurements say the first half is not available free: Twelve Data refuses XETR listings on `basic`, Finnhub's free tier is US-only, EODHD's free plan is US exchanges. **Converting does not rescue it**, which is the finding that settles this: a UCITS ETF like `VWCE` has no US listing to convert *from* — it is a European-only instrument, and a US proxy is a different fund. So conversion would automate the stocks and leave the ETFs, which is most of the point. Typing is therefore how prices get in, and `feat/prices-in-one-place` makes that one screen instead of one visit per holding. **Paying is the open door**: it is A in the list above, and it would restore D18 exactly. | 2026-09-17 · `feat/prices-in-one-place`, PRD §5.1 |
 | D21 | What does a restore do to what is already on the phone? | **Replace everything**, behind a confirmation naming both halves — what the file holds, and what is about to go — shown only after the file has been read, so those numbers are checkable. Merging needs id remapping and duplicate detection for a case that barely exists with one owner; refusing unless the app is empty is useless exactly when it is needed. **Encryption stays out** for the same reason D16 gave, and comes back when a backup goes somewhere the owner does not control. | 2026-09-17 · `feat/restore`, `RoomBackupRepository.restore` |
 | D19 | Is there a net worth figure, and what does an unpriced holding do to it? | **Yes, and show all three numbers**: what the accounts hold, what the portfolio is worth, and the two added together — so net worth can be read with the portfolio and without it. Closest to option A, but asking for the parts as well as the sum: a single figure hides which of the two moved when it changes. An unpriced holding follows the rule the portfolio already applies one screen down — count the priced ones, and say how many were left out. | 2026-09-17 · `feat/net-worth`, Accounts tab |

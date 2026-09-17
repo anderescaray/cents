@@ -620,7 +620,7 @@ unmerged one.
 | Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
 | App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
 | Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
-| Tests | 558, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 562, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1359,12 +1359,36 @@ the order the roadmap puts them, and all three now have their questions answered
       - The strongest test here is the **round trip**: populate, export, wipe, restore, compare.
         It is the only one that would catch the writer and the reader agreeing with each other
         while both being wrong about the database.
+- [x] **`feat/buy-by-amount`** — recording a purchase as **500 € of something** rather than as
+      units × price, because that is how the platform sells it. Asked for in the owner's own
+      words while answering D20. **Done**, 562 tests.
+      - **Units are still what is stored**, and that is the point rather than a compromise: a
+        partial sale reduces units, an average cost divides by units, a price multiplies them.
+        The euros are turned into units once, at the moment of typing, instead of every time
+        anything is read.
+      - **Nothing is lost in the turning.** At eight decimals one unit-step is about a
+        hundred-thousandth of a cent, so multiplying the stored units back by the price returns
+        the amount that was typed, to the cent — which a test asserts rather than assumes.
+      - **The footer says how many units it came to**, before the save. The owner is then
+        agreeing to the record rather than to the number they typed.
+      - Switching between the two **converts what is already typed**, the same bargain the price
+        editor strikes between *per unit* and *total value*: a control that empties the fields is
+        one nobody touches twice.
+      - **A correction is always in units**, and the control is not offered there at all. A
+        correction says what is *held*, and holding is counted in units — asking how much of
+        something you own in money is a different question with no answer.
 - [ ] **`feat/backup`** — what is left of D15's automatic half: a backup that happens **without
-      being asked for**. Its questions are half answered — D21 settled what a restore overwrites,
-      and encryption stays out while the file goes somewhere the owner chose — and **D22 asks the
-      rest**: where an automatic copy goes. A scheduled local copy needs nothing from anybody;
-      Drive needs an OAuth client only the owner can create, which is the same shape of blocker as
-      D13's key and worth asking about before the branch is built rather than after.
+      being asked for**. **D22 is answered: Google Drive, and only a backup.** What it waits on is
+      the credential — an OAuth client the owner creates in Google Cloud Console for package
+      `io.github.anderescaray.cents` and the signing certificate's SHA-1 — plus the Drive API
+      enabled and the consent screen left in *Testing* with the owner as its only user. Nothing
+      secret lands in the repo: an Android OAuth client carries no secret and is matched by
+      package name and certificate, so unlike D13's key there is nothing to keep out of git.
+      The shape, now that the deprecations are checked: **`AuthorizationClient`** from
+      play-services-auth for the `drive.appdata` scope — `GoogleSignIn` is removed in 22.0.0 —
+      and the **Drive REST API** to upload, the Android Drive API having been dead since 2019.
+      `appdata` rather than a visible folder, so the backup cannot be opened or shared by
+      accident and goes when the app does.
 - [x] **`feat/biometric-lock`** — and **D16 settles what is under it: no SQLCipher.** Android
       encrypts the device and no other app can read these files; what SQLCipher answers is root
       access and physical extraction, at the price of a dependency, slower writes and a key that
@@ -1451,8 +1475,15 @@ parallelism.
   ledger. The one safety net that exists is the obvious one — export before you restore — and
   nothing in the app says so. A line in that alert is the cheapest fix if it is ever wanted.
 - **Nothing backs up on its own.** Every export is one the owner remembered to make, which is the
-  failure mode backups are famous for. `feat/backup` is the branch and **D22** is what it waits
-  on: not code, but where an automatic copy should go.
+  failure mode backups are famous for. `feat/backup` is the branch, D22 has answered where it
+  goes, and what it waits on now is the OAuth client.
+- **Two devices are not two copies of the app.** D22 chose Drive as a *backup*, and the owner
+  asked the obvious next question — whether that means the same data on a phone and a tablet. It
+  does not, and the record says so rather than leaving it to be discovered: a restore replaces
+  everything (D21), so two devices both recording would diverge with nothing warning them, and
+  whichever restored next would destroy its own changes. The intended use is **one device
+  records**; the other gets the data by restoring. Sync would need per-row change tracking, a
+  conflict rule and somewhere for the two to meet — a backend §1 has deliberately never had.
 - **Two documentation branches can edit the same paragraph and one will vanish.** It happened on
   2026-09-17: #52 and #53 both rewrote the *Open* section of `DECISIONS.md`, both merged, and
   **D20 was silently gone** — no conflict surfaced in the working tree afterwards, and the branch

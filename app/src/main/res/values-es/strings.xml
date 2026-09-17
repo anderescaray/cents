@@ -287,4 +287,9 @@
     <string name="prices_placeholder">Sin precio</string>
     <string name="prices_empty_title">Nada que valorar</string>
     <string name="prices_empty_footer">Los precios son por unidad, de lo que todavía tienes. Una posición que has vendido no tiene cantidad, así que no hay nada sobre lo que poner un precio.</string>
+    <!-- Describir una operación por los euros que entraron, como la vende el bróker -->
+    <string name="trade_basis_units">Participaciones</string>
+    <string name="trade_basis_amount">Importe</string>
+    <string name="trade_field_amount_placeholder">Cuánto pusiste</string>
+    <string name="trade_amount_units">Son %1$s participaciones a este precio.</string>
 </resources>

@@ -26,10 +26,28 @@ import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 
+/** Which way round the owner is describing the size of a trade. */
+enum class QuantityBasis {
+    /** Units, which is what the app stores and what a later sale is measured in. */
+    UNITS,
+
+    /**
+     * The euros that went in, which is how the trade was actually made.
+     *
+     * A platform like Trade Republic sells you 500 € of something and works out the units
+     * afterwards — so this is the number the owner has in front of them, and turning it into
+     * units by hand before they can type it is arithmetic homework the app can do.
+     */
+    AMOUNT,
+}
+
 @Immutable
 data class TradeFormUiState(
     val isNew: Boolean = true,
     val side: TradeSide = TradeSide.BUY,
+    val quantityBasis: QuantityBasis = QuantityBasis.UNITS,
+    /** What was spent, when the size is being given in euros. */
+    val amountInput: String = AmountEntry.EMPTY,
     val quantityInput: String = QuantityEntry.EMPTY,
     val priceInput: String = AmountEntry.EMPTY,
     val feeInput: String = AmountEntry.EMPTY,
@@ -45,7 +63,28 @@ data class TradeFormUiState(
     val writeFailed: Boolean = false,
     val finished: Boolean = false,
 ) {
-    val quantity: Quantity get() = QuantityEntry.toQuantity(quantityInput)
+    /**
+     * How much of the instrument this trade moves.
+     *
+     * Derived when the owner is typing euros, so the stored trade is in units either way: units
+     * are what a partial sale reduces, what an average cost divides by, and what a price
+     * multiplies. Storing euros would mean deriving units on every read instead of once here.
+     */
+    val quantity: Quantity
+        get() =
+            when (quantityBasis) {
+                QuantityBasis.UNITS -> QuantityEntry.toQuantity(quantityInput)
+                QuantityBasis.AMOUNT -> Quantity.forAmount(amountSpent, pricePerUnit)
+            }
+
+    /** What the owner typed as spent, before any fee. */
+    val amountSpent: Money get() = Money(AmountEntry.toMinorUnits(amountInput), currency)
+
+    /**
+     * Whether the size is being given in euros, which a correction never is: a correction says
+     * how many units are held and moves no money at all.
+     */
+    val usesAmount: Boolean get() = quantityBasis == QuantityBasis.AMOUNT && !isCorrection
 
     val pricePerUnit: Money get() = Money(AmountEntry.toMinorUnits(priceInput), currency)
 
@@ -77,7 +116,14 @@ data class TradeFormUiState(
         get() =
             when {
                 saving -> false
+
                 isCorrection -> quantityInput.isNotEmpty()
+
+                // Typing euros needs a price to divide by before it is a quantity at all, so
+                // both fields have to be there — and what they come to still has to be more
+                // than nothing.
+                usesAmount -> !quantity.isZero && amountInput.isNotEmpty() && priceInput.isNotEmpty()
+
                 else -> !quantity.isZero && priceInput.isNotEmpty() && !sellsMoreThanHeld
             }
 }
@@ -190,7 +236,13 @@ class TradeFormViewModel
                 // is held — the number the owner is about to disagree with. Typing over it is
                 // the whole gesture, and starting from empty would make them look it up first.
                 if (side == TradeSide.CORRECTION && !state.isCorrection) {
-                    state.copy(side = side, quantityInput = QuantityEntry.fromQuantity(state.heldElsewhere))
+                    // A correction is in units by definition: it says what is held, and holding
+                    // is counted in units rather than in euros.
+                    state.copy(
+                        side = side,
+                        quantityBasis = QuantityBasis.UNITS,
+                        quantityInput = QuantityEntry.fromQuantity(state.heldElsewhere),
+                    )
                 } else {
                     state.copy(side = side)
                 }
@@ -199,6 +251,51 @@ class TradeFormViewModel
 
         fun onQuantityTyped(typed: String) {
             form.update { it.copy(quantityInput = QuantityEntry.sanitize(typed)) }
+        }
+
+        fun onAmountTyped(typed: String) {
+            form.update { it.copy(amountInput = AmountEntry.sanitize(typed)) }
+        }
+
+        /**
+         * Switches between describing the trade in units and in euros, **converting what is
+         * already typed** rather than clearing it.
+         *
+         * The same bargain the price editor strikes between *per unit* and *total value*: a
+         * control that empties the fields is a control nobody touches twice.
+         */
+        fun onQuantityBasisChanged(basis: QuantityBasis) {
+            form.update { state ->
+                if (basis == state.quantityBasis) {
+                    state
+                } else {
+                    when (basis) {
+                        QuantityBasis.AMOUNT -> {
+                            state.copy(
+                                quantityBasis = basis,
+                                amountInput =
+                                    if (state.quantity.isZero) {
+                                        state.amountInput
+                                    } else {
+                                        AmountEntry.fromMinorUnits((state.quantity * state.pricePerUnit).minorUnits)
+                                    },
+                            )
+                        }
+
+                        QuantityBasis.UNITS -> {
+                            state.copy(
+                                quantityBasis = basis,
+                                quantityInput =
+                                    if (state.quantity.isZero) {
+                                        state.quantityInput
+                                    } else {
+                                        QuantityEntry.fromQuantity(state.quantity)
+                                    },
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         fun onPriceTyped(typed: String) {

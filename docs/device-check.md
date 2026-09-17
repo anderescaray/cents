@@ -1131,3 +1131,22 @@ exactly as they were**, to the cent, with their old dates intact.
 
 > **Wrong looks like** a blank row being saved as zero, a price you did not touch changing its
 > date, or the whole list refusing to save because one field is empty.
+### i15 · Buying 500 € of something
+
+Open a holding, add a trade, and switch the second control from **Units** to **Amount**.
+
+Type the price your broker showed and **500** as the amount. The footer says how many units that
+comes to — check it against what your broker said you got.
+
+Save, then open the trade again: it holds those units at that price. Multiply them back and you
+should be looking at 500,00 €, not 499,99 €.
+
+Now switch the control back to **Units** without saving: the number of units should already be
+filled in, not blank.
+
+> **Wrong looks like** the fields emptying when you switch, units that do not match your broker's,
+> or a cost basis a cent off what you actually put in.
+
+> **Note:** on a **correction** the control is not there at all. A correction says what you hold,
+> and holding is counted in units — "how much of it do you own, in euros" is not a question with
+> an answer.

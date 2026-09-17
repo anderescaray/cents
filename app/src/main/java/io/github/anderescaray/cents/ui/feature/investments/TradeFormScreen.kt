@@ -163,14 +163,30 @@ private fun TradeFields(
     state: TradeFormUiState,
     viewModel: TradeFormViewModel,
 ) {
+    // A correction says how many units are held, so it is never described in euros: the
+    // control is not offered rather than being offered and ignored.
+    if (!state.isCorrection) {
+        QuantityBasisControl(basis = state.quantityBasis, onSelect = viewModel::onQuantityBasisChanged)
+    }
+
     CentsListSection(footer = footerFor(state)) {
-        CentsTextField(
-            value = QuantityEntry.toTypedText(state.quantityInput),
-            onValueChange = viewModel::onQuantityTyped,
-            placeholder = stringResource(R.string.trade_field_quantity_placeholder),
-            numeric = true,
-            showSeparator = true,
-        )
+        if (state.usesAmount) {
+            CentsTextField(
+                value = AmountEntry.toTypedText(state.amountInput),
+                onValueChange = viewModel::onAmountTyped,
+                placeholder = stringResource(R.string.trade_field_amount_placeholder),
+                numeric = true,
+                showSeparator = true,
+            )
+        } else {
+            CentsTextField(
+                value = QuantityEntry.toTypedText(state.quantityInput),
+                onValueChange = viewModel::onQuantityTyped,
+                placeholder = stringResource(R.string.trade_field_quantity_placeholder),
+                numeric = true,
+                showSeparator = true,
+            )
+        }
         CentsTextField(
             value = AmountEntry.toTypedText(state.priceInput),
             onValueChange = viewModel::onPriceTyped,
@@ -195,6 +211,30 @@ private fun TradeFields(
 }
 
 /**
+ * Units, or the euros that went in.
+ *
+ * Both describe the same trade, and the app stores units either way — a partial sale reduces
+ * units, an average cost divides by units, a price multiplies them. What this changes is which
+ * number the owner has to have in front of them, and on a platform that sells you 500 € of
+ * something, that number is the euros.
+ */
+@Composable
+private fun QuantityBasisControl(
+    basis: QuantityBasis,
+    onSelect: (QuantityBasis) -> Unit,
+) {
+    val units = stringResource(R.string.trade_basis_units)
+    val amount = stringResource(R.string.trade_basis_amount)
+    CentsSegmentedControl(
+        options = QuantityBasis.entries,
+        selected = basis,
+        onSelect = onSelect,
+        label = { option -> if (option == QuantityBasis.UNITS) units else amount },
+        modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+    )
+}
+
+/**
  * What the fields add up to — or, when a sale is bigger than the position, why it cannot be
  * saved. The refusal takes the footer rather than appearing beside it: it is the only thing
  * worth reading at that moment.
@@ -208,6 +248,13 @@ private fun footerFor(state: TradeFormUiState): String =
 
         state.sellsMoreThanHeld -> {
             stringResource(R.string.trade_too_much, QuantityEntry.format(state.heldElsewhere))
+        }
+
+        // Typing euros, the units are what actually gets stored — and what every later number
+        // is about. Saying so before the save means the owner is agreeing to the record rather
+        // than to the number they typed.
+        state.usesAmount && !state.quantity.isZero -> {
+            stringResource(R.string.trade_amount_units, QuantityEntry.format(state.quantity))
         }
 
         state.side == TradeSide.BUY -> {

@@ -290,4 +290,9 @@
     <string name="prices_placeholder">No price yet</string>
     <string name="prices_empty_title">Nothing to price</string>
     <string name="prices_empty_footer">Prices are per unit, for what you still hold. A position you have sold has no quantity, so there is nothing for a price to be about.</string>
+    <!-- Describing a trade by the euros that went in, the way a broker sells it -->
+    <string name="trade_basis_units">Units</string>
+    <string name="trade_basis_amount">Amount</string>
+    <string name="trade_field_amount_placeholder">How much you put in</string>
+    <string name="trade_amount_units">That is %1$s units at this price.</string>
 </resources>

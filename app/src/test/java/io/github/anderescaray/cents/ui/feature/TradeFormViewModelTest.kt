@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.data.repository.RoomTradeRepository
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Quantity
 import io.github.anderescaray.cents.domain.model.TradeSide
+import io.github.anderescaray.cents.ui.feature.investments.QuantityBasis
 import io.github.anderescaray.cents.ui.feature.investments.TradeFormViewModel
 import io.github.anderescaray.cents.ui.navigation.Destination
 import kotlinx.coroutines.Dispatchers
@@ -334,6 +335,109 @@ class TradeFormViewModelTest {
                 // is there, so "more than the app thought" is the entire point of it.
                 assertFalse(state.sellsMoreThanHeld)
                 assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `five hundred euros at a price becomes the units that buys`() =
+        runTest {
+            val viewModel = formFor()
+            viewModel.onQuantityBasisChanged(QuantityBasis.AMOUNT)
+            viewModel.onPriceTyped("116,22")
+            viewModel.onAmountTyped("500")
+
+            viewModel.uiState.test {
+                assertTrue(awaitStateThat { it.canSave }.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.save()
+
+            val saved =
+                database
+                    .tradeDao()
+                    .observeForHolding(holdingId)
+                    .first()
+                    .single()
+            // 500 / 116,22 to eight decimals. What is stored is units, because units are what a
+            // sale reduces and what a price multiplies.
+            assertEquals(430_218_551L, saved.quantityScaled)
+            assertEquals(11_622L, saved.pricePerUnitMinor)
+        }
+
+    @Test
+    fun `the euros typed come back as the euros paid`() =
+        runTest {
+            val viewModel = formFor()
+            viewModel.onQuantityBasisChanged(QuantityBasis.AMOUNT)
+            viewModel.onPriceTyped("116,22")
+            viewModel.onAmountTyped("500")
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.canSave }
+                // The round trip that matters: 500 € in, units stored, and multiplying those
+                // units back by the price gives 500,00 € — to the cent, not near it.
+                assertEquals(Money(50_000, "EUR"), state.quantity * state.pricePerUnit)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `switching between units and euros converts rather than clears`() =
+        runTest {
+            val viewModel = formFor()
+            viewModel.onPriceTyped("100")
+            viewModel.onQuantityTyped("4")
+
+            viewModel.onQuantityBasisChanged(QuantityBasis.AMOUNT)
+            viewModel.uiState.test {
+                // Four units at 100 € is 400 € — a control that emptied the fields is one
+                // nobody touches twice. A round number arrives round, as everywhere else in
+                // the app: "400", not "400.00".
+                assertEquals("400", awaitStateThat { it.amountInput.isNotEmpty() }.amountInput)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            viewModel.onQuantityBasisChanged(QuantityBasis.UNITS)
+            viewModel.uiState.test {
+                assertEquals(
+                    Quantity.ofUnits(4),
+                    awaitStateThat { it.quantityBasis == QuantityBasis.UNITS }.quantity,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `euros with no price is not yet a trade`() =
+        runTest {
+            val viewModel = formFor()
+            viewModel.onQuantityBasisChanged(QuantityBasis.AMOUNT)
+            viewModel.onAmountTyped("500")
+
+            viewModel.uiState.test {
+                // Without a price there is nothing to divide by, so the amount says nothing
+                // about how much was bought.
+                assertFalse(awaitStateThat { it.amountInput.isNotEmpty() }.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a correction is always in units, whatever was chosen before`() =
+        runTest {
+            database.tradeDao().insert(trade(holdingId, units = 3, pricePerUnitMinor = 10_000))
+
+            val viewModel = formFor()
+            viewModel.onQuantityBasisChanged(QuantityBasis.AMOUNT)
+            viewModel.onSideChanged(TradeSide.CORRECTION)
+
+            viewModel.uiState.test {
+                // A correction says what is held, and holding is counted in units. Offering
+                // euros there would be asking how much of something you own in money.
+                val state = awaitStateThat { it.isCorrection }
+                assertEquals(QuantityBasis.UNITS, state.quantityBasis)
+                assertFalse(state.usesAmount)
                 cancelAndIgnoreRemainingEvents()
             }
         }

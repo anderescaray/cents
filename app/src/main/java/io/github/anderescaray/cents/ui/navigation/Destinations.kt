@@ -138,6 +138,15 @@ sealed interface Destination {
         }
     }
 
+    /**
+     * Every open holding's price, on one screen.
+     *
+     * No arguments: it is about the whole portfolio rather than about one holding, which is the
+     * entire reason it exists beside the per-holding editor rather than replacing it.
+     */
+    @Serializable
+    data object PriceUpdate : Destination
+
     @Serializable
     data object Categories : Destination
 
@@ -194,6 +203,7 @@ enum class TopLevelTab(
                 Destination.HoldingDetail::class,
                 Destination.HoldingEdit::class,
                 Destination.TradeForm::class,
+                Destination.PriceUpdate::class,
             ),
         labelRes = R.string.tab_investments,
         iconRes = R.drawable.ic_tab_investments,

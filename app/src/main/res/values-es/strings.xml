@@ -276,4 +276,15 @@
     <string name="lock_unlock">Desbloquear</string>
     <string name="settings_biometric_lock_footer">Cents te pregunta quién eres al abrirla, y otra vez si has estado fuera más de medio minuto. Usa la huella o el PIN que tu móvil ya conoce — Cents no ve ninguno de los dos.</string>
     <string name="settings_biometric_unavailable">Este móvil no tiene huella ni PIN configurados, así que no hay nada que Cents pueda preguntar.</string>
+
+    <!-- Todos los precios en una pantalla (D20) -->
+    <string name="prices_action">Precios</string>
+    <string name="prices_title">Actualizar precios</string>
+    <string name="prices_header">Cuánto valen</string>
+    <string name="prices_as_of">Precios a fecha de</string>
+    <string name="prices_date_footer">El día en que estos precios eran ciertos — el día que los leas, que no siempre es hoy.</string>
+    <string name="prices_current">%1$s el %2$s</string>
+    <string name="prices_placeholder">Sin precio</string>
+    <string name="prices_empty_title">Nada que valorar</string>
+    <string name="prices_empty_footer">Los precios son por unidad, de lo que todavía tienes. Una posición que has vendido no tiene cantidad, así que no hay nada sobre lo que poner un precio.</string>
 </resources>

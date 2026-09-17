@@ -246,7 +246,12 @@ on a cold start and after more than half a minute away — a fingerprint or the 
 `BiometricPrompt`, so the app never sees either (D16: no SQLCipher under it). While the lock is
 shut the app is **not composed at all** rather than covered, and nothing is drawn until the
 setting has been read.
-549 tests run on the JVM, so CI covers the database and the UI without a device.
+**And prices are typed in one place.** D20 settled
+that no free provider carries this portfolio's listings — and that converting from a US listing
+cannot rescue a UCITS ETF, which has no US listing to convert from — so typing is how prices get
+in rather than a fallback. Every open holding is priced from one screen, under one date, with a
+row left empty left alone.
+558 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

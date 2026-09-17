@@ -1115,3 +1115,19 @@ Unlock, go to Settings, turn the switch off. Close the app and open it again: no
 > **Wrong looks like** still being asked. If you are ever locked out with the switch stuck on,
 > the way back is Android's app settings → clear storage, which also clears your data — so
 > **export first** (`x2`) before you go near this step.
+
+### i14 · Every price in one sitting
+
+Open **Investments**. Top left, **Prices**.
+
+Every holding you still own is listed, each showing what the app believes it is worth and when.
+Type new prices for **some** of them — leave at least one blank on purpose — and check the line
+underneath counts only the ones you changed.
+
+Set **Prices as of** to the day you actually read them, which on a weekend is Friday, not today.
+
+Save. Back on the portfolio, the ones you typed have moved and **the ones you left blank are
+exactly as they were**, to the cent, with their old dates intact.
+
+> **Wrong looks like** a blank row being saved as zero, a price you did not touch changing its
+> date, or the whole list refusing to save because one field is empty.

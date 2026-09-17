@@ -43,4 +43,8 @@
         <item quantity="one">One holding has no price yet, so it is not in these numbers.</item>
         <item quantity="other">%1$d holdings have no price yet, so they are not in these numbers.</item>
     </plurals>
+    <plurals name="prices_changed">
+        <item quantity="one">One price will be updated. The rest are left exactly as they are.</item>
+        <item quantity="other">%1$d prices will be updated. The rest are left exactly as they are.</item>
+    </plurals>
 </resources>

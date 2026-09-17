@@ -8,6 +8,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomBackupRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
+import io.github.anderescaray.cents.data.repository.RoomRecurringRuleRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomBalanceOverTimeRepository
@@ -19,6 +20,7 @@ import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByWeekda
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.BackupRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
+import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.domain.repository.TransferRepository
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
@@ -30,6 +32,14 @@ import io.github.anderescaray.cents.domain.repository.reports.SpendingByWeekdayR
 import java.time.Clock
 import javax.inject.Singleton
 
+/**
+ * Which implementation answers each domain interface.
+ *
+ * Over detekt's function limit, and it will only grow: the file is one `@Binds` per repository
+ * and nothing else, so splitting it would move lines between two files without making any of
+ * them easier to read.
+ */
+@Suppress("TooManyFunctions")
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
@@ -47,6 +57,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindBackupRepository(impl: RoomBackupRepository): BackupRepository
+
+    @Binds
+    abstract fun bindRecurringRuleRepository(impl: RoomRecurringRuleRepository): RecurringRuleRepository
 
     // One binding per view on the Reports tab: a new view adds one line here, and that is
     // the whole of its footprint on this file. See ui/feature/reports/ReportSection.kt.

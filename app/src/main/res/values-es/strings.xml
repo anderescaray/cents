@@ -292,4 +292,55 @@
     <string name="trade_basis_amount">Importe</string>
     <string name="trade_field_amount_placeholder">Cuánto pusiste</string>
     <string name="trade_amount_units">Son %1$s participaciones a este precio.</string>
+
+    <!-- Lo que se repite (PRD 4.4) -->
+    <string name="settings_subscriptions">Suscripciones</string>
+    <string name="settings_subscriptions_footer">El alquiler, Netflix, la nómina: todo lo que vuelve solo. Cents lo apunta por ti y te dice cuánto suma.</string>
+    <string name="subscriptions_title">Suscripciones</string>
+    <string name="subscriptions_add">Añadir una suscripción</string>
+    <string name="subscriptions_empty">Aún no se repite nada</string>
+    <string name="subscriptions_empty_footer">Añade el alquiler, el móvil, ese streaming que se te había olvidado. Cents apunta cada uno cuando toca y suma lo que te cuestan al mes.</string>
+    <string name="subscriptions_total_caption">%1$s al año</string>
+    <string name="subscriptions_mixed_currency">Están en monedas distintas, así que no se pueden sumar.</string>
+    <string name="subscriptions_active_header">Activas</string>
+    <string name="subscriptions_stopped_header">Paradas</string>
+    <string name="subscriptions_stopped_footer">Estas ya no apuntan nada nuevo. Todo lo que apuntaron sigue en tus movimientos: desliza una para volver a activarla.</string>
+    <string name="subscriptions_next_due">%1$s · la próxima %2$s</string>
+    <string name="subscriptions_finished">%1$s · terminada</string>
+    <string name="subscriptions_stop">Parar</string>
+    <string name="subscriptions_start">Activar</string>
+
+    <string name="frequency_weekly">Cada semana</string>
+    <string name="frequency_fortnightly">Cada dos semanas</string>
+    <string name="frequency_monthly">Cada mes</string>
+    <string name="frequency_quarterly">Cada tres meses</string>
+    <string name="frequency_yearly">Cada año</string>
+    <string name="frequency_every_n_days_unset">Cada tantos días</string>
+
+    <string name="rule_new_title">Nueva suscripción</string>
+    <string name="rule_edit_title">Suscripción</string>
+    <string name="rule_field_name_placeholder">Netflix, alquiler, nómina…</string>
+    <string name="rule_field_name_footer">El nombre que llevará cada movimiento que apunte.</string>
+    <string name="rule_field_frequency">Cada cuánto</string>
+    <string name="rule_field_interval_placeholder">Número de días</string>
+    <string name="rule_field_start">Desde</string>
+    <string name="rule_field_start_footer">La fecha de inicio es el ancla: una regla mensual que empieza el 31 cae el último día de febrero y vuelve al 31 en marzo. Si la pones en el pasado, Cents apunta los cargos que faltaban en cuanto guardes.</string>
+    <string name="rule_field_end">Hasta</string>
+    <string name="rule_field_end_none">Sin fin</string>
+    <string name="rule_field_end_clear">Quitar la fecha de fin</string>
+    <string name="rule_field_mode">Cómo se apunta</string>
+    <string name="rule_mode_automatic">Apúntalo por mí</string>
+    <string name="rule_mode_confirm">Pregúntame el importe</string>
+    <string name="rule_field_mode_footer">Elige la segunda cuando el importe cambia cada vez, como la luz. Cents no se inventa un número que nadie le ha dicho: por ahora esas reglas no apuntan nada y la factura la metes tú.</string>
+    <string name="rule_write_failed">No se ha podido guardar. No ha cambiado nada.</string>
+    <string name="rule_stop">Parar esta suscripción</string>
+    <string name="rule_delete">Eliminar</string>
+    <string name="rule_stop_title">¿Parar esta suscripción?</string>
+    <string name="rule_stop_message">Deja de apuntar nada nuevo desde hoy. Los %1$d movimientos que ya apuntó se quedan donde están: ese dinero se gastó de verdad.</string>
+    <string name="rule_stop_action">Pararla</string>
+    <string name="rule_delete_title">¿Eliminar esta suscripción?</string>
+    <string name="rule_delete_message">Nunca ha apuntado nada, así que no se pierde nada.</string>
+    <string name="rule_stop_footer">Ha apuntado movimientos, así que esto la para. Tu historial no se reescribe nunca.</string>
+    <string name="rule_delete_kept_message">Los %1$d movimientos que apuntó se quedan exactamente donde están: ese dinero se gastó de verdad. Solo desaparece la suscripción.</string>
+    <string name="rule_delete_kept_footer">Está parada, así que ya no apunta nada nuevo. Eliminarla ahora deja donde está cada movimiento que hizo.</string>
 </resources>

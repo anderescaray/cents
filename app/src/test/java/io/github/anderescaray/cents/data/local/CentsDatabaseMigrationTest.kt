@@ -196,6 +196,69 @@ class CentsDatabaseMigrationTest {
         }
 
     @Test
+    fun `a version 4 database keeps its money and gains the recurring rules`() =
+        runTest {
+            createVersion(4)
+
+            val database = openWithMigrations()
+            try {
+                val transactions = database.transactionDao().observeAll().first()
+                assertEquals("the movement written at v4 should survive", 1, transactions.size)
+                assertEquals(2_550L, transactions.single().amountMinor)
+                assertNull(
+                    "a movement from before rules existed was typed, not generated",
+                    transactions.single().ruleId,
+                )
+                assertTrue(
+                    database
+                        .recurringRuleDao()
+                        .observeAll()
+                        .first()
+                        .isEmpty(),
+                )
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `deleting a rule leaves the movements it made, in a migrated database`() =
+        runTest {
+            createVersion(4)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val ruleId =
+                    database.recurringRuleDao().insert(
+                        recurringRule(accountId = accountId),
+                    )
+                val movementId =
+                    database.transactionDao().insert(
+                        transaction(accountId = accountId, amountMinor = 1_299, ruleId = ruleId),
+                    )
+
+                // `SET NULL` is rule 8 written into the schema, and a column added by ALTER
+                // TABLE is exactly where a constraint can silently fail to arrive.
+                database.recurringRuleDao().delete(
+                    database.recurringRuleDao().findById(ruleId)!!,
+                )
+
+                val survivor = database.transactionDao().findById(movementId)
+                assertEquals(1_299L, survivor?.amountMinor)
+                assertNull("the history stands, orphaned rather than deleted", survivor?.ruleId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `the migrated schema is one Room agrees to open`() =
         runTest {
             createVersion(1)

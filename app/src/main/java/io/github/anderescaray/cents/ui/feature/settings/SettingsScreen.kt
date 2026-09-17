@@ -38,6 +38,7 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 @Composable
 fun SettingsScreen(
     onOpenCategories: () -> Unit,
+    onOpenSubscriptions: () -> Unit,
     onResetHomeLayout: () -> Unit,
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
@@ -48,6 +49,7 @@ fun SettingsScreen(
     val lock by lockViewModel.uiState.collectAsStateWithLifecycle()
     SettingsContent(
         onOpenCategories = onOpenCategories,
+        onOpenSubscriptions = onOpenSubscriptions,
         onResetHomeLayout = onResetHomeLayout,
         lock = lock,
         onLockChanged = lockViewModel::setEnabled,
@@ -103,6 +105,7 @@ data class ExportActions(
 internal fun SettingsContent(
     onOpenCategories: () -> Unit,
     onResetHomeLayout: () -> Unit,
+    onOpenSubscriptions: () -> Unit = {},
     export: ExportUiState = ExportUiState(),
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
@@ -118,6 +121,16 @@ internal fun SettingsContent(
                     showChevron = true,
                     showSeparator = false,
                     onClick = onOpenCategories,
+                )
+            }
+        }
+        item {
+            CentsListSection(footer = stringResource(R.string.settings_subscriptions_footer)) {
+                CentsListRow(
+                    title = stringResource(R.string.settings_subscriptions),
+                    showChevron = true,
+                    showSeparator = false,
+                    onClick = onOpenSubscriptions,
                 )
             }
         }

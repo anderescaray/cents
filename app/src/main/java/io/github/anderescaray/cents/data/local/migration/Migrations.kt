@@ -20,7 +20,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    from `DatabaseModule`, so a missing migration is a crash in development rather than an
  *    erased financial history on a real device.
  */
-val ALL_MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+val ALL_MIGRATIONS: Array<Migration>
+    get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
 /**
  * v1 to v2 — the investments tables.
@@ -128,6 +129,66 @@ val MIGRATION_3_4 =
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_transactions_tradeId` ON `transactions` (`tradeId`)",
+            )
+        }
+    }
+
+/**
+ * v4 to v5 — the recurring rules, and the column that points back at them.
+ *
+ * One new table and one new column, still additive. Every movement recorded before this gets a
+ * null `ruleId`, which is what it is: something the owner typed rather than something a template
+ * produced.
+ *
+ * **The column is `SET NULL`, and that is rule 8 in the schema.** A rule that is genuinely
+ * deleted leaves its movements standing with nothing pointing at the template any more. SQLite
+ * only accepts a constraint on an existing table through `ALTER TABLE ... ADD COLUMN`, so the
+ * reference is declared inline exactly as the exported `5.json` spells it.
+ */
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `recurring_rules` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`accountId` INTEGER NOT NULL, " +
+                    "`categoryId` INTEGER, " +
+                    "`kind` TEXT NOT NULL, " +
+                    "`amountMinor` INTEGER NOT NULL, " +
+                    "`currency` TEXT NOT NULL, " +
+                    "`frequency` TEXT NOT NULL, " +
+                    "`intervalDays` INTEGER, " +
+                    "`startDate` INTEGER NOT NULL, " +
+                    "`endDate` INTEGER, " +
+                    "`mode` TEXT NOT NULL, " +
+                    "`active` INTEGER NOT NULL, " +
+                    "`lastGenerated` INTEGER, " +
+                    "`createdAt` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                    "FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE SET NULL )",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_recurring_rules_accountId` " +
+                    "ON `recurring_rules` (`accountId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_recurring_rules_categoryId` " +
+                    "ON `recurring_rules` (`categoryId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_recurring_rules_active` " +
+                    "ON `recurring_rules` (`active`)",
+            )
+
+            db.execSQL(
+                "ALTER TABLE `transactions` ADD COLUMN `ruleId` INTEGER " +
+                    "REFERENCES `recurring_rules`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_ruleId` ON `transactions` (`ruleId`)",
             )
         }
     }

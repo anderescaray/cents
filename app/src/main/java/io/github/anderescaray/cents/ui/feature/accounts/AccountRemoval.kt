@@ -46,6 +46,16 @@ enum class RemovalStep {
     BLOCKED_BY_HOLDINGS,
 
     /**
+     * A recurring rule records into it, and the same reasoning applies.
+     *
+     * `recurring_rules.accountId` is `RESTRICT`, and a rule cannot be moved to another account
+     * by this flow any more than a holding can. Told rather than attempted, so the owner gets
+     * a sentence naming what is in the way instead of a constraint violation — and stopping a
+     * rule is not enough, because a stopped rule is still a row pointing here.
+     */
+    BLOCKED_BY_RULES,
+
+    /**
      * The database refused. Both foreign keys are `RESTRICT`, so a movement recorded
      * between counting and confirming turns a legitimate delete into a constraint
      * violation — rare, and worth saying out loud rather than leaving the row sitting
@@ -72,6 +82,8 @@ data class AccountRemovalState(
     val removedCount: Int = 0,
     /** Investments held in it. Any at all is what [RemovalStep.BLOCKED_BY_HOLDINGS] says. */
     val holdingCount: Int = 0,
+    /** Recurring rules recording into it, active or stopped — [RemovalStep.BLOCKED_BY_RULES]. */
+    val ruleCount: Int = 0,
     /** Accounts the movements could move into: active, not this one, same currency. */
     val reassignTargets: List<Account> = emptyList(),
 ) {
@@ -131,6 +143,7 @@ class AccountRemoval(
             val count = repository.countTransactions(id)
             val removed = repository.countTransactionsRemovedWith(id)
             val holdings = repository.countHoldings(id)
+            val rules = repository.countRules(id)
             val targets = reassignTargets(id)
             question.value =
                 AccountRemovalState(
@@ -143,12 +156,14 @@ class AccountRemoval(
                     step =
                         when {
                             holdings > 0 -> RemovalStep.BLOCKED_BY_HOLDINGS
+                            rules > 0 -> RemovalStep.BLOCKED_BY_RULES
                             count == 0 -> RemovalStep.CONFIRM_EMPTY
                             else -> RemovalStep.CHOOSE
                         },
                     transactionCount = count,
                     removedCount = removed,
                     holdingCount = holdings,
+                    ruleCount = rules,
                     reassignTargets = targets,
                 )
         }

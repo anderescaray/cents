@@ -6,13 +6,16 @@ import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
 import io.github.anderescaray.cents.data.local.entity.TradeEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.Quantity
 import io.github.anderescaray.cents.domain.model.QuoteSource
+import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import java.time.Instant
@@ -72,6 +75,8 @@ fun transaction(
     transferId: Long? = null,
     /** Set on the cash a purchase took out of the account, or a sale put back. */
     tradeId: Long? = null,
+    /** Set on a movement a recurring rule generated rather than one that was typed. */
+    ruleId: Long? = null,
 ) = TransactionEntity(
     accountId = accountId,
     categoryId = categoryId,
@@ -82,6 +87,7 @@ fun transaction(
     note = note,
     transferId = transferId,
     tradeId = tradeId,
+    ruleId = ruleId,
     createdAt = FIXED_INSTANT,
     updatedAt = FIXED_INSTANT,
 )
@@ -137,4 +143,35 @@ fun quote(
     currency = currency,
     asOf = asOf,
     source = source,
+)
+
+fun recurringRule(
+    accountId: Long,
+    name: String = "Netflix",
+    categoryId: Long? = null,
+    kind: TransactionKind = TransactionKind.EXPENSE,
+    amountMinor: Long = 1_299,
+    currency: String = "EUR",
+    frequency: Frequency = Frequency.MONTHLY,
+    intervalDays: Int? = null,
+    startDate: LocalDate = LocalDate.of(2026, 1, 15),
+    endDate: LocalDate? = null,
+    mode: RuleMode = RuleMode.AUTOMATIC,
+    active: Boolean = true,
+    lastGenerated: LocalDate? = null,
+) = RecurringRuleEntity(
+    name = name,
+    accountId = accountId,
+    categoryId = categoryId,
+    kind = kind,
+    amountMinor = amountMinor,
+    currency = currency,
+    frequency = frequency,
+    intervalDays = intervalDays,
+    startDate = startDate,
+    endDate = endDate,
+    mode = mode,
+    active = active,
+    lastGenerated = lastGenerated,
+    createdAt = FIXED_INSTANT,
 )

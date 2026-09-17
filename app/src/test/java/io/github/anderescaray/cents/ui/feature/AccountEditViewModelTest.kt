@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.holding
+import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.domain.model.AccountType
@@ -236,6 +237,34 @@ class AccountEditViewModelTest {
 
             assertEquals(
                 listOf("Broker"),
+                accounts.observeAccounts(includeArchived = true).first().map { it.name },
+            )
+        }
+
+    @Test
+    fun `an account a subscription records into is refused the same way`() =
+        runTest {
+            // Same shape as the holdings refusal, and the same reason: `recurring_rules.
+            // accountId` is RESTRICT, and no removal in this flow can point a rule somewhere
+            // else. A stopped rule counts too — it is still a row referring to this account.
+            val id = database.accountDao().insert(account(name = "Checking"))
+            database.recurringRuleDao().insert(
+                recurringRule(accountId = id, name = "Netflix"),
+            )
+            val editor = editorFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { it.name.isNotEmpty() }
+                editor.requestRemoval()
+                val state = editor.removal.state.first { it.asking }
+
+                assertEquals(RemovalStep.BLOCKED_BY_RULES, state.step)
+                assertEquals(1, state.ruleCount)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                listOf("Checking"),
                 accounts.observeAccounts(includeArchived = true).first().map { it.name },
             )
         }

@@ -97,6 +97,17 @@ interface AccountDao {
     @Query("SELECT COUNT(*) FROM holdings WHERE accountId = :id")
     suspend fun countHoldings(id: Long): Int
 
+    /**
+     * Recurring rules that record into this account.
+     *
+     * The same shape of obstacle as a holding, and for the same reason: `recurring_rules.
+     * accountId` is `RESTRICT`, and a rule with nowhere to record cannot be repaired by moving
+     * its movements somewhere else. Active or stopped both count — a stopped rule is still a
+     * row pointing at this account, and the database does not care that it has retired.
+     */
+    @Query("SELECT COUNT(*) FROM recurring_rules WHERE accountId = :id")
+    suspend fun countRules(id: Long): Int
+
     @Query("DELETE FROM accounts WHERE id = :id")
     suspend fun deleteById(id: Long)
 

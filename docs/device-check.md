@@ -22,8 +22,8 @@ and the canvas of bubbles the app now opens on (#41), which changes the first th
 sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
 the same day, on a phone nobody has held it on either — on 2026-09-16 with **Walk 7**, for
 transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
-data out — the features here whose failure is invisible on
-the screen that records them: a transfer can move both balances correctly and still leak into
+data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves.
+Those last ones are the features whose failure is invisible on the screen that records them: a transfer can move both balances correctly and still leak into
 every chart, and a purchase can look perfectly recorded while the account it was paid from never
 notices.
 
@@ -1150,3 +1150,93 @@ filled in, not blank.
 > **Note:** on a **correction** the control is not there at all. A correction says what you hold,
 > and holding is counted in units — "how much of it do you own, in euros" is not a question with
 > an answer.
+
+---
+
+## Walk 10 — what repeats (`feat/recurring-rules`)
+
+The feature whose failure is hardest to see from the screen that records it: a rule that writes
+the same charge twice looks fine on the day, and only shows up as a month that is quietly wrong.
+Steps `s1`–`s3` are the ones that matter.
+
+### s1 · The rent you forgot to type
+
+**Settings › Subscriptions › Add.** Name it *Rent*, amount `750`, **Every month**, and set
+**Starting** to the **1st of three months ago**. Save.
+
+Go to **Movements**. There are **three** rent charges, one on the 1st of each of the last three
+months, each 750 €, each with *Rent* as its note.
+
+> **Wrong looks like** one charge dated today, or four, or three charges all dated the 1st of
+> this month. The start date is the anchor and the backlog: entering something late should fill
+> in what it missed, on the days it actually happened.
+
+### s2 · The step this whole feature turns on
+
+Close the app properly — swipe it out of the recents list — and open it again. Twice.
+
+Go back to **Movements**. There are still **exactly three** rent charges.
+
+> **Wrong looks like** six. Generation runs every time the app comes to the front, so writing
+> the same charge twice is the failure this is built against; if it can happen, it will happen
+> every morning.
+
+### s3 · The last day of the month
+
+Add another: *Storage*, `40`, **Every month**, **Starting** the **31st of January this year**.
+Save, then open it again and look at the dates on the movements it made.
+
+February's is the **28th** (or 29th in a leap year). March's is back on the **31st**.
+
+> **Wrong looks like** every month after February landing on the 28th. That is what happens when
+> each date is counted from the previous one instead of from the start, and it walks the rent
+> backwards a few days a year.
+
+### s4 · What it all costs
+
+Back on **Subscriptions**, the big number at the top is what the active ones come to **per
+month**, with the year underneath.
+
+Add a yearly one — a domain name, `12`, **Every year** — and watch the monthly figure go up by
+**1 €**, not 12.
+
+> **Wrong looks like** a yearly subscription adding its whole price to the monthly total, or
+> being left out of it. Spreading it is the only reason the number is worth printing.
+
+### s5 · A salary is a subscription too
+
+Add one with **Income** selected: *Salary*, `2500`, **Every month**.
+
+It appears in the list. The monthly total **does not move** — it is about what is going out.
+
+> **Wrong looks like** the total dropping by 2.500 € and reading as a negative, or the salary
+> not appearing at all.
+
+### s6 · Cancelling Netflix
+
+Swipe one of the rows sideways and **Stop** it. It moves to **Stopped** at the bottom, the
+monthly total drops by its share, and **every charge it already made is still in Movements**.
+
+Open it and look: the button now says **Delete**, and the line under it says the movements stay.
+
+> **Wrong looks like** the charges disappearing with the rule. That is the one thing this
+> feature must never do — every chart of every previous month would change.
+
+### s7 · An amount that varies
+
+Add one with **Ask me the amount**: *Electricity*, `60`, **Every month**, starting last month.
+
+Nothing is recorded for it. That is deliberate and today it is all it does — the app will not
+assert a number nobody has seen, and the reminders that would make it useful are not built.
+
+> **Wrong looks like** 60 € appearing in Movements anyway.
+
+### s8 · The account underneath
+
+Try to delete the account the rent records into (**Accounts**, swipe the row, or open it and
+scroll down).
+
+You are told a subscription records into it and sent to Settings › Subscriptions, rather than
+being offered a delete that fails.
+
+> **Wrong looks like** "that could not be deleted, try again" — advice that could never work.

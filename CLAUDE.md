@@ -36,7 +36,8 @@ investment portfolio with prices pulled from the internet.
 | Navigation | Navigation Compose (type-safe routes) | |
 | Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
 | Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
-| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout |
+| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout and the app lock |
+| App lock | `androidx.biometric` (**1.1.0**, the stable line) | The `BiometricPrompt` PRD §4.7 names: a fingerprint or the device PIN, decided by the system, with the app never seeing a credential (rule 6). Pinned to stable rather than the 1.2.0 and 1.4.0 alphas; 1.1.0 is where `setAllowedAuthenticators` arrived, which is what lets the PIN stand in |
 | Background work | WorkManager | Periodic price refresh, recurring reminders |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
@@ -240,7 +241,12 @@ without being asked for, which is what is left of `feat/backup` and what **D22**
 the sum, so it can be read with the portfolio and without it. It is only a legitimate sum because
 buying spends the account's cash; an unpriced holding is left out of it and counted aloud, the
 same rule the portfolio already applies one screen down.
-535 tests run on the JVM, so CI covers the database and the UI without a device.
+**And it can be locked.** Cents asks who you are
+on a cold start and after more than half a minute away — a fingerprint or the device PIN, through
+`BiometricPrompt`, so the app never sees either (D16: no SQLCipher under it). While the lock is
+shut the app is **not composed at all** rather than covered, and nothing is drawn until the
+setting has been read.
+549 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

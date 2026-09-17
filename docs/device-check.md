@@ -1062,3 +1062,56 @@ version, and again change nothing.
 
 > **Wrong looks like** any of those files being partly accepted. A restore that half works is the
 > one outcome worse than a restore that fails.
+
+## Walk 9 — the lock (`feat/biometric-lock`)
+
+Added 2026-09-17. Short, and the one walk where getting it wrong locks you out of your own app —
+so read `l5` before you start.
+
+### l1 · The switch explains itself
+
+**Settings → Unlock with fingerprint.** Underneath it, a line says what turning it on means: Cents
+asks when you open it and again after more than half a minute away, using the fingerprint or PIN
+your phone already knows.
+
+If your phone had no fingerprint and no PIN, the switch would be off and untappable with a
+different line saying why. You cannot test that without removing your own PIN — don't.
+
+### l2 · Turning it on does not shut you out on the spot
+
+Turn it on. **Nothing happens.** You are already here, and being asked for a fingerprint the
+instant the switch moves would read as the app not believing you.
+
+### l3 · It asks on a cold start
+
+Close Cents properly (swipe it out of recents) and open it again. You get the prompt, over a
+screen showing nothing but the app's name.
+
+> **Wrong looks like** any of your accounts, balances or movements being visible behind or around
+> the prompt, even for a frame.
+
+### l4 · A glance away costs nothing; a real absence costs a fingerprint
+
+Switch to another app for **five seconds** and come back: no prompt. Switch away for **a minute**
+and come back: prompt.
+
+> **Wrong looks like** being asked every single time you switch apps. That is the behaviour that
+> makes people turn the lock off, and a lock that is off protects nothing.
+
+### l5 · Dismissing the prompt does not trap you
+
+At the prompt, press back or cancel. You should land on the lock screen with an **Unlock** button
+— not on the prompt again, and not in a loop you cannot escape. Tap **Unlock** and it asks again.
+
+From that lock screen you must always be able to leave with the home button.
+
+> **Wrong looks like** the prompt reappearing the instant you dismiss it. That is the loop that
+> makes the app impossible to leave, and it is the failure this step exists for.
+
+### l6 · Turning it off, from inside
+
+Unlock, go to Settings, turn the switch off. Close the app and open it again: no prompt.
+
+> **Wrong looks like** still being asked. If you are ever locked out with the switch stuck on,
+> the way back is Android's app settings → clear storage, which also clears your data — so
+> **export first** (`x2`) before you go near this step.

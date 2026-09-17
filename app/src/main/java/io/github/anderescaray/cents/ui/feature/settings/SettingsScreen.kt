@@ -27,6 +27,8 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.CentsSwitch
+import io.github.anderescaray.cents.ui.lock.AppLockSettingsUiState
+import io.github.anderescaray.cents.ui.lock.AppLockSettingsViewModel
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 
 /**
@@ -39,12 +41,16 @@ fun SettingsScreen(
     onResetHomeLayout: () -> Unit,
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
+    lockViewModel: AppLockSettingsViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
     val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
+    val lock by lockViewModel.uiState.collectAsStateWithLifecycle()
     SettingsContent(
         onOpenCategories = onOpenCategories,
         onResetHomeLayout = onResetHomeLayout,
+        lock = lock,
+        onLockChanged = lockViewModel::setEnabled,
         export = export,
         restore = restore,
         restoreActions =
@@ -101,9 +107,9 @@ internal fun SettingsContent(
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
     restoreActions: RestoreActions = RestoreActions(),
+    lock: AppLockSettingsUiState = AppLockSettingsUiState(),
+    onLockChanged: (Boolean) -> Unit = {},
 ) {
-    var biometricLock by remember { mutableStateOf(false) }
-
     CentsLargeTitleScaffold(title = stringResource(R.string.tab_settings)) {
         item {
             CentsListSection(footer = stringResource(R.string.settings_categories_footer)) {
@@ -116,20 +122,7 @@ internal fun SettingsContent(
             }
         }
         item { ResetHomeLayoutSection(onReset = onResetHomeLayout) }
-        item {
-            CentsListSection(header = stringResource(R.string.settings_section_security)) {
-                CentsListRow(
-                    title = stringResource(R.string.settings_biometric_lock),
-                    trailing = {
-                        CentsSwitch(
-                            checked = biometricLock,
-                            onCheckedChange = { biometricLock = it },
-                        )
-                    },
-                    showSeparator = false,
-                )
-            }
-        }
+        item { SecuritySection(lock = lock, onLockChanged = onLockChanged) }
         item { DataSection(onExport = exportActions.onStart, onRestore = restoreActions.onStart) }
         item {
             CentsButton(
@@ -142,6 +135,44 @@ internal fun SettingsContent(
 
     Export(state = export, actions = exportActions)
     Restore(state = restore, actions = restoreActions)
+}
+
+/**
+ * The app lock, and what it can honestly offer on this phone.
+ *
+ * With no fingerprint and no PIN set up there is nothing for the app to ask, so the switch is
+ * shown **off and unusable with a line saying why** rather than hidden. A setting that vanishes
+ * for invisible reasons is worse than one that explains itself — the same argument the account
+ * deletion sheet makes about an option it cannot offer.
+ */
+@Composable
+private fun SecuritySection(
+    lock: AppLockSettingsUiState,
+    onLockChanged: (Boolean) -> Unit,
+) {
+    CentsListSection(
+        header = stringResource(R.string.settings_section_security),
+        footer =
+            stringResource(
+                if (lock.available) {
+                    R.string.settings_biometric_lock_footer
+                } else {
+                    R.string.settings_biometric_unavailable
+                },
+            ),
+    ) {
+        CentsListRow(
+            title = stringResource(R.string.settings_biometric_lock),
+            trailing = {
+                CentsSwitch(
+                    checked = lock.enabled,
+                    onCheckedChange = onLockChanged,
+                    enabled = lock.available,
+                )
+            },
+            showSeparator = false,
+        )
+    }
 }
 
 /**

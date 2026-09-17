@@ -256,4 +256,19 @@
     <string name="net_worth_invested">Invested</string>
     <string name="net_worth_total">Net worth</string>
     <string name="net_worth_archived">%1$s sits in archived accounts and is not counted above.</string>
+
+    <!-- Putting a backup back (D21) -->
+    <string name="settings_restore">Restore from a backup</string>
+    <string name="restore_confirm_title">Replace everything with this backup?</string>
+    <string name="restore_confirm_incoming">The file holds %1$d accounts, %2$d movements and %3$d holdings.</string>
+    <string name="restore_confirm_replaces">It replaces what is here now: %1$d accounts, %2$d movements and %3$d holdings. That cannot be undone.</string>
+    <string name="restore_confirm_action">Replace everything</string>
+    <string name="restore_done_title">Restored</string>
+    <string name="restore_done_message">The app now holds what the file held.</string>
+    <string name="restore_refused_title">That file was not used</string>
+    <string name="restore_not_a_backup_message">It is not a Cents backup. Nothing has changed — look for the .json file the export wrote.</string>
+    <string name="restore_too_new_message">It was written by a newer version of Cents (version %1$d), which may hold things this version cannot read. Nothing has changed. Update the app and try again.</string>
+    <string name="restore_damaged_message">It is a Cents backup, but part of it could not be read, so none of it was used. Nothing has changed.</string>
+    <string name="restore_failed_title">That could not be restored</string>
+    <string name="restore_failed_message">The file was readable but writing it failed, so nothing was changed. Everything you had is still here.</string>
 </resources>

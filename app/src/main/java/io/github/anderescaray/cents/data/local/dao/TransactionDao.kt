@@ -85,6 +85,10 @@ interface TransactionDao {
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    /** Every movement. Only a restore does this, and it goes first: everything points here. */
+    @Query("DELETE FROM transactions")
+    suspend fun deleteAll()
+
     /**
      * Both legs of one transfer, oldest row first — which is the outgoing one, because it is
      * written first and lends the pair its id.

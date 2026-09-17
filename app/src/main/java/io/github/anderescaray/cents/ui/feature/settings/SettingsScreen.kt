@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.ui.feature.settings
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -37,12 +38,23 @@ fun SettingsScreen(
     onOpenCategories: () -> Unit,
     onResetHomeLayout: () -> Unit,
     exportViewModel: ExportViewModel = hiltViewModel(),
+    restoreViewModel: RestoreViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
+    val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
     SettingsContent(
         onOpenCategories = onOpenCategories,
         onResetHomeLayout = onResetHomeLayout,
         export = export,
+        restore = restore,
+        restoreActions =
+            RestoreActions(
+                onStart = restoreViewModel::start,
+                onReadFrom = restoreViewModel::readFrom,
+                onConfirm = restoreViewModel::confirm,
+                onCancel = restoreViewModel::cancel,
+                onAcknowledge = restoreViewModel::acknowledge,
+            ),
         exportActions =
             ExportActions(
                 onStart = exportViewModel::start,
@@ -53,6 +65,16 @@ fun SettingsScreen(
             ),
     )
 }
+
+/** What the restore flow can be asked to do, so the screen below holds no view model. */
+@Immutable
+data class RestoreActions(
+    val onStart: () -> Unit = {},
+    val onReadFrom: (Uri?) -> Unit = {},
+    val onConfirm: () -> Unit = {},
+    val onCancel: () -> Unit = {},
+    val onAcknowledge: () -> Unit = {},
+)
 
 /** What the export flow can be asked to do, so the screen below holds no view model. */
 @Immutable
@@ -77,6 +99,8 @@ internal fun SettingsContent(
     onResetHomeLayout: () -> Unit,
     export: ExportUiState = ExportUiState(),
     exportActions: ExportActions = ExportActions(),
+    restore: RestoreUiState = RestoreUiState(),
+    restoreActions: RestoreActions = RestoreActions(),
 ) {
     var biometricLock by remember { mutableStateOf(false) }
 
@@ -106,25 +130,7 @@ internal fun SettingsContent(
                 )
             }
         }
-        item {
-            CentsListSection(
-                header = stringResource(R.string.settings_section_data),
-                footer = stringResource(R.string.settings_data_footer),
-            ) {
-                CentsListRow(
-                    title = stringResource(R.string.settings_export),
-                    showChevron = true,
-                    onClick = exportActions.onStart,
-                )
-                CentsListRow(
-                    title = stringResource(R.string.settings_currency),
-                    value = "EUR",
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = {},
-                )
-            }
-        }
+        item { DataSection(onExport = exportActions.onStart, onRestore = restoreActions.onStart) }
         item {
             CentsButton(
                 text = stringResource(R.string.settings_add_transaction),
@@ -135,6 +141,179 @@ internal fun SettingsContent(
     }
 
     Export(state = export, actions = exportActions)
+    Restore(state = restore, actions = restoreActions)
+}
+
+/**
+ * Getting the data out, and putting it back.
+ *
+ * The two sit together because they are one subject, and because seeing them next to each other
+ * is what makes the second one legible: a restore is only ever as good as the file the export
+ * beside it wrote.
+ */
+@Composable
+private fun DataSection(
+    onExport: () -> Unit,
+    onRestore: () -> Unit,
+) {
+    CentsListSection(
+        header = stringResource(R.string.settings_section_data),
+        footer = stringResource(R.string.settings_data_footer),
+    ) {
+        CentsListRow(
+            title = stringResource(R.string.settings_export),
+            showChevron = true,
+            onClick = onExport,
+        )
+        CentsListRow(
+            title = stringResource(R.string.settings_restore),
+            showChevron = true,
+            onClick = onRestore,
+        )
+        CentsListRow(
+            title = stringResource(R.string.settings_currency),
+            value = "EUR",
+            showChevron = true,
+            showSeparator = false,
+            onClick = {},
+        )
+    }
+}
+
+/**
+ * Putting a backup back — the most destructive thing this app can do.
+ *
+ * The file is read **before** the question is asked, and that ordering is the whole design. A
+ * confirmation shown first would be asking the owner to agree to lose everything on the strength
+ * of a file nobody has looked at; asking afterwards lets the alert say what is in the file and
+ * what is about to be replaced, so the answer can be checked rather than guessed.
+ */
+@Composable
+private fun Restore(
+    state: RestoreUiState,
+    actions: RestoreActions,
+) {
+    val picker =
+        rememberLauncherForActivityResult(
+            // Any file, because a backup renamed or handed over by another app is still a
+            // backup, and a picker that hides it would be a dead end with no way out.
+            contract = ActivityResultContracts.OpenDocument(),
+            onResult = actions.onReadFrom,
+        )
+
+    LaunchedEffect(state.step) {
+        if (state.step == RestoreStep.PICKING) picker.launch(arrayOf("*/*"))
+    }
+
+    when (state.step) {
+        RestoreStep.CONFIRMING -> {
+            ConfirmRestoreAlert(state, actions)
+        }
+
+        RestoreStep.REFUSED -> {
+            RefusedAlert(state, actions)
+        }
+
+        RestoreStep.DONE -> {
+            CentsAlert(
+                title = stringResource(R.string.restore_done_title),
+                message = stringResource(R.string.restore_done_message),
+                confirmLabel = stringResource(R.string.action_ok),
+                onConfirm = actions.onAcknowledge,
+                onDismiss = actions.onAcknowledge,
+            )
+        }
+
+        RestoreStep.FAILED -> {
+            CentsAlert(
+                title = stringResource(R.string.restore_failed_title),
+                message = stringResource(R.string.restore_failed_message),
+                confirmLabel = stringResource(R.string.action_ok),
+                onConfirm = actions.onAcknowledge,
+                onDismiss = actions.onAcknowledge,
+            )
+        }
+
+        RestoreStep.IDLE, RestoreStep.PICKING, RestoreStep.READING, RestoreStep.WRITING -> {
+            Unit
+        }
+    }
+}
+
+/**
+ * The last moment before everything goes, saying both halves of the trade.
+ *
+ * What is in the file is what the owner gets; what is recorded now is what they lose. Naming
+ * only one of the two would be asking half a question.
+ */
+@Composable
+private fun ConfirmRestoreAlert(
+    state: RestoreUiState,
+    actions: RestoreActions,
+) {
+    val incoming = state.incoming ?: return
+    val current = state.current
+    CentsAlert(
+        title = stringResource(R.string.restore_confirm_title),
+        message =
+            buildString {
+                append(
+                    stringResource(
+                        R.string.restore_confirm_incoming,
+                        incoming.accounts,
+                        incoming.movements,
+                        incoming.holdings,
+                    ),
+                )
+                // An empty app has nothing to lose, and saying "this replaces your 0 accounts"
+                // would be alarming about nothing.
+                if (current != null && !current.isEmpty) {
+                    append("\n\n")
+                    append(
+                        stringResource(
+                            R.string.restore_confirm_replaces,
+                            current.accounts,
+                            current.movements,
+                            current.holdings,
+                        ),
+                    )
+                }
+            },
+        confirmLabel = stringResource(R.string.restore_confirm_action),
+        onConfirm = actions.onConfirm,
+        dismissLabel = stringResource(R.string.action_cancel),
+        onDismiss = actions.onCancel,
+        destructive = true,
+    )
+}
+
+/** Why a file was turned away, said in the owner's terms rather than the parser's. */
+@Composable
+private fun RefusedAlert(
+    state: RestoreUiState,
+    actions: RestoreActions,
+) {
+    val message =
+        when (state.problem) {
+            RestoreProblem.TOO_NEW -> {
+                stringResource(R.string.restore_too_new_message, state.fileVersion)
+            }
+
+            RestoreProblem.DAMAGED -> {
+                stringResource(R.string.restore_damaged_message)
+            }
+
+            RestoreProblem.NOT_A_BACKUP, null -> {
+                stringResource(R.string.restore_not_a_backup_message)
+            }
+        }
+    CentsAlert(
+        title = stringResource(R.string.restore_refused_title),
+        message = message,
+        confirmLabel = stringResource(R.string.action_ok),
+        onConfirm = actions.onAcknowledge,
+        onDismiss = actions.onAcknowledge,
+    )
 }
 
 /**

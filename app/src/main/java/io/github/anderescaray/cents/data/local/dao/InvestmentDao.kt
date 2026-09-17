@@ -65,6 +65,10 @@ interface HoldingDao {
 
     @Query("DELETE FROM holdings WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /** Every holding. Only a restore does this, and only after the trades against them. */
+    @Query("DELETE FROM holdings")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -86,6 +90,10 @@ interface TradeDao {
 
     @Query("DELETE FROM trades WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /** Every trade. Only a restore does this, and only after the cash rows that point at them. */
+    @Query("DELETE FROM trades")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -99,6 +107,10 @@ interface PriceQuoteDao {
     /** One price per symbol, replaced rather than appended: this is a cache, not a history. */
     @Upsert
     suspend fun upsert(quote: PriceQuoteEntity)
+
+    /** Every quote. Nothing points at these, so they can go whenever. */
+    @Query("DELETE FROM price_quotes")
+    suspend fun deleteAll()
 
     @Query("DELETE FROM price_quotes WHERE symbol = :symbol")
     suspend fun deleteBySymbol(symbol: String)

@@ -230,14 +230,17 @@ one net-worth figure.
 **And the data can leave.** Settings writes the whole app to a file the owner keeps — **JSON**
 with every table and the schema version that wrote it, or **CSV** of the movements for a
 spreadsheet — through the system picker, so the app asks for **no storage permission** and
-nothing goes anywhere near a third party. There is deliberately **no import**: restoring has to
-answer what happens to what is already on the phone, and D15 put that question in `feat/backup`.
+nothing goes anywhere near a third party. **And it can come back.** A backup file is read back in,
+**replacing everything** (D21) behind a confirmation that names what arrives and what goes — read
+first, so those numbers are checkable. Older files are read, newer ones refused, and a damaged one
+is turned away whole rather than half written. What is still missing is a backup that happens
+without being asked for, which is what is left of `feat/backup` and what **D22** asks about.
 **And the three numbers add up.** D19 was answered on 2026-09-17: the Accounts tab shows what is
 **in accounts**, what is **invested**, and the **net worth** those come to — the parts as well as
 the sum, so it can be read with the portfolio and without it. It is only a legitimate sum because
 buying spends the account's cash; an unpriced holding is left out of it and counted aloud, the
 same rule the portfolio already applies one screen down.
-516 tests run on the JVM, so CI covers the database and the UI without a device.
+535 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

@@ -1033,3 +1033,32 @@ only by the difference between what you paid and what it is priced at.
 
 If any holding has no price yet, a line underneath says how many are missing from the numbers. If
 you have an archived account with money still in it, a line says how much is not counted.
+
+### x8 · The file comes back
+
+The half of an export that matters. Do this **only with a backup you have just made** and, if you
+care about what is on the phone, make a fresh one first — a restore replaces everything and there
+is no undo behind it.
+
+**Settings → Restore from a backup.** Pick the `.json` you wrote in `x2`.
+
+Before anything happens you get an alert naming **both halves**: what is in the file, and what is
+about to be replaced. Read both numbers and check they are the ones you expect.
+
+Confirm. Then walk the app: accounts and their balances, the movements list, the portfolio. It
+should be exactly what it was when you exported.
+
+> **Wrong looks like** an alert that only mentions one of the two, numbers that do not match the
+> file you made, or an app that afterwards holds a mixture of what it had and what the file had.
+
+### x9 · The wrong file changes nothing
+
+Try to restore something that is not a backup — a photo, or the `.csv` from `x4`. You should be
+told it is not a Cents backup, and **everything you had must still be there**.
+
+Then, if you can, edit a copy of a backup in a text editor and change `"schemaVersion": 4` to
+`"schemaVersion": 99`. Restoring it should be refused as coming from a newer version, naming that
+version, and again change nothing.
+
+> **Wrong looks like** any of those files being partly accepted. A restore that half works is the
+> one outcome worse than a restore that fails.

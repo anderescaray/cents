@@ -39,6 +39,9 @@ import io.github.anderescaray.cents.ui.feature.investments.HoldingEditScreen
 import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
 import io.github.anderescaray.cents.ui.feature.investments.PriceUpdateScreen
 import io.github.anderescaray.cents.ui.feature.investments.TradeFormScreen
+import io.github.anderescaray.cents.ui.feature.recurring.GenerateDueMovements
+import io.github.anderescaray.cents.ui.feature.recurring.RuleFormScreen
+import io.github.anderescaray.cents.ui.feature.recurring.SubscriptionsScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
@@ -57,6 +60,10 @@ fun CentsApp(
     val homeState by home.state.collectAsStateWithLifecycle()
 
     RestoreLastSection(state = homeState, currentTab = currentTab, navController = navController, home = home)
+
+    // Before anything is drawn from the database: whatever repeats has to be in it first, or
+    // the list opens a frame short of the rent.
+    GenerateDueMovements()
 
     val tabs =
         TopLevelTab.entries.map { tab ->
@@ -145,6 +152,7 @@ private fun CentsNavHost(
         transactionRoutes(navController)
         accountRoutes(navController)
         categoryRoutes(navController)
+        recurringRoutes(navController)
         investmentRoutes(navController)
 
         composable<Destination.Reports> {
@@ -158,6 +166,7 @@ private fun CentsNavHost(
         composable<Destination.Settings> {
             SettingsScreen(
                 onOpenCategories = { navController.navigate(Destination.Categories) },
+                onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
                 onResetHomeLayout = home::resetLayout,
             )
         }
@@ -348,5 +357,24 @@ private fun NavGraphBuilder.categoryRoutes(navController: NavHostController) {
     }
     composable<Destination.CategoryEdit> {
         CategoryEditScreen(onDone = { navController.popBackStack() })
+    }
+}
+
+/** What repeats, and the form that defines one. */
+private fun NavGraphBuilder.recurringRoutes(navController: NavHostController) {
+    composable<Destination.Subscriptions> {
+        SubscriptionsScreen(
+            onBack = { navController.popBackStack() },
+            onNewRule = { navController.navigate(Destination.RuleForm()) { launchSingleTop = true } },
+            onEditRule = { id ->
+                navController.navigate(Destination.RuleForm(ruleId = id)) { launchSingleTop = true }
+            },
+        )
+    }
+    composable<Destination.RuleForm> {
+        RuleFormScreen(
+            onDone = { navController.popBackStack() },
+            onCreateAccount = { navController.navigate(Destination.AccountEdit()) },
+        )
     }
 }

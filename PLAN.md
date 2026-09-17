@@ -620,7 +620,8 @@ unmerged one.
 | Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
 | App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
 | Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
-| Tests | 562, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Recurring | Rent, Netflix and the salary record themselves. A rule is a **template**: each launch it writes whatever has fallen due, once, and the movements it makes are ordinary from that moment on. Settings › Subscriptions lists them with **what they come to per month and per year** — the figure the screen exists for — and a cancelled subscription is **stopped**, never erased. Room v5 |
+| Tests | 605, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1422,6 +1423,47 @@ the order the roadmap puts them, and all three now have their questions answered
       - **`MainActivity` is a `FragmentActivity` now**, and only because `BiometricPrompt` puts up
         a fragment of its own. It is a superclass of what was there, so nothing else moved.
 
+- [x] **`feat/recurring-rules`** — **what repeats, recorded without being asked** (PRD §4.4).
+      The biggest unbuilt thing in the PRD when it was picked up, and Phase 3's own work rather
+      than a jump. **Done**, 605 tests, **Room v5**. What it settled:
+      - **A rule is a template, and the movements it makes are ordinary.** They carry a `ruleId`
+        and nothing else unusual: counted by every report, editable, deletable. That separation
+        is rule 8 — cancelling Netflix in June must not remove January to May, or every chart of
+        the past changes and the app stops being worth comparing periods with.
+      - **Every occurrence is counted from the start date, never from the one before it.** A
+        monthly rule beginning on the 31st lands on the 28th in February — `java.time` clamps it
+        — and **returns to the 31st in March**, because March is *start plus two months* rather
+        than *February plus one*. Stepping forward from the previous occurrence pins it to the
+        28th for ever, and nobody notices until a year of rent is three days early.
+      - **Generating is idempotent, and everything else rests on that.** It runs on every
+        `ON_START`, so writing the same charge twice is the failure to design against, not a
+        missed one. Each rule records how far it has got, **in the same database transaction as
+        the movements it describes** — separately, a crash in between either repeats a charge or
+        skips a period for ever.
+      - **The start date is also the backlog.** A rule entered in September with a start date in
+        June writes the three charges it missed the moment it is saved, which is what somebody
+        typing in their rent for the first time expects.
+      - **Stopping and deleting are one button in a fixed order.** A running subscription with
+        charges behind it is *stopped*; a stopped one can then be *deleted*, and its movements
+        stay either way because `transactions.ruleId` is `SET NULL`. The order matters: the
+        default is the safe one, and the escape hatch exists for an account that cannot be
+        deleted while a rule records into it.
+      - **The total is the screen.** A list of subscriptions says nothing the movement list does
+        not; "these come to 84 € a month" is the thing nobody works out by hand. Computed in
+        integers throughout (rule 1), with a year taken as 365 days so a weekly charge is 52.14
+        of them rather than 52 — and **null rather than wrong** when the rules do not share a
+        currency. Income is listed but left out: a salary is a recurring rule too, and netting it
+        off would answer no question.
+      - **`CONFIRM` mode writes nothing yet, on purpose.** An amount that varies — electricity —
+        is not one the app may assert on the owner's behalf (PRD §4.4). Proposals are their own
+        branch; until then those rules are skipped and their watermark left alone, so nothing is
+        lost when proposals arrive.
+      - **The account key is `RESTRICT` and the category key is `SET_NULL`**, and the difference
+        is whether the rule survives losing them. An account a rule records into cannot be
+        deleted — the flow says so, the way it already does for holdings — because a rule with
+        nowhere to record cannot be repaired by moving movements elsewhere. A category can go:
+        the rule keeps working and its movements arrive unclassified.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -1702,8 +1744,9 @@ parallelism.
   offered as a destination, because "where did my movements go?" should not be answered by
   a row that is hidden from the list. If the only same-currency account is archived, the
   option shows disabled with the reason, and restoring that account makes it available.
-- **No transfers, recurring rules or investments.** Those are PRD phases 3 and 4, and the
-  schema has no tables for them yet: they arrive with a tested migration.
+- **~~No transfers, recurring rules or investments.~~** All three exist now, each with its own
+  migration and migration test — transfers at v3, trades’ cash at v4, recurring rules at v5.
+  What is left of Phase 3 is `feat/backup`, which waits on the owner (D22).
 - **The app works in one currency, and no longer offers a choice** (D2, and
   `chore/single-currency`). The device's currency is used, shown read-only on the account
   form. `Money` still carries a code and still refuses to add euros to dollars, the schema
@@ -1768,8 +1811,9 @@ parallelism.
 - **A filter narrows the Transactions tab only.** The account detail screen has its own list
   and ignores it, which is the intent — that screen is already filtered, by the account it is
   about.
-- **Only schema v1 exists**, so there is no migration test yet. The first schema change must
-  ship one (rule 9).
+- **~~Only schema v1 exists.~~** The database is on **v5**, and every step from v1 has a
+  migration and a test that opens the result. `CentsDatabaseMigrationTest` is the pattern every
+  later schema change follows (rule 9).
 - **An undone deletion comes back with a new `createdAt`.** The row id, amount, date, note
   and classification are restored exactly; only the internal bookkeeping timestamp moves,
   and nothing in the app reads it. It would take a repository method that carries the
@@ -1777,6 +1821,25 @@ parallelism.
 - **The undo window is six seconds, counted by the buffer itself and held in memory.**
   Closing the app forgets the deletion. That is the intent: an undo that survives a
   restart is a recycle bin, which is a different feature.
+- **A rule set to *ask me the amount* records nothing at all.** `RuleMode.CONFIRM` is
+  recognised, stored and skipped by the generator, and its watermark is left untouched so the
+  backlog is still waiting when proposals are built. Today it is a rule that reminds nobody of
+  anything — the screen says so in the footer, which is the least dishonest version of a setting
+  that does less than it sounds like.
+- **Generation runs when the app comes to the front, and nowhere else.** No WorkManager, no
+  notification: a phone left untouched for a week records the rent when it is next opened, dated
+  correctly. PRD §4.4's reminders are a separate piece of work, and they are what would make a
+  `CONFIRM` rule useful.
+- **Editing a rule changes what it writes next, never what it has written.** Raise Netflix from
+  12,99 to 14,99 and the charges already recorded keep the old price — which is correct, because
+  that is what was paid — but there is no way to correct a past charge from the rule. The
+  movement itself is editable, as any movement is.
+- **The monthly and yearly figures are estimates, and a year is 365 days.** A weekly charge is
+  counted 52.14 times a year rather than 52, which is the honest average and not the calendar:
+  no leap years, and no notion of which months a quarterly charge actually lands in.
+- **An account a subscription records into cannot be deleted** until the rule is deleted first,
+  and a rule with charges behind it has to be stopped before it can be deleted. Two steps, both
+  named on screen, and the alternative was a constraint violation reported as "try again".
 - **Nothing invalidates the screen at midnight.** "Today" and "Yesterday" come from the
   injected clock when the state is built, so an app left open across midnight keeps
   yesterday's labels until something else refreshes it.
@@ -1897,15 +1960,19 @@ adb devices                  # awake, unlocked, authorised
 ./gradlew installDebug
 ```
 
-Walk 1 (`01`–`07`) is the exit criteria and runs in order. Walk 4 (`r1`–`r19`) is the Reports
-tab, and Walk 5 (`b1`–`b10`) is the canvas — those two are the ones nobody has seen. Anything
-that goes wrong goes in [`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the next
-branch: an *Open* entry there outranks anything planned.
+Walk 1 (`01`–`07`) is the exit criteria and runs in order. **Walks 4 through 10 have never been
+walked at all** — the Reports tab, the canvas, investments, transfers, the export, the lock and
+the subscriptions, which is most of what the app now does. If there is time for one of them,
+make it **Walk 10 `s1`–`s3`**: a rule that writes the same charge twice looks fine on the day
+and only shows up later as a month that is quietly wrong. Anything that goes wrong goes in
+[`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the next branch: an *Open* entry there
+outranks anything planned.
 
-**If the walk is clean**, nothing is waiting: `DECISIONS.md` is empty, C3 has no unchecked
-branch, and what is left is deferred work nobody has chosen yet — the dashboard of cards in C7,
-or any of the gaps in C4. Choosing between them is the owner's, and Phase 3 (transfers,
-recurring rules) is the roadmap's own answer.
+**If the walk is clean**, one branch is waiting and it waits on the owner: `feat/backup` needs
+a Google Cloud OAuth client only they can create (D22). **D23** is the one open question —
+whether a subscription should ever interrupt you — and answering it is what makes a *confirm
+first* rule useful. Everything else is deferred work nobody has chosen: the dashboard of cards
+in C7, or any of the gaps in C4.
 
 **Two questions the walk should settle**, both written into it rather than left to be
 remembered:

@@ -92,6 +92,7 @@ fun TransactionEntity.toDomain(): Transaction =
         note = note,
         transferId = transferId,
         tradeId = tradeId,
+        ruleId = ruleId,
     )
 
 fun Transaction.toEntity(
@@ -109,6 +110,7 @@ fun Transaction.toEntity(
         note = note,
         transferId = transferId,
         tradeId = tradeId,
+        ruleId = ruleId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

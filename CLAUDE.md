@@ -212,6 +212,19 @@ hand — per unit or as a total, whichever the broker is showing — and what is
 and this project's first migration and migration test**, which is the pattern every later schema
 change follows (rule 9).
 
+**What repeats now records itself.** `feat/recurring-rules` built the biggest unbuilt thing in
+the PRD (§4.4): rent, Netflix and the salary as **templates**, listed under Settings ›
+Subscriptions with **what they come to per month and per year** — the figure that makes the
+screen worth having, since a plain list adds nothing to the movements already recorded. Each
+launch writes whatever has fallen due, **once**: every occurrence is counted from the start date
+rather than from the one before it, so a monthly rule on the 31st clamps in February and returns
+in March, and each rule's watermark is written in the same database transaction as the movements
+it describes, so a run killed halfway leaves nothing behind. A rule entered late writes the
+charges it missed. Cancelling a subscription **stops** it — rule 8, as an operation — and only a
+stopped one can then be deleted, with its movements left standing. A rule set to *ask me the
+amount* records nothing at all rather than asserting a number nobody has seen; the reminders that
+would make it useful are not built. **Room v5.**
+
 **Money can now move between accounts.** `feat/transfers` brought Phase 3's first piece forward,
 because the investments section needs it: a transfer is **two ordinary rows sharing one
 `transferId`** — no transfers table, so the amount that left and the amount that arrived are the
@@ -254,7 +267,7 @@ row left empty left alone. **A purchase can also be recorded as 500 € of somet
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-562 tests run on the JVM, so CI covers the database and the UI without a device.
+605 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

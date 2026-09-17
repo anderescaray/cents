@@ -30,6 +30,7 @@ internal fun RemovalDialogs(
         RemovalStep.PICK_TARGET -> ReassignTargetSheet(state, removal)
         RemovalStep.CONFIRM_DESTRUCTIVE -> ConfirmDestructiveAlert(state, removal)
         RemovalStep.BLOCKED_BY_HOLDINGS -> HeldInvestmentsAlert(state, removal::cancel)
+        RemovalStep.BLOCKED_BY_RULES -> RecordingRulesAlert(state, removal::cancel)
         RemovalStep.FAILED -> DeletionFailedAlert(removal::cancel)
     }
 }
@@ -163,6 +164,26 @@ internal fun HeldInvestmentsAlert(
                 R.plurals.account_delete_blocked_by_holdings,
                 state.holdingCount,
                 state.holdingCount,
+            ),
+        confirmLabel = stringResource(R.string.action_ok),
+        onConfirm = onDismiss,
+        onDismiss = onDismiss,
+    )
+}
+
+/** The same refusal, for a subscription that records into it. */
+@Composable
+internal fun RecordingRulesAlert(
+    state: AccountRemovalState,
+    onDismiss: () -> Unit,
+) {
+    CentsAlert(
+        title = stringResource(R.string.account_delete_title, state.name),
+        message =
+            pluralStringResource(
+                R.plurals.account_delete_blocked_by_rules,
+                state.ruleCount,
+                state.ruleCount,
             ),
         confirmLabel = stringResource(R.string.action_ok),
         onConfirm = onDismiss,

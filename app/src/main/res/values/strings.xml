@@ -295,4 +295,55 @@
     <string name="trade_basis_amount">Amount</string>
     <string name="trade_field_amount_placeholder">How much you put in</string>
     <string name="trade_amount_units">That is %1$s units at this price.</string>
+
+    <!-- Things that repeat (PRD 4.4) -->
+    <string name="settings_subscriptions">Subscriptions</string>
+    <string name="settings_subscriptions_footer">Rent, Netflix, the salary: anything that comes round on its own. Cents records them for you and tells you what they come to.</string>
+    <string name="subscriptions_title">Subscriptions</string>
+    <string name="subscriptions_add">Add a subscription</string>
+    <string name="subscriptions_empty">Nothing repeats yet</string>
+    <string name="subscriptions_empty_footer">Add the rent, the phone bill, the streaming you forgot about. Cents records each one when it falls due and adds up what they cost you every month.</string>
+    <string name="subscriptions_total_caption">%1$s a year</string>
+    <string name="subscriptions_mixed_currency">These are in different currencies, so they cannot be added up.</string>
+    <string name="subscriptions_active_header">Active</string>
+    <string name="subscriptions_stopped_header">Stopped</string>
+    <string name="subscriptions_stopped_footer">These make nothing new. Everything they already recorded is still in your movements — swipe one to start it again.</string>
+    <string name="subscriptions_next_due">%1$s · next %2$s</string>
+    <string name="subscriptions_finished">%1$s · finished</string>
+    <string name="subscriptions_stop">Stop</string>
+    <string name="subscriptions_start">Start</string>
+
+    <string name="frequency_weekly">Every week</string>
+    <string name="frequency_fortnightly">Every two weeks</string>
+    <string name="frequency_monthly">Every month</string>
+    <string name="frequency_quarterly">Every three months</string>
+    <string name="frequency_yearly">Every year</string>
+    <string name="frequency_every_n_days_unset">Every so many days</string>
+
+    <string name="rule_new_title">New subscription</string>
+    <string name="rule_edit_title">Subscription</string>
+    <string name="rule_field_name_placeholder">Netflix, rent, salary…</string>
+    <string name="rule_field_name_footer">The name every movement it records will carry.</string>
+    <string name="rule_field_frequency">How often</string>
+    <string name="rule_field_interval_placeholder">Number of days</string>
+    <string name="rule_field_start">Starting</string>
+    <string name="rule_field_start_footer">The start date is the anchor: a monthly rule starting on the 31st lands on the last day of February and returns to the 31st in March. Set it in the past and Cents records the charges it missed as soon as you save.</string>
+    <string name="rule_field_end">Until</string>
+    <string name="rule_field_end_none">No end</string>
+    <string name="rule_field_end_clear">Remove the end date</string>
+    <string name="rule_field_mode">Recording</string>
+    <string name="rule_mode_automatic">Record it for me</string>
+    <string name="rule_mode_confirm">Ask me the amount</string>
+    <string name="rule_field_mode_footer">Choose the second one when the amount changes every time, like electricity. Cents will not invent a number it has not been told: for now those rules record nothing at all, and you enter the bill yourself.</string>
+    <string name="rule_write_failed">That could not be saved. Nothing has changed.</string>
+    <string name="rule_stop">Stop this subscription</string>
+    <string name="rule_delete">Delete</string>
+    <string name="rule_stop_title">Stop this subscription?</string>
+    <string name="rule_stop_message">It stops recording anything new from today. The %1$d movements it already recorded stay where they are — that money really was spent.</string>
+    <string name="rule_stop_action">Stop it</string>
+    <string name="rule_delete_title">Delete this subscription?</string>
+    <string name="rule_delete_message">It has never recorded anything, so nothing is lost.</string>
+    <string name="rule_stop_footer">It has recorded movements, so stopping is what this does. Your history is never rewritten.</string>
+    <string name="rule_delete_kept_message">The %1$d movements it recorded stay exactly where they are — that money really was spent. Only the subscription itself goes.</string>
+    <string name="rule_delete_kept_footer">It is stopped, so it records nothing new. Deleting it now leaves every movement it made where it is.</string>
 </resources>

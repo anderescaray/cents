@@ -55,6 +55,13 @@ data class Transaction(
      * balance and no report: buying 400 € of shares is the same money in a different shape.
      */
     val tradeId: Long? = null,
+    /**
+     * The recurring rule that made this, and null for a movement that was typed.
+     *
+     * Unlike the two above it, this changes nothing about how the movement counts: rent made by
+     * a rule is rent. It is here so a rule can say what it has produced.
+     */
+    val ruleId: Long? = null,
 ) {
     /** The amount as it affects a balance: negative for an expense. */
     val signedAmount: Money

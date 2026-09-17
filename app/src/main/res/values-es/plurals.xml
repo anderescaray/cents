@@ -47,4 +47,12 @@
         <item quantity="one">Se actualizará un precio. Los demás se quedan tal cual.</item>
         <item quantity="other">Se actualizarán %1$d precios. Los demás se quedan tal cual.</item>
     </plurals>
+    <plurals name="account_delete_blocked_by_rules">
+        <item quantity="one">Hay una suscripción que apunta en ella. Una suscripción tiene que apuntar en algún sitio, y desde aquí no se puede mover — entra en Ajustes › Suscripciones y elimínala, y luego borra esta cuenta.</item>
+        <item quantity="other">Hay %1$d suscripciones que apuntan en ella. Una suscripción tiene que apuntar en algún sitio, y desde aquí no se pueden mover — entra en Ajustes › Suscripciones y elimínalas, y luego borra esta cuenta.</item>
+    </plurals>
+    <plurals name="frequency_every_n_days">
+        <item quantity="one">Cada día</item>
+        <item quantity="other">Cada %1$d días</item>
+    </plurals>
 </resources>

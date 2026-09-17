@@ -150,6 +150,20 @@ sealed interface Destination {
     @Serializable
     data object Categories : Destination
 
+    /** Everything that repeats, and what it all comes to per month. */
+    @Serializable
+    data object Subscriptions : Destination
+
+    /** [ruleId] is [RuleForm.NEW] when the screen is defining one. */
+    @Serializable
+    data class RuleForm(
+        val ruleId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
     /** [categoryId] is [CategoryEdit.NEW] when the screen is creating one. */
     @Serializable
     data class CategoryEdit(
@@ -216,7 +230,12 @@ enum class TopLevelTab(
     ),
     SETTINGS(
         destination = Destination.Settings,
-        owns = listOf(Destination.Categories::class),
+        owns =
+            listOf(
+                Destination.Categories::class,
+                Destination.Subscriptions::class,
+                Destination.RuleForm::class,
+            ),
         labelRes = R.string.tab_settings,
         iconRes = R.drawable.ic_tab_settings,
     ),

@@ -29,13 +29,46 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-**Nothing is waiting here right now.** D20 and D22 were both answered on 2026-09-17 and are in
-the *Answered* table below.
+**One question is waiting: D23, below.** D20 and D22 were both answered on 2026-09-17 and are
+in the *Answered* table below.
 
 Two doors were left open rather than closed, and neither is a question for the agent. **D20**
 settled that no free provider carries this portfolio's listings, so prices are typed — paying for
 one would restore D18 exactly, and that is a decision about money. **D22** chose Drive for
 backups, and it waits on an OAuth client only the owner can create.
+
+### D23 · Should a subscription ever interrupt you?
+
+**Asked 2026-09-17**, on finishing `feat/recurring-rules`. Rules with a known amount now record
+themselves silently, which is right — a banner every morning saying the app did the thing it
+exists to do would be in the way. But two cases have no answer yet, and both are about a
+notification, which is the one thing in this app that would reach outside it.
+
+- **A rule set to *ask me the amount*** (the electricity bill) currently records **nothing**. It
+  is stored, it is listed, and the generator skips it — because the app is not entitled to assert
+  a number nobody has seen (PRD §4.4). To become useful it has to ask, and asking means either a
+  notification on the day, or a row waiting inside the app that the owner has to think to look at.
+- **PRD §4.4 also names reminders** for a charge that is coming: *rent in three days*. Same
+  question, same mechanism.
+
+- **A. Nothing leaves the app.** Due proposals wait on the Subscriptions screen with a count
+  beside it, and the owner deals with them when they next open Cents. No notification permission,
+  no interruptions, and the failure mode is forgetting.
+- **B. A notification when something is waiting**, and only then — never for a rule that recorded
+  itself. Needs `POST_NOTIFICATIONS` on Android 13+, which is one dialog the first time, and
+  WorkManager to fire it on the right day.
+- **C. Both, in that order**: build the in-app queue first, add the notification on top of it
+  later if forgetting turns out to be real.
+
+**Recommendation: C.** The queue is the part that has to exist either way — a notification with
+nowhere to land is nothing — and whether it needs a nudge is a thing a month of using it answers
+better than either of us can now.
+
+**Default until answered: nothing is built.** *Ask me the amount* keeps recording nothing and
+says so on the screen, and `PLAN.md` C4 records it as a gap rather than a bug.
+
+**Answer:**
+
 
 New questions get added here as they come up, each with a default so that an unanswered one
 never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty

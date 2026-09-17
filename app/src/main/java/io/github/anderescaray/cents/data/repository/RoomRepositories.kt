@@ -127,6 +127,8 @@ class RoomAccountRepository
             accountDao.countTransactions(id) + transactionDao.countTransferLegsOutside(id)
 
         override suspend fun countHoldings(id: Long): Int = accountDao.countHoldings(id)
+
+        override suspend fun countRules(id: Long): Int = accountDao.countRules(id)
     }
 
 @Singleton

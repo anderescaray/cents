@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.PeriodSummary
+import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
@@ -92,6 +93,14 @@ interface AccountRepository {
      * told that instead of being offered a delete that cannot work.
      */
     suspend fun countHoldings(id: Long): Int
+
+    /**
+     * Recurring rules recording into it, active or stopped.
+     *
+     * Same argument as [countHoldings]: `RESTRICT`, and no removal in this flow can detach a
+     * rule from the account it records into.
+     */
+    suspend fun countRules(id: Long): Int
 }
 
 interface CategoryRepository {
@@ -209,4 +218,52 @@ interface BackupRepository {
      * confirmation that first says what is about to go.
      */
     suspend fun restore(backup: Backup)
+}
+
+/**
+ * Rules that repeat, and the movements they make.
+ *
+ * The one method that is not obvious is [generateDue], and it is the one everything rests on:
+ * it runs whenever the app opens, so it has to be safe to run again. What it must never do is
+ * write a charge twice.
+ */
+interface RecurringRuleRepository {
+    fun observeRules(): Flow<List<RecurringRule>>
+
+    fun observeRule(id: Long): Flow<RecurringRule?>
+
+    suspend fun findById(id: Long): RecurringRule?
+
+    suspend fun createRule(rule: RecurringRule): Long
+
+    suspend fun updateRule(rule: RecurringRule)
+
+    /**
+     * Stops a rule generating, or starts it again.
+     *
+     * This is what "delete a subscription" means once it has produced anything (PRD §4.4): it
+     * leaves the active list and makes nothing more, and every charge it already made stays
+     * exactly where it is. Rule 8, as an operation.
+     */
+    suspend fun setActive(
+        id: Long,
+        active: Boolean,
+    )
+
+    /**
+     * Removes the rule outright. Only legitimate while [countGenerated] is zero — with history
+     * behind it, [setActive] is the honest operation.
+     */
+    suspend fun deleteRule(id: Long)
+
+    /** How many movements it has produced. Zero is what makes a real delete legitimate. */
+    suspend fun countGenerated(id: Long): Int
+
+    /**
+     * Writes every charge that has fallen due and not yet been written, and says how many.
+     *
+     * **Safe to call repeatedly**, because it will be: on every launch, and again from whatever
+     * schedules it later.
+     */
+    suspend fun generateDue(): Int
 }

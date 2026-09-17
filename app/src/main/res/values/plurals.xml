@@ -47,4 +47,12 @@
         <item quantity="one">One price will be updated. The rest are left exactly as they are.</item>
         <item quantity="other">%1$d prices will be updated. The rest are left exactly as they are.</item>
     </plurals>
+    <plurals name="account_delete_blocked_by_rules">
+        <item quantity="one">One subscription records into it. A subscription has to record somewhere, and this flow cannot move it — open Settings › Subscriptions and delete it there, then delete this account.</item>
+        <item quantity="other">%1$d subscriptions record into it. A subscription has to record somewhere, and this flow cannot move them — open Settings › Subscriptions and delete them there, then delete this account.</item>
+    </plurals>
+    <plurals name="frequency_every_n_days">
+        <item quantity="one">Every day</item>
+        <item quantity="other">Every %1$d days</item>
+    </plurals>
 </resources>

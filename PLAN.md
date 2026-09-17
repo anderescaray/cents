@@ -1526,6 +1526,10 @@ the order the roadmap puts them, and all three now have their questions answered
         configuration, not history — no movement points at it — so a deleted rule takes its
         reminders with it. Rule 8 is about movements, and a migration test pins both directions at
         once: the reminder goes, the movement stays.
+      - **Verified on the phone, which is not the same as tested.** The daily job is booked —
+        `dumpsys jobscheduler` shows it after a launch — and a failure to book it is logged
+        rather than swallowed, because a worker that silently never schedules is a feature that
+        simply never happens and nothing on screen would ever say so.
       - **No `androidx.hilt:hilt-work`.** That needs a compiler and a `Configuration.Provider` to
         inject two objects into one class; a plain `CoroutineWorker` asking the graph through an
         `@EntryPoint` is the same thing with two fewer artifacts (rule 11). Scheduling moved out

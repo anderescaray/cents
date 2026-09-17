@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.ui.feature.recurring
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
@@ -79,6 +80,14 @@ class RecurringGenerationViewModel
          * comes to the front is what keeps it booked across updates and reboots.
          */
         fun scheduleReminders(context: Context) {
+            // Caught, because failing to book a background job must not take the app down on
+            // launch — but said out loud, because a silently unscheduled worker is a feature
+            // that simply never happens, and logcat is the only place that can report it.
             runCatching { ReminderWorker.schedule(context, clock) }
+                .onFailure { Log.w(LOG_TAG, "The daily reminder check could not be scheduled", it) }
+        }
+
+        private companion object {
+            const val LOG_TAG = "CentsReminders"
         }
     }

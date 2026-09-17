@@ -68,6 +68,10 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+    // Declared rather than inherited: the type-safe navigation routes have always used
+    // kotlinx.serialization through navigation-compose, and the export writes JSON with it
+    // directly. A backup file is exactly the thing not to hand-roll an escaper for.
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.vico.compose)
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)

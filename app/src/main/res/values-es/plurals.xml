@@ -35,4 +35,8 @@
         <item quantity="one">Un movimiento se va con ella, definitivamente — y eso incluye el otro lado de cada traspaso en el que participa esta cuenta, así que el saldo de la cuenta del otro extremo también cambia. Esto no se puede deshacer.</item>
         <item quantity="other">%1$d movimientos se van con ella, definitivamente — y eso incluye el otro lado de cada traspaso en el que participa esta cuenta, así que los saldos de las cuentas del otro extremo también cambian. Esto no se puede deshacer.</item>
     </plurals>
+    <plurals name="export_done_message">
+        <item quantity="one">Hay una fila en el archivo, donde lo hayas guardado. No ha salido nada del móvil.</item>
+        <item quantity="other">Hay %1$d filas en el archivo, donde lo hayas guardado. No ha salido nada del móvil.</item>
+    </plurals>
 </resources>

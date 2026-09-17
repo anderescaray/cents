@@ -3,7 +3,7 @@ package io.github.anderescaray.cents.ui.feature
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
+import io.github.anderescaray.cents.ui.feature.settings.SettingsContent
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -45,7 +45,7 @@ class SettingsScreenTest {
     private fun setContent(onResetHomeLayout: () -> Unit) {
         composeRule.setContent {
             CentsTheme {
-                SettingsScreen(onOpenCategories = {}, onResetHomeLayout = onResetHomeLayout)
+                SettingsContent(onOpenCategories = {}, onResetHomeLayout = onResetHomeLayout)
             }
         }
     }

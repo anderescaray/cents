@@ -1,0 +1,101 @@
+package io.github.anderescaray.cents.domain.model
+
+import java.time.Instant
+
+/**
+ * Everything the app holds, at one moment, in a shape that can be written to a file.
+ *
+ * **This is the "I am never locked in" guarantee** (PRD §4.7, `DECISIONS.md` D15): a file the
+ * owner keeps, with no account behind it and no third party in it. It is deliberately the
+ * *storage* shape rather than the domain shape — amounts in minor units, dates as epoch days,
+ * ids as they are — because a backup's job is to be readable by whatever reads it next,
+ * including a version of this app that has moved on, and a number that has been through a
+ * formatter on the way out is a number somebody has to unformat on the way in.
+ *
+ * [schemaVersion] is the one field that makes it survivable. A file says which database version
+ * wrote it, so an import can refuse what it cannot read instead of guessing — and the guessing
+ * is what turns a backup into data loss.
+ */
+data class Backup(
+    val schemaVersion: Int,
+    val exportedAt: Instant,
+    val accounts: List<BackupAccount>,
+    val categories: List<BackupCategory>,
+    val transactions: List<BackupTransaction>,
+    val holdings: List<BackupHolding>,
+    val trades: List<BackupTrade>,
+    val quotes: List<BackupQuote>,
+) {
+    /** How many rows are in it, for a screen that wants to say what it just wrote. */
+    val rowCount: Int
+        get() =
+            accounts.size + categories.size + transactions.size +
+                holdings.size + trades.size + quotes.size
+}
+
+data class BackupAccount(
+    val id: Long,
+    val name: String,
+    val type: String,
+    val currency: String,
+    val openingBalanceMinor: Long,
+    val colorArgb: Int,
+    val archived: Boolean,
+    val sortOrder: Int,
+)
+
+data class BackupCategory(
+    val id: Long,
+    val name: String,
+    val kind: String,
+    val colorArgb: Int,
+    val parentId: Long?,
+    val archived: Boolean,
+    val sortOrder: Int,
+)
+
+data class BackupTransaction(
+    val id: Long,
+    val accountId: Long,
+    val categoryId: Long?,
+    val kind: String,
+    val amountMinor: Long,
+    val currency: String,
+    /** Epoch day, which is how the database stores it. */
+    val date: Long,
+    val note: String?,
+    val transferId: Long?,
+    val tradeId: Long?,
+)
+
+data class BackupHolding(
+    val id: Long,
+    val accountId: Long,
+    val assetClass: String,
+    val symbol: String,
+    val name: String,
+    val currency: String,
+    val note: String?,
+)
+
+data class BackupTrade(
+    val id: Long,
+    val holdingId: Long,
+    val side: String,
+    /** Hundred-millionths of a unit, exactly as [Quantity] keeps it. */
+    val quantityScaled: Long,
+    val pricePerUnitMinor: Long,
+    val feeMinor: Long,
+    val currency: String,
+    val date: Long,
+    val note: String?,
+)
+
+data class BackupQuote(
+    val symbol: String,
+    val priceMinor: Long,
+    val currency: String,
+    /** Epoch millis: a quote is an instant, not a day. */
+    val asOf: Long,
+    val source: String,
+)

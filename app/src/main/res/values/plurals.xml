@@ -35,4 +35,8 @@
         <item quantity="one">One movement goes with it, for good — and that includes the far side of every transfer this account is part of, so the balance of the account at the other end changes too. This cannot be undone.</item>
         <item quantity="other">%1$d movements go with it, for good — and that includes the far side of every transfer this account is part of, so the balances of the accounts at the other end change too. This cannot be undone.</item>
     </plurals>
+    <plurals name="export_done_message">
+        <item quantity="one">One row is in the file, wherever you put it. Nothing left the phone.</item>
+        <item quantity="other">%1$d rows are in the file, wherever you put it. Nothing left the phone.</item>
+    </plurals>
 </resources>

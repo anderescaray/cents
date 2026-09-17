@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.domain.repository
 
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
+import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.PeriodSummary
@@ -182,4 +183,17 @@ interface TransferRepository {
 
     /** Removes both legs. There is no version of this that removes one. */
     suspend fun deleteTransfer(transferId: Long)
+}
+
+/**
+ * Reading the whole app out, for a file the owner keeps.
+ *
+ * One method, and deliberately no second one: **there is no import here** (`DECISIONS.md` D15).
+ * Restoring asks what happens to what is already on the phone — merge, replace, refuse — and
+ * that question belongs to `feat/backup`, where it can be answered on purpose rather than
+ * discovered by whoever taps the button first.
+ */
+interface BackupRepository {
+    /** Everything the app holds, read at one moment. */
+    suspend fun snapshot(): Backup
 }

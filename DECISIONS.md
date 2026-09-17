@@ -29,41 +29,9 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D19 · Is there a net worth figure, and what does an unpriced holding do to it?
-
-**Asked 2026-09-16, on finishing `feat/buying-spends-the-cash`.** Until that branch, an
-investments account's balance and the portfolio overlapped: the account showed every euro ever
-transferred in, and the portfolio showed what those euros had become. They no longer overlap — a
-purchase takes its cost out of the account — so for the first time the two numbers *add up*:
-**cash in the accounts, plus what the holdings are worth, is net worth.**
-
-Nothing performs that addition. The Accounts tab totals balances, the Investments tab totals
-positions, and you do the last sum in your head.
-
-What is at stake is not the arithmetic but the honesty of it, and it is the same question
-`PortfolioTotal` already answers inside the portfolio: **a holding nobody has priced has no
-value**, so a total that includes it is either wrong or is quietly counting it as zero. The
-portfolio's answer is to give the total for the priced half and say how many it left out. A net
-worth figure has to make the same choice, and it is more exposed: it is the number that gets
-believed.
-
-- **A.** A net worth line, on the Accounts tab, equal to cash plus the priced portfolio — saying
-  how many holdings were left out whenever any were. Consistent with what the portfolio already
-  does, at the price of a number that moves when a price is typed rather than when money moves.
-- **B.** No figure until **everything** is priced, and a line saying what is missing instead.
-  Harder to live with while prices are typed by hand, and much less so once a provider lands.
-- **C.** Nothing, and the sum stays in your head. Honest, costs nothing, and is what happens if
-  this is never answered.
-
-**Recommendation: A**, because it is the rule the app already applies one screen down, and two
-screens giving different answers to "what about the unpriced one" is worse than either answer.
-
-**Default until answered: C.** Nothing is built, the two tabs keep their own totals, and
-`PLAN.md` C4 records the gap.
-
-**Answer:**
-
----
+**Nothing is waiting here right now.** D19 was answered on 2026-09-17 and is in the *Answered*
+table below — and the answer was more specific than any of the options offered, which is the
+normal way that goes.
 
 New questions get added here as they come up, each with a default so that an unanswered one
 never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty
@@ -87,6 +55,7 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D19 | Is there a net worth figure, and what does an unpriced holding do to it? | **Yes, and show all three numbers**: what the accounts hold, what the portfolio is worth, and the two added together — so net worth can be read with the portfolio and without it. Closest to option A, but asking for the parts as well as the sum: a single figure hides which of the two moved when it changes. An unpriced holding follows the rule the portfolio already applies one screen down — count the priced ones, and say how many were left out. | 2026-09-17 · `feat/net-worth`, Accounts tab |
 | D18 | What happens when the provider answers in dollars? | **It does not.** The holding tracks the **euro-denominated listing** of the same company — Nvidia trades on XETRA, Tradegate and Gettex as **NVD**, in euros — which is the listing the owner actually bought on a European platform. So there is no conversion anywhere: no FX rate, no "approximately", and the number in the app is the same number the broker shows, because it is the same quote. The symbol field already carries this: it is free text, and it holds the ticker as the platform writes it. | 2026-09-09 · `feat/price-provider`, PRD §4.5 |
 | D12 | What happens to a holding priced in dollars? | **Everything stays in euros.** No currency picker on the holding form. What makes this hold rather than merely hope is D18: a company priced in dollars in New York is priced in euros in Frankfurt, and the holding tracks *that* listing — so nothing is ever converted, by hand or otherwise. The `currency` column stays on the row for the day a genuinely dollar-only instrument turns up. | 2026-09-09 · `feat/investments-portfolio`, `PLAN.md` C4 |
 | D13 | Which market data provider? | **Twelve Data**, for European coverage on the free tier — the ETFs are UCITS and listed in Europe. Built behind the `PriceProvider` interface PRD §5.1 makes mandatory, so swapping costs one class. **Blocked until the owner creates an account and puts the key in `local.properties`** (C5, rule 6). | 2026-09-09 · `feat/price-provider` (not built) |

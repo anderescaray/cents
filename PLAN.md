@@ -616,7 +616,8 @@ unmerged one.
 | Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
 | Investments and cash | A purchase takes its cost out of the account it is held in and a sale puts it back, so **a broker account's balance is the cash left in it** and the portfolio sits beside it rather than inside it. The movement carries a `tradeId`, obeys the same exclusion a transfer leg does, reads as *Bought NVD.DE* and opens the trade. Room v4 |
 | Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. No import — that is `feat/backup`'s question |
-| Tests | 507, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Net worth | The Accounts tab says what the owner has in three numbers — **in accounts**, **invested**, and **net worth** — because D19 asked to read it with the portfolio and without it. They only add up because a purchase spends the account's cash; an unpriced holding is left out and counted aloud |
+| Tests | 516, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1342,14 +1343,13 @@ parallelism.
   answer without a conversion rate (D12) and it cannot arrive at all on a single-currency install;
   what it means in practice is that an install predating D2 could show *no price yet* for
   something it does have a price for, until a new one is typed.
-- **Net worth is cash plus the portfolio, and nothing adds the two up for you.** Buying now
-  spends the account's cash, so a broker account's balance is the money left in it and the
-  portfolio is what the rest became — two numbers that no longer overlap and no longer contradict
-  each other. What there still is not is a screen that adds them: the Accounts tab totals
-  balances and the Investments tab totals positions, and the owner does the last sum. That is a
-  deliberate stopping point rather than an oversight, because adding them means deciding whether
-  an unpriced holding counts as nothing or makes the total unknowable — the same question
-  `PortfolioTotal` already answers for one tab, and the answer has to be the same on both.
+- **Net worth counts active accounts, and names the money in archived ones rather than adding
+  it.** D19 is answered and built: the Accounts tab gives *in accounts*, *invested* and *net
+  worth*. The first of those sums the same accounts the tab has always totalled — the active ones
+  — so an archived account still holding money is money the headline figure does not include. It
+  is said out loud in the footer instead, because the alternatives are both worse: counting it
+  would make the top of the screen disagree with the total under the list, and leaving it
+  unmentioned would understate net worth silently.
 - **An export cannot be read back in.** The file is complete enough to restore from — every
   table, every id, the schema version that wrote it — and nothing in the app reads it. That is
   D15's sequencing rather than an omission: a restore has to answer what happens to what is

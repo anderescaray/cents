@@ -1251,6 +1251,17 @@ Phase 4 rather than being skipped.
       index fund is priced by its equivalent ETF rather than by an ISIN no free provider carries.
       **Still blocked on the owner**: it needs an account and an API key in `local.properties`,
       and only they can create one (C5, rule 6).
+      **Asked the API on 2026-09-17, and the answer was no.** The key arrived and the first thing
+      done with it was to ask for the listings D18 chose: `NVD` on XETR and `VWCE` on XETR both
+      come back *"available starting with the Grow or Venture plan"*, while `NVDA` on NASDAQ and
+      `EUR/USD` both work. The free tier carries the **US listing in dollars** — the exact case
+      D18 was written to avoid — and not the euro-denominated one it chose. **D20 is the question
+      that opens**, and this branch waits for it rather than being built against an API that
+      cannot price what the owner holds. Two things were learned that survive whatever is
+      decided: the dotted `NVD.DE` form is not how this API addresses an exchange at all, and a
+      bare symbol is ambiguous **across currencies** (`NVD` is NVIDIA in EUR on four German
+      venues and a Thai company in THB), so a holding will have to carry a MIC code beside its
+      symbol whichever provider wins.
       **D18 removed the hardest part of this branch before it was built.** The question was what
       to do with a price that arrives in dollars; the answer is that it never does, because a
       holding tracks the **euro-denominated listing** — Nvidia is `NVD` in Frankfurt, quoted in
@@ -1403,8 +1414,13 @@ parallelism.
   the owner has traded rather than by how long they have used the app, and it is the honest shape
   for an aggregation SQL cannot express (see `positionFrom`). If a portfolio ever gets slow, the
   split is one query per holding's totals plus the fold only where a sale exists.
-- **Nothing checks that a symbol is real.** "NVDAA" is accepted and will simply never be priced.
-  Validating it means asking a provider, which is D13's branch.
+- **Nothing checks that a symbol is real, and a symbol alone would not be enough anyway.**
+  "NVDAA" is accepted and will simply never be priced. What 2026-09-17 added to that: a symbol
+  that *is* real can still be ambiguous — `NVD` is NVIDIA in euros on four German venues and a
+  Thai property developer in baht on Bangkok — so a provider asked for a bare symbol can price a
+  holding with a different company's number, in a different currency. Whenever a provider lands,
+  a holding gains a **MIC code** beside its symbol, and the editor asks which listing is meant
+  rather than guessing. Known now rather than suspected.
 - **A trade carries no note in the form.** The column exists and the model carries it; the form
   does not offer it, because a trade is already four fields and the note had no obvious question
   to answer. It costs one row the day somebody misses it.

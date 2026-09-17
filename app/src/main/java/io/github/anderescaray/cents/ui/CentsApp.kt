@@ -37,6 +37,7 @@ import io.github.anderescaray.cents.ui.feature.home.HomeViewModel
 import io.github.anderescaray.cents.ui.feature.investments.HoldingDetailScreen
 import io.github.anderescaray.cents.ui.feature.investments.HoldingEditScreen
 import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
+import io.github.anderescaray.cents.ui.feature.investments.PriceUpdateScreen
 import io.github.anderescaray.cents.ui.feature.investments.TradeFormScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
@@ -297,7 +298,13 @@ private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
             onOpenHolding = { id ->
                 navController.navigate(Destination.HoldingDetail(id)) { launchSingleTop = true }
             },
+            onUpdatePrices = {
+                navController.navigate(Destination.PriceUpdate) { launchSingleTop = true }
+            },
         )
+    }
+    composable<Destination.PriceUpdate> {
+        PriceUpdateScreen(onDone = { navController.popBackStack() })
     }
     composable<Destination.HoldingDetail> {
         HoldingDetailScreen(

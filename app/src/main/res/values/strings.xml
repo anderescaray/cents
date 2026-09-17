@@ -279,4 +279,15 @@
     <string name="lock_unlock">Unlock</string>
     <string name="settings_biometric_lock_footer">Cents asks who you are when you open it, and again if you have been away for more than half a minute. It uses the fingerprint or PIN your phone already knows — Cents never sees either one.</string>
     <string name="settings_biometric_unavailable">This phone has no fingerprint or PIN set up, so there is nothing for Cents to ask.</string>
+
+    <!-- Every price on one screen (D20: no free provider carries these listings) -->
+    <string name="prices_action">Prices</string>
+    <string name="prices_title">Update prices</string>
+    <string name="prices_header">What they are worth</string>
+    <string name="prices_as_of">Prices as of</string>
+    <string name="prices_date_footer">The day these prices were true — the day you read them, which is not always today.</string>
+    <string name="prices_current">%1$s on %2$s</string>
+    <string name="prices_placeholder">No price yet</string>
+    <string name="prices_empty_title">Nothing to price</string>
+    <string name="prices_empty_footer">Prices are per unit, for what you still hold. A position you have sold has no quantity, so there is nothing for a price to be about.</string>
 </resources>

@@ -29,64 +29,9 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D20 · The free tier cannot price the listings D18 chose. Which way out?
-
-**Asked 2026-09-17, the moment the key arrived**, because the first thing done with it was to ask
-the API the question the whole branch rests on — and the answer was no.
-
-> **Written here twice.** This entry first landed with #53 and was lost when that PR and #52
-> rewrote this same paragraph in parallel; only one survived the merge. It is back, and the
-> hazard is recorded in `PLAN.md` C4 so the next pair of documentation branches does not repeat
-> it.
-
-**What was measured**, with the owner's own key, against `api.twelvedata.com`:
-
-| Asked for | Answer |
-|---|---|
-| `NVDA` (NASDAQ, USD) | **Works.** A full quote |
-| `EUR/USD` | **Works.** A full quote |
-| `NVD` on XETR, and on Munich | *"This symbol is available starting with the Grow or Venture plan"* |
-| `VWCE` on XETR | The same |
-| `NVD.DE`, `VWCE.DE`, `IWDA.AS` | 404 — the dotted suffix is not how this API addresses an exchange at all |
-
-Plan limits, from `api_usage`: **8 calls a minute, 800 a day**, category `basic`.
-
-**Why this matters more than a missing symbol.** D18 answered "what happens when the provider
-answers in dollars?" with *it never does*, because the app tracks the **euro-denominated listing**
-— Nvidia is `NVD` in Frankfurt, in euros, which is what a European platform sells you. That
-answer removed conversion, the FX rate, the word *approximately*, and a number that would not
-match the broker. **The free tier does not carry those listings.** What it carries is the US
-listing, in dollars — precisely the case D18 was written to avoid.
-
-There is a second finding underneath it. A bare symbol is **ambiguous, across currencies**:
-`NVD` is NVIDIA in EUR on four German venues *and* a Thai property developer in THB on Bangkok.
-So whatever is decided below, a holding has to carry its **exchange** (a MIC code) alongside its
-symbol, or the app can price a position with a different company's number.
-
-- **A. Pay for a plan that covers European exchanges.** Restores D18 exactly as written: no
-  conversion, and the number matches the broker because it is the same quote. Costs money every
-  month, forever, to track a handful of long-term holdings.
-- **B. Track the US listing and convert.** Free, and automatic: `NVDA` and `EUR/USD` both work
-  today. It reopens everything D18 closed — a rate to keep fresh, a total that is approximate,
-  and a figure that will **not** match what the broker shows.
-- **C. Try another provider's free tier.** PRD §5.1 named Finnhub, Financial Modeling Prep and
-  EODHD for exactly this reason, and `PriceProvider` exists so that swapping costs one class.
-  Each needs its own signup, and their marketing describes *paid* coverage without separating
-  out the free tier — which is the trap this entry is a record of falling into once already.
-- **D. Keep typing prices by hand.** Already built, already working, costs nothing, and is
-  exactly as accurate as the owner's own reading of their broker.
-
-**Recommendation: C, then D.** One more signup is cheap and settles it with evidence rather than
-with a marketing page; if no free tier carries European venues, hand-typed prices already work.
-**B is the option to be most careful about**: it looks like progress and quietly gives back the
-thing D18 was written to protect.
-
-**Default until answered: D.** Nothing is built, the portfolio keeps its hand-typed prices with
-their age shown, and `feat/price-provider` stays where it is.
-
-**Answer:**
-
----
+> **D20 was answered on 2026-09-17** and is in the table below. What it settled is that no free
+> provider carries this portfolio's listings, so prices are typed — and the door it left open is
+> paying for one, which is a decision about money rather than about code.
 
 ### D22 · Where does an automatic backup go?
 
@@ -139,6 +84,7 @@ choices that are genuinely the owner's, and things going the other way belong in
 | D5 | How is the parallel phase run? | **The owner's own harness** — Orca-like orchestration plus the ideas from `xmihura/kanvas` — running **at most 3 agents** at once. **Amended 2026-08-30 by D9:** the harness was still being built when the phase came due, so the first parallel run uses Claude Code's own worktree parallelism instead. The cap of 3 and everything else about D5 stands; only the mechanism changed, and the harness remains the intended one. | 2026-08-20, amended 2026-08-30 · `PLAN.md` Part B §4 |
 | D6 | What if the review agent cannot run? | **A** — self-review, and the PR says plainly that it was not independent. | 2026-08-20 · `PLAN.md` Part B §2 |
 | D7 | Deleting an account that still has movements? | **Delete outright when it is empty.** When it is not, an alert offers two ways out: reassign every movement to another account and then delete, or delete the account *and* its movements after an explicit confirmation. | 2026-08-20 · `feat/account-deletion`, `PLAN.md` C3 |
+| D20 | The free tier cannot price the listings D18 chose. Which way out? | **None of them, for now — make typing fast instead.** The owner asked for "the euros I put into each asset, kept up to date from the internet, however you do it, or failing that a way to update it by hand", and the measurements say the first half is not available free: Twelve Data refuses XETR listings on `basic`, Finnhub's free tier is US-only, EODHD's free plan is US exchanges. **Converting does not rescue it**, which is the finding that settles this: a UCITS ETF like `VWCE` has no US listing to convert *from* — it is a European-only instrument, and a US proxy is a different fund. So conversion would automate the stocks and leave the ETFs, which is most of the point. Typing is therefore how prices get in, and `feat/prices-in-one-place` makes that one screen instead of one visit per holding. **Paying is the open door**: it is A in the list above, and it would restore D18 exactly. | 2026-09-17 · `feat/prices-in-one-place`, PRD §5.1 |
 | D21 | What does a restore do to what is already on the phone? | **Replace everything**, behind a confirmation naming both halves — what the file holds, and what is about to go — shown only after the file has been read, so those numbers are checkable. Merging needs id remapping and duplicate detection for a case that barely exists with one owner; refusing unless the app is empty is useless exactly when it is needed. **Encryption stays out** for the same reason D16 gave, and comes back when a backup goes somewhere the owner does not control. | 2026-09-17 · `feat/restore`, `RoomBackupRepository.restore` |
 | D19 | Is there a net worth figure, and what does an unpriced holding do to it? | **Yes, and show all three numbers**: what the accounts hold, what the portfolio is worth, and the two added together — so net worth can be read with the portfolio and without it. Closest to option A, but asking for the parts as well as the sum: a single figure hides which of the two moved when it changes. An unpriced holding follows the rule the portfolio already applies one screen down — count the priced ones, and say how many were left out. | 2026-09-17 · `feat/net-worth`, Accounts tab |
 | D18 | What happens when the provider answers in dollars? | **It does not.** The holding tracks the **euro-denominated listing** of the same company — Nvidia trades on XETRA, Tradegate and Gettex as **NVD**, in euros — which is the listing the owner actually bought on a European platform. So there is no conversion anywhere: no FX rate, no "approximately", and the number in the app is the same number the broker shows, because it is the same quote. The symbol field already carries this: it is free text, and it holds the ticker as the platform writes it. | 2026-09-09 · `feat/price-provider`, PRD §4.5 |

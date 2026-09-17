@@ -619,7 +619,8 @@ unmerged one.
 | Net worth | The Accounts tab says what the owner has in three numbers — **in accounts**, **invested**, and **net worth** — because D19 asked to read it with the portfolio and without it. They only add up because a purchase spends the account's cash; an unpriced holding is left out and counted aloud |
 | Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
 | App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
-| Tests | 549, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
+| Tests | 558, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1247,12 +1248,35 @@ Phase 4 rather than being skipped.
         rather than income's green, and opens the trade — the third case of the rule transfers
         established, so where a row leads now lives beside how it reads, in `MovementRow.kt`.
 
+- [x] **`feat/prices-in-one-place`** — every open holding's price on one screen, because D20
+      settled that typing is how prices get in rather than a fallback. **Done**, 558 tests.
+      - **One date for the lot**, since they are read in one sitting off one broker screen. A
+        date per row would be more precise about something nobody is imprecise about, and would
+        put a calendar between the owner and every number they came to type.
+      - **A row left empty is left alone.** Updating three prices out of eight without disturbing
+        the other five is the whole point, and a blank field is how somebody says *not this one*.
+        A typed zero reads the same way: nothing here is worth nothing, and a stray keystroke
+        must not wipe a real price.
+      - **Only open positions.** A sold holding has no quantity, so a price for it would be a
+        number about nothing (D17).
+      - The placeholder in each field is **the price already stored**, so an untouched row shows
+        what it is keeping rather than an empty box that reads as missing.
+      - It is read once rather than observed: this is a form, and a portfolio that re-emitted
+        mid-typing would take the half-typed number with it.
 - [ ] **`feat/price-provider`** — prices from the internet, behind the `PriceProvider` interface
       PRD §5.1 makes mandatory, with the cache and the age of a quote already built. **D13 is
       answered: Twelve Data**, chosen for European coverage on the free tier, and **D14** says an
       index fund is priced by its equivalent ETF rather than by an ISIN no free provider carries.
       **Still blocked on the owner**: it needs an account and an API key in `local.properties`,
       and only they can create one (C5, rule 6).
+      **Answered on 2026-09-17: not on a free tier, and not by converting either — see D20.**
+      Twelve Data refuses XETR listings on the free plan, Finnhub's free tier is US-only and
+      EODHD's free plan is US exchanges. Converting from the US listing looked like the way out
+      and is not: **a UCITS ETF has no US listing to convert from**, so conversion would automate
+      the stocks and leave the ETFs, which is most of this portfolio. The branch therefore waits
+      on somebody deciding to pay, and what got built instead is `feat/prices-in-one-place` —
+      making the typing fast, since typing is now how prices get in.
+
       **Asked the API on 2026-09-17, and the answer was no.** The key arrived and the first thing
       done with it was to ask for the listings D18 chose: `NVD` on XETR and `VWCE` on XETR both
       come back *"available starting with the Grow or Venture plan"*, while `NVDA` on NASDAQ and
@@ -1483,6 +1507,10 @@ parallelism.
   the owner has traded rather than by how long they have used the app, and it is the honest shape
   for an aggregation SQL cannot express (see `positionFrom`). If a portfolio ever gets slow, the
   split is one query per holding's totals plus the fold only where a sale exists.
+- **Prices are typed, and that is now the answer rather than the gap** (D20). No free provider
+  carries European venues, and converting from a US listing cannot rescue a UCITS ETF, which has
+  no US listing to convert from. `feat/prices-in-one-place` makes typing one screen; what remains
+  open is paying for a provider, which is a decision about money rather than about code.
 - **Nothing checks that a symbol is real, and a symbol alone would not be enough anyway.**
   "NVDAA" is accepted and will simply never be priced. What 2026-09-17 added to that: a symbol
   that *is* real can still be ambiguous — `NVD` is NVIDIA in euros on four German venues and a

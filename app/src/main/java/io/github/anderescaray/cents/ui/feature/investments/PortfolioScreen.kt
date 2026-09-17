@@ -2,9 +2,12 @@ package io.github.anderescaray.cents.ui.feature.investments
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,11 +48,17 @@ import io.github.anderescaray.cents.ui.util.QuantityEntry
 fun PortfolioScreen(
     onAddHolding: () -> Unit,
     onOpenHolding: (Long) -> Unit,
+    onUpdatePrices: () -> Unit,
     viewModel: PortfolioViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    PortfolioScreen(state = state, onAddHolding = onAddHolding, onOpenHolding = onOpenHolding)
+    PortfolioScreen(
+        state = state,
+        onAddHolding = onAddHolding,
+        onOpenHolding = onOpenHolding,
+        onUpdatePrices = onUpdatePrices,
+    )
 }
 
 /**
@@ -61,31 +70,13 @@ fun PortfolioScreen(
     state: PortfolioUiState,
     onAddHolding: () -> Unit,
     onOpenHolding: (Long) -> Unit,
+    onUpdatePrices: () -> Unit = {},
 ) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_investments),
         bottomPadding = CentsDimens.sectionSpacing,
-        trailing = {
-            if (state.hasAccount) {
-                val addLabel = stringResource(R.string.investments_add)
-                Box(
-                    modifier =
-                        Modifier
-                            .semantics { contentDescription = addLabel }
-                            .testTag(ADD_HOLDING_TAG)
-                            .size(CentsDimens.minRowHeight)
-                            .clip(CircleShape)
-                            .clickable(onClick = onAddHolding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.action_add),
-                        style = CentsTheme.typography.title2,
-                        color = CentsTheme.colors.accent,
-                    )
-                }
-            }
-        },
+        leading = { if (state.groups.isNotEmpty()) UpdatePricesButton(onUpdatePrices) },
+        trailing = { if (state.hasAccount) AddHoldingButton(onAddHolding) },
     ) {
         if (state.loading) return@CentsLargeTitleScaffold
 
@@ -201,3 +192,51 @@ private fun LazyListScope.emptyState(hasAccount: Boolean) {
 }
 
 internal const val ADD_HOLDING_TAG = "add-holding"
+
+/**
+ * The way to every price at once.
+ *
+ * Offered only with something to price: on an empty portfolio it would open a screen with
+ * nothing on it, which is a worse answer than not offering it at all.
+ */
+@Composable
+private fun UpdatePricesButton(onClick: () -> Unit) {
+    Text(
+        text = stringResource(R.string.prices_action),
+        style = CentsTheme.typography.body,
+        color = CentsTheme.colors.accent,
+        // A bare Text is a few points tall; the tap target is a row's height, as on the
+        // movements list.
+        modifier =
+            Modifier
+                .testTag(UPDATE_PRICES_TAG)
+                .clip(RoundedCornerShape(CentsDimens.spacingS))
+                .clickable(onClick = onClick)
+                .defaultMinSize(minHeight = CentsDimens.minRowHeight)
+                .wrapContentHeight(Alignment.CenterVertically),
+    )
+}
+
+@Composable
+private fun AddHoldingButton(onClick: () -> Unit) {
+    val addLabel = stringResource(R.string.investments_add)
+    Box(
+        modifier =
+            Modifier
+                .semantics { contentDescription = addLabel }
+                .testTag(ADD_HOLDING_TAG)
+                .size(CentsDimens.minRowHeight)
+                .clip(CircleShape)
+                .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.action_add),
+            style = CentsTheme.typography.title2,
+            color = CentsTheme.colors.accent,
+        )
+    }
+}
+
+/** The way to every price at once, beside the way to add a holding. */
+internal const val UPDATE_PRICES_TAG = "updatePrices"

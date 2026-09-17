@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -33,6 +32,7 @@ import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.AmountKeypadState
+import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
@@ -40,9 +40,9 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
-import io.github.anderescaray.cents.ui.feature.filters.SelectableRow
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -117,6 +117,15 @@ private fun RuleDialogs(
     state: RuleFormUiState,
     viewModel: RuleFormViewModel,
 ) {
+    if (state.pickingFrequency) {
+        FrequencySheet(
+            selected = state.frequency,
+            intervalDays = state.intervalDays,
+            onSelect = viewModel::setFrequency,
+            onDismiss = viewModel::dismissFrequencyPicker,
+        )
+    }
+
     state.pickingDate?.let { field ->
         CentsDatePicker(
             selected = if (field == RuleDateField.START) state.startDate else state.endDate ?: state.startDate,
@@ -160,6 +169,36 @@ private fun removalMessage(state: RuleFormUiState): String =
         state.hasHistory -> stringResource(R.string.rule_delete_kept_message, state.generatedCount)
         else -> stringResource(R.string.rule_delete_message)
     }
+
+/**
+ * The six frequencies, on a sheet.
+ *
+ * The one already chosen is marked rather than removed: a sheet whose contents depend on the
+ * current answer makes the owner count the rows to work out what they picked last time.
+ */
+@Composable
+private fun FrequencySheet(
+    selected: Frequency,
+    intervalDays: Int?,
+    onSelect: (Frequency) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val chosen = stringResource(R.string.rule_frequency_chosen)
+    CentsActionSheet(
+        title = stringResource(R.string.rule_field_frequency),
+        message = stringResource(R.string.rule_frequency_sheet_message),
+        actions =
+            Frequency.entries.map { frequency ->
+                val label = frequencyLabel(frequency, intervalDays)
+                CentsSheetAction(
+                    label = if (frequency == selected) "$label $chosen" else label,
+                    onClick = { onSelect(frequency) },
+                )
+            },
+        cancelLabel = stringResource(R.string.action_cancel),
+        onDismiss = onDismiss,
+    )
+}
 
 @Composable
 private fun RuleFields(
@@ -268,27 +307,25 @@ private fun NameSection(
 /**
  * How often, from when, and until when.
  *
- * The footer under the start date says what it will do rather than what it is, because "1 Jan"
- * on a rule created in September is three months of backlog and that is not obvious from a date.
+ * **The frequency is one row that opens a sheet**, not six rows that are always there. Six
+ * permanent rows for a choice that is made once and then read at a glance pushed the two fields
+ * that actually need thinking about — the dates — off the bottom of the screen.
+ *
+ * The footer under the start date says what it will do rather than what it is, because "1 May"
+ * on a rule created in September is five months of backlog and that is not obvious from a date.
  */
 @Composable
 private fun ScheduleSection(
     state: RuleFormUiState,
     viewModel: RuleFormViewModel,
 ) {
-    CentsListSection(
-        header = stringResource(R.string.rule_field_frequency),
-        footer = stringResource(R.string.rule_field_start_footer),
-    ) {
-        Frequency.entries.forEach { frequency ->
-            key(frequency) {
-                SelectableRow(
-                    title = frequencyLabel(frequency, state.intervalDays),
-                    selected = frequency == state.frequency,
-                    onClick = { viewModel.setFrequency(frequency) },
-                )
-            }
-        }
+    CentsListSection(footer = stringResource(R.string.rule_field_start_footer)) {
+        CentsListRow(
+            title = stringResource(R.string.rule_field_frequency),
+            value = frequencyLabel(state.frequency, state.intervalDays),
+            showChevron = true,
+            onClick = viewModel::openFrequencyPicker,
+        )
         if (state.needsInterval) {
             CentsTextField(
                 value = state.intervalInput,

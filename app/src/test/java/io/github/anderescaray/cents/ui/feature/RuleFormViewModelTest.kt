@@ -111,6 +111,56 @@ class RuleFormViewModelTest {
         }
 
     @Test
+    fun `saving a rule that began months ago writes the charges it missed, there and then`() =
+        runTest {
+            val viewModel = form()
+            viewModel.setName("Rent")
+            viewModel.type("750")
+            viewModel.openDatePicker(RuleDateField.START)
+            viewModel.setDate(LocalDate.of(2026, 5, 1))
+
+            save(viewModel)
+
+            // Found on the phone (`FEEDBACK.md`, 2026-09-17): a subscription entered in
+            // September starting in May showed nothing at all, because generation only ran on
+            // `ON_START` and the app had never left the foreground. The owner was looking at the
+            // movement list a second later, which reads exactly like the feature not working.
+            val written = database.transactionDao().observeAll().first()
+            assertEquals(5, written.size)
+            assertEquals(
+                listOf(
+                    LocalDate.of(2026, 5, 1),
+                    LocalDate.of(2026, 6, 1),
+                    LocalDate.of(2026, 7, 1),
+                    LocalDate.of(2026, 8, 1),
+                    LocalDate.of(2026, 9, 1),
+                ),
+                written.map { it.date }.sorted(),
+            )
+        }
+
+    @Test
+    fun `a rule that starts in the future writes nothing yet`() =
+        runTest {
+            val viewModel = form()
+            viewModel.setName("Insurance")
+            viewModel.type("300")
+            viewModel.openDatePicker(RuleDateField.START)
+            viewModel.setDate(LocalDate.of(2026, 12, 1))
+
+            save(viewModel)
+
+            // The other half of the same behaviour: catching up on save must not reach forward.
+            assertTrue(
+                database
+                    .transactionDao()
+                    .observeAll()
+                    .first()
+                    .isEmpty(),
+            )
+        }
+
+    @Test
     fun `every so many days needs the number of days before it can be saved`() =
         runTest {
             val viewModel = form()

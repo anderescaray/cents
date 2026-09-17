@@ -363,4 +363,6 @@
     <string name="subscriptions_waiting_header">Waiting for an amount</string>
     <string name="subscriptions_waiting_footer">These fell due and Cents does not know what they came to. Nothing is recorded for them until you say.</string>
     <string name="subscriptions_waiting_value">Enter</string>
+    <string name="rule_frequency_sheet_message">How often this comes round. Every occurrence is counted from the start date below.</string>
+    <string name="rule_frequency_chosen">✓</string>
 </resources>

@@ -24,20 +24,25 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-**Nothing is waiting here right now.** Both items from the 2026-09-02 walk on the HONOR
-HEY3-W00 were built on 2026-09-03 and are in *Fixed* below; everything else that walk covered
-passed.
+- **A subscription cannot remind you before it is charged.** Wanted on **fixed** amounts as
+  much as on variable ones: *Spotify is paid in 3 days*, with the number of days chosen per
+  subscription, and more than one reminder if wanted. Reported 2026-09-17 on the HONOR
+  HEY3-W00. This is the second half of **D23**, already answered, and it is the next branch:
+  `feat/subscription-reminders`. It is here rather than only in `PLAN.md` because it was asked
+  for from the phone, and an *Open* entry is what outranks anything else planned.
+
+Everything else from the 2026-09-17 walk was fixed the same day and is in *Fixed* below.
 
 An empty *Open* is the normal state between walks, not a sign the channel went quiet — it
 fills up again the next time the app is used on a phone. The walk itself is
 [`docs/device-check.md`](docs/device-check.md).
 
-**The second walk is written and waiting to be walked** (2026-09-09, extended since). It now
-covers the whole Reports tab (`r1`–`r19`), the canvas of bubbles the app opens on (`b1`–`b10`),
-the investments section (`i1`–`i13`) and transfers (`t1`–`t10`), and **none of that has been on
-a phone** — six chart views, a year-on-year comparison, a front door made of drag and pinch
-gestures, a portfolio, and money moving between accounts, all verified by JVM tests and by
-nothing else. Whatever it turns up lands here, and it becomes the next branch.
+**Most of that walk is still unwalked.** It covers the whole Reports tab (`r1`–`r19`), the
+canvas of bubbles the app opens on (`b1`–`b10`), the investments section (`i1`–`i15`),
+transfers (`t1`–`t10`), the export (`x1`–`x8`), the lock (`l1`–`l6`) and the subscriptions
+(`s1`–`s11`). Only part of the last of those has been on a phone — everything else is verified
+by JVM tests and by nothing else. Whatever it turns up lands here, and it becomes the next
+branch.
 
 ---
 
@@ -56,6 +61,8 @@ is still outstanding.
 
 | Date | What was wrong | What was done |
 |---|---|---|
+| 2026-09-17 | **A subscription starting in May, entered in September, recorded nothing at all.** The screen said the next charge was in October — which was right — but the five that had already fallen due never appeared | Generation ran only on `ON_START`, and the app had never left the foreground, so a rule created in a session generated nothing until Cents was closed and reopened. Saving a rule now catches it up **before the screen closes**, which is what every document about this feature already claimed it did. Two tests pin it: five charges on the five first-of-the-months, and nothing at all for a rule that starts in December. `fix/subscription-backlog-and-frequency` |
+| 2026-09-17 | **The *how often* section took up most of the form**, pushing the two fields that need thinking about — the dates — off the bottom | Six permanent rows became one row showing the current answer, opening an action sheet. A choice made once and then read at a glance does not need to be six rows tall. `fix/subscription-backlog-and-frequency` |
 | 2026-09-03 | **Reports could not be narrowed to one account** the way the movements list can | A picker under the period control, and it governs the whole tab rather than one chart — the three views are answers about the same money, so letting them disagree about *whose* money makes the tab unreadable. What made it a seam change rather than an additive one: a section source was asked for a period and a currency, and both became one `ReportScope` that also builds the drill-down filter, so a slice tapped with one account chosen can no longer open everyone's movements. Archived accounts are offered, because the charts have always counted them; the picker is hidden entirely until there are two accounts to choose between. `feat/reports-for-one-account` |
 | 2026-09-03 | **The ring only ever showed spending** — there was no way to ask where the money came *from* | A segmented control above the ring picks the direction, and the section's words follow it: *Where the money went* / *Where the money came from*, *Total spent* / *Total earned*. Both breakdowns are read at once rather than one query re-run on each flip, so the toggle answers instantly and the two sides can never be about different periods; the cost is a second `GROUP BY` bounded by the number of categories. A slice of the income ring drills down to income, because the kind already travelled with the filter. `feat/the-ring-shows-income-too` |
 | 2026-09-02 | **The keypad and the colour picker ran together** in the account editor — same colour, no line between them | The keypad now stands on its own bar background with a hairline above it, the two tokens the tab bar already uses to sit above content. Its keys are grouped cards like the colour swatches, so sharing a ground with the form left nothing between them. The bottom inset moved into the keypad, since padding it from outside would leave a strip of the form's background below the surface. `fix/the-keypad-sits-on-its-own-surface` |

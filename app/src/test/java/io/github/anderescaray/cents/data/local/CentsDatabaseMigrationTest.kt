@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -259,6 +260,64 @@ class CentsDatabaseMigrationTest {
         }
 
     @Test
+    fun `a version 5 database keeps its rules and gains somewhere to put reminders`() =
+        runTest {
+            createVersion(5)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val ruleId = database.recurringRuleDao().insert(recurringRule(accountId = accountId))
+
+                database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -3))
+
+                assertEquals(listOf(-3), database.ruleReminderDao().forRule(ruleId).map { it.offsetDays })
+                assertEquals("the movement written at v5 should survive", 2_550L, moneyIn(database))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `deleting a rule takes its reminders and leaves its movements`() =
+        runTest {
+            createVersion(5)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val ruleId = database.recurringRuleDao().insert(recurringRule(accountId = accountId))
+                database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -3))
+                val movementId =
+                    database.transactionDao().insert(
+                        transaction(accountId = accountId, amountMinor = 1_299, ruleId = ruleId),
+                    )
+
+                database.recurringRuleDao().delete(database.recurringRuleDao().findById(ruleId)!!)
+
+                // The two keys pull in opposite directions on purpose, and both have to arrive
+                // through the migration: a reminder is configuration and goes (`CASCADE`), a
+                // movement is history and stays (`SET NULL`, rule 8).
+                assertTrue(database.ruleReminderDao().forRule(ruleId).isEmpty())
+                assertEquals(1_299L, database.transactionDao().findById(movementId)?.amountMinor)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `the migrated schema is one Room agrees to open`() =
         runTest {
             createVersion(1)
@@ -287,6 +346,14 @@ class CentsDatabaseMigrationTest {
                 database.close()
             }
         }
+
+    private suspend fun moneyIn(database: CentsDatabase): Long =
+        database
+            .transactionDao()
+            .observeAll()
+            .first()
+            .first { it.ruleId == null }
+            .amountMinor
 
     private fun openWithMigrations(): CentsDatabase =
         Room

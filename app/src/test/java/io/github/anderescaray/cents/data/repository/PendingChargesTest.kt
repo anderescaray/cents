@@ -254,6 +254,7 @@ class PendingChargesTest {
     private fun repository(now: Instant) =
         RoomRecurringRuleRepository(
             database.recurringRuleDao(),
+            database.ruleReminderDao(),
             database,
             Clock.fixed(now, ZoneOffset.UTC),
         )

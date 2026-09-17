@@ -166,7 +166,8 @@ class PendingChargesViewModelTest {
 
     private fun pending() = viewModels.keep(PendingChargesViewModel(repository(), clock))
 
-    private fun repository() = RoomRecurringRuleRepository(database.recurringRuleDao(), database, clock)
+    private fun repository() =
+        RoomRecurringRuleRepository(database.recurringRuleDao(), database.ruleReminderDao(), database, clock)
 
     private suspend fun add(
         name: String,

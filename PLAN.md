@@ -622,7 +622,8 @@ unmerged one.
 | Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
 | Recurring | Rent, Netflix and the salary record themselves. A rule is a **template**: each launch it writes whatever has fallen due, once, and the movements it makes are ordinary from that moment on. Settings › Subscriptions lists them with **what they come to per month and per year** — the figure the screen exists for — and a cancelled subscription is **stopped**, never erased. Room v5 |
 | Variable bills | A subscription whose amount changes — the electricity — is marked **ask me the amount**, and what the app refuses to guess waits on the Subscriptions screen instead of being invented. Several are answered in one sitting, each recorded **on the day it fell due** rather than the day it was answered; *there was no bill that month* is its own gesture, because it is not a zero |
-| Tests | 622, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Reminders | A subscription can say something before the money goes: any number of reminders per rule, a number of days the owner picks, before the date or — for a variable one — after it. One daily job asks **what lands today** rather than booking an alarm per occurrence. Room v6 |
+| Tests | 641, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1495,6 +1496,42 @@ the order the roadmap puts them, and all three now have their questions answered
       paid in 3 days*) and is silent otherwise. Needs `POST_NOTIFICATIONS` on Android 13+, a
       WorkManager daily check, and a schema change for the offsets.
 
+- [x] **`feat/subscription-reminders`** — **D23's second half, asked for again from the phone.**
+      **Done**, 641 tests, **Room v6**. What it settled:
+      - **Nothing is scheduled in advance, and that is the whole design.** One daily job asks
+        *what lands today* and computes the answer from the rules. A booked alarm per occurrence
+        would be a second copy of when the rent is, and it would go stale every time a reminder
+        was edited, a rule stopped, a bill answered, the phone rebooted or the clock moved. There
+        is nothing to cancel because there was never a queue.
+      - **It is therefore safe to run twice**: the notification id is the rule and the occurrence,
+        so a second run replaces rather than stacks.
+      - **`occursOn` goes through `occurrenceAt` rather than around it.** "Is the 26th two days
+        before an occurrence" cannot be answered by comparing day-of-month, because a rule
+        anchored on the 31st lands on the 28th in February. One definition of where a rule lands,
+        used by the generator and by the reminders, so the two cannot disagree about when the
+        rent is.
+      - **The two modes get different offers, because they are different requests.** A fixed
+        amount is *announced*, and only beforehand — afterwards the movement is already in the
+        list, so the notification would be telling the owner something one screen away. A
+        variable one is *asked about*, so it can also be chased after the date, and its tap lands
+        on the screen that takes the figure. Switching a rule to a fixed amount turns an *after*
+        into the same number of days *before*, which is what was actually wanted.
+      - **A bill already answered stops being chased.** Being nagged about a figure just typed is
+        how somebody turns notifications off.
+      - **The editor says when the reminders are being written down and thrown away.** A
+        preference the system will never act on is worse than no preference: the owner sets three,
+        hears nothing, and concludes the feature is broken. The row asks for the permission on
+        Android 13+, and opens the app's notification settings when that is the only way left.
+      - **`CASCADE` here, where every other key is `RESTRICT` or `SET NULL`.** A reminder is
+        configuration, not history — no movement points at it — so a deleted rule takes its
+        reminders with it. Rule 8 is about movements, and a migration test pins both directions at
+        once: the reminder goes, the movement stays.
+      - **No `androidx.hilt:hilt-work`.** That needs a compiler and a `Configuration.Provider` to
+        inject two objects into one class; a plain `CoroutineWorker` asking the graph through an
+        `@EntryPoint` is the same thing with two fewer artifacts (rule 11). Scheduling moved out
+        of `Application.onCreate` for a duller reason: initialising WorkManager there pulls it
+        into every Robolectric test, including the migration ones.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -1852,10 +1889,17 @@ parallelism.
 - **The undo window is six seconds, counted by the buffer itself and held in memory.**
   Closing the app forgets the deletion. That is the intent: an undo that survives a
   restart is a recycle bin, which is a different feature.
-- **A variable bill waits to be noticed.** It appears on the Subscriptions screen and nowhere
-  else — no notification, no badge on the canvas — so a rule set to *ask me the amount* is only
-  as useful as how often the owner opens that screen. That is exactly what
-  `feat/subscription-reminders` is for (D23).
+- **A subscription with no reminders on it waits to be noticed.** Reminders are per rule and
+  off until one is added, which is the right default for something that interrupts — but it does
+  mean a variable bill with none set is only as visible as how often the Subscriptions screen
+  gets opened. There is still no badge on the canvas.
+- **A reminder fires when the daily job runs, not at a chosen time of day.** It is booked for
+  around 09:00 and WorkManager decides the rest: Doze, battery saver and the system's own
+  batching can move it by hours, and a phone that is off all day runs it when it comes back. It
+  is a reminder rather than an alarm, and nothing in the app claims otherwise.
+- **Turning notifications off in system settings leaves the reminders stored.** They are kept,
+  not deleted, and the subscription editor says plainly that nothing will be shown — so turning
+  them back on restores what was set rather than losing it.
 - **Only the oldest waiting occurrence of each rule can be answered.** With three months of
   electricity behind you they are answered oldest first, one save at a time, and the row says how
   many are behind it. Answering out of order would move the rule's watermark past the ones before

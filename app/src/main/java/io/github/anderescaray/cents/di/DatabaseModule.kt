@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
 import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
 import io.github.anderescaray.cents.data.local.dao.RecurringRuleDao
+import io.github.anderescaray.cents.data.local.dao.RuleReminderDao
 import io.github.anderescaray.cents.data.local.dao.TradeDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
@@ -56,4 +57,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRecurringRuleDao(database: CentsDatabase): RecurringRuleDao = database.recurringRuleDao()
+
+    @Provides
+    fun provideRuleReminderDao(database: CentsDatabase): RuleReminderDao = database.ruleReminderDao()
 }

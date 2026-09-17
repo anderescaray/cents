@@ -188,6 +188,90 @@ class RuleFormViewModelTest {
         }
 
     @Test
+    fun `the reminders typed on the form are what the rule ends up carrying`() =
+        runTest {
+            val viewModel = form()
+            viewModel.setName("Spotify")
+            viewModel.type("11.99")
+
+            viewModel.startAddingReminder()
+            viewModel.setReminderDays("3")
+            viewModel.confirmReminder()
+            viewModel.startAddingReminder()
+            viewModel.setReminderDays("0")
+            viewModel.confirmReminder()
+
+            save(viewModel)
+
+            // Soonest last, because the offsets are signed: three days before is -3.
+            val id =
+                repository()
+                    .observeRules()
+                    .first()
+                    .single()
+                    .id
+            assertEquals(listOf(-3, 0), repository().remindersFor(id).map { it.offsetDays })
+        }
+
+    @Test
+    fun `the same reminder cannot be added twice`() =
+        runTest {
+            val viewModel = form()
+            viewModel.startAddingReminder()
+            viewModel.setReminderDays("3")
+            viewModel.confirmReminder()
+            viewModel.startAddingReminder()
+            viewModel.setReminderDays("3")
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.reminderDaysInput == "3" && it.reminders.size == 1 }
+
+                // The same notification twice is how somebody turns notifications off.
+                assertTrue(state.reminderIsDuplicate)
+                assertFalse(state.canAddReminder)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `switching to a fixed amount turns an after into a before`() =
+        runTest {
+            val viewModel = form()
+            viewModel.setMode(RuleMode.CONFIRM)
+            viewModel.startAddingReminder()
+            viewModel.setReminderDays("2")
+            viewModel.setReminderBefore(false)
+            viewModel.confirmReminder()
+
+            viewModel.setMode(RuleMode.AUTOMATIC)
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.mode == RuleMode.AUTOMATIC }
+
+                // A fixed charge is announced, never chased: afterwards the movement is already
+                // in the list. Two days after becomes two days before, which is what was wanted.
+                assertEquals(listOf(-2), state.reminders.map { it.offsetDays })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `editing a rule shows the reminders it already had`() =
+        runTest {
+            val id = existingRule(start = LocalDate.of(2026, 9, 1))
+            repository().setReminders(id, listOf(-7, 0))
+
+            val viewModel = form(ruleId = id)
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.isEditing && it.reminders.isNotEmpty() }
+
+                assertEquals(listOf(-7, 0), state.reminders.map { it.offsetDays })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `an end date before the start date is refused`() =
         runTest {
             val viewModel = form()
@@ -401,5 +485,6 @@ class RuleFormViewModelTest {
             ),
         )
 
-    private fun repository() = RoomRecurringRuleRepository(database.recurringRuleDao(), database, clock)
+    private fun repository() =
+        RoomRecurringRuleRepository(database.recurringRuleDao(), database.ruleReminderDao(), database, clock)
 }

@@ -365,4 +365,26 @@
     <string name="subscriptions_waiting_value">Enter</string>
     <string name="rule_frequency_sheet_message">How often this comes round. Every occurrence is counted from the start date below.</string>
     <string name="rule_frequency_chosen">✓</string>
+
+    <!-- Reminders (D23, second half) -->
+    <string name="reminder_channel_name">Subscriptions</string>
+    <string name="reminder_channel_description">Before a subscription is charged, and when one needs an amount.</string>
+    <string name="reminder_fixed_body">%1$s, %2$s.</string>
+    <string name="reminder_variable_body">Due %1$s. Tap to say what it came to.</string>
+    <string name="reminder_when_today">today</string>
+    <string name="rule_field_reminders">Remind me</string>
+    <string name="rule_reminders_add">Add a reminder</string>
+    <string name="rule_reminders_none">No reminders</string>
+    <string name="rule_reminders_footer_fixed">Cents can tell you before this is charged. Add as many as you like — three days before and again on the day is a real way to be reminded.</string>
+    <string name="rule_reminders_footer_variable">Cents cannot know what this one costs, so it asks. A reminder after the date is the one that catches a bill you have not opened yet.</string>
+    <string name="rule_reminders_blocked">Notifications are turned off for Cents, so these are written down and never shown. Tap to turn them on.</string>
+    <string name="rule_reminders_blocked_settings">Notifications are turned off for Cents in your phone’s settings, so these are written down and never shown.</string>
+    <string name="reminder_new_title">Remind me</string>
+    <string name="reminder_new_days">Days</string>
+    <string name="reminder_new_days_placeholder">3</string>
+    <string name="reminder_new_when">When</string>
+    <string name="reminder_before">Before</string>
+    <string name="reminder_after">After</string>
+    <string name="reminder_on_the_day">On the day</string>
+    <string name="reminder_duplicate">There is already a reminder for that day.</string>
 </resources>

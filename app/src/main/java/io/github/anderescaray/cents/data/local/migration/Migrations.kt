@@ -21,7 +21,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    erased financial history on a real device.
  */
 val ALL_MIGRATIONS: Array<Migration>
-    get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+    get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 
 /**
  * v1 to v2 — the investments tables.
@@ -189,6 +189,38 @@ val MIGRATION_4_5 =
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_transactions_ruleId` ON `transactions` (`ruleId`)",
+            )
+        }
+    }
+
+/**
+ * v5 to v6 — the reminders a subscription can carry.
+ *
+ * One new table, additive like every migration before it. Every rule that existed before this
+ * has no reminders, which is what it had: nothing has ever notified anybody.
+ *
+ * **`CASCADE` here, where every other key in this database is `RESTRICT` or `SET NULL`.** A
+ * reminder is configuration rather than history — it records nothing that happened — so a rule
+ * being deleted should take its reminders with it. Rule 8 is about movements, and no movement
+ * points at this table.
+ */
+val MIGRATION_5_6 =
+    object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `rule_reminders` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`ruleId` INTEGER NOT NULL, " +
+                    "`offsetDays` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`ruleId`) REFERENCES `recurring_rules`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_rule_reminders_ruleId` ON `rule_reminders` (`ruleId`)",
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_rule_reminders_ruleId_offsetDays` " +
+                    "ON `rule_reminders` (`ruleId`, `offsetDays`)",
             )
         }
     }

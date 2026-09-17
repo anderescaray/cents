@@ -31,6 +31,49 @@ enum class RuleMode {
 }
 
 /**
+ * A nudge about a subscription, a number of days away from the day it comes round.
+ *
+ * [offsetDays] is signed and reads as **occurrence + offset = the day it arrives**: `-3` is three
+ * days before, `+1` the day after, `0` the morning of. One number rather than a count and a
+ * direction, because two fields can contradict each other and one cannot.
+ *
+ * A rule may carry several. *Three days before and again on the day* is a real way to be
+ * reminded, and the app has no business deciding that one of them is enough.
+ */
+data class Reminder(
+    val id: Long = 0,
+    val offsetDays: Int,
+) {
+    val isBefore: Boolean get() = offsetDays < 0
+
+    val isOnTheDay: Boolean get() = offsetDays == 0
+
+    /** How far away, as a person would say it — the direction is [isBefore]'s business. */
+    val days: Int get() = if (offsetDays < 0) -offsetDays else offsetDays
+
+    /** The same distance, on the near side of the date. */
+    fun asBefore(): Reminder = if (offsetDays > 0) copy(offsetDays = -offsetDays) else this
+}
+
+/**
+ * A reminder that has come round today, and what it is about.
+ *
+ * [occurrence] is the day the charge falls on, which is the thing the notification is *for* —
+ * not today. A reminder three days early says "the rent is on the 1st", and it can only say that
+ * because it carries the date rather than the day it happens to be firing.
+ */
+data class DueReminder(
+    val rule: RecurringRule,
+    val occurrence: LocalDate,
+    val offsetDays: Int,
+) {
+    val reminder: Reminder get() = Reminder(offsetDays = offsetDays)
+
+    /** Whether the owner is being asked for a figure rather than told about one. */
+    val asksForAmount: Boolean get() = rule.mode == RuleMode.CONFIRM
+}
+
+/**
  * One occurrence of a variable-amount rule, waiting for the number only the owner knows.
  *
  * The electricity bill falls due on the 15th and the app has no idea what it says, so instead of

@@ -53,6 +53,8 @@ import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 
 @Composable
 fun CentsApp(
+    /** True when a reminder asking for a figure was tapped: go straight to the screen that takes it. */
+    openPending: Boolean = false,
     navController: NavHostController = rememberNavController(),
     home: HomeViewModel = hiltViewModel(),
 ) {
@@ -65,6 +67,8 @@ fun CentsApp(
     // Before anything is drawn from the database: whatever repeats has to be in it first, or
     // the list opens a frame short of the rent.
     GenerateDueMovements()
+
+    OpenPendingFromNotification(openPending, navController)
 
     val tabs =
         TopLevelTab.entries.map { tab ->
@@ -93,6 +97,25 @@ fun CentsApp(
                     onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
                 )
             }
+        }
+    }
+}
+
+/**
+ * Lands a tapped reminder on the screen that takes the figure.
+ *
+ * Keyed on the flag rather than run once, because a second notification tapped while the app is
+ * already open arrives through `onNewIntent` and has to move the screen again — and a tap on the
+ * *same* one twice should be idempotent, which `launchSingleTop` makes it.
+ */
+@Composable
+private fun OpenPendingFromNotification(
+    openPending: Boolean,
+    navController: NavHostController,
+) {
+    LaunchedEffect(openPending) {
+        if (openPending) {
+            navController.navigate(Destination.PendingCharges) { launchSingleTop = true }
         }
     }
 }

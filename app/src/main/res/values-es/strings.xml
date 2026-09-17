@@ -362,4 +362,26 @@
     <string name="subscriptions_waiting_value">Poner</string>
     <string name="rule_frequency_sheet_message">Cada cuánto vuelve. Cada repetición se cuenta desde la fecha de inicio de abajo.</string>
     <string name="rule_frequency_chosen">✓</string>
+
+    <!-- Avisos (D23, segunda mitad) -->
+    <string name="reminder_channel_name">Suscripciones</string>
+    <string name="reminder_channel_description">Antes de que te cobren una suscripción, y cuando alguna necesita un importe.</string>
+    <string name="reminder_fixed_body">%1$s, %2$s.</string>
+    <string name="reminder_variable_body">Toca %1$s. Pulsa para decir cuánto ha costado.</string>
+    <string name="reminder_when_today">hoy</string>
+    <string name="rule_field_reminders">Avísame</string>
+    <string name="rule_reminders_add">Añadir un aviso</string>
+    <string name="rule_reminders_none">Sin avisos</string>
+    <string name="rule_reminders_footer_fixed">Cents puede avisarte antes de que te lo cobren. Pon los que quieras: tres días antes y otra vez el mismo día es una forma razonable de acordarse.</string>
+    <string name="rule_reminders_footer_variable">Cents no puede saber lo que cuesta esta, así que pregunta. Un aviso después de la fecha es el que pilla un recibo que aún no has abierto.</string>
+    <string name="rule_reminders_blocked">Las notificaciones de Cents están desactivadas, así que estos avisos se guardan y no se muestran nunca. Pulsa para activarlas.</string>
+    <string name="rule_reminders_blocked_settings">Las notificaciones de Cents están desactivadas en los ajustes del móvil, así que estos avisos se guardan y no se muestran nunca.</string>
+    <string name="reminder_new_title">Avísame</string>
+    <string name="reminder_new_days">Días</string>
+    <string name="reminder_new_days_placeholder">3</string>
+    <string name="reminder_new_when">Cuándo</string>
+    <string name="reminder_before">Antes</string>
+    <string name="reminder_after">Después</string>
+    <string name="reminder_on_the_day">El mismo día</string>
+    <string name="reminder_duplicate">Ya hay un aviso para ese día.</string>
 </resources>

@@ -24,14 +24,8 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-- **A subscription cannot remind you before it is charged.** Wanted on **fixed** amounts as
-  much as on variable ones: *Spotify is paid in 3 days*, with the number of days chosen per
-  subscription, and more than one reminder if wanted. Reported 2026-09-17 on the HONOR
-  HEY3-W00. This is the second half of **D23**, already answered, and it is the next branch:
-  `feat/subscription-reminders`. It is here rather than only in `PLAN.md` because it was asked
-  for from the phone, and an *Open* entry is what outranks anything else planned.
-
-Everything else from the 2026-09-17 walk was fixed the same day and is in *Fixed* below.
+**Nothing is waiting here right now.** Everything from the 2026-09-17 walk was built the same
+day and is in *Fixed* below.
 
 An empty *Open* is the normal state between walks, not a sign the channel went quiet — it
 fills up again the next time the app is used on a phone. The walk itself is
@@ -61,6 +55,7 @@ is still outstanding.
 
 | Date | What was wrong | What was done |
 |---|---|---|
+| 2026-09-17 | **A subscription could not remind you before it is charged** — wanted on fixed amounts as much as variable ones, with the number of days chosen per subscription and more than one reminder if wanted | Any number of reminders per rule, each a number of days the owner picks. A fixed one is announced and only beforehand — afterwards the movement is already in the list; a variable one can also be chased after the date, and tapping it lands on the screen that takes the figure. **Nothing is scheduled in advance**: one daily job asks what lands today, so editing a reminder, stopping a rule, answering a bill or a reboot need nothing cancelled. The editor says plainly when the system will show nothing. Room v6. `feat/subscription-reminders` |
 | 2026-09-17 | **A subscription starting in May, entered in September, recorded nothing at all.** The screen said the next charge was in October — which was right — but the five that had already fallen due never appeared | Generation ran only on `ON_START`, and the app had never left the foreground, so a rule created in a session generated nothing until Cents was closed and reopened. Saving a rule now catches it up **before the screen closes**, which is what every document about this feature already claimed it did. Two tests pin it: five charges on the five first-of-the-months, and nothing at all for a rule that starts in December. `fix/subscription-backlog-and-frequency` |
 | 2026-09-17 | **The *how often* section took up most of the form**, pushing the two fields that need thinking about — the dates — off the bottom | Six permanent rows became one row showing the current answer, opening an action sheet. A choice made once and then read at a glance does not need to be six rows tall. `fix/subscription-backlog-and-frequency` |
 | 2026-09-03 | **Reports could not be narrowed to one account** the way the movements list can | A picker under the period control, and it governs the whole tab rather than one chart — the three views are answers about the same money, so letting them disagree about *whose* money makes the tab unreadable. What made it a seam change rather than an additive one: a section source was asked for a period and a currency, and both became one `ReportScope` that also builds the drill-down filter, so a slice tapped with one account chosen can no longer open everyone's movements. Archived accounts are offered, because the charts have always counted them; the picker is hidden entirely until there are two accounts to choose between. `feat/reports-for-one-account` |

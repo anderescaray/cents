@@ -1014,3 +1014,22 @@ returned to Settings with nothing said at all.
 
 Only if you have a spare install to try it on: a fresh app with nothing in it should still
 export, and the file should say there is nothing rather than refusing.
+
+### x7 · The three numbers, and whether they are yours
+
+Not an export step — it belongs to the same walk only because it is the other thing added on
+2026-09-17. **Accounts**, at the top: *What you have*.
+
+- **In accounts** — add your account balances up by hand and check it matches.
+- **Invested** — it should match the total on the Investments tab.
+- **Net worth** — the two added.
+
+Then make it move. Record a purchase in the broker account and come back: *in accounts* drops by
+what you spent, *invested* rises by what it is worth, and **net worth barely moves** — it changes
+only by the difference between what you paid and what it is priced at.
+
+> **Wrong looks like** net worth jumping by the whole amount you spent, which would mean the same
+> money is being counted in both rows.
+
+If any holding has no price yet, a line underneath says how many are missing from the numbers. If
+you have an archived account with money still in it, a line says how much is not counted.

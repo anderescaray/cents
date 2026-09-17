@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.data.repository.RoomPortfolioRepository
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsViewModel
@@ -46,6 +47,7 @@ class AccountsViewModelTest {
             viewModels.keep(
                 AccountsViewModel(
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                    RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
                 ),
             )
     }

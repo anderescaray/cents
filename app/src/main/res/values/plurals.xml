@@ -39,4 +39,8 @@
         <item quantity="one">One row is in the file, wherever you put it. Nothing left the phone.</item>
         <item quantity="other">%1$d rows are in the file, wherever you put it. Nothing left the phone.</item>
     </plurals>
+    <plurals name="net_worth_unpriced">
+        <item quantity="one">One holding has no price yet, so it is not in these numbers.</item>
+        <item quantity="other">%1$d holdings have no price yet, so they are not in these numbers.</item>
+    </plurals>
 </resources>

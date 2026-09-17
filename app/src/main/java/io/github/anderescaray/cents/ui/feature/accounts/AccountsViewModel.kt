@@ -5,16 +5,24 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.NetWorth
 import io.github.anderescaray.cents.domain.repository.AccountRepository
+import io.github.anderescaray.cents.domain.repository.PortfolioRepository
+import io.github.anderescaray.cents.domain.usecase.netWorthOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 data class AccountsUiState(
     val active: List<AccountWithBalance> = emptyList(),
     val archived: List<AccountWithBalance> = emptyList(),
+    /**
+     * Cash, holdings and the two together — and null when they cannot honestly be added
+     * (`DECISIONS.md` D19). The tab then falls back to [total], which is still true.
+     */
+    val netWorth: NetWorth? = null,
     val isLoading: Boolean = true,
 ) {
     val showEmptyState: Boolean get() = !isLoading && active.isEmpty()
@@ -41,6 +49,7 @@ class AccountsViewModel
     @Inject
     constructor(
         accountRepository: AccountRepository,
+        portfolioRepository: PortfolioRepository,
     ) : ViewModel() {
         /**
          * The same delete question the editor asks, reachable here by swiping a row.
@@ -50,20 +59,32 @@ class AccountsViewModel
          */
         val removal = AccountRemoval(accountRepository, viewModelScope)
 
+        /**
+         * The accounts and the portfolio together, because the tab now answers a question that
+         * needs both.
+         *
+         * The portfolio is read here rather than the net worth being computed in the Investments
+         * tab and passed across: this is the screen that asks *what do I have*, and the two tabs
+         * would otherwise each hold half of one sum.
+         */
         val uiState: StateFlow<AccountsUiState> =
-            accountRepository
-                .observeAccountsWithBalances(includeArchived = true)
-                .map { accounts ->
-                    AccountsUiState(
-                        active = accounts.filterNot { it.account.archived },
-                        archived = accounts.filter { it.account.archived },
-                        isLoading = false,
-                    )
-                }.stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-                    initialValue = AccountsUiState(),
+            combine(
+                accountRepository.observeAccountsWithBalances(includeArchived = true),
+                portfolioRepository.observePortfolio(),
+            ) { accounts, portfolio ->
+                val active = accounts.filterNot { it.account.archived }
+                val archived = accounts.filter { it.account.archived }
+                AccountsUiState(
+                    active = active,
+                    archived = archived,
+                    netWorth = netWorthOf(active = active, archived = archived, portfolio = portfolio),
+                    isLoading = false,
                 )
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+                initialValue = AccountsUiState(),
+            )
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L

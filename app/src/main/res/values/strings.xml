@@ -249,4 +249,11 @@
     <string name="export_done_title">Saved</string>
     <string name="export_failed_title">That could not be saved</string>
     <string name="export_failed_message">The file was not written, so nothing was exported. Try again, or choose somewhere else to put it.</string>
+
+    <!-- What the owner has, cash and holdings together (D19) -->
+    <string name="net_worth_header">What you have</string>
+    <string name="net_worth_in_accounts">In accounts</string>
+    <string name="net_worth_invested">Invested</string>
+    <string name="net_worth_total">Net worth</string>
+    <string name="net_worth_archived">%1$s sits in archived accounts and is not counted above.</string>
 </resources>

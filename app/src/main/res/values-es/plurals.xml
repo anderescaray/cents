@@ -39,4 +39,8 @@
         <item quantity="one">Hay una fila en el archivo, donde lo hayas guardado. No ha salido nada del móvil.</item>
         <item quantity="other">Hay %1$d filas en el archivo, donde lo hayas guardado. No ha salido nada del móvil.</item>
     </plurals>
+    <plurals name="net_worth_unpriced">
+        <item quantity="one">Una posición no tiene precio todavía, así que no entra en estos números.</item>
+        <item quantity="other">%1$d posiciones no tienen precio todavía, así que no entran en estos números.</item>
+    </plurals>
 </resources>

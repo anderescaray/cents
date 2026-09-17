@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -25,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
+import io.github.anderescaray.cents.domain.model.NetWorth
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
@@ -72,6 +74,7 @@ fun AccountsScreen(
         if (state.showEmptyState) {
             emptyState()
         } else {
+            state.netWorth?.let { netWorth -> netWorthSection(netWorth) }
             accountSection(
                 key = "active",
                 headerRes = R.string.accounts_section_header,
@@ -96,6 +99,94 @@ fun AccountsScreen(
 
     RemovalDialogs(state = removal, removal = viewModel.removal)
 }
+
+/**
+ * What the owner has, in the three numbers they asked for (`DECISIONS.md` D19): the cash in
+ * their accounts, what their holdings are worth, and the two together.
+ *
+ * **Three rows rather than one**, because each answers a different question — what could be
+ * spent today, what is tied up, and what it comes to — and a single figure hides which of the
+ * two moved when it changes. They only add up at all because a purchase takes its cost out of
+ * the account it is held in; before that, the two described the same euros twice.
+ *
+ * With no holdings the section is two rows and says so by omission, which is the "without the
+ * portfolio" half of what was asked for. With holdings but no prices there is nothing to add,
+ * so the total stands down rather than reading as zero.
+ */
+private fun LazyListScope.netWorthSection(netWorth: NetWorth) {
+    item(key = "net-worth") {
+        val invested = netWorth.invested
+        val total = netWorth.total
+        val showInvested = invested == null || invested.minorUnits != 0L || netWorth.hasUnpriced
+        CentsListSection(
+            header = stringResource(R.string.net_worth_header),
+            footer = netWorthFooter(netWorth),
+        ) {
+            CentsListRow(
+                title = stringResource(R.string.net_worth_in_accounts),
+                value = MoneyFormatter.format(netWorth.inAccounts),
+                valueColor =
+                    if (netWorth.inAccounts.isNegative) {
+                        CentsTheme.colors.destructive
+                    } else {
+                        CentsTheme.colors.label
+                    },
+                showSeparator = showInvested,
+            )
+            if (showInvested) {
+                CentsListRow(
+                    title = stringResource(R.string.net_worth_invested),
+                    // Nothing priced is not the same as nothing held, and the two must not
+                    // render the same way.
+                    value =
+                        invested?.let { MoneyFormatter.format(it) }
+                            ?: stringResource(R.string.investments_no_price),
+                    valueColor =
+                        if (invested == null) CentsTheme.colors.secondaryLabel else CentsTheme.colors.label,
+                    showSeparator = total != null,
+                )
+            }
+            if (total != null && showInvested) {
+                CentsListRow(
+                    title = stringResource(R.string.net_worth_total),
+                    value = MoneyFormatter.format(total),
+                    valueColor =
+                        if (total.isNegative) CentsTheme.colors.destructive else CentsTheme.colors.label,
+                    showSeparator = false,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * What the three numbers leave out, said only when they leave something out.
+ *
+ * Both cases are money or value that exists and is not in the figure above it, and a net worth
+ * that quietly omits either is the kind of number that gets believed and should not be.
+ */
+@Composable
+private fun netWorthFooter(netWorth: NetWorth): String? =
+    when {
+        netWorth.hasUnpriced -> {
+            pluralStringResource(
+                R.plurals.net_worth_unpriced,
+                netWorth.unpricedCount,
+                netWorth.unpricedCount,
+            )
+        }
+
+        netWorth.hasArchivedMoney -> {
+            stringResource(
+                R.string.net_worth_archived,
+                MoneyFormatter.format(netWorth.inArchivedAccounts),
+            )
+        }
+
+        else -> {
+            null
+        }
+    }
 
 /**
  * The total, or an explanation instead of one: accounts in different currencies cannot be

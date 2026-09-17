@@ -615,7 +615,8 @@ unmerged one.
 | Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
 | Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
 | Investments and cash | A purchase takes its cost out of the account it is held in and a sale puts it back, so **a broker account's balance is the cash left in it** and the portfolio sits beside it rather than inside it. The movement carries a `tradeId`, obeys the same exclusion a transfer leg does, reads as *Bought NVD.DE* and opens the trade. Room v4 |
-| Tests | 484, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. No import — that is `feat/backup`'s question |
+| Tests | 507, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1263,9 +1264,36 @@ Phase 4 rather than being skipped.
 Transfers are listed above, inside Phase 4, because investments need them. These are the rest, in
 the order the roadmap puts them, and all three now have their questions answered.
 
-- [ ] **`feat/export`** — **D15: a manual export first**, a file the owner owns, with no account
+- [x] **`feat/export`** — **D15: a manual export first**, a file the owner owns, with no account
       and no third party in it. It reads every table, holdings and trades included, which is
-      why it waited for the investments schema — that landed with #44, so nothing blocks it now.
+      why it waited for the investments schema — that landed with #44.
+      *Done when:* the app can be written out and read by something that is not the app.
+      **Done**, 507 tests. What it settled:
+      - **Two formats, because they answer two questions** (PRD §4.7). JSON is the whole app in
+        one file — every table, ids intact, amounts in minor units, dates as epoch days — which
+        is the "never locked in" guarantee and the thing `feat/backup` will have to send
+        somewhere. CSV is the movements only, for opening in a spreadsheet.
+      - **`schemaVersion` is the field that makes the file survivable.** A backup says which
+        database version wrote it, so whatever reads it next can refuse what it cannot read
+        instead of guessing — and guessing is what turns a backup into data loss.
+      - **The JSON tree is built by hand rather than by annotating the model `@Serializable`.**
+        The file format stays a deliberate decision in one readable place instead of a side
+        effect of what the classes happen to be called today: a rename breaks a test here rather
+        than silently writing a file last year's app cannot read.
+      - **The CSV is the one number in this app that ignores the locale.** Amounts go out in
+        major units with a dot, because the file is handed to another program, and a comma is a
+        column separator in half of Europe. Escaping is RFC 4180, so a category called
+        `Food, drink` stays one column and a note with a quote or a newline survives.
+      - **The system picker is what makes it permissionless.** `ACTION_CREATE_DOCUMENT` means the
+        owner names a place and the app is handed a door to that one file — no storage
+        permission, ever. Opened with `"wt"`, because writing over a longer file without
+        truncating leaves the tail of the old one behind: a backup that parses and lies.
+      - **No import, on purpose.** Restoring asks what happens to what is already on the phone,
+        and D15 put that question in `feat/backup` rather than leaving it to be discovered by
+        whoever taps the button first.
+      - Settings gained a stateless `SettingsContent`, the shape the movements list already uses,
+        because a screen holding a view model cannot be put on screen by a test that only wanted
+        to check a confirmation.
 - [ ] **`feat/backup`** — the automatic half of D15, on top of the export. It carries its own
       questions — what is encrypted, and what a restore overwrites — which get asked when it is
       built rather than guessed at now.
@@ -1322,6 +1350,14 @@ parallelism.
   deliberate stopping point rather than an oversight, because adding them means deciding whether
   an unpriced holding counts as nothing or makes the total unknowable — the same question
   `PortfolioTotal` already answers for one tab, and the answer has to be the same on both.
+- **An export cannot be read back in.** The file is complete enough to restore from — every
+  table, every id, the schema version that wrote it — and nothing in the app reads it. That is
+  D15's sequencing rather than an omission: a restore has to answer what happens to what is
+  already on the phone (merge, replace, refuse), and answering it inside an export branch would
+  mean deciding it by accident. `feat/backup` is where it gets decided.
+- **The CSV covers movements and not investments.** A holding is not a row in a ledger, and
+  flattening one into the same columns would either invent fields or lose the trade behind it.
+  The JSON has everything; the CSV is the spreadsheet view, and it says so in the sheet it offers.
 - **A trade recorded before its account existed in this form still has no cash row.** Nothing
   backfills: `MIGRATION_3_4` gives every existing movement a null `tradeId`, and every trade
   recorded before it keeps its balance untouched. Editing such a trade writes the movement it

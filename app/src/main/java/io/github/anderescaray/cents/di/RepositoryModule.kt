@@ -6,6 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.data.repository.RoomBackupRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
@@ -16,6 +17,7 @@ import io.github.anderescaray.cents.data.repository.reports.RoomPeriodComparison
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCategoryRepository
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByWeekdayRepository
 import io.github.anderescaray.cents.domain.repository.AccountRepository
+import io.github.anderescaray.cents.domain.repository.BackupRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.domain.repository.TransferRepository
@@ -42,6 +44,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindTransferRepository(impl: RoomTransferRepository): TransferRepository
+
+    @Binds
+    abstract fun bindBackupRepository(impl: RoomBackupRepository): BackupRepository
 
     // One binding per view on the Reports tab: a new view adds one line here, and that is
     // the whole of its footprint on this file. See ui/feature/reports/ReportSection.kt.

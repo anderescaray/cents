@@ -238,4 +238,15 @@
     <string name="trade_row">Investment</string>
     <string name="trade_row_bought">Bought %1$s</string>
     <string name="trade_row_sold">Sold %1$s</string>
+
+    <!-- Exporting: a file the owner keeps -->
+    <string name="export_title">Export your data</string>
+    <string name="export_message">Nothing leaves the phone. You choose where the file goes, and it stays yours.</string>
+    <string name="export_json">Everything, as a backup file</string>
+    <string name="export_json_reason">Every account, category, movement, holding and trade, in one JSON file.</string>
+    <string name="export_csv">Movements, as a spreadsheet</string>
+    <string name="export_csv_reason">One row per movement, for opening in a spreadsheet. Investments are not in it.</string>
+    <string name="export_done_title">Saved</string>
+    <string name="export_failed_title">That could not be saved</string>
+    <string name="export_failed_message">The file was not written, so nothing was exported. Try again, or choose somewhere else to put it.</string>
 </resources>

@@ -35,7 +35,7 @@ investment portfolio with prices pulled from the internet.
 | DI | Hilt | De facto standard, integrates with Compose and WorkManager |
 | Navigation | Navigation Compose (type-safe routes) | |
 | Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
-| Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only |
+| Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
 | Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout |
 | Background work | WorkManager | Periodic price refresh, recurring reminders |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
@@ -226,7 +226,13 @@ a `tradeId`, obeys the same exclusion a transfer leg does, and reads as *Bought 
 v4.** What is left to the next branches: no price comes from the internet (D13 names the
 provider, and it needs a key only the owner can create), and nothing adds cash and portfolio into
 one net-worth figure.
-484 tests run on the JVM, so CI covers the database and the UI without a device.
+
+**And the data can leave.** Settings writes the whole app to a file the owner keeps — **JSON**
+with every table and the schema version that wrote it, or **CSV** of the movements for a
+spreadsheet — through the system picker, so the app asks for **no storage permission** and
+nothing goes anywhere near a third party. There is deliberately **no import**: restoring has to
+answer what happens to what is already on the phone, and D15 put that question in `feat/backup`.
+507 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

@@ -20,8 +20,9 @@ views, the account picker and the direction toggle were built — and extended o
 cover the two things that landed after that text was written: the year-on-year segment (#42),
 and the canvas of bubbles the app now opens on (#41), which changes the first thing this walk
 sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
-the same day, on a phone nobody has held it on either — and on 2026-09-16 with **Walk 7**, for
-transfers and for the cash a purchase spends — the features here whose failure is invisible on
+the same day, on a phone nobody has held it on either — on 2026-09-16 with **Walk 7**, for
+transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
+data out — the features here whose failure is invisible on
 the screen that records them: a transfer can move both balances correctly and still leak into
 every chart, and a purchase can look perfectly recorded while the account it was paid from never
 notices.
@@ -954,3 +955,62 @@ Correct a quantity (i12). The account balance must not move by a cent: discoveri
 was wrong is not a purchase.
 
 > **Wrong looks like** any change to the balance at all.
+
+## Walk 8 — getting your data out (`feat/export`)
+
+Added 2026-09-17. This is the shortest walk here and the one with the most riding on it: the
+whole point of an export is the day you need it, and that is the worst day to find out it never
+worked. **Check the file, not the message.**
+
+### x1 · Two files, and it says which is which
+
+**Settings → Export your data.** A sheet offers two things, each with a line saying what it is
+for. Nothing happens yet — this is a question, not an action.
+
+> **Wrong looks like** an export starting the moment you tap the row, with no say in what kind.
+
+### x2 · You choose where it goes, and the app never asked for permission
+
+Choose **Everything, as a backup file**. The system's own file picker opens, already suggesting
+`cents-<today>.json`. Put it in Downloads, or Drive, or anywhere.
+
+Cents has **never** asked you for permission to write files, and must not start now.
+
+> **Wrong looks like** a permission prompt, or the file appearing somewhere of the app's
+> choosing without asking.
+
+### x3 · Open it and find your own money in it
+
+This is the step that matters. Open the file — Files, a text editor, anything.
+
+- It starts with `schemaVersion` and the time you exported.
+- Your accounts are in it, by name.
+- Your movements are in it, with amounts as whole numbers of **cents**: 25,50 € is `2550`.
+- Your holdings and trades are in it too.
+
+> **Wrong looks like** a table missing, an amount that reads `25.5` or `25,50`, or a file that
+> stops halfway. Any of those and the backup is not a backup.
+
+### x4 · The spreadsheet one opens as a spreadsheet
+
+Export again, choosing **Movements, as a spreadsheet**, then open the `.csv` in Sheets or Excel.
+Columns line up under their headings, dates read as dates, amounts as numbers.
+
+If you have a note or a category with a **comma** in it, find that row: it must still be one
+row with the comma inside one cell.
+
+> **Wrong looks like** a row where the comma has split a note into two columns and pushed
+> everything after it one place to the right — the whole sheet silently wrong from there on.
+
+### x5 · Backing out is not an error
+
+Start an export and press back from the file picker instead of choosing a place. You should be
+returned to Settings with nothing said at all.
+
+> **Wrong looks like** an error telling you the export failed. It did not; you changed your mind,
+> and an app that cries wolf here is one you will ignore on the day it means it.
+
+### x6 · Exporting an empty app still writes a file
+
+Only if you have a spare install to try it on: a fresh app with nothing in it should still
+export, and the file should say there is nothing rather than refusing.

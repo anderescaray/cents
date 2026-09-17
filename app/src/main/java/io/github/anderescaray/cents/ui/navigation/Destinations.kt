@@ -154,6 +154,15 @@ sealed interface Destination {
     @Serializable
     data object Subscriptions : Destination
 
+    /**
+     * The bills waiting for a figure: every variable-amount rule that has fallen due.
+     *
+     * No arguments, like the price screen it is shaped after — it is about all of them at once,
+     * which is the reason it exists rather than a form per bill.
+     */
+    @Serializable
+    data object PendingCharges : Destination
+
     /** [ruleId] is [RuleForm.NEW] when the screen is defining one. */
     @Serializable
     data class RuleForm(
@@ -235,6 +244,7 @@ enum class TopLevelTab(
                 Destination.Categories::class,
                 Destination.Subscriptions::class,
                 Destination.RuleForm::class,
+                Destination.PendingCharges::class,
             ),
         labelRes = R.string.tab_settings,
         iconRes = R.drawable.ic_tab_settings,

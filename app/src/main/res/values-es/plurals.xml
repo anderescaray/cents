@@ -55,4 +55,12 @@
         <item quantity="one">Cada día</item>
         <item quantity="other">Cada %1$d días</item>
     </plurals>
+    <plurals name="pending_answered">
+        <item quantity="one">Se apuntará uno. Los demás se quedan como están, esperando.</item>
+        <item quantity="other">Se apuntarán %1$d. Los demás se quedan como están, esperando.</item>
+    </plurals>
+    <plurals name="pending_more_after">
+        <item quantity="one">queda uno más después de este</item>
+        <item quantity="other">quedan %1$d más después de este</item>
+    </plurals>
 </resources>

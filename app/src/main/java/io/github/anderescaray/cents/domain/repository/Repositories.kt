@@ -5,6 +5,8 @@ import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.Transaction
@@ -226,7 +228,12 @@ interface BackupRepository {
  * The one method that is not obvious is [generateDue], and it is the one everything rests on:
  * it runs whenever the app opens, so it has to be safe to run again. What it must never do is
  * write a charge twice.
+ *
+ * Over detekt's limit, and deliberately one interface: the three pending methods are the other
+ * half of [generateDue] — what it refuses to guess ends up there — and splitting them off would
+ * put one subject behind two names without making either shorter to read.
  */
+@Suppress("TooManyFunctions")
 interface RecurringRuleRepository {
     fun observeRules(): Flow<List<RecurringRule>>
 
@@ -266,4 +273,36 @@ interface RecurringRuleRepository {
      * schedules it later.
      */
     suspend fun generateDue(): Int
+
+    /**
+     * Occurrences of variable-amount rules waiting for a figure, oldest first.
+     *
+     * The other half of [generateDue]: what it deliberately skips ends up here instead of being
+     * guessed at. One per rule — see [PendingCharge].
+     */
+    fun observePending(): Flow<List<PendingCharge>>
+
+    /**
+     * Records a waiting occurrence at the amount the owner has read off the bill.
+     *
+     * Returns false when [dueDate] is no longer that rule's oldest waiting occurrence, which is
+     * what a screen left open while something else answered it looks like. Nothing is written in
+     * that case: the alternative is a movement on a date the rule has already moved past, which
+     * no later run would ever notice.
+     */
+    suspend fun recordPending(
+        ruleId: Long,
+        dueDate: LocalDate,
+        amount: Money,
+    ): Boolean
+
+    /**
+     * Moves past a waiting occurrence without recording anything — the month there was no bill.
+     *
+     * Same guard and same return as [recordPending].
+     */
+    suspend fun skipPending(
+        ruleId: Long,
+        dueDate: LocalDate,
+    ): Boolean
 }

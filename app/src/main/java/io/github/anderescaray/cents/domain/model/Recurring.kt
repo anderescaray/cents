@@ -31,6 +31,29 @@ enum class RuleMode {
 }
 
 /**
+ * One occurrence of a variable-amount rule, waiting for the number only the owner knows.
+ *
+ * The electricity bill falls due on the 15th and the app has no idea what it says, so instead of
+ * asserting one it puts the question here. **A rule in [RuleMode.CONFIRM] produces these rather
+ * than movements** — and until one is answered or skipped, nothing about that period is recorded,
+ * which is the honest state: an unknown amount is not a zero.
+ *
+ * Only the **oldest** waiting occurrence of each rule is offered at a time, and [laterCount] says
+ * how many are behind it. A rule remembers how far it has got with a single date, so answering
+ * February before January would swallow January silently; one at a time is what makes that
+ * impossible rather than merely unlikely.
+ */
+data class PendingCharge(
+    val rule: RecurringRule,
+    val dueDate: LocalDate,
+    /** Further occurrences of the same rule waiting behind this one. */
+    val laterCount: Int,
+) {
+    /** What the rule was set up expecting, which is the starting point for the real figure. */
+    val estimate: Money get() = rule.amount
+}
+
+/**
  * A movement that repeats: a subscription, a salary, the rent.
  *
  * **A rule is a template, not a movement.** Each period it generates a real [Transaction]

@@ -55,4 +55,12 @@
         <item quantity="one">Every day</item>
         <item quantity="other">Every %1$d days</item>
     </plurals>
+    <plurals name="pending_answered">
+        <item quantity="one">One will be recorded. The rest stay as they are, waiting.</item>
+        <item quantity="other">%1$d will be recorded. The rest stay as they are, waiting.</item>
+    </plurals>
+    <plurals name="pending_more_after">
+        <item quantity="one">one more after this</item>
+        <item quantity="other">%1$d more after this</item>
+    </plurals>
 </resources>

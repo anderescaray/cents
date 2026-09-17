@@ -5,13 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.RecurringRule
+import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.usecase.nextOccurrenceAfter
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -31,6 +33,8 @@ data class SubscriptionRow(
 data class SubscriptionsUiState(
     val active: List<SubscriptionRow> = emptyList(),
     val stopped: List<SubscriptionRow> = emptyList(),
+    /** Variable-amount occurrences waiting for a figure, oldest first. */
+    val pending: List<PendingCharge> = emptyList(),
     val today: LocalDate = LocalDate.EPOCH,
     val isLoading: Boolean = true,
 ) {
@@ -48,6 +52,17 @@ data class SubscriptionsUiState(
      * is going *out*.
      */
     val monthlyOutgoing: Money? get() = totalOf { it.monthlyCost }
+
+    /**
+     * Whether a guess is in that figure.
+     *
+     * A variable rule contributes the amount it was set up expecting, because leaving it out
+     * would understate what the month is committed to by exactly the bills that are hardest to
+     * predict. It is still a guess, so the caption says so rather than letting the number look
+     * like arithmetic.
+     */
+    val includesEstimates: Boolean
+        get() = active.any { it.rule.kind == TransactionKind.EXPENSE && it.rule.mode == RuleMode.CONFIRM }
 
     val yearlyOutgoing: Money? get() = totalOf { it.yearlyCost }
 
@@ -73,22 +88,24 @@ class SubscriptionsViewModel
         private val clock: Clock,
     ) : ViewModel() {
         val uiState: StateFlow<SubscriptionsUiState> =
-            repository
-                .observeRules()
-                .map { rules ->
-                    val today = LocalDate.now(clock)
-                    val rows = rules.map { SubscriptionRow(it, it.nextOccurrenceAfter(today)) }
-                    SubscriptionsUiState(
-                        active = rows.filter { it.rule.active },
-                        stopped = rows.filterNot { it.rule.active },
-                        today = today,
-                        isLoading = false,
-                    )
-                }.stateIn(
-                    scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-                    initialValue = SubscriptionsUiState(),
+            combine(
+                repository.observeRules(),
+                repository.observePending(),
+            ) { rules, pending ->
+                val today = LocalDate.now(clock)
+                val rows = rules.map { SubscriptionRow(it, it.nextOccurrenceAfter(today)) }
+                SubscriptionsUiState(
+                    active = rows.filter { it.rule.active },
+                    stopped = rows.filterNot { it.rule.active },
+                    pending = pending,
+                    today = today,
+                    isLoading = false,
                 )
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+                initialValue = SubscriptionsUiState(),
+            )
 
         /** Stops a rule, or starts it again. Nothing it has already made is touched. */
         fun setActive(

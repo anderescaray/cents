@@ -618,7 +618,8 @@ unmerged one.
 | Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. No import — that is `feat/backup`'s question |
 | Net worth | The Accounts tab says what the owner has in three numbers — **in accounts**, **invested**, and **net worth** — because D19 asked to read it with the portfolio and without it. They only add up because a purchase spends the account's cash; an unpriced holding is left out and counted aloud |
 | Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
-| Tests | 535, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
+| Tests | 549, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1340,10 +1341,38 @@ the order the roadmap puts them, and all three now have their questions answered
       rest**: where an automatic copy goes. A scheduled local copy needs nothing from anybody;
       Drive needs an OAuth client only the owner can create, which is the same shape of blocker as
       D13's key and worth asking about before the branch is built rather than after.
-- [ ] **`feat/biometric-lock`** — and **D16 settles what is under it: no SQLCipher.** Android
+- [x] **`feat/biometric-lock`** — and **D16 settles what is under it: no SQLCipher.** Android
       encrypts the device and no other app can read these files; what SQLCipher answers is root
       access and physical extraction, at the price of a dependency, slower writes and a key that
-      can be lost with the data. The lock is the protection that gets built.
+      can be lost with the data. The lock is the protection that got built. **Done**, 549 tests.
+      - **When it locks is the whole feature, and it is a plain object with no Android in it.**
+        `AppLock` decides: always on a cold start, and on coming back only after **thirty seconds**
+        away. Locking on every return would mean authenticating after two seconds in a calculator,
+        which is the fastest way to make somebody turn the lock off — and a lock that is off
+        protects nothing. Thirty is a judgement rather than a finding, and it is one line.
+      - **Two states exist only to stop the prompt looping.** `ASKING` is separate because showing
+        `BiometricPrompt` backgrounds the activity on some devices, and a lock that re-arms on
+        backgrounding would fight its own prompt. `DISMISSED` is separate because the gate raises
+        a prompt from `LOCKED`: without it, dismissing would raise the prompt again immediately
+        and the owner could never reach the screen underneath — not even to leave the app. Both
+        were found while building, and both have a test named after the failure.
+      - **While shut, the app is not composed.** Not blurred, not behind a scrim: `AppLockGate`
+        renders the lock screen *instead of* the app. A lock that draws the app underneath still
+        has it in the view tree, where a recents screenshot or an accessibility service can find
+        it. And nothing at all is drawn until the setting has been read — assuming *open* for that
+        frame would flash the ledger at exactly the person this exists to stop.
+      - **The preference fails closed.** A DataStore read that throws answers `true`, unlike the
+        home layout next door, which reads an I/O failure as an unarranged canvas. Losing an
+        arrangement costs an arrangement; treating "I could not tell" as *unlocked* would let a
+        disk hiccup quietly turn the lock off. The cost is being asked once too often, which the
+        owner can answer.
+      - **A fingerprint or the device PIN, whichever the phone has.** Insisting on a biometric
+        would shut out a phone with none enrolled; the PIN is what the device already trusts to
+        unlock itself. On a phone with neither, the switch is shown **off and unusable with a line
+        saying why** rather than hidden — the same argument the account-deletion sheet makes about
+        an option it cannot offer.
+      - **`MainActivity` is a `FragmentActivity` now**, and only because `BiometricPrompt` puts up
+        a fragment of its own. It is a superclass of what was there, so nothing else moved.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.

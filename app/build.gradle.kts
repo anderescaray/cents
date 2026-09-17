@@ -72,6 +72,14 @@ dependencies {
     // kotlinx.serialization through navigation-compose, and the export writes JSON with it
     // directly. A backup file is exactly the thing not to hand-roll an escaper for.
     implementation(libs.kotlinx.serialization.json)
+    // The app lock PRD §4.7 asks for. `BiometricPrompt` is the only supported way to ask for a
+    // fingerprint or the device PIN, and it is the thing that decides — this app never sees a
+    // credential, only whether the system was satisfied (rule 6, and `DECISIONS.md` D16).
+    //
+    // Pinned to the **stable** 1.1.0 rather than the 1.2.0 and 1.4.0 lines, which are alphas
+    // and have been for years. 1.1.0 is where `setAllowedAuthenticators` arrived, which is the
+    // one API this needs: it is what lets the device PIN stand in when there is no fingerprint.
+    implementation(libs.androidx.biometric)
     implementation(libs.vico.compose)
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)

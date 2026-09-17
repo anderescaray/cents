@@ -122,6 +122,37 @@ class RoomBackupRepository
                 )
             }
 
+        /**
+         * Everything out, everything in, in one transaction.
+         *
+         * **The order is the foreign keys' order, in both directions.** Movements point at
+         * accounts, categories and trades; trades point at holdings; so the emptying goes from
+         * the leaves inward and the filling from the roots outward. Getting it wrong does not
+         * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
+         * would turn every restore into a failure, so it is written down rather than discovered.
+         *
+         * Ids are kept exactly as the file has them. A backup is a graph, and a movement whose
+         * account id was renumbered on the way in would point at a different account.
+         */
+        override suspend fun restore(backup: Backup) {
+            database.withTransaction {
+                database.transactionDao().deleteAll()
+                database.tradeDao().deleteAll()
+                database.holdingDao().deleteAll()
+                database.priceQuoteDao().deleteAll()
+                database.categoryDao().deleteAll()
+                database.accountDao().deleteAll()
+
+                val now = clock.instant()
+                backup.accounts.forEach { database.accountDao().insert(it.toEntity(now)) }
+                backup.categories.forEach { database.categoryDao().insert(it.toEntity(now)) }
+                backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
+                backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
+                backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
+                backup.quotes.forEach { database.priceQuoteDao().upsert(it.toEntity()) }
+            }
+        }
+
         private suspend fun quotes() =
             database.priceQuoteDao().observeAll().first().map {
                 BackupQuote(

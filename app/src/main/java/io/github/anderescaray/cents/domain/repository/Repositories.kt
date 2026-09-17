@@ -196,4 +196,17 @@ interface TransferRepository {
 interface BackupRepository {
     /** Everything the app holds, read at one moment. */
     suspend fun snapshot(): Backup
+
+    /**
+     * Puts a backup back, **replacing everything currently recorded** (`DECISIONS.md` D21).
+     *
+     * All of it or none of it: one database transaction, so a restore that fails halfway leaves
+     * the app as it was rather than as a mixture of two ledgers, which is the one outcome worse
+     * than either. Rows keep the ids they had in the file, because a backup is a graph — a
+     * movement whose account id was renumbered would point at somebody else's account.
+     *
+     * It is the only operation in the app that destroys everything, so it is reached through a
+     * confirmation that first says what is about to go.
+     */
+    suspend fun restore(backup: Backup)
 }

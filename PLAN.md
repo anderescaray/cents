@@ -617,7 +617,8 @@ unmerged one.
 | Investments and cash | A purchase takes its cost out of the account it is held in and a sale puts it back, so **a broker account's balance is the cash left in it** and the portfolio sits beside it rather than inside it. The movement carries a `tradeId`, obeys the same exclusion a transfer leg does, reads as *Bought NVD.DE* and opens the trade. Room v4 |
 | Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. No import — that is `feat/backup`'s question |
 | Net worth | The Accounts tab says what the owner has in three numbers — **in accounts**, **invested**, and **net worth** — because D19 asked to read it with the portfolio and without it. They only add up because a purchase spends the account's cash; an unpriced holding is left out and counted aloud |
-| Tests | 516, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
+| Tests | 535, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1306,9 +1307,39 @@ the order the roadmap puts them, and all three now have their questions answered
       - Settings gained a stateless `SettingsContent`, the shape the movements list already uses,
         because a screen holding a view model cannot be put on screen by a test that only wanted
         to check a confirmation.
-- [ ] **`feat/backup`** — the automatic half of D15, on top of the export. It carries its own
-      questions — what is encrypted, and what a restore overwrites — which get asked when it is
-      built rather than guessed at now.
+- [x] **`feat/restore`** — the half of `feat/backup` that needed nothing from the owner, split
+      out and built first: **a backup file read back in**. #51 wrote files with no way home, which
+      C4 recorded as a gap, and a backup that cannot be restored is an export with a reassuring
+      name. **Done**, 535 tests.
+      - **D21 is answered in the open: a restore replaces everything.** Merging two ledgers needs
+        id remapping and duplicate detection — a backup is a graph, and two ledgers numbering
+        their accounts from 1 cannot be poured together — for a case that barely exists with one
+        owner. Refusing unless the app is empty is useless exactly when it is needed.
+      - **The file is read before the question is asked**, so the confirmation names both halves
+        of the trade — what the file holds, and what is about to be replaced — and the numbers in
+        it are checkable rather than promises. That ordering moved once during the build: what is
+        currently recorded used to be read when the flow started, which races an owner who picks
+        a file quickly, and the half that loses that race is the one saying what they are about
+        to lose.
+      - **Older files are read, newer ones are refused.** A v2 backup has no `transferId` because
+        transfers did not exist when it was written, and absent reads as null — which is what it
+        means. A file from a later version might hold a table this one cannot see, so it is
+        turned away rather than partly understood.
+      - **A damaged file changes nothing.** A missing amount is a refusal naming the field, not a
+        zero written into a ledger; and the whole restore is one transaction, so a write that
+        fails partway leaves the app exactly as it was.
+      - **Ids are kept.** A movement names its account by id, so renumbering on the way in would
+        file it under somebody else's account and every balance would be wrong with nothing on
+        screen to show it.
+      - The strongest test here is the **round trip**: populate, export, wipe, restore, compare.
+        It is the only one that would catch the writer and the reader agreeing with each other
+        while both being wrong about the database.
+- [ ] **`feat/backup`** — what is left of D15's automatic half: a backup that happens **without
+      being asked for**. Its questions are half answered — D21 settled what a restore overwrites,
+      and encryption stays out while the file goes somewhere the owner chose — and **D22 asks the
+      rest**: where an automatic copy goes. A scheduled local copy needs nothing from anybody;
+      Drive needs an OAuth client only the owner can create, which is the same shape of blocker as
+      D13's key and worth asking about before the branch is built rather than after.
 - [ ] **`feat/biometric-lock`** — and **D16 settles what is under it: no SQLCipher.** Android
       encrypts the device and no other app can read these files; what SQLCipher answers is root
       access and physical extraction, at the price of a dependency, slower writes and a key that
@@ -1361,11 +1392,20 @@ parallelism.
   is said out loud in the footer instead, because the alternatives are both worse: counting it
   would make the top of the screen disagree with the total under the list, and leaving it
   unmentioned would understate net worth silently.
-- **An export cannot be read back in.** The file is complete enough to restore from — every
-  table, every id, the schema version that wrote it — and nothing in the app reads it. That is
-  D15's sequencing rather than an omission: a restore has to answer what happens to what is
-  already on the phone (merge, replace, refuse), and answering it inside an export branch would
-  mean deciding it by accident. `feat/backup` is where it gets decided.
+- **A restore replaces everything, and there is no undo behind it.** D21 chose that deliberately
+  over merging, and the protection is the confirmation rather than a way back: it names what the
+  file holds and what is about to go, and it is the last thing between the owner and an empty
+  ledger. The one safety net that exists is the obvious one — export before you restore — and
+  nothing in the app says so. A line in that alert is the cheapest fix if it is ever wanted.
+- **Nothing backs up on its own.** Every export is one the owner remembered to make, which is the
+  failure mode backups are famous for. `feat/backup` is the branch and **D22** is what it waits
+  on: not code, but where an automatic copy should go.
+- **Two documentation branches can edit the same paragraph and one will vanish.** It happened on
+  2026-09-17: #52 and #53 both rewrote the *Open* section of `DECISIONS.md`, both merged, and
+  **D20 was silently gone** — no conflict surfaced in the working tree afterwards, and the branch
+  that lost had already been deleted. It is the same family as the squash-merge warning below,
+  and the same fix: when two branches are in flight, keep their documentation edits in different
+  sections, or land one before writing the other. D20 is restored, and this is why it says so.
 - **The CSV covers movements and not investments.** A holding is not a row in a ledger, and
   flattening one into the same columns would either invent fields or lose the trade behind it.
   The JSON has everything; the CSV is the spreadsheet view, and it says so in the sheet it offers.

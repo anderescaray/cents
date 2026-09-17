@@ -36,6 +36,10 @@ interface CategoryDao {
     @Delete
     suspend fun delete(category: CategoryEntity)
 
+    /** Every category. Only a restore does this, and only after the movements that use them. */
+    @Query("DELETE FROM categories")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun deleteById(id: Long)
 

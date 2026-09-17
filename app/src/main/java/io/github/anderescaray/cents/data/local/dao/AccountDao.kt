@@ -100,6 +100,10 @@ interface AccountDao {
     @Query("DELETE FROM accounts WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    /** Every account. Only a restore does this, and only after the rows that point here. */
+    @Query("DELETE FROM accounts")
+    suspend fun deleteAll()
+
     @Insert
     suspend fun insert(account: AccountEntity): Long
 

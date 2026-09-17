@@ -360,4 +360,6 @@
     <string name="subscriptions_waiting_header">Esperando un importe</string>
     <string name="subscriptions_waiting_footer">Les tocaba y Cents no sabe cuánto han costado. No se apunta nada hasta que lo digas tú.</string>
     <string name="subscriptions_waiting_value">Poner</string>
+    <string name="rule_frequency_sheet_message">Cada cuánto vuelve. Cada repetición se cuenta desde la fecha de inicio de abajo.</string>
+    <string name="rule_frequency_chosen">✓</string>
 </resources>

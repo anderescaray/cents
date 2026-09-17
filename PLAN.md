@@ -622,7 +622,7 @@ unmerged one.
 | Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
 | Recurring | Rent, Netflix and the salary record themselves. A rule is a **template**: each launch it writes whatever has fallen due, once, and the movements it makes are ordinary from that moment on. Settings › Subscriptions lists them with **what they come to per month and per year** — the figure the screen exists for — and a cancelled subscription is **stopped**, never erased. Room v5 |
 | Variable bills | A subscription whose amount changes — the electricity — is marked **ask me the amount**, and what the app refuses to guess waits on the Subscriptions screen instead of being invented. Several are answered in one sitting, each recorded **on the day it fell due** rather than the day it was answered; *there was no bill that month* is its own gesture, because it is not a zero |
-| Tests | 620, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 622, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1468,7 +1468,7 @@ the order the roadmap puts them, and all three now have their questions answered
 - [x] **`feat/subscription-amounts`** — **D23, first half: somewhere to answer a bill the app
       would not guess.** `feat/recurring-rules` stored a *variable amount* mode and skipped it,
       which was honest and useless: the refusal to invent a figure was indistinguishable from the
-      feature not working. **Done**, 620 tests, **no schema change**. What it settled:
+      feature not working. **Done**, 622 tests, **no schema change**. What it settled:
       - **The waiting list is derived, not stored.** A rule already remembers how far it has got,
         so what is pending is what `dueOccurrences` returns for a variable rule — answering one
         writes the movement and moves that watermark, in one transaction. A table of pending rows
@@ -1864,7 +1864,8 @@ parallelism.
   recorded, so there is nothing to restore — but the rule has moved past that period, and getting
   it back means moving the rule's start date, which is obscure. The confirmation is what stands
   in the way.
-- **Generation runs when the app comes to the front, and nowhere else.** No WorkManager, no
+- **Generation runs when the app comes to the front, and when a rule is saved.** Those two,
+  and nothing else. No WorkManager, no
   notification: a phone left untouched for a week records the rent when it is next opened, dated
   correctly. PRD §4.4's reminders are `feat/subscription-reminders`.
 - **Editing a rule changes what it writes next, never what it has written.** Raise Netflix from

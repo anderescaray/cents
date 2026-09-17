@@ -274,7 +274,7 @@ row left empty left alone. **A purchase can also be recorded as 500 € of somet
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-620 tests run on the JVM, so CI covers the database and the UI without a device.
+622 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

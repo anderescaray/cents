@@ -1171,6 +1171,10 @@ months, each 750 €, each with *Rent* as its note.
 > this month. The start date is the anchor and the backlog: entering something late should fill
 > in what it missed, on the days it actually happened.
 
+> **This is where the phone found a real one** (2026-09-17): nothing appeared at all, because
+> the catch-up only ran when the app came to the front and it had never left. Do not close and
+> reopen to make this step pass — the charges have to be there the moment you save.
+
 ### s2 · The step this whole feature turns on
 
 Close the app properly — swipe it out of the recents list — and open it again. Twice.

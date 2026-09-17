@@ -55,6 +55,7 @@ data class RuleFormUiState(
     /** Whether the rule is still generating. A stopped one offers deleting instead of stopping. */
     val ruleActive: Boolean = true,
     val pickingDate: RuleDateField? = null,
+    val pickingFrequency: Boolean = false,
     /** Set once it is known that stopping is the honest form of deleting (PRD §4.4). */
     val generatedCount: Int = 0,
     val confirmingRemoval: Boolean = false,
@@ -202,7 +203,12 @@ class RuleFormViewModel
 
         fun selectCategory(id: Long?) = form.update { it.copy(categoryId = id) }
 
-        fun setFrequency(frequency: Frequency) = form.update { it.copy(frequency = frequency) }
+        fun openFrequencyPicker() = form.update { it.copy(pickingFrequency = true) }
+
+        fun dismissFrequencyPicker() = form.update { it.copy(pickingFrequency = false) }
+
+        fun setFrequency(frequency: Frequency) =
+            form.update { it.copy(frequency = frequency, pickingFrequency = false) }
 
         /** Digits only, and no more than three: a rule that comes round every 999 days is the
          *  furthest apart this is meant to express.
@@ -270,6 +276,13 @@ class RuleFormViewModel
                                 rule.copy(lastGenerated = repository.findById(ruleId)?.lastGenerated),
                             )
                         }
+                        // **And then catch it up, here, before the screen closes.** The start
+                        // date is the anchor *and* the backlog: a subscription entered in
+                        // September that began in May is five charges that already happened, and
+                        // the owner is looking at the movement list a second later. Leaving it to
+                        // the next `ON_START` meant nothing appeared until the app had been
+                        // closed and reopened, which reads exactly like the feature not working.
+                        repository.generateDue()
                     }
                 form.update {
                     it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess)

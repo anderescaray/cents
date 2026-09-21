@@ -1,13 +1,20 @@
 # Cents
 
 A local-first personal finance tracker for Android. Income and expenses with
-user-defined categories, multiple accounts with transfers, recurring subscriptions,
-spending analytics, and an investment portfolio priced from live market data.
+user-defined categories, multiple accounts with transfers, recurring subscriptions with
+reminders, spending analytics, and an investment portfolio with net worth.
 
 Built with Kotlin and Jetpack Compose. All data stays on the device — no backend, no user
 accounts, no telemetry.
 
-> **Status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
+> **Status (2026-09-21): Phases 1–3 built, apart from automatic backup; Phase 4 built with
+> prices typed by hand; Phases 5–6 not started.** Most of Phase 2 onward has still not been
+> walked on a real phone. Since the paragraph below was written, the app has gained transfers,
+> an investment portfolio with closed positions and net worth, recurring subscriptions that
+> record themselves, ask for variable bills, remind you before a charge and say what is still
+> committed this month, JSON/CSV export and restore, and a biometric lock. 699 tests.
+>
+> **Earlier status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
 > Recording money works end to end: accounts, categories, transactions and balances that trace
 > back to the movements behind them; a list grouped by day that can be searched and filtered by
 > date range, account, category, kind and amount; and deletion that asks the right question —
@@ -107,8 +114,8 @@ parallel work demand it.
 | 0 | Project skeleton, CI, theme, navigation | **Done** |
 | 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
 | 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
-| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | Next · transfers first, because investments need them |
-| 4 | Investment portfolio with live prices and P&L | **Started early** · portfolio and manual prices built, provider next |
+| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | **Built** · except automatic backup to Drive, which waits on an OAuth client |
+| 4 | Investment portfolio with prices and P&L | **Built** · prices are typed by hand: no free provider carries these European listings, and paying for one was declined |
 | 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | Planned |
 | 6 | Widget, animations, Baseline Profile, accessibility | Planned |
 
@@ -118,6 +125,8 @@ parallel work demand it.
   roadmap
 - [`CLAUDE.md`](CLAUDE.md) — engineering guidelines: stack, architecture, non-negotiable
   rules, git workflow
+- [`AGENTS.md`](AGENTS.md) — the same rules for the other coding agents, and how parallel work
+  in separate worktrees is kept from colliding
 - [`PLAN.md`](PLAN.md) — environment setup, the development process, and **Part C: where
   the project stands right now**, which is where a new session starts
 - [`DECISIONS.md`](DECISIONS.md) — questions only the owner can answer, and what was decided

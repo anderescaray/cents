@@ -182,6 +182,7 @@ class RoomTransactionRepository
     @Inject
     constructor(
         private val transactionDao: TransactionDao,
+        private val database: CentsDatabase,
         private val clock: Clock,
     ) : TransactionRepository {
         override fun observeTransactions(filter: TransactionFilter): Flow<List<TransactionDetails>> =
@@ -249,6 +250,18 @@ class RoomTransactionRepository
 
         override suspend fun deleteTransaction(id: Long) {
             transactionDao.deleteById(id)
+        }
+
+        override suspend fun findTransferLegs(transferId: Long): List<Transaction> =
+            transactionDao.findTransferLegs(transferId).map { it.toDomain() }
+
+        override suspend fun restore(transactions: List<Transaction>) {
+            database.withTransaction {
+                val now = clock.instant()
+                transactions.forEach { transaction ->
+                    transactionDao.insert(transaction.toEntity(createdAt = now, updatedAt = now))
+                }
+            }
         }
     }
 

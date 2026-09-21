@@ -136,6 +136,7 @@ interface CategoryRepository {
     suspend fun countTransactions(id: Long): Int
 }
 
+@Suppress("TooManyFunctions")
 interface TransactionRepository {
     /**
      * The list, narrowed by [filter] — and [TransactionFilter.None], the default, is every
@@ -170,6 +171,21 @@ interface TransactionRepository {
     suspend fun updateTransaction(transaction: Transaction)
 
     suspend fun deleteTransaction(id: Long)
+
+    /** Both legs of one transfer, for [DeletedTransactionBuffer] when a transfer is deleted. */
+    suspend fun findTransferLegs(transferId: Long): List<Transaction>
+
+    /**
+     * Restores one or more deleted movements, whole: all rows in one database transaction,
+     * keeping their original ids, amounts, accounts, dates and pairing.
+     *
+     * Used by Undo on the transactions list. When restoring a transfer, both legs must be
+     * written together: half a transfer restored is money arriving from nowhere, so a write
+     * that fails partway leaves neither leg behind.
+     */
+    suspend fun restore(transactions: List<Transaction>)
+
+    suspend fun restore(transaction: Transaction) = restore(listOf(transaction))
 }
 
 /**

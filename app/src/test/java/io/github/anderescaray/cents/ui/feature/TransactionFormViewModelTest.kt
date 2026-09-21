@@ -15,6 +15,7 @@ import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormViewModel
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +54,7 @@ class TransactionFormViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
-        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+        transactions = RoomTransactionRepository(database.transactionDao(), database, clock)
         // Real time on purpose: runTest races virtual time ahead while the database
         // works, which would expire the undo window mid-test. Its expiry has its
         // own test, with a scheduler it controls.
@@ -546,7 +547,7 @@ class TransactionFormViewModelTest {
             }
 
             assertNull(transactions.findById(id))
-            val buffered = requireNotNull(deleted.deleted.value)
+            val buffered = requireNotNull(deleted.deleted.value as? DeletedTransaction.Movement)
             assertEquals(id, buffered.id)
             assertEquals(Money(700, "EUR"), buffered.amount)
             assertEquals("Mistake", buffered.note)

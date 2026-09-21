@@ -59,7 +59,7 @@ class ReportsDrillDownTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
         filters = TransactionFilterStore()
-        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+        transactions = RoomTransactionRepository(database.transactionDao(), database, clock)
         viewModel =
             viewModels.keep(
                 ReportsViewModel(

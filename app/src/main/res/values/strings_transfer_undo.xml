@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Strings for undoing a deleted transfer from the transactions list banner.
+-->
+<resources>
+    <string name="transfer_deleted">Transfer deleted</string>
+    <string name="transfer_delete_undo_message">Both sides of it go and both balances change back. You can undo it from the list for a few seconds.</string>
+</resources>

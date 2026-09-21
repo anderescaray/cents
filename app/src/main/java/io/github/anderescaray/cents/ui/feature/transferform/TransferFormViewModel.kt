@@ -10,8 +10,10 @@ import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transfer
 import io.github.anderescaray.cents.domain.repository.AccountRepository
+import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.domain.repository.TransferRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -131,6 +133,8 @@ class TransferFormViewModel
     @Inject
     constructor(
         private val transferRepository: TransferRepository,
+        private val transactionRepository: TransactionRepository,
+        private val deletedTransactions: DeletedTransactionBuffer,
         accountRepository: AccountRepository,
         savedStateHandle: SavedStateHandle,
         clock: Clock,
@@ -325,17 +329,22 @@ class TransferFormViewModel
         fun cancelDeletion() = form.update { it.copy(confirmingDeletion = false) }
 
         /**
-         * Removes both legs.
-         *
-         * There is no undo behind it, unlike a movement's: the buffer the list offers Undo
-         * from holds one movement, and half a transfer put back is money arriving from
-         * nowhere. So the confirmation is the whole of the protection (rule 7), and it says
-         * that both sides go.
+         * Removes both legs and hands them to [DeletedTransactionBuffer], so the list it
+         * returns to can offer to put them back in one database transaction (rule 7).
          */
         fun confirmDeletion() {
             val id = transferId ?: return
             viewModelScope.launch {
-                val removed = runCatching { transferRepository.deleteTransfer(id) }
+                val removed =
+                    runCatching {
+                        val legs = transactionRepository.findTransferLegs(id)
+                        check(legs.size == 2) { "A transfer must have exactly two legs" }
+                        transferRepository.deleteTransfer(id)
+                        legs
+                    }
+                if (removed.isSuccess) {
+                    deletedTransactions.remember(removed.getOrThrow())
+                }
                 form.update {
                     it.copy(
                         confirmingDeletion = false,

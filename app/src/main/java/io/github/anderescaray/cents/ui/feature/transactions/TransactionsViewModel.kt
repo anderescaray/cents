@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -42,8 +43,8 @@ data class TransactionsUiState(
     val isLoading: Boolean = true,
     /** The day the labels are relative to, from the injected clock rather than the device. */
     val today: LocalDate = LocalDate.now(),
-    /** A movement just deleted on the form, still restorable from here (rule 7). */
-    val undoableDeletion: Transaction? = null,
+    /** A movement or transfer just deleted on the form, still restorable from here (rule 7). */
+    val undoableDeletion: DeletedTransaction? = null,
     /** What the list is currently narrowed to. [TransactionFilter.None] is everything. */
     val filter: TransactionFilter = TransactionFilter.None,
     /**
@@ -68,6 +69,7 @@ data class TransactionsUiState(
     val isEmpty: Boolean get() = !isLoading && days.isEmpty()
 }
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class TransactionsViewModel
     @Inject
@@ -147,12 +149,12 @@ class TransactionsViewModel
         }
 
         /**
-         * Puts a deleted movement back, with the row id it had: an undo that returns a
+         * Puts a deleted movement or transfer back, with the row ids it had: an undo that returns a
          * different movement is not an undo.
          */
         fun undoDeletion() {
-            val movement = deletedTransactions.take() ?: return
-            viewModelScope.launch { transactionRepository.addTransaction(movement) }
+            val deleted = deletedTransactions.take() ?: return
+            viewModelScope.launch { transactionRepository.restore(deleted.movements) }
         }
 
         fun dismissUndo() = deletedTransactions.clear()

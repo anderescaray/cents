@@ -1,0 +1,3 @@
+# Gitignored files Orca copies into every new worktree.
+# local.properties holds sdk.dir; without it Gradle cannot find the Android SDK.
+local.properties

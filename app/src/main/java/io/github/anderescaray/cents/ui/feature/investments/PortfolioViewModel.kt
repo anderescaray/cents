@@ -27,6 +27,8 @@ data class PortfolioUiState(
     val loading: Boolean = true,
     val groups: List<PortfolioGroup> = emptyList(),
     val totals: List<PortfolioTotal> = emptyList(),
+    /** Fully sold holdings. Absent from [groups] and from [totals]. */
+    val closedPositions: List<Position> = emptyList(),
     /**
      * Nothing can be held until there is an account to hold it in, and the empty state says so.
      *
@@ -37,7 +39,8 @@ data class PortfolioUiState(
      */
     val hasAccount: Boolean = false,
 ) {
-    val isEmpty: Boolean get() = groups.isEmpty()
+    /** Nothing open and nothing closed. A sold-out portfolio is not this: its result is still there. */
+    val isEmpty: Boolean get() = groups.isEmpty() && closedPositions.isEmpty()
 }
 
 /**
@@ -47,10 +50,10 @@ data class PortfolioUiState(
  * their own heading — and it is also the split that stops being cosmetic the day prices arrive
  * from a provider: a ticker can be looked up, an ISIN mostly cannot (PRD 5.1).
  *
- * **A fully sold holding is not listed.** It has no quantity, so it has nothing to be worth;
- * what it made is on its own screen, reachable while any of it is still held. That is a choice
- * this screen makes rather than a fact of the data, and it is the reason `Position.isOpen`
- * exists.
+ * **A fully sold holding is not part of the portfolio.** It has no quantity, so it has nothing
+ * to be worth, and it stays out of [PortfolioUiState.totals]. What it made is listed underneath,
+ * collapsed, because that profit is recorded and was otherwise unreachable. A holding that was
+ * never bought is not closed: a quantity of zero is also what you have before the first trade.
  */
 @HiltViewModel
 class PortfolioViewModel
@@ -71,6 +74,7 @@ class PortfolioViewModel
                             PortfolioGroup(assetClass, positions)
                         },
                     totals = portfolio.totals(),
+                    closedPositions = portfolio.closedPositions,
                     hasAccount = accounts.isNotEmpty(),
                 )
             }.stateIn(

@@ -1,10 +1,13 @@
 package io.github.anderescaray.cents.ui.feature
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.Holding
 import io.github.anderescaray.cents.domain.model.Money
@@ -17,7 +20,9 @@ import io.github.anderescaray.cents.ui.feature.investments.ADD_HOLDING_TAG
 import io.github.anderescaray.cents.ui.feature.investments.PortfolioGroup
 import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
 import io.github.anderescaray.cents.ui.feature.investments.PortfolioUiState
+import io.github.anderescaray.cents.ui.feature.investments.formatReturn
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -107,6 +112,54 @@ class PortfolioScreenTest {
     }
 
     @Test
+    fun `closed positions stay collapsed, and opening one does not change what is held`() {
+        var opened: Long? = null
+        val closedPnl = Money(2_000, "EUR")
+        showing(
+            state =
+                PortfolioUiState(
+                    loading = false,
+                    hasAccount = true,
+                    groups = listOf(PortfolioGroup(AssetClass.STOCK, listOf(position(priced = true)))),
+                    totals = listOf(total()),
+                    closedPositions =
+                        listOf(closedPosition(pnl = closedPnl, cost = Money(10_000, "EUR"))),
+                ),
+            onOpenHolding = { opened = it },
+        )
+
+        compose.onNodeWithText("NVIDIA").assertIsDisplayed()
+
+        scrollTo("1 position")
+        compose.onNodeWithText("Vanguard").assertDoesNotExist()
+        compose.onNodeWithText("1 position").performClick()
+        scrollTo("Vanguard")
+        compose.onNodeWithText("Vanguard").assertIsDisplayed()
+        compose.onNodeWithText(closedResult(closedPnl, 0.2)).assertIsDisplayed()
+        compose.onNodeWithText("NVIDIA").assertExists()
+        compose.onNodeWithText("Vanguard").performClick()
+
+        assertEquals(8L, opened)
+    }
+
+    @Test
+    fun `a portfolio of only closed positions shows them instead of the empty state`() {
+        showing(
+            PortfolioUiState(
+                loading = false,
+                hasAccount = true,
+                closedPositions =
+                    listOf(closedPosition(pnl = Money(2_000, "EUR"), cost = Money(10_000, "EUR"))),
+            ),
+        )
+
+        compose.onNodeWithText("Nothing held yet").assertDoesNotExist()
+        compose.onNodeWithText("Closed positions", ignoreCase = true).assertIsDisplayed()
+        compose.onNodeWithText("Prices").assertDoesNotExist()
+        compose.onNodeWithText("Vanguard").assertDoesNotExist()
+    }
+
+    @Test
     fun `with no account there is nothing to add a holding to, so nothing offers it`() {
         showing(PortfolioUiState(loading = false, hasAccount = false))
 
@@ -127,6 +180,40 @@ class PortfolioScreenTest {
             }
         }
     }
+
+    /**
+     * The portfolio is a `LazyColumn`, so a section at the foot is not composed until it is
+     * scrolled to — the same mechanic the Reports tab works around.
+     */
+    private fun scrollTo(text: String) {
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text))
+    }
+
+    private fun closedResult(
+        pnl: Money,
+        ratio: Double,
+    ): String = MoneyFormatter.formatSigned(pnl) + " · " + formatReturn(ratio)
+
+    private fun closedPosition(
+        pnl: Money,
+        cost: Money,
+    ) = Position(
+        holding =
+            Holding(
+                id = 8,
+                accountId = 1,
+                assetClass = AssetClass.ETF,
+                symbol = "VWCE",
+                name = "Vanguard",
+                currency = "EUR",
+                note = null,
+            ),
+        quantity = Quantity.ZERO,
+        costBasis = Money(0, "EUR"),
+        realisedPnl = pnl,
+        realisedCost = cost,
+        quote = null,
+    )
 
     private fun position(priced: Boolean) =
         Position(

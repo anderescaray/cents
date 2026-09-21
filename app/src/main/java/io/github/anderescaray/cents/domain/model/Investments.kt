@@ -223,8 +223,27 @@ data class Position(
     val costBasis: Money,
     val realisedPnl: Money,
     val quote: PriceQuote?,
+    /**
+     * What the units already sold had cost. The denominator of [realisedReturn].
+     *
+     * Kept apart from [costBasis], which is what is still held and is zero once everything has
+     * been sold — the moment a percentage is most wanted. A correction that removes units takes
+     * their cost with it and does not add to this: no money came back, so there is no return
+     * to measure.
+     */
+    val realisedCost: Money = Money.zero(costBasis.currency),
 ) {
     val isOpen: Boolean get() = !quantity.isZero
+
+    /**
+     * Sold out, with a result to show.
+     *
+     * Quantity alone is not enough. A holding that has never been traded also holds nothing,
+     * and a correction down to zero realises no profit — discovering that a number was wrong
+     * is not a loss. Neither is a closed position. What belongs here is a sale that has a
+     * profit, or a cost to put a profit against.
+     */
+    val isClosed: Boolean get() = !isOpen && (!realisedCost.isZero || !realisedPnl.isZero)
 
     /** What one unit cost on average, or null for a position that is fully sold. */
     val averageCost: Money?
@@ -269,6 +288,18 @@ data class Position(
             if (costBasis.minorUnits == 0L) return null
             return pnl.minorUnits.toDouble() / costBasis.minorUnits.toDouble()
         }
+
+    /**
+     * Realised gain as a fraction of [realisedCost] — 0.12 meaning the sales made 12%.
+     *
+     * Null when what was sold had cost nothing, for the same reason [unrealisedReturn] is null
+     * on a position that cost nothing: a ratio against zero is not a number.
+     */
+    val realisedReturn: Double?
+        get() {
+            if (realisedCost.minorUnits == 0L) return null
+            return realisedPnl.minorUnits.toDouble() / realisedCost.minorUnits.toDouble()
+        }
 }
 
 /**
@@ -284,6 +315,21 @@ data class Portfolio(
 ) {
     val openPositions: List<Position> get() = positions.filter { it.isOpen }
 
+    /**
+     * Fully sold holdings, in the order the portfolio is read: by [AssetClass], and within a
+     * class in the order they arrived (the query returns them by name).
+     *
+     * Not part of [totals]. A closed position has nothing left to be worth, and the money the
+     * sale returned is already in the account. [totals] is what is still held.
+     */
+    val closedPositions: List<Position>
+        get() {
+            val closed = positions.filter { it.isClosed }
+            return AssetClass.entries.flatMap { assetClass ->
+                closed.filter { it.holding.assetClass == assetClass }
+            }
+        }
+
     /** The classes that actually hold something, in the order [AssetClass] declares them. */
     fun openPositionsByClass(): List<Pair<AssetClass, List<Position>>> =
         AssetClass.entries
@@ -291,9 +337,11 @@ data class Portfolio(
             .filter { (_, positions) -> positions.isNotEmpty() }
 
     /**
-     * Market value, cost and profit per currency — and only over the positions that have a
-     * price, so a total can never be the sum of *some* of it. [PortfolioTotal.unpricedCount]
-     * is how the screen says what was left out.
+     * Market value, cost and profit per currency — over open positions only, and only over the
+     * ones that have a price, so a total can never be the sum of *some* of it.
+     * [PortfolioTotal.unpricedCount] is how the screen says what was left out. A closed
+     * position is absent even when it has no price: it is not held, and leaving it out must
+     * not read as an open holding nobody has priced.
      */
     fun totals(): List<PortfolioTotal> =
         openPositions

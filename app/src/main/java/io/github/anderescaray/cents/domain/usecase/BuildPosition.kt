@@ -31,6 +31,10 @@ import java.math.BigInteger
  * discovering that a number was wrong. Units appearing costs nothing (a split, a bonus, a
  * purchase recorded elsewhere) and the average per unit falls; units disappearing takes their
  * share of the cost with them, because they were never held.
+ *
+ * **The cost a sale removes is remembered**, not only the profit. A fully sold position has a
+ * cost basis of zero — that is the point of reducing it proportionally — and the percentage
+ * beside that profit needs the cost that left.
  */
 fun positionFrom(
     holding: Holding,
@@ -41,6 +45,7 @@ fun positionFrom(
     var quantity = Quantity.ZERO
     var basisMinor = 0L
     var realisedMinor = 0L
+    var soldCostMinor = 0L
 
     for (trade in trades.sortedWith(compareBy({ it.date }, { it.id }))) {
         when (trade.side) {
@@ -80,6 +85,9 @@ fun positionFrom(
                 val sold = if (trade.quantity > quantity) quantity else trade.quantity
                 val costOut = proportionOf(basisMinor, sold, quantity)
                 realisedMinor += proceedsOf(trade, sold) - costOut
+                // The basis below is about to lose this cost. A closed position's percentage is
+                // the profit over it, so it has to be kept somewhere the basis is not.
+                soldCostMinor += costOut
                 basisMinor -= costOut
                 quantity -= sold
             }
@@ -92,6 +100,7 @@ fun positionFrom(
         costBasis = Money(basisMinor, currency),
         realisedPnl = Money(realisedMinor, currency),
         quote = quote,
+        realisedCost = Money(soldCostMinor, currency),
     )
 }
 

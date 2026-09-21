@@ -314,6 +314,19 @@ class SubscriptionTotalsTest {
         assertEquals(IncomeShareUnavailableReason.MIXED_CURRENCIES, totals.incomeShareUnavailableReason)
     }
 
+    @Test
+    fun `incomes in different currencies with no expenses still total zero charges`() {
+        val salary = rule().copy(kind = TransactionKind.INCOME)
+        val freelance = rule().copy(id = 2, kind = TransactionKind.INCOME, amount = Money(1_000, "USD"))
+        val totals = subscriptionTotalsOf(listOf(salary, freelance), LocalDate.of(2026, 9, 1))
+
+        assertEquals(Money.zero("EUR"), totals.monthlyOutgoing)
+        assertEquals(Money.zero("EUR"), totals.yearlyOutgoing)
+        assertEquals(Money.zero("EUR"), totals.committedThisMonth)
+        // The share is still refused, correctly: the incomes themselves cannot be added up.
+        assertEquals(IncomeShareUnavailableReason.MIXED_CURRENCIES, totals.incomeShareUnavailableReason)
+    }
+
     private fun totals(
         rule: RecurringRule,
         today: LocalDate = LocalDate.of(2026, 9, 17),

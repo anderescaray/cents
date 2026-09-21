@@ -41,12 +41,15 @@ fun subscriptionTotalsOf(
     val active = rules.filter { it.active }
     val expenses = active.filter { it.kind == TransactionKind.EXPENSE }
     val income = active.filter { it.kind == TransactionKind.INCOME }
+    // Only an empty side falls back to this, and an empty sum is zero in any currency — so it
+    // needs some rule's currency, not one they all share. Requiring agreement here made two
+    // incomes in different currencies turn "no charges" into "cannot be added up".
     val currency =
         active
             .ifEmpty { rules }
-            .map { it.amount.currency }
-            .distinct()
-            .singleOrNull()
+            .firstOrNull()
+            ?.amount
+            ?.currency
     val monthlyOutgoing = expenses.map { it.monthlyCost }.total(currency)
     val monthlyIncome = income.map { it.monthlyCost }.total(currency)
     val commitments = expenses.map { it to it.committedOccurrenceCount(today) }

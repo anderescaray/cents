@@ -2,7 +2,9 @@ package io.github.anderescaray.cents.domain.model
 
 import io.github.anderescaray.cents.domain.usecase.positionFrom
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
@@ -23,6 +25,7 @@ class PositionTest {
         assertEquals(Quantity.ofUnits(10), position.quantity)
         assertEquals(Money(100_500, EUR), position.costBasis)
         assertEquals(Money(10_050, EUR), position.averageCost)
+        assertFalse("nothing has been sold", position.isClosed)
     }
 
     @Test
@@ -54,6 +57,10 @@ class PositionTest {
         assertEquals(Money(15_000, EUR), position.averageCost)
         // 300,00 out, 150,00 of cost gone with it.
         assertEquals(Money(150_000, EUR), position.realisedPnl)
+        // The percentage is that profit over the cost that left, which is the whole of it: doubled.
+        assertEquals(Money(150_000, EUR), position.realisedCost)
+        assertEquals(1.0, position.realisedReturn!!, 0.0001)
+        assertFalse("half of it is still held", position.isClosed)
     }
 
     @Test
@@ -69,6 +76,10 @@ class PositionTest {
         assertEquals("a closed position must cost nothing", Money(0, EUR), position.costBasis)
         assertNull("there is no average cost of nothing", position.averageCost)
         assertEquals(Money(36_000 - 30_003, EUR), position.realisedPnl)
+        // The basis is zero, so the percentage needs the cost that was removed: all 300,03 of it.
+        assertEquals(Money(30_003, EUR), position.realisedCost)
+        assertEquals((36_000 - 30_003).toDouble() / 30_003.0, position.realisedReturn!!, 0.0001)
+        assertTrue(position.isClosed)
     }
 
     @Test
@@ -81,6 +92,9 @@ class PositionTest {
 
         // 120,00 back, minus a 3,00 fee, minus the 100,00 it cost: 17,00.
         assertEquals(Money(1_700, EUR), position.realisedPnl)
+        // The fee reduces what was made. It does not change what the unit had cost.
+        assertEquals(Money(10_000, EUR), position.realisedCost)
+        assertEquals(0.17, position.realisedReturn!!, 0.0001)
     }
 
     @Test
@@ -136,6 +150,35 @@ class PositionTest {
 
         // 120,00 for the one unit that existed, minus the 3,00 the order cost, minus 100,00.
         assertEquals(Money(1_700, EUR), position.realisedPnl)
+    }
+
+    @Test
+    fun `a holding with no trades is not a closed position`() {
+        val position = positionOf()
+
+        assertTrue(position.quantity.isZero)
+        assertFalse(position.isClosed)
+        assertNull(position.realisedReturn)
+    }
+
+    @Test
+    fun `correcting a holding down to nothing realises no profit and is not closed`() {
+        val position =
+            positionOf(
+                buy(units = 10, priceMinor = 1_000),
+                tradeOf(
+                    side = TradeSide.CORRECTION,
+                    quantityScaled = 0,
+                    priceMinor = 0,
+                    feeMinor = 0,
+                    date = LocalDate.of(2026, 2, 1),
+                ),
+            )
+
+        assertEquals(Quantity.ZERO, position.quantity)
+        assertEquals(Money(0, EUR), position.realisedPnl)
+        assertEquals(Money(0, EUR), position.realisedCost)
+        assertFalse(position.isClosed)
     }
 
     @Test

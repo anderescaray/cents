@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Closed positions, at the foot of the portfolio.
+
+    A file of its own so the section does not append to the shared investments strings.
+-->
+<resources>
+    <string name="closed_positions_header">Closed positions</string>
+    <string name="closed_positions_collapsed">Collapsed</string>
+    <string name="closed_positions_expanded">Expanded</string>
+    <plurals name="closed_positions_count">
+        <item quantity="one">%1$d position</item>
+        <item quantity="other">%1$d positions</item>
+    </plurals>
+</resources>

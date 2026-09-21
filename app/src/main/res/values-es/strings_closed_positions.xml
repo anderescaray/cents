@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="closed_positions_header">Posiciones cerradas</string>
+    <string name="closed_positions_collapsed">Contraída</string>
+    <string name="closed_positions_expanded">Desplegada</string>
+    <plurals name="closed_positions_count">
+        <item quantity="one">%1$d posición</item>
+        <item quantity="other">%1$d posiciones</item>
+    </plurals>
+</resources>

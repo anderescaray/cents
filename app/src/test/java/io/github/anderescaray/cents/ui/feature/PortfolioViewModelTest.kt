@@ -117,16 +117,46 @@ class PortfolioViewModelTest {
         }
 
     @Test
-    fun `a holding that has been sold out of stops being listed`() =
+    fun `a holding that has been sold out of leaves the portfolio and stays reachable as closed`() =
         runTest {
-            val id = database.holdingDao().insert(holding(accountId, symbol = "NVDA"))
-            database.tradeDao().insert(trade(id, units = 1, pricePerUnitMinor = 10_000))
-            database.tradeDao().insert(trade(id, side = TradeSide.SELL, units = 1, pricePerUnitMinor = 12_000))
+            val open = database.holdingDao().insert(holding(accountId, symbol = "NVDA", name = "NVIDIA"))
+            val closed = database.holdingDao().insert(holding(accountId, symbol = "VWCE", name = "Vanguard"))
+            database.tradeDao().insert(trade(open, units = 2, pricePerUnitMinor = 10_000))
+            database.tradeDao().insert(trade(closed, units = 1, pricePerUnitMinor = 10_000))
+            database.tradeDao().insert(trade(closed, side = TradeSide.SELL, units = 1, pricePerUnitMinor = 12_000))
+            database.priceQuoteDao().upsert(quote(symbol = "NVDA", priceMinor = 12_500))
+            // Vanguard has no price. Were the closed holding counted in the total, that would
+            // read as an open position left out of it.
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.closedPositions.isNotEmpty() && it.totals.isNotEmpty() }
+
+                assertEquals(
+                    listOf("NVIDIA"),
+                    state.groups.flatMap { group -> group.positions.map { it.holding.name } },
+                )
+                val total = state.totals.single()
+                assertEquals(Money(25_000, "EUR"), total.marketValue)
+                assertEquals(Money(20_000, "EUR"), total.costBasis)
+                assertEquals(0, total.unpricedCount)
+                val sold = state.closedPositions.single()
+                assertEquals("Vanguard", sold.holding.name)
+                assertEquals(Money(2_000, "EUR"), sold.realisedPnl)
+                assertEquals(0.2, sold.realisedReturn!!, 0.0001)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a holding that was never bought is not a closed position`() =
+        runTest {
+            database.holdingDao().insert(holding(accountId, symbol = "NVDA"))
 
             viewModel.uiState.test {
                 val state = awaitStateThat { !it.loading }
 
-                assertTrue("nothing is held, so nothing is listed", state.isEmpty)
+                assertTrue(state.isEmpty)
+                assertTrue(state.closedPositions.isEmpty())
                 cancelAndIgnoreRemainingEvents()
             }
         }

@@ -93,25 +93,65 @@ class PortfolioTotalsTest {
         assertEquals(listOf("EUR", "USD"), totals.map { it.currency })
     }
 
+    @Test
+    fun `a closed position is listed apart from the total and adds nothing to it`() {
+        val open = position(symbol = "VWCE", costMinor = 20_000, quote = quoteOf(12_500))
+        val closedStock =
+            position(
+                symbol = "NVDA",
+                units = 0,
+                costMinor = 0,
+                realisedPnlMinor = 2_000,
+                realisedCostMinor = 10_000,
+                quote = null,
+            )
+        val closedCrypto =
+            position(
+                symbol = "BTC",
+                assetClass = AssetClass.CRYPTO,
+                units = 0,
+                costMinor = 0,
+                realisedPnlMinor = 5_000,
+                realisedCostMinor = 10_000,
+                quote = null,
+            )
+        // Never bought. A quantity of zero is not, by itself, a closed position.
+        val untouched = position(symbol = "EMPTY", units = 0, costMinor = 0, quote = null)
+        val portfolio = Portfolio(listOf(closedCrypto, open, untouched, closedStock))
+
+        assertEquals(listOf("NVDA", "BTC"), portfolio.closedPositions.map { it.holding.symbol })
+        val total = portfolio.totals().single()
+        // Two units at 125,00. The closed holdings have no price, and that must not become
+        // "left out of the total": they are not held.
+        assertEquals(Money(25_000, EUR), total.marketValue)
+        assertEquals(Money(20_000, EUR), total.costBasis)
+        assertEquals(0, total.unpricedCount)
+    }
+
     private fun position(
         symbol: String = "NVDA",
         currency: String = EUR,
+        assetClass: AssetClass = AssetClass.STOCK,
+        units: Long = 2,
         costMinor: Long,
+        realisedPnlMinor: Long = 0,
+        realisedCostMinor: Long = 0,
         quote: PriceQuote?,
     ) = Position(
         holding =
             Holding(
                 id = 1,
                 accountId = 1,
-                assetClass = AssetClass.STOCK,
+                assetClass = assetClass,
                 symbol = symbol,
                 name = symbol,
                 currency = currency,
                 note = null,
             ),
-        quantity = Quantity.ofUnits(2),
+        quantity = Quantity.ofUnits(units),
         costBasis = Money(costMinor, currency),
-        realisedPnl = Money(0, currency),
+        realisedPnl = Money(realisedPnlMinor, currency),
+        realisedCost = Money(realisedCostMinor, currency),
         quote = quote,
     )
 

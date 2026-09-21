@@ -8,18 +8,25 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
@@ -43,6 +50,9 @@ import io.github.anderescaray.cents.ui.util.QuantityEntry
  * A holding with no price yet is listed and says so, rather than being left out or shown as
  * worth nothing. It is still something the owner holds; what is missing is only what it is
  * worth today.
+ *
+ * A holding that has been sold out of is not in that list and not in the total. It sits at
+ * the foot, collapsed, because what it made is recorded and otherwise has nowhere to be read.
  */
 @Composable
 fun PortfolioScreen(
@@ -106,6 +116,15 @@ fun PortfolioScreen(
                 }
             }
         }
+
+        if (state.closedPositions.isNotEmpty()) {
+            item(key = "closed-positions") {
+                ClosedPositionsSection(
+                    positions = state.closedPositions,
+                    onOpenHolding = onOpenHolding,
+                )
+            }
+        }
     }
 }
 
@@ -167,6 +186,93 @@ private fun PositionRow(
         showChevron = true,
         showSeparator = showSeparator,
         onClick = onClick,
+    )
+}
+
+/**
+ * Fully sold holdings, collapsed until asked for.
+ *
+ * One row each, with what the sales made in money and as a percentage of what those units
+ * cost. Tapping a row opens the holding that is already there. The totals above do not
+ * include these: a closed position is worth nothing, and its profit is already cash.
+ */
+@Composable
+private fun ClosedPositionsSection(
+    positions: List<Position>,
+    onOpenHolding: (Long) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val stateLabel =
+        stringResource(
+            if (expanded) R.string.closed_positions_expanded else R.string.closed_positions_collapsed,
+        )
+    CentsListSection(header = stringResource(R.string.closed_positions_header)) {
+        CentsListRow(
+            title = pluralStringResource(R.plurals.closed_positions_count, positions.size, positions.size),
+            showSeparator = expanded,
+            onClick = { expanded = !expanded },
+            trailing = { DisclosureChevron(expanded = expanded, stateLabel = stateLabel) },
+        )
+        if (expanded) {
+            positions.forEachIndexed { index, position ->
+                key(position.holding.id) {
+                    ClosedPositionRow(
+                        position = position,
+                        showSeparator = index < positions.lastIndex,
+                        onClick = { onOpenHolding(position.holding.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClosedPositionRow(
+    position: Position,
+    showSeparator: Boolean,
+    onClick: () -> Unit,
+) {
+    CentsListRow(
+        title = position.holding.name,
+        subtitle = position.holding.symbol,
+        value = closedPositionValue(position),
+        valueColor = profitColor(position.realisedPnl),
+        showChevron = true,
+        showSeparator = showSeparator,
+        onClick = onClick,
+    )
+}
+
+/** Money, and the percentage when the sold units had a cost to measure it against. */
+private fun closedPositionValue(position: Position): String =
+    buildString {
+        append(MoneyFormatter.formatSigned(position.realisedPnl))
+        position.realisedReturn?.let { ratio ->
+            append(" · ")
+            append(formatReturn(ratio))
+        }
+    }
+
+/**
+ * The disclosure mark: pointing across when the rows are hidden, and down once they are shown.
+ *
+ * The same chevron the rows use to mean "opens something". Turned, it means the something
+ * is already on this screen.
+ */
+@Composable
+private fun DisclosureChevron(
+    expanded: Boolean,
+    stateLabel: String,
+) {
+    Icon(
+        painter = painterResource(R.drawable.ic_chevron_right),
+        contentDescription = stateLabel,
+        tint = CentsTheme.colors.tertiaryLabel,
+        modifier =
+            Modifier
+                .size(16.dp)
+                .graphicsLayer { rotationZ = if (expanded) 90f else 0f },
     )
 }
 

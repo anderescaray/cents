@@ -3,6 +3,10 @@
 Operating context for Claude Code. This file is loaded automatically in every session,
 so it holds **rules and commands**, not the product description.
 
+> ⚠️ **Temporary: read [`NEXT_SESSION.md`](NEXT_SESSION.md) first.** It is the handoff from the
+> 2026-09-21 session: the steps to pick up from, in order. Delete the file and this note once
+> those steps are done.
+
 > **What we are building → [`docs/PRD.md`](docs/PRD.md)** (features, scope, roadmap and
 > feasibility analysis). If this file and the PRD disagree about *what* to build, the PRD
 > wins; about *how* to build it, this file wins.
@@ -176,6 +180,14 @@ A full local run of what CI checks, worth doing before opening a PR:
   design system (`ui/theme`) and `libs.versions.toml` are shared bottlenecks: they are
   done **first and serially**. Parallelizing before those foundations exist creates more
   conflicts than it saves.
+- **How parallel work runs (D24):** through **Orca**, which creates one worktree per task from
+  `origin/main`. Devin, Cursor and Gemini implement; they do not load this file, so
+  [`AGENTS.md`](AGENTS.md) carries its rules to them, with a territory per task and the
+  global locks above. **Claude Code splits the work, writes each task prompt, and reviews each
+  PR** — first that it stayed inside its territory, then `/code-review high`. It is also the
+  **only agent that edits the shared documents** (`CLAUDE.md`, `PLAN.md`, `README.md`,
+  `DECISIONS.md`, `FEEDBACK.md`, `docs/device-check.md`), in one docs branch after the merges.
+  Two branches editing the same paragraph has already lost a decision once.
 
 ## 8. Current status
 
@@ -238,6 +250,10 @@ what lands today** and computes the answer from the rules, so editing a reminder
 answering a bill, a reboot or a clock change need nothing cancelled. A bill already answered stops
 being chased. **Room v6**, and the one permission this app asks for — requested from the editor at
 the moment a reminder is added, and the editor says so when the system will show nothing.
+**And the screen says what is still to come** (#63): what is **committed this month**, meaning
+every expense still due before the month ends plus the variable bills still waiting at their
+estimate, and **what share of recurring income goes to fixed charges**, shown as unavailable
+with a reason rather than as 0 % when there is no income to divide by.
 
 **Money can now move between accounts.** `feat/transfers` brought Phase 3's first piece forward,
 because the investments section needs it: a transfer is **two ordinary rows sharing one
@@ -251,9 +267,9 @@ segment on the entry form, it reads on the list as *Transfer to Savings*, and it
 lives in and a sale puts it back, so a broker account's **balance is the money still in it** and
 the portfolio is what the rest became — two numbers that no longer overlap. The movement carries
 a `tradeId`, obeys the same exclusion a transfer leg does, and reads as *Bought NVD.DE*. **Room
-v4.** What is left to the next branches: no price comes from the internet (D13 names the
-provider, and it needs a key only the owner can create), and nothing adds cash and portfolio into
-one net-worth figure.
+v4.** A deleted transfer can be **undone** from the list's banner, both legs or neither (#65). A
+fully sold holding stays off the portfolio (D17), and what it made is listed under **Closed
+positions** at the foot of that screen (#64), outside every total.
 
 **And the data can leave.** Settings writes the whole app to a file the owner keeps — **JSON**
 with every table and the schema version that wrote it, or **CSV** of the movements for a
@@ -262,7 +278,8 @@ nothing goes anywhere near a third party. **And it can come back.** A backup fil
 **replacing everything** (D21) behind a confirmation that names what arrives and what goes — read
 first, so those numbers are checkable. Older files are read, newer ones refused, and a damaged one
 is turned away whole rather than half written. What is still missing is a backup that happens
-without being asked for, which is what is left of `feat/backup` and what **D22** asks about.
+without being asked for: `feat/backup`, to Google Drive (**D22**), waiting on an OAuth client
+only the owner can create. The steps are in its entry in `PLAN.md` C3.
 **And the three numbers add up.** D19 was answered on 2026-09-17: the Accounts tab shows what is
 **in accounts**, what is **invested**, and the **net worth** those come to — the parts as well as
 the sum, so it can be read with the portfolio and without it. It is only a legitimate sum because
@@ -276,12 +293,13 @@ setting has been read.
 **And prices are typed in one place.** D20 settled
 that no free provider carries this portfolio's listings — and that converting from a US listing
 cannot rescue a UCITS ETF, which has no US listing to convert from — so typing is how prices get
-in rather than a fallback. Every open holding is priced from one screen, under one date, with a
+in rather than a fallback — and **D25** (2026-09-21) made that permanent: the owner will not pay
+for a provider, so `feat/price-provider` is closed. Every open holding is priced from one screen, under one date, with a
 row left empty left alone. **A purchase can also be recorded as 500 € of something** rather than
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-641 tests run on the JVM, so CI covers the database and the UI without a device.
+699 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**
@@ -296,13 +314,10 @@ at the start of every session, before any code:**
 
 The protocol for both is [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner).
 
-**Phase 2 is the first phase that may run several agents at once — and starting that is the
-owner's deliberate decision, not a default.** D5 settled how it would run and D9 answered
-*three agents* on 2026-08-30, which is permission for a wave of genuinely disjoint work, not a
-standing default. **On 2026-09-03 the owner chose to run the remaining views serially anyway**,
-because they append a line each to the same three shared files and one PR at a time is the
-rhythm they review in. Ask before opening worktrees; do not open them because the phase number
-changed.
+**Several agents run at once now, through Orca (D24, 2026-09-21)** — with the roles set in §7,
+at most three implementers, and never two branches writing the same file. The first wave, #63
+to #65, landed with no file shared between them. Which tasks go into a wave is still the owner's
+decision: propose one, with each task's territory, and do not start one on your own.
 
 **Where to start a session and what is left to build is
 [`PLAN.md` Part C](PLAN.md#part-c--where-the-project-stands).** It carries the session

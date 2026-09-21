@@ -383,6 +383,12 @@ anything to fly is time that does not turn into an app. Once you reach Phase 2 w
 real workstreams and start feeling the friction of managing worktrees by hand, Orca saves
 real work — and by then you will know what you are asking it for.
 
+> **Settled by D24 (2026-09-21): Orca after all.** The home-built harness described below was
+> never finished, and the parallel phase now runs on Orca, with Devin, Cursor and Gemini as
+> implementers and Claude Code splitting the work and reviewing. How it runs is in C1 and
+> [`AGENTS.md`](AGENTS.md). The two constraints in the note below still hold, and Orca does not
+> enforce either one, so the task prompts and the reviewer do.
+>
 > **Superseded in part by D5 (2026-08-20).** The owner is not installing Orca: they are
 > building **their own harness**, taking Orca's orchestration model together with the ideas
 > in `xmihura/kanvas`, and running **at most 3 agents** at once. The reasoning above still
@@ -494,7 +500,31 @@ Claude Code's own worktrees — and the first wave has landed. That is permissio
 phase, not a standing default: `CLAUDE.md` §7 still only allows parallelism across genuinely
 disjoint files, and on 2026-08-30 the four remaining §4.3 views looked separable and were not.
 Check the code before trusting a plan that says they are. **On 2026-09-03 the owner chose
-serial anyway** for the views after that, so ask before forking.
+serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
+time through Orca**, so how it runs now is described in the next paragraph.
+
+**Where this session stopped (2026-09-21): the first Orca wave.** The owner moved the parallel
+phase onto [Orca](https://www.onorca.dev/), and **D24** fixed which tool does what. **Devin**
+(Devin CLI) is the main implementer. **Cursor** (`cursor-agent`) is the second, for UI work that
+stays inside one feature folder. **Gemini CLI** takes small, well-scoped branches. **Claude
+Code** splits the work, writes the task prompts, reviews every PR, and is **the only one that
+edits the shared documents**, in one docs branch after the merges. The cap of three implementers
+stands. The ground rules for the non-Claude agents are in [`AGENTS.md`](AGENTS.md), which
+`GEMINI.md` imports. `.worktreeinclude` copies `local.properties` into every Orca worktree, and
+long paths are enabled on the machine (`core.longpaths` in git, `LongPathsEnabled` in Windows),
+because a Gradle build under `~\orca\workspaces\cents\<branch>` goes past 260 characters.
+- **The wave.** #61 (reminders) was rebased past a stacked squash and merged. #62 carried the
+  setup. Then three branches ran at once, with no file shared between them, and all three landed:
+  **#63** (Devin, committed this month and the income share), **#64** (Cursor, closed positions)
+  and **#65** (Gemini, undoing a deleted transfer). Each was checked against the territory its
+  prompt named and reviewed with `/code-review high` before merging. #65 went back once for two
+  crashes and came back fixed. `fix/subscription-totals-currency` closed the one finding left
+  on #63.
+- **D25 closed a door.** The owner will not pay for a price provider, so typing prices is
+  permanent and `feat/price-provider` is closed without being built.
+- **What waits on the owner** is unchanged: the phone walk, and the Google Cloud OAuth client
+  that `feat/backup` needs (D22). The steps for creating that client are in the `feat/backup`
+  entry in C3.
 
 **The owner asked for one more thing on 2026-09-09, and it is built.** Seeing the portfolio
 described, they asked to type prices as a **total in euros** rather than per unit, and to be able
@@ -623,7 +653,10 @@ unmerged one.
 | Recurring | Rent, Netflix and the salary record themselves. A rule is a **template**: each launch it writes whatever has fallen due, once, and the movements it makes are ordinary from that moment on. Settings › Subscriptions lists them with **what they come to per month and per year** — the figure the screen exists for — and a cancelled subscription is **stopped**, never erased. Room v5 |
 | Variable bills | A subscription whose amount changes — the electricity — is marked **ask me the amount**, and what the app refuses to guess waits on the Subscriptions screen instead of being invented. Several are answered in one sitting, each recorded **on the day it fell due** rather than the day it was answered; *there was no bill that month* is its own gesture, because it is not a zero |
 | Reminders | A subscription can say something before the money goes: any number of reminders per rule, a number of days the owner picks, before the date or — for a variable one — after it. One daily job asks **what lands today** rather than booking an alarm per occurrence. Room v6 |
-| Tests | 641, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Committed this month | The Subscriptions screen also shows **what is still due to go out before the month ends**, variable bills still waiting included at their estimate, and **what share of recurring income goes to fixed charges**. Estimates are marked as estimates, and the share is shown as unavailable with a reason rather than as 0 %. #63 |
+| Closed positions | A fully sold holding stays off the portfolio (D17), and what it made is listed in a collapsed **Closed positions** section at the foot of the screen, with realised profit in euros and as a percentage. It never counts toward the portfolio total or net worth. #64 |
+| Transfer undo | A deleted transfer can be put back from the banner on the Transactions list, **both legs or neither**, with their original ids, in one database transaction. #65 |
+| Tests | 699 on `main` after #65 (700 with #66), all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1266,7 +1299,12 @@ Phase 4 rather than being skipped.
         what it is keeping rather than an empty box that reads as missing.
       - It is read once rather than observed: this is a form, and a portfolio that re-emitted
         mid-typing would take the half-typed number with it.
-- [ ] **`feat/price-provider`** — prices from the internet, behind the `PriceProvider` interface
+- [x] ~~**`feat/price-provider`**~~ — **closed without being built (D25, 2026-09-21).** The
+      owner will not pay for a provider, and no free one carries these listings (D20), so typing
+      prices is permanent. What already exists stays: the `PriceProvider` interface, the cache
+      and a quote's age cost nothing to keep, and a free provider covering European venues could
+      still turn up. The history below explains how the branch got here.
+      Prices from the internet, behind the `PriceProvider` interface
       PRD §5.1 makes mandatory, with the cache and the age of a quote already built. **D13 is
       answered: Twelve Data**, chosen for European coverage on the free tier, and **D14** says an
       index fund is priced by its equivalent ETF rather than by an ISIN no free provider carries.
@@ -1392,6 +1430,20 @@ the order the roadmap puts them, and all three now have their questions answered
       and the **Drive REST API** to upload, the Android Drive API having been dead since 2019.
       `appdata` rather than a visible folder, so the backup cannot be opened or shared by
       accident and goes when the app does.
+      **The owner's steps, written down on 2026-09-21:**
+      1. console.cloud.google.com → new project **Cents**.
+      2. APIs & Services → Library → **Google Drive API** → Enable.
+      3. Google Auth Platform (the consent screen): app name Cents, audience **External**, left in
+         **Testing**, with the owner's account added as a **test user**.
+      4. Data access → add the scope `.../auth/drive.appdata`.
+      5. Clients → Create client → **Android**, with package `io.github.anderescaray.cents` and the
+         debug key's SHA-1 `A6:15:3B:AD:C8:AB:09:A0:FF:34:14:D9:24:4A:2F:FA:93:13:B6:13`
+         (`%USERPROFILE%\.android\debug.keystore`, shared by every build on that PC). A release
+         key, if one is ever made, needs a second Android client with its own SHA-1.
+      Nothing from those steps is pasted into the repo. The owner says it is done, and the branch
+      runs **alone**, because it adds libraries to `libs.versions.toml`, which is a global lock.
+      One thing to read from the keytool output: on a Spanish-locale JDK it crashes printing the
+      certificate unless it is run with `-J-Duser.language=en`.
 - [x] **`feat/biometric-lock`** — and **D16 settles what is under it: no SQLCipher.** Android
       encrypts the device and no other app can read these files; what SQLCipher answers is root
       access and physical extraction, at the price of a dependency, slower writes and a key that
@@ -1490,12 +1542,6 @@ the order the roadmap puts them, and all three now have their questions answered
         out of that total would understate the month by exactly the bills that are hardest to
         predict. The caption says a guess is in there rather than letting the number look like
         arithmetic.
-- [ ] **`feat/subscription-reminders`** — D23's second half: the notifications. Per rule, a list
-      of offsets in days, before or after the date, as many as wanted; a variable rule's reminder
-      sends you to the screen above, and a fixed rule can opt into a single heads-up (*Spotify is
-      paid in 3 days*) and is silent otherwise. Needs `POST_NOTIFICATIONS` on Android 13+, a
-      WorkManager daily check, and a schema change for the offsets.
-
 - [x] **`feat/subscription-reminders`** — **D23's second half, asked for again from the phone.**
       **Done**, 641 tests, **Room v6**. What it settled:
       - **Nothing is scheduled in advance, and that is the whole design.** One daily job asks
@@ -1535,6 +1581,39 @@ the order the roadmap puts them, and all three now have their questions answered
         `@EntryPoint` is the same thing with two fewer artifacts (rule 11). Scheduling moved out
         of `Application.onCreate` for a duller reason: initialising WorkManager there pulls it
         into every Robolectric test, including the migration ones.
+      Merged as **#61**, after being rebased past the pre-squash copy of #60 it was stacked on
+      (the C4 warning about stacking, met again).
+
+### The first Orca wave (2026-09-21, D24)
+
+Three branches at once, one per tool, with no file shared between them. Each was checked
+against the territory its prompt named and reviewed with `/code-review high` before merging.
+
+- [x] **`feat/committed-this-month`** (Devin) — **#63.** PRD §4.4's two missing figures on the
+      Subscriptions screen: **what is committed this month** — every unrecorded expense occurrence
+      from today to the end of the month, plus variable bills still waiting at their estimate —
+      and **what share of recurring income goes to fixed charges**. Reuses `occursOn` and
+      `dueOccurrences` rather than stepping from the previous occurrence. Waiting bills are
+      counted strictly before today and the remaining-month window starts at today, so today's
+      bill cannot be counted twice. The share keeps an exact numerator and denominator until
+      display. **The owner chose that the waiting backlog counts**, earlier months included:
+      "committed" means *still to pay*, and an unanswered July bill is still to be paid in
+      September. The review left one finding, which only a multi-currency install could reach.
+      It was fixed in #66: an empty side of the totals is zero in any currency, so it no longer
+      needs every rule to agree on one.
+- [x] **`feat/closed-positions`** (Cursor) — **#64.** The fix C4 named for D17: a collapsed
+      **Closed positions** section at the foot of the portfolio, one row per fully sold holding,
+      with realised profit in euros and as a percentage of what the sold units cost. It opens
+      the existing holding detail. The open portfolio, its totals and net worth are unchanged. A
+      holding never traded, or emptied by a correction rather than a sale, is not a closed
+      position: it has no realised result. The review found nothing.
+- [x] **`feat/undo-a-deleted-transfer`** (Gemini) — **#65.** The C4 gap closed:
+      `DeletedTransactionBuffer` holds a sealed `DeletedTransaction`, either a movement or a
+      transfer's two legs, and undo restores both in one `withTransaction`, with their original
+      ids and shared `transferId`. **The review sent it back once**, for two crashes: the read of
+      the legs sat outside the `runCatching` guarding the delete, and a transfer with more than
+      two legs (only a malformed backup could make one) was deleted first and crashed after. The
+      leg count is now checked **before** anything is deleted, and a test pins three legs.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -1620,10 +1699,12 @@ parallelism.
   inflate both by the amount, and deleting the pair would destroy history inside an operation
   whose whole promise is that nothing is lost. The honest fix, if it is ever wanted, is for the
   reassignment sheet to name those transfers before it runs.
-- **A deleted transfer has no undo.** A deleted movement can be put back from the banner on the
-  list; a transfer cannot, because the buffer behind that banner holds one movement and half a
-  transfer restored is money arriving from nowhere. What it has instead is a confirmation saying
-  both sides go. Widening the buffer to a pair is the fix the day it is missed.
+- ~~**A deleted transfer has no undo.**~~ **It has one since #65**: both legs or neither. What
+  is left is older than transfers. **The undo banner lives only on the Transactions list.** A
+  movement or transfer deleted from a form opened from an account's detail returns to that
+  screen, which has no banner, and the deletion confirmation says the undo is "on the list".
+  The review of #65 found it, and it already applied to single movements. The fix is the banner
+  on the account detail too, or a confirmation that does not promise it.
 - **The kind filter still sorts transfer legs by their kind.** Filtering the list to *Income*
   shows the arriving side of every transfer in the period. The rows read as transfers and are
   excluded from the totals above them, so nothing adds up wrongly — but *Income* is not quite
@@ -1644,9 +1725,13 @@ parallelism.
 - **A fully sold holding disappears from the portfolio, and the owner chose that** (D17,
   2026-09-09). It has no quantity, so it has nothing to be worth, and a row worth 0,00 € under a
   heading about what is held is noise. The cost is real and is written down rather than argued
-  away: realised profit on a closed position is recorded and currently unreachable, so a "closed
-  positions" section is the fix the day it is missed. Walk step `i8` is where that judgement gets
-  made with the phone in hand.
+  away: realised profit on a closed position was recorded and unreachable. **#64 made it
+  reachable**, in a collapsed *Closed positions* section at the foot of the portfolio. Walk step
+  `i8` is still where the judgement gets made with the phone in hand. **One case falls between
+  the two lists:** a holding whose units were corrected down to zero without a sale is neither
+  open nor closed, because it has no quantity and no realised result. It is simply not shown,
+  and a portfolio holding only such rows shows its empty state. The review of #64 found it; it
+  predates that branch.
 - **The portfolio is rebuilt in Kotlin whenever anything changes.** One query for holdings, one
   for *every* trade, one for every price, combined and folded. It is bounded by how many times
   the owner has traded rather than by how long they have used the app, and it is the honest shape
@@ -1654,8 +1739,9 @@ parallelism.
   split is one query per holding's totals plus the fold only where a sale exists.
 - **Prices are typed, and that is now the answer rather than the gap** (D20). No free provider
   carries European venues, and converting from a US listing cannot rescue a UCITS ETF, which has
-  no US listing to convert from. `feat/prices-in-one-place` makes typing one screen; what remains
-  open is paying for a provider, which is a decision about money rather than about code.
+  no US listing to convert from. `feat/prices-in-one-place` makes typing one screen, and **D25
+  (2026-09-21) closed the last door**: the owner will not pay for a provider, so nothing about
+  this is open any more.
 - **Nothing checks that a symbol is real, and a symbol alone would not be enough anyway.**
   "NVDAA" is accepted and will simply never be priced. What 2026-09-17 added to that: a symbol
   that *is* real can still be ambiguous — `NVD` is NVIDIA in euros on four German venues and a
@@ -2054,11 +2140,22 @@ and only shows up later as a month that is quietly wrong. Anything that goes wro
 [`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the next branch: an *Open* entry there
 outranks anything planned.
 
-**If the walk is clean**, the next branch is **`feat/subscription-reminders`** — D23's second
-half, the notifications — and nothing is blocking it. The only thing waiting on the owner is
-`feat/backup`, which needs a Google Cloud OAuth client only they can create (D22). Everything
-after that is deferred work nobody has chosen: the dashboard of cards in C7, or any of the gaps
-in C4.
+**The walk has no steps yet for what landed on 2026-09-21**: committed this month and the income
+share (#63), closed positions (#64), and undoing a deleted transfer (#65). They are each a
+minute: open Settings › Subscriptions, sell a holding completely, delete a transfer and tap
+Undo. Writing them into `docs/device-check.md` belongs in the next docs branch.
+
+**What comes next, in the Orca rhythm of D24:**
+- **`feat/backup`**, as soon as the owner has created the OAuth client (the steps are in its C3
+  entry). It runs **alone**, because it adds libraries to `libs.versions.toml`. Devin takes it.
+- **Then a wave the owner has to choose**, because everything left is a later roadmap phase
+  (`CLAUDE.md` §9) or deferred work. Phase 5 is the uncategorized inbox and **budgets**; budgets
+  need a table, so their schema branch runs alone before any UI work goes wide. Phase 6 is the
+  widget, the Baseline Profile and Macrobenchmark, and accessibility: the first two add
+  dependencies and run alone. The dashboard of cards is in C7. Several small gaps in C4 could
+  make a wave of their own, disjoint and without schema changes: the undo banner on the account
+  detail, a line in the restore alert saying to export first, the trade note field, and the
+  midnight tick.
 
 **Two questions the walk should settle**, both written into it rather than left to be
 remembered:

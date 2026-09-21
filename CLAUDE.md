@@ -38,7 +38,7 @@ investment portfolio with prices pulled from the internet.
 | Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
 | Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout and the app lock |
 | App lock | `androidx.biometric` (**1.1.0**, the stable line) | The `BiometricPrompt` PRD §4.7 names: a fingerprint or the device PIN, decided by the system, with the app never seeing a credential (rule 6). Pinned to stable rather than the 1.2.0 and 1.4.0 alphas; 1.1.0 is where `setAllowedAuthenticators` arrived, which is what lets the PIN stand in |
-| Background work | WorkManager | Periodic price refresh, recurring reminders |
+| Background work | WorkManager (**2.11.0**) | **In use since `feat/subscription-reminders`**: one daily job that asks what reminders land today. Nothing is scheduled per reminder — a queue of alarms would be a second copy of when the rent is, and the two would drift. Reached without `androidx.hilt:hilt-work`: a plain `CoroutineWorker` asks the Hilt graph through an `@EntryPoint`, which is two fewer artifacts and no `Configuration.Provider` (rule 11) |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
 | Tests | JUnit + MockK + Turbine + in-memory Room (on the JVM via Robolectric) + Compose UI Test | Robolectric lets DAO and migration tests run in CI, which has no device |
@@ -229,8 +229,15 @@ recorded **on the day it fell due**, not the day it was answered, so a bill open
 counts in its own month; a row left blank is left alone, and *there was no bill that month* is a
 separate gesture, because it is not a zero. Only the **oldest** waiting occurrence of each rule is
 offered at a time — the watermark is a single date, so answering out of order would swallow the
-periods before it. What is still missing is the other half of D23: the notifications that would
-tell the owner a bill is waiting, which is `feat/subscription-reminders`.
+periods before it. **And a subscription can tell you before the money goes.** D23's other half:
+any number of reminders per rule, each a number of days the owner chooses. A **fixed** one is
+announced — *Netflix, 12,99 €, in 3 days* — and only beforehand, because afterwards the movement
+is already in the list; a **variable** one can also be chased *after* the date, and tapping it
+lands on the screen that takes the figure. Nothing is scheduled in advance: **one daily job asks
+what lands today** and computes the answer from the rules, so editing a reminder, stopping a rule,
+answering a bill, a reboot or a clock change need nothing cancelled. A bill already answered stops
+being chased. **Room v6**, and the one permission this app asks for — requested from the editor at
+the moment a reminder is added, and the editor says so when the system will show nothing.
 
 **Money can now move between accounts.** `feat/transfers` brought Phase 3's first piece forward,
 because the investments section needs it: a transfer is **two ordinary rows sharing one
@@ -274,7 +281,7 @@ row left empty left alone. **A purchase can also be recorded as 500 € of somet
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-622 tests run on the JVM, so CI covers the database and the UI without a device.
+641 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

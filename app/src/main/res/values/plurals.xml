@@ -63,4 +63,20 @@
         <item quantity="one">one more after this</item>
         <item quantity="other">%1$d more after this</item>
     </plurals>
+    <plurals name="reminder_when_before">
+        <item quantity="one">tomorrow</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
+    <plurals name="reminder_when_after">
+        <item quantity="one">yesterday</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <plurals name="reminder_days_before">
+        <item quantity="one">The day before</item>
+        <item quantity="other">%1$d days before</item>
+    </plurals>
+    <plurals name="reminder_days_after">
+        <item quantity="one">The day after</item>
+        <item quantity="other">%1$d days after</item>
+    </plurals>
 </resources>

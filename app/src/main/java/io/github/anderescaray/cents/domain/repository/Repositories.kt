@@ -5,10 +5,12 @@ import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.DueReminder
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.RecurringRule
+import io.github.anderescaray.cents.domain.model.Reminder
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
@@ -305,4 +307,29 @@ interface RecurringRuleRepository {
         ruleId: Long,
         dueDate: LocalDate,
     ): Boolean
+
+    /** The nudges this rule carries, soonest first. */
+    suspend fun remindersFor(ruleId: Long): List<Reminder>
+
+    /**
+     * Replaces the rule's reminders with exactly these offsets.
+     *
+     * Replace rather than add-and-remove, because the editor holds the whole list anyway and
+     * reconciling two lists is a way to end up with a reminder nobody asked for. Duplicates and
+     * anything already there are collapsed, since the same reminder twice is the same
+     * notification twice.
+     */
+    suspend fun setReminders(
+        ruleId: Long,
+        offsets: List<Int>,
+    )
+
+    /**
+     * Every reminder that lands on [today], with the occurrence each one is about.
+     *
+     * Asked once a day by the worker. A rule that is stopped is silent, and a variable one that
+     * has **already been answered** for that occurrence is silent too — being chased about a bill
+     * you have just entered is how somebody turns notifications off.
+     */
+    suspend fun dueReminders(today: LocalDate): List<DueReminder>
 }

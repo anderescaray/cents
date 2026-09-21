@@ -1,16 +1,21 @@
 package io.github.anderescaray.cents.ui.feature.recurring
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
+import io.github.anderescaray.cents.ui.notifications.ReminderWorker
 import kotlinx.coroutines.launch
+import java.time.Clock
 import javax.inject.Inject
 
 /**
@@ -32,10 +37,14 @@ import javax.inject.Inject
 @Composable
 fun GenerateDueMovements(viewModel: RecurringGenerationViewModel = hiltViewModel()) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
     DisposableEffect(lifecycleOwner) {
         val observer =
             LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_START) viewModel.generate()
+                if (event == Lifecycle.Event.ON_START) {
+                    viewModel.generate()
+                    viewModel.scheduleReminders(context)
+                }
             }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -47,6 +56,7 @@ class RecurringGenerationViewModel
     @Inject
     constructor(
         private val repository: RecurringRuleRepository,
+        private val clock: Clock,
     ) : ViewModel() {
         /**
          * Catches up, and says nothing about it.
@@ -58,5 +68,26 @@ class RecurringGenerationViewModel
          */
         fun generate() {
             viewModelScope.launch { runCatching { repository.generateDue() } }
+        }
+
+        /**
+         * Makes sure tomorrow morning's look at the reminders is booked.
+         *
+         * Booked from here rather than from `Application.onCreate`, and the reason is worth
+         * recording: initialising WorkManager at application start pulls it into **every**
+         * Robolectric test, including the ones about migrations, which have no business knowing
+         * it exists. Enqueuing the same unique work again is free, so doing it whenever the app
+         * comes to the front is what keeps it booked across updates and reboots.
+         */
+        fun scheduleReminders(context: Context) {
+            // Caught, because failing to book a background job must not take the app down on
+            // launch — but said out loud, because a silently unscheduled worker is a feature
+            // that simply never happens, and logcat is the only place that can report it.
+            runCatching { ReminderWorker.schedule(context, clock) }
+                .onFailure { Log.w(LOG_TAG, "The daily reminder check could not be scheduled", it) }
+        }
+
+        private companion object {
+            const val LOG_TAG = "CentsReminders"
         }
     }

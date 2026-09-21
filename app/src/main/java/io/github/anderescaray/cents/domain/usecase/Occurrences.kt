@@ -3,6 +3,8 @@ package io.github.anderescaray.cents.domain.usecase
 import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
 /**
  * Every occurrence that has fallen due and not yet been generated, oldest first.
@@ -90,4 +92,59 @@ private fun RecurringRule.occurrenceAt(step: Int): LocalDate? =
         }
     }
 
+/**
+ * Whether this rule falls on exactly that day.
+ *
+ * What a reminder needs: firing three days early means asking *is `today + 3` one of this rule's
+ * days*, and there is no list to look it up in — the sequence is infinite and the answer is
+ * usually about a date in the future.
+ *
+ * The monthly cases go **through [occurrenceAt] rather than around it**, which is the only part
+ * worth reading twice. A rule anchored on the 31st lands on the 28th in February, so "is the 28th
+ * one of its days" cannot be answered by comparing day-of-month — it is answered by computing
+ * the occurrence for that month and seeing whether it is the same date. One definition of where
+ * a rule lands, used by both the generator and the reminders, so the two can never disagree about
+ * when the rent is.
+ */
+fun RecurringRule.occursOn(date: LocalDate): Boolean {
+    val withinRange = date >= startDate && (endDate == null || date <= endDate)
+    val step = if (withinRange) stepFor(date) else null
+    return step != null && step >= 0 && occurrenceAt(step) == date
+}
+
+/** Which occurrence [date] would be, if it is one at all. Null when it cannot be. */
+private fun RecurringRule.stepFor(date: LocalDate): Int? {
+    val days = ChronoUnit.DAYS.between(startDate, date)
+    val months = ChronoUnit.MONTHS.between(YearMonth.from(startDate), YearMonth.from(date))
+    return when (frequency) {
+        Frequency.WEEKLY -> {
+            days.takeIf { it % DAYS_PER_WEEK == 0L }?.div(DAYS_PER_WEEK)
+        }
+
+        Frequency.FORTNIGHTLY -> {
+            days.takeIf { it % (DAYS_PER_WEEK * 2) == 0L }?.div(DAYS_PER_WEEK * 2)
+        }
+
+        Frequency.MONTHLY -> {
+            months
+        }
+
+        Frequency.QUARTERLY -> {
+            months.takeIf { it % MONTHS_PER_QUARTER == 0L }?.div(MONTHS_PER_QUARTER)
+        }
+
+        Frequency.YEARLY -> {
+            months.takeIf { it % MONTHS_PER_YEAR == 0L }?.div(MONTHS_PER_YEAR)
+        }
+
+        Frequency.EVERY_N_DAYS -> {
+            intervalDays
+                ?.takeIf { it >= 1 }
+                ?.let { interval -> days.takeIf { it % interval == 0L }?.div(interval) }
+        }
+    }?.toInt()
+}
+
 private const val MONTHS_PER_QUARTER = 3L
+private const val MONTHS_PER_YEAR = 12L
+private const val DAYS_PER_WEEK = 7L

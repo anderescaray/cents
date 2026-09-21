@@ -63,4 +63,20 @@
         <item quantity="one">queda uno más después de este</item>
         <item quantity="other">quedan %1$d más después de este</item>
     </plurals>
+    <plurals name="reminder_when_before">
+        <item quantity="one">mañana</item>
+        <item quantity="other">dentro de %1$d días</item>
+    </plurals>
+    <plurals name="reminder_when_after">
+        <item quantity="one">ayer</item>
+        <item quantity="other">hace %1$d días</item>
+    </plurals>
+    <plurals name="reminder_days_before">
+        <item quantity="one">El día antes</item>
+        <item quantity="other">%1$d días antes</item>
+    </plurals>
+    <plurals name="reminder_days_after">
+        <item quantity="one">El día después</item>
+        <item quantity="other">%1$d días después</item>
+    </plurals>
 </resources>

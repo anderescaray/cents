@@ -80,6 +80,7 @@ dependencies {
     // and have been for years. 1.1.0 is where `setAllowedAuthenticators` arrived, which is the
     // one API this needs: it is what lets the device PIN stand in when there is no fingerprint.
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.vico.compose)
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)

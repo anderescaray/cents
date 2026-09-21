@@ -1268,6 +1268,38 @@ the variable ones to be"*.
 > the month by exactly the bills that are hardest to predict — or the caption not saying a guess
 > is in there.
 
+### s9b · Being told before the money goes
+
+Open the rent subscription. Under **Remind me**, tap **Add a reminder**, type `3`, and add it.
+Add a second one with `0` days — *on the day*.
+
+The first time you do this the phone asks whether Cents may send notifications. Say yes. If you
+say no, the section says so rather than pretending: the reminders are kept and nothing is shown.
+
+Save. Open it again: both reminders are still listed, soonest first.
+
+> **Wrong looks like** the reminders disappearing on save, or the row asking for permission still
+> being there after you granted it.
+
+There is no way to make one arrive on demand — they are posted by a daily job, not by the screen.
+The honest test is the calendar: set one for a subscription whose date is a few days away and see
+whether it turns up.
+
+> **Wrong looks like** a notification about a subscription you stopped, or two of the same one on
+> the same day.
+
+### s10b · The one that asks
+
+On the *Electricity* subscription from `s7`, add a reminder with `2` days and switch the control
+to **After**. That control is only there for a subscription set to *ask me the amount*, because
+telling you about a fixed charge after it has been recorded is telling you something already in
+your movement list.
+
+When that one arrives, tapping it should open the **Amounts** screen directly — not the bubbles.
+
+> **Wrong looks like** the **After** option appearing on a fixed-amount subscription, or the
+> notification opening the front door of the app and leaving you to find the screen.
+
 ### s11 · The account underneath
 
 Try to delete the account the rent records into (**Accounts**, swipe the row, or open it and

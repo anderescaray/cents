@@ -3,14 +3,19 @@ package io.github.anderescaray.cents.data.repository
 import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.RecurringRuleDao
+import io.github.anderescaray.cents.data.local.dao.RuleReminderDao
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
+import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
+import io.github.anderescaray.cents.domain.model.DueReminder
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.RecurringRule
+import io.github.anderescaray.cents.domain.model.Reminder
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.usecase.dueOccurrences
+import io.github.anderescaray.cents.domain.usecase.occursOn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Clock
@@ -38,6 +43,7 @@ class RoomRecurringRuleRepository
     @Inject
     constructor(
         private val ruleDao: RecurringRuleDao,
+        private val reminderDao: RuleReminderDao,
         private val database: CentsDatabase,
         private val clock: Clock,
     ) : RecurringRuleRepository {
@@ -140,6 +146,53 @@ class RoomRecurringRuleRepository
             ruleDao.setLastGenerated(ruleId, dueDate)
             return true
         }
+
+        override suspend fun remindersFor(ruleId: Long): List<Reminder> =
+            reminderDao.forRule(ruleId).map { Reminder(id = it.id, offsetDays = it.offsetDays) }
+
+        override suspend fun setReminders(
+            ruleId: Long,
+            offsets: List<Int>,
+        ) {
+            database.withTransaction {
+                reminderDao.deleteForRule(ruleId)
+                offsets.distinct().sorted().forEach { offset ->
+                    reminderDao.insert(RuleReminderEntity(ruleId = ruleId, offsetDays = offset))
+                }
+            }
+        }
+
+        /**
+         * What lands today.
+         *
+         * A reminder fires on `occurrence + offset`, so the occurrence it is about is
+         * `today - offset` — for a reminder three days early that is a date three days from now,
+         * which is exactly the point and the reason [occursOn] exists rather than a list.
+         */
+        override suspend fun dueReminders(today: LocalDate): List<DueReminder> {
+            val reminders = reminderDao.all().groupBy { it.ruleId }
+            if (reminders.isEmpty()) return emptyList()
+
+            return ruleDao.activeRules().flatMap { entity ->
+                val rule = entity.toDomain()
+                reminders[entity.id].orEmpty().mapNotNull { reminder ->
+                    val occurrence = today.minusDays(reminder.offsetDays.toLong())
+                    DueReminder(rule, occurrence, reminder.offsetDays)
+                        .takeIf { rule.occursOn(occurrence) && rule.stillWants(occurrence) }
+                }
+            }
+        }
+
+        /**
+         * Whether a reminder about [occurrence] is still worth sending.
+         *
+         * Only variable rules can lose interest: once the bill has been answered the app knows
+         * what it cost, and chasing somebody about a figure they have already typed is how
+         * notifications get turned off altogether. A fixed rule always wants its heads-up — the
+         * whole point is being told *before* the money goes.
+         */
+        private fun RecurringRule.stillWants(occurrence: LocalDate): Boolean =
+            mode != RuleMode.CONFIRM || lastGenerated == null || occurrence > lastGenerated
 
         /**
          * Whether this rule will take that answer for that date.

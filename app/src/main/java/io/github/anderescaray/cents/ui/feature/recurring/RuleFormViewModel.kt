@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.RecurringRule
+import io.github.anderescaray.cents.domain.model.Reminder
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
@@ -56,6 +57,11 @@ data class RuleFormUiState(
     val ruleActive: Boolean = true,
     val pickingDate: RuleDateField? = null,
     val pickingFrequency: Boolean = false,
+    /** The nudges this rule carries, soonest first. Held here until the rule is saved. */
+    val reminders: List<Reminder> = emptyList(),
+    val addingReminder: Boolean = false,
+    val reminderDaysInput: String = "",
+    val reminderBefore: Boolean = true,
     /** Set once it is known that stopping is the honest form of deleting (PRD §4.4). */
     val generatedCount: Int = 0,
     val confirmingRemoval: Boolean = false,
@@ -68,6 +74,21 @@ data class RuleFormUiState(
     val intervalDays: Int? get() = intervalInput.toIntOrNull()?.takeIf { it >= 1 }
 
     val needsInterval: Boolean get() = frequency == Frequency.EVERY_N_DAYS
+
+    /** Whether the amount is one the owner will have to supply each time. */
+    val asksForAmount: Boolean get() = mode == RuleMode.CONFIRM
+
+    val reminderDays: Int? get() = reminderDaysInput.toIntOrNull()?.takeIf { it in 0..MAX_REMINDER_DAYS }
+
+    /** What the reminder being typed would come to, signed the way it is stored. */
+    val reminderOffset: Int?
+        get() = reminderDays?.let { days -> if (days == 0 || !reminderBefore) days else -days }
+
+    /** The same reminder twice is the same notification twice. */
+    val reminderIsDuplicate: Boolean
+        get() = reminderOffset != null && reminders.any { it.offsetDays == reminderOffset }
+
+    val canAddReminder: Boolean get() = reminderOffset != null && !reminderIsDuplicate
 
     /** Whether the rule has ever produced a movement. */
     val hasHistory: Boolean get() = generatedCount > 0
@@ -93,6 +114,10 @@ data class RuleFormUiState(
                 (endDate == null || endDate >= startDate) &&
                 !saving
 }
+
+/** Nobody is reminded about something a thousand days away, and three digits is the field. */
+private const val MAX_REMINDER_DIGITS = 3
+private const val MAX_REMINDER_DAYS = 365
 
 /**
  * Defining something that repeats.
@@ -159,6 +184,7 @@ class RuleFormViewModel
                         mode = rule.mode,
                         currency = rule.amount.currency,
                         ruleActive = rule.active,
+                        reminders = repository.remindersFor(id),
                         generatedCount = generated,
                     ).withOptions(state.accounts)
             }
@@ -224,7 +250,45 @@ class RuleFormViewModel
                 )
             }
 
-        fun setMode(mode: RuleMode) = form.update { it.copy(mode = mode) }
+        fun setMode(mode: RuleMode) =
+            form.update {
+                // A fixed subscription is announced, never chased afterwards: the movement is
+                // already in the list, so "Netflix was charged yesterday" is the app telling the
+                // owner something they can read one screen away. Switching to a fixed amount
+                // therefore turns any reminder that was set for *after* the date into the same
+                // number of days *before* it, which is the thing that was actually wanted.
+                val kept = if (mode == RuleMode.CONFIRM) it.reminders else it.reminders.map(Reminder::asBefore)
+                it.copy(mode = mode, reminders = kept.distinctBy(Reminder::offsetDays))
+            }
+
+        fun startAddingReminder() =
+            form.update { it.copy(addingReminder = true, reminderDaysInput = "", reminderBefore = true) }
+
+        fun cancelAddingReminder() = form.update { it.copy(addingReminder = false) }
+
+        fun setReminderDays(typed: String) =
+            form.update {
+                it.copy(reminderDaysInput = typed.filter(Char::isDigit).take(MAX_REMINDER_DIGITS))
+            }
+
+        fun setReminderBefore(before: Boolean) = form.update { it.copy(reminderBefore = before) }
+
+        fun confirmReminder() =
+            form.update { state ->
+                val offset = state.reminderOffset
+                if (!state.canAddReminder || offset == null) {
+                    state
+                } else {
+                    state.copy(
+                        reminders = (state.reminders + Reminder(offsetDays = offset)).sortedBy { it.offsetDays },
+                        addingReminder = false,
+                        reminderDaysInput = "",
+                    )
+                }
+            }
+
+        fun removeReminder(offsetDays: Int) =
+            form.update { it.copy(reminders = it.reminders.filterNot { r -> r.offsetDays == offsetDays }) }
 
         fun openDatePicker(field: RuleDateField) = form.update { it.copy(pickingDate = field) }
 
@@ -269,13 +333,16 @@ class RuleFormViewModel
                     )
                 val written =
                     runCatching {
-                        if (ruleId == null) {
-                            repository.createRule(rule)
-                        } else {
-                            repository.updateRule(
-                                rule.copy(lastGenerated = repository.findById(ruleId)?.lastGenerated),
-                            )
-                        }
+                        val id =
+                            if (ruleId == null) {
+                                repository.createRule(rule)
+                            } else {
+                                repository.updateRule(
+                                    rule.copy(lastGenerated = repository.findById(ruleId)?.lastGenerated),
+                                )
+                                ruleId
+                            }
+                        repository.setReminders(id, state.reminders.map(Reminder::offsetDays))
                         // **And then catch it up, here, before the screen closes.** The start
                         // date is the anchor *and* the backlog: a subscription entered in
                         // September that began in May is five charges that already happened, and

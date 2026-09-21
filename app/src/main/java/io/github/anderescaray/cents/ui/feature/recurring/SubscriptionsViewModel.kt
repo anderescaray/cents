@@ -7,13 +7,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.RecurringRule
-import io.github.anderescaray.cents.domain.model.RuleMode
-import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
+import io.github.anderescaray.cents.domain.usecase.SubscriptionTotals
 import io.github.anderescaray.cents.domain.usecase.nextOccurrenceAfter
+import io.github.anderescaray.cents.domain.usecase.subscriptionTotalsOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -36,6 +39,7 @@ data class SubscriptionsUiState(
     /** Variable-amount occurrences waiting for a figure, oldest first. */
     val pending: List<PendingCharge> = emptyList(),
     val today: LocalDate = LocalDate.EPOCH,
+    val totals: SubscriptionTotals = SubscriptionTotals(),
     val isLoading: Boolean = true,
 ) {
     val isEmpty: Boolean get() = !isLoading && active.isEmpty() && stopped.isEmpty()
@@ -51,7 +55,7 @@ data class SubscriptionsUiState(
      * in would produce a cheerful number that answers no question — what is wanted here is what
      * is going *out*.
      */
-    val monthlyOutgoing: Money? get() = totalOf { it.monthlyCost }
+    val monthlyOutgoing: Money? get() = totals.monthlyOutgoing
 
     /**
      * Whether a guess is in that figure.
@@ -61,16 +65,9 @@ data class SubscriptionsUiState(
      * predict. It is still a guess, so the caption says so rather than letting the number look
      * like arithmetic.
      */
-    val includesEstimates: Boolean
-        get() = active.any { it.rule.kind == TransactionKind.EXPENSE && it.rule.mode == RuleMode.CONFIRM }
+    val includesEstimates: Boolean get() = totals.includesEstimates
 
-    val yearlyOutgoing: Money? get() = totalOf { it.yearlyCost }
-
-    private fun totalOf(cost: (RecurringRule) -> Money): Money? {
-        val charges = active.map { it.rule }.filter { it.kind == TransactionKind.EXPENSE }
-        val currency = charges.map { it.amount.currency }.distinct().singleOrNull() ?: return null
-        return charges.fold(Money.zero(currency)) { sum, rule -> sum + cost(rule) }
-    }
+    val yearlyOutgoing: Money? get() = totals.yearlyOutgoing
 }
 
 /**
@@ -87,11 +84,14 @@ class SubscriptionsViewModel
         private val repository: RecurringRuleRepository,
         private val clock: Clock,
     ) : ViewModel() {
+        private val date = MutableStateFlow(LocalDate.now(clock))
+
         val uiState: StateFlow<SubscriptionsUiState> =
             combine(
                 repository.observeRules(),
                 repository.observePending(),
-            ) { rules, pending ->
+                date,
+            ) { rules, pending, _ ->
                 val today = LocalDate.now(clock)
                 val rows = rules.map { SubscriptionRow(it, it.nextOccurrenceAfter(today)) }
                 SubscriptionsUiState(
@@ -99,13 +99,18 @@ class SubscriptionsViewModel
                     stopped = rows.filterNot { it.rule.active },
                     pending = pending,
                     today = today,
+                    totals = subscriptionTotalsOf(rules, today),
                     isLoading = false,
                 )
-            }.stateIn(
+            }.flowOn(Dispatchers.Default).stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = SubscriptionsUiState(),
             )
+
+        fun refreshDate() {
+            date.value = LocalDate.now(clock)
+        }
 
         /** Stops a rule, or starts it again. Nothing it has already made is touched. */
         fun setActive(

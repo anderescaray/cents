@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -56,13 +57,38 @@ fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refreshDate()
+        onPauseOrDispose {}
+    }
 
+    SubscriptionsScreen(
+        state = state,
+        onBack = onBack,
+        onNewRule = onNewRule,
+        onOpenPending = onOpenPending,
+        onEditRule = onEditRule,
+        onSetActive = viewModel::setActive,
+    )
+}
+
+@Composable
+fun SubscriptionsScreen(
+    state: SubscriptionsUiState,
+    onBack: () -> Unit,
+    onNewRule: () -> Unit,
+    onOpenPending: () -> Unit,
+    onEditRule: (Long) -> Unit,
+    onSetActive: (Long, Boolean) -> Unit,
+) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.subscriptions_title),
         bottomPadding = CentsDimens.sectionSpacing,
         leading = { CentsBackButton(label = stringResource(R.string.tab_settings), onClick = onBack) },
         trailing = { AddRuleButton(onClick = onNewRule) },
     ) {
+        if (state.isLoading) return@CentsLargeTitleScaffold
+
         if (state.isEmpty) {
             emptyState()
             return@CentsLargeTitleScaffold
@@ -72,8 +98,9 @@ fun SubscriptionsScreen(
         // something rather than reporting it.
         waitingSection(state, onOpenPending)
         totalHeader(state)
-        activeRules(state, onEditRule, viewModel::setActive)
-        stoppedRules(state, onEditRule, viewModel::setActive)
+        subscriptionSummary(state.totals)
+        activeRules(state, onEditRule, onSetActive)
+        stoppedRules(state, onEditRule, onSetActive)
     }
 }
 

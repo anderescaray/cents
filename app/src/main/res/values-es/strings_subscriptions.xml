@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="subscriptions_figure_unavailable">—</string>
+  <string name="subscriptions_committed_title">Comprometido este mes</string>
+  <string name="subscriptions_committed_caption">Aún sin registrar, desde hoy hasta fin de mes.</string>
+  <string name="subscriptions_committed_estimate">Desde hoy hasta fin de mes, más las facturas variables pendientes. Incluye importes estimados.</string>
+  <string name="subscriptions_income_share_title">Parte de los ingresos destinada a gastos fijos</string>
+  <string name="subscriptions_income_share_caption">Total mensual de gastos recurrentes dividido por el de ingresos recurrentes.</string>
+  <string name="subscriptions_income_share_estimate">Total mensual de gastos recurrentes dividido por el de ingresos recurrentes, incluidos los importes variables estimados.</string>
+  <string name="subscriptions_income_share_no_income">Añade una regla de ingresos activa para calcular este porcentaje.</string>
+  <string name="subscriptions_income_share_zero_income">Los ingresos mensuales deben ser mayores que cero para calcular este porcentaje.</string>
+  <string name="subscriptions_income_share_mixed_currency">Las reglas de ingresos y gastos usan monedas distintas, así que no se puede calcular este porcentaje.</string>
+</resources>

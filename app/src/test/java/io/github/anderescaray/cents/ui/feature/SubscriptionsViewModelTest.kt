@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -29,6 +30,7 @@ import org.robolectric.RobolectricTestRunner
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
@@ -189,6 +191,95 @@ class SubscriptionsViewModelTest {
             assertTrue(firstLoaded().isEmpty)
         }
 
+    @Test
+    fun `the state includes commitments and the monthly income share`() =
+        runTest {
+            add(name = "Netflix", minor = 1_299, frequency = Frequency.MONTHLY, start = LocalDate.of(2026, 9, 30))
+            add(name = "Salary", minor = 250_000, frequency = Frequency.MONTHLY, kind = TransactionKind.INCOME)
+
+            val state = firstLoaded()
+            val share = requireNotNull(state.totals.incomeShare)
+
+            assertEquals(Money(1_299, "EUR"), state.totals.committedThisMonth)
+            assertEquals(state.monthlyOutgoing, share.monthlyExpenses)
+            assertEquals(Money(250_000, "EUR"), share.monthlyIncome)
+        }
+
+    @Test
+    fun `generating today's charge updates commitments without a reload`() =
+        runTest {
+            add(name = "Weekly", minor = 1_000, frequency = Frequency.WEEKLY, start = LocalDate.of(2026, 9, 17))
+
+            subscriptions().uiState.test {
+                val before = awaitStateThat { !it.isLoading }
+                assertEquals(Money(2_000, "EUR"), before.totals.committedThisMonth)
+
+                repository().generateDue()
+
+                val after = awaitStateThat { it.totals.committedThisMonth == Money(1_000, "EUR") }
+                assertEquals(before.monthlyOutgoing, after.monthlyOutgoing)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `recording and skipping variable bills remove only the answered occurrences`() =
+        runTest {
+            val id =
+                add(
+                    name = "Electricity",
+                    minor = 6_000,
+                    frequency = Frequency.MONTHLY,
+                    start = LocalDate.of(2026, 7, 17),
+                    mode = RuleMode.CONFIRM,
+                )
+
+            subscriptions().uiState.test {
+                val before = awaitStateThat { !it.isLoading }
+                assertEquals(Money(18_000, "EUR"), before.totals.committedThisMonth)
+                assertEquals(2, before.pending.single().laterCount)
+                assertTrue(before.totals.committedIncludesEstimates)
+
+                assertTrue(repository().recordPending(id, LocalDate.of(2026, 7, 17), Money(7_412, "EUR")))
+                awaitStateThat { it.totals.committedThisMonth == Money(12_000, "EUR") }
+                assertTrue(repository().skipPending(id, LocalDate.of(2026, 8, 17)))
+                awaitStateThat { it.totals.committedThisMonth == Money(6_000, "EUR") }
+                assertTrue(repository().recordPending(id, LocalDate.of(2026, 9, 17), Money(5_980, "EUR")))
+
+                val after = awaitStateThat { it.totals.committedThisMonth == Money.zero("EUR") && it.pending.isEmpty() }
+                assertFalse(after.totals.committedIncludesEstimates)
+                assertTrue(after.includesEstimates)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `resuming in a new month recalculates even when Room has not changed`() =
+        runTest {
+            var now = Instant.parse("2026-09-30T23:00:00Z")
+            val movingClock =
+                object : Clock() {
+                    override fun instant(): Instant = now
+
+                    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+                    override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+                }
+            add(name = "Rent", minor = 75_000, frequency = Frequency.MONTHLY, start = LocalDate.of(2026, 10, 1))
+            val viewModel = subscriptions(movingClock)
+
+            viewModel.uiState.test {
+                assertEquals(Money.zero("EUR"), awaitStateThat { !it.isLoading }.totals.committedThisMonth)
+
+                now = Instant.parse("2026-10-01T08:00:00Z")
+                viewModel.refreshDate()
+
+                val after = awaitStateThat { it.today == LocalDate.of(2026, 10, 1) }
+                assertEquals(Money(75_000, "EUR"), after.totals.committedThisMonth)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     private suspend fun firstLoaded(): SubscriptionsUiState {
         lateinit var loaded: SubscriptionsUiState
         subscriptions().uiState.test {
@@ -198,7 +289,7 @@ class SubscriptionsViewModelTest {
         return loaded
     }
 
-    private fun subscriptions() = viewModels.keep(SubscriptionsViewModel(repository(), clock))
+    private fun subscriptions(clock: Clock = this.clock) = viewModels.keep(SubscriptionsViewModel(repository(), clock))
 
     private fun repository() =
         RoomRecurringRuleRepository(database.recurringRuleDao(), database.ruleReminderDao(), database, clock)
@@ -211,6 +302,7 @@ class SubscriptionsViewModelTest {
         currency: String = "EUR",
         start: LocalDate = LocalDate.of(2026, 9, 1),
         end: LocalDate? = null,
+        mode: RuleMode = RuleMode.AUTOMATIC,
     ): Long =
         repository().createRule(
             RecurringRule(
@@ -224,7 +316,7 @@ class SubscriptionsViewModelTest {
                 intervalDays = null,
                 startDate = start,
                 endDate = end,
-                mode = RuleMode.AUTOMATIC,
+                mode = mode,
                 active = true,
                 lastGenerated = null,
             ),

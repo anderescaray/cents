@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="subscriptions_figure_unavailable">—</string>
+  <string name="subscriptions_committed_title">Committed this month</string>
+  <string name="subscriptions_committed_caption">Not yet recorded, from today to month-end.</string>
+  <string name="subscriptions_committed_estimate">From today to month-end, plus variable bills still waiting. Includes estimated amounts.</string>
+  <string name="subscriptions_income_share_title">Share of income going to fixed charges</string>
+  <string name="subscriptions_income_share_caption">Monthly expense rules divided by monthly income rules.</string>
+  <string name="subscriptions_income_share_estimate">Monthly expense rules divided by monthly income rules, including variable-amount estimates.</string>
+  <string name="subscriptions_income_share_no_income">Add an active income rule to calculate this share.</string>
+  <string name="subscriptions_income_share_zero_income">Monthly income must be greater than zero to calculate this share.</string>
+  <string name="subscriptions_income_share_mixed_currency">Income and expense rules use different currencies, so this share cannot be calculated.</string>
+</resources>

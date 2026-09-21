@@ -27,6 +27,30 @@ class DeletedTransactionBufferTest {
             note = null,
         )
 
+    private val transferLeg1 =
+        Transaction(
+            id = 10,
+            accountId = 1,
+            categoryId = null,
+            kind = TransactionKind.EXPENSE,
+            amount = Money(2_000, "EUR"),
+            date = LocalDate.of(2026, 8, 18),
+            note = null,
+            transferId = 100,
+        )
+
+    private val transferLeg2 =
+        Transaction(
+            id = 11,
+            accountId = 2,
+            categoryId = null,
+            kind = TransactionKind.INCOME,
+            amount = Money(2_000, "EUR"),
+            date = LocalDate.of(2026, 8, 18),
+            note = null,
+            transferId = 100,
+        )
+
     @Test
     fun `the offer expires on its own, without a screen keeping the time`() =
         runTest {
@@ -48,7 +72,7 @@ class DeletedTransactionBufferTest {
             val buffer = DeletedTransactionBuffer(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
             buffer.remember(movement)
 
-            assertEquals(movement, buffer.take())
+            assertEquals(DeletedTransaction.Movement(movement), buffer.take())
             assertNull(buffer.take())
 
             advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
@@ -67,6 +91,47 @@ class DeletedTransactionBufferTest {
 
             // The first one's timer must not take the second one away with it.
             advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2 + 1)
-            assertEquals(second, buffer.deleted.value)
+            assertEquals(DeletedTransaction.Movement(second), buffer.deleted.value)
+        }
+
+    @Test
+    fun `remembering a transfer holds both legs and expires on its own`() =
+        runTest {
+            val buffer = DeletedTransactionBuffer(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+            val legs = listOf(transferLeg1, transferLeg2)
+            buffer.remember(legs)
+
+            assertEquals(DeletedTransaction.Transfer(legs), buffer.deleted.value)
+
+            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
+            assertNull(buffer.deleted.value)
+        }
+
+    @Test
+    fun `taking the transfer stops the clock and empties the buffer`() =
+        runTest {
+            val buffer = DeletedTransactionBuffer(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+            val legs = listOf(transferLeg1, transferLeg2)
+            buffer.remember(legs)
+
+            assertEquals(DeletedTransaction.Transfer(legs), buffer.take())
+            assertNull(buffer.take())
+
+            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
+            assertNull(buffer.deleted.value)
+        }
+
+    @Test
+    fun `a transfer deletion replaces a movement deletion and resets the window`() =
+        runTest {
+            val buffer = DeletedTransactionBuffer(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+            buffer.remember(movement)
+
+            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2)
+            val legs = listOf(transferLeg1, transferLeg2)
+            buffer.remember(legs)
+
+            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2 + 1)
+            assertEquals(DeletedTransaction.Transfer(legs), buffer.deleted.value)
         }
 }

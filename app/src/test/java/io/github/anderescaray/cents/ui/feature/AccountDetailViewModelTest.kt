@@ -64,7 +64,7 @@ class AccountDetailViewModelTest {
                         database,
                         clock,
                     ),
-                transactionRepository = RoomTransactionRepository(database.transactionDao(), clock),
+                transactionRepository = RoomTransactionRepository(database.transactionDao(), database, clock),
                 savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
                 clock = clock,
             ),

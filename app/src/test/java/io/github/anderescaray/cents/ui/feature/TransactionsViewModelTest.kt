@@ -6,13 +6,16 @@ import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
+import io.github.anderescaray.cents.data.repository.RoomTransferRepository
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.Transfer
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsViewModel
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +54,7 @@ class TransactionsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
-        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+        transactions = RoomTransactionRepository(database.transactionDao(), database, clock)
         // Real time on purpose: runTest races virtual time ahead while the database
         // works, which would expire the undo window mid-test. Its expiry has its
         // own test, with a scheduler it controls.
@@ -183,6 +186,124 @@ class TransactionsViewModelTest {
             }
 
             assertNull(transactions.findById(id))
+        }
+
+    @Test
+    fun `undoing a deleted transfer restores both legs and both balances`() =
+        runTest {
+            val accountRepository =
+                RoomAccountRepository(
+                    database.accountDao(),
+                    database.transactionDao(),
+                    database,
+                    clock,
+                )
+            val transferRepo =
+                RoomTransferRepository(
+                    database.transactionDao(),
+                    database,
+                    clock,
+                )
+
+            val fromAccount = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 10_000))
+            val toAccount = database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 5_000))
+
+            val transferId =
+                transferRepo.saveTransfer(
+                    Transfer(
+                        id = Transfer.NEW,
+                        fromAccountId = fromAccount,
+                        toAccountId = toAccount,
+                        amount = Money(2_000, "EUR"),
+                        fee = Money.zero("EUR"),
+                        date = LocalDate.of(2026, 8, 18),
+                        note = "To savings",
+                    ),
+                )
+
+            val legs = transactions.findTransferLegs(transferId)
+            assertEquals(2, legs.size)
+
+            val initialChecking = accountRepository.observeAccountWithBalance(fromAccount).first()!!.balance
+            val initialSavings = accountRepository.observeAccountWithBalance(toAccount).first()!!.balance
+            assertEquals(Money(8_000, "EUR"), initialChecking)
+            assertEquals(Money(7_000, "EUR"), initialSavings)
+
+            // TransferFormViewModel deletion sequence:
+            val legsToBuffer = transactions.findTransferLegs(transferId)
+            transferRepo.deleteTransfer(transferId)
+            deleted.remember(legsToBuffer)
+
+            val deletedChecking = accountRepository.observeAccountWithBalance(fromAccount).first()!!.balance
+            val deletedSavings = accountRepository.observeAccountWithBalance(toAccount).first()!!.balance
+            assertEquals(Money(10_000, "EUR"), deletedChecking)
+            assertEquals(Money(5_000, "EUR"), deletedSavings)
+
+            viewModel.uiState.test {
+                val bannerState = awaitStateThat { it.undoableDeletion != null }
+                assertTrue(bannerState.undoableDeletion is DeletedTransaction.Transfer)
+
+                viewModel.undoDeletion()
+
+                awaitStateThat { it.undoableDeletion == null && it.days.isNotEmpty() }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Both legs restored with original ids, amounts, accounts, dates, and transferId
+            val restoredLegs = transactions.findTransferLegs(transferId)
+            assertEquals(2, restoredLegs.size)
+            assertEquals(legs.map { it.id }.toSet(), restoredLegs.map { it.id }.toSet())
+            assertEquals(legs.map { it.amount }.toSet(), restoredLegs.map { it.amount }.toSet())
+            assertEquals(legs.map { it.accountId }.toSet(), restoredLegs.map { it.accountId }.toSet())
+            assertEquals(legs.map { it.date }.toSet(), restoredLegs.map { it.date }.toSet())
+            assertEquals(legs.map { it.transferId }.toSet(), restoredLegs.map { it.transferId }.toSet())
+
+            // Both balances restored
+            val restoredChecking = accountRepository.observeAccountWithBalance(fromAccount).first()!!.balance
+            val restoredSavings = accountRepository.observeAccountWithBalance(toAccount).first()!!.balance
+            assertEquals(Money(8_000, "EUR"), restoredChecking)
+            assertEquals(Money(7_000, "EUR"), restoredSavings)
+        }
+
+    @Test
+    fun `letting the undo window pass leaves the transfer deleted`() =
+        runTest {
+            val transferRepo =
+                RoomTransferRepository(
+                    database.transactionDao(),
+                    database,
+                    clock,
+                )
+            val fromAccount = database.accountDao().insert(account(name = "Checking"))
+            val toAccount = database.accountDao().insert(account(name = "Savings"))
+
+            val transferId =
+                transferRepo.saveTransfer(
+                    Transfer(
+                        id = Transfer.NEW,
+                        fromAccountId = fromAccount,
+                        toAccountId = toAccount,
+                        amount = Money(2_000, "EUR"),
+                        fee = Money.zero("EUR"),
+                        date = LocalDate.of(2026, 8, 18),
+                        note = null,
+                    ),
+                )
+
+            val legs = transactions.findTransferLegs(transferId)
+            transferRepo.deleteTransfer(transferId)
+            deleted.remember(legs)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.undoableDeletion != null }
+
+                viewModel.dismissUndo()
+
+                awaitStateThat { it.undoableDeletion == null }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(emptyList<Transaction>(), transactions.findTransferLegs(transferId))
         }
 
     @Test

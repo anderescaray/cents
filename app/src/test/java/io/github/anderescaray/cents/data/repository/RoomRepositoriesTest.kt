@@ -39,7 +39,7 @@ class RoomRepositoriesTest {
         database = createTestDatabase()
         accounts = RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock)
         categories = RoomCategoryRepository(database.categoryDao(), database, clock)
-        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+        transactions = RoomTransactionRepository(database.transactionDao(), database, clock)
     }
 
     @After
@@ -136,6 +136,7 @@ class RoomRepositoriesTest {
             val later =
                 RoomTransactionRepository(
                     database.transactionDao(),
+                    database,
                     Clock.fixed(Instant.parse("2026-09-01T12:00:00Z"), ZoneOffset.UTC),
                 )
             later.updateTransaction(
@@ -252,6 +253,108 @@ class RoomRepositoriesTest {
                     .first()
                     .map { it.amountMinor },
             )
+        }
+
+    @Test
+    fun `restoring movements writes them in one database transaction with their ids`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 100_000))
+            val savings = database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 100_000))
+
+            val outLeg =
+                Transaction(
+                    id = 10,
+                    accountId = checking,
+                    categoryId = null,
+                    kind = TransactionKind.EXPENSE,
+                    amount = Money(50_300, "EUR"),
+                    date = LocalDate.of(2026, 9, 14),
+                    note = "Transfer to savings",
+                    transferId = 10,
+                )
+            val inLeg =
+                Transaction(
+                    id = 11,
+                    accountId = savings,
+                    categoryId = null,
+                    kind = TransactionKind.INCOME,
+                    amount = Money(50_000, "EUR"),
+                    date = LocalDate.of(2026, 9, 14),
+                    note = "Transfer to savings",
+                    transferId = 10,
+                )
+
+            transactions.restore(listOf(outLeg, inLeg))
+
+            val legs = transactions.findTransferLegs(10)
+            assertEquals(2, legs.size)
+            assertEquals(listOf(10L, 11L), legs.map { it.id }.sorted())
+            val out = legs.single { it.kind == TransactionKind.EXPENSE }
+            val income = legs.single { it.kind == TransactionKind.INCOME }
+            assertEquals(checking, out.accountId)
+            assertEquals(savings, income.accountId)
+            assertEquals(Money(50_300, "EUR"), out.amount)
+            assertEquals(Money(50_000, "EUR"), income.amount)
+            assertEquals(10L, out.transferId)
+            assertEquals(10L, income.transferId)
+            assertEquals(LocalDate.of(2026, 9, 14), out.date)
+
+            val balances =
+                accounts.observeAccountsWithBalances().first().associate {
+                    it.account.id to
+                        it.balance.minorUnits
+                }
+            assertEquals(49_700L, balances[checking])
+            assertEquals(150_000L, balances[savings])
+        }
+
+    @Test
+    fun `a failed restore rolls back and restores neither movement`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 100_000))
+            val savings = database.accountDao().insert(account(name = "Savings", openingBalanceMinor = 100_000))
+
+            val validLeg =
+                Transaction(
+                    id = 20,
+                    accountId = checking,
+                    categoryId = null,
+                    kind = TransactionKind.EXPENSE,
+                    amount = Money(50_000, "EUR"),
+                    date = LocalDate.of(2026, 9, 14),
+                    note = null,
+                    transferId = 20,
+                )
+            // Non-existent account violates RESTRICT foreign key
+            val invalidLeg =
+                Transaction(
+                    id = 21,
+                    accountId = 999_999L,
+                    categoryId = null,
+                    kind = TransactionKind.INCOME,
+                    amount = Money(50_000, "EUR"),
+                    date = LocalDate.of(2026, 9, 14),
+                    note = null,
+                    transferId = 20,
+                )
+
+            assertThrows(Exception::class.java) {
+                runBlocking {
+                    transactions.restore(listOf(validLeg, invalidLeg))
+                }
+            }
+
+            assertNull(transactions.findById(20))
+            assertNull(transactions.findById(21))
+            assertEquals(emptyList<Transaction>(), transactions.findTransferLegs(20))
+
+            val balances =
+                accounts.observeAccountsWithBalances().first().associate {
+                    it.account.id to
+                        it.balance.minorUnits
+                }
+            assertEquals(100_000L, balances[checking])
+            assertEquals(100_000L, balances[savings])
         }
 
     private fun newTransaction(

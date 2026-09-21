@@ -45,7 +45,7 @@ class TransactionFilterTest {
     @Before
     fun setUp() {
         database = createTestDatabase()
-        transactions = RoomTransactionRepository(database.transactionDao(), clock)
+        transactions = RoomTransactionRepository(database.transactionDao(), database, clock)
     }
 
     @After

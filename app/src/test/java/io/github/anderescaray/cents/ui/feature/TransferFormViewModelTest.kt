@@ -6,15 +6,20 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.Transfer
 import io.github.anderescaray.cents.domain.repository.TransferRepository
 import io.github.anderescaray.cents.ui.feature.transferform.TransferField
 import io.github.anderescaray.cents.ui.feature.transferform.TransferFormViewModel
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
+import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -41,6 +46,8 @@ import java.time.ZoneOffset
 class TransferFormViewModelTest {
     private lateinit var database: CentsDatabase
     private val viewModels = ViewModelKeeper()
+    private lateinit var transactions: RoomTransactionRepository
+    private lateinit var deleted: DeletedTransactionBuffer
 
     private var checking: Long = 0
     private var savings: Long = 0
@@ -54,6 +61,8 @@ class TransferFormViewModelTest {
             database = createTestDatabase()
             checking = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 100_000))
             savings = database.accountDao().insert(account(name = "Savings"))
+            transactions = RoomTransactionRepository(database.transactionDao(), database, clock)
+            deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
         }
 
     @After
@@ -243,7 +252,7 @@ class TransferFormViewModelTest {
         }
 
     @Test
-    fun `deleting a transfer takes both legs`() =
+    fun `deleting a transfer takes both legs and buffers them for undo`() =
         runTest {
             val id =
                 RoomTransferRepository(database.transactionDao(), database, clock).saveTransfer(
@@ -258,6 +267,9 @@ class TransferFormViewModelTest {
                     ),
                 )
 
+            val legsBeforeDelete = transactions.findTransferLegs(id)
+            assertEquals(2, legsBeforeDelete.size)
+
             val viewModel = readyForm(transferId = id)
             viewModel.confirmDeletion()
             viewModel.uiState.first { it.finished }
@@ -269,6 +281,60 @@ class TransferFormViewModelTest {
                     .first()
                     .isEmpty(),
             )
+
+            val buffered = deleted.take()
+            assertTrue(buffered is DeletedTransaction.Transfer)
+            val bufferedLegs = (buffered as DeletedTransaction.Transfer).legs
+            assertEquals(2, bufferedLegs.size)
+            assertEquals(legsBeforeDelete.map { it.id }.toSet(), bufferedLegs.map { it.id }.toSet())
+            assertEquals(legsBeforeDelete.map { it.amount }.toSet(), bufferedLegs.map { it.amount }.toSet())
+        }
+
+    @Test
+    fun `a transfer with three legs sharing one transferId refuses deletion and deletes nothing`() =
+        runTest {
+            val id =
+                RoomTransferRepository(database.transactionDao(), database, clock).saveTransfer(
+                    Transfer(
+                        id = Transfer.NEW,
+                        fromAccountId = checking,
+                        toAccountId = savings,
+                        amount = Money(50_000, "EUR"),
+                        fee = Money.zero("EUR"),
+                        date = LocalDate.of(2026, 9, 14),
+                        note = null,
+                    ),
+                )
+
+            // A third leg sharing the same transferId (e.g., from a malformed backup)
+            transactions.addTransaction(
+                Transaction(
+                    id = 0,
+                    accountId = savings,
+                    categoryId = null,
+                    kind = TransactionKind.INCOME,
+                    amount = Money(10_000, "EUR"),
+                    date = LocalDate.of(2026, 9, 14),
+                    note = "Malformed third leg",
+                    transferId = id,
+                ),
+            )
+
+            assertEquals(3, transactions.findTransferLegs(id).size)
+
+            val viewModel = readyForm(transferId = id)
+            viewModel.confirmDeletion()
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.writeFailed }
+                assertTrue(state.writeFailed)
+                assertFalse(state.finished)
+                assertFalse(state.confirmingDeletion)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(3, transactions.findTransferLegs(id).size)
+            assertNull(deleted.take())
         }
 
     @Test
@@ -318,14 +384,26 @@ class TransferFormViewModelTest {
         transferId: Long = Destination.TransferForm.NEW,
         amountInput: String = "",
         gate: CompletableDeferred<Unit>? = null,
+        deletedTransactions: DeletedTransactionBuffer = deleted,
     ): TransferFormViewModel {
         val repository = RoomTransferRepository(database.transactionDao(), database, clock)
         return viewModels.keep(
             TransferFormViewModel(
-                gate?.let { HeldBack(repository, it) } ?: repository,
-                RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
-                SavedStateHandle(mapOf("transferId" to transferId, "amountInput" to amountInput)),
-                clock,
+                transferRepository = gate?.let { HeldBack(repository, it) } ?: repository,
+                transactionRepository = transactions,
+                deletedTransactions = deletedTransactions,
+                accountRepository =
+                    RoomAccountRepository(
+                        database.accountDao(),
+                        database.transactionDao(),
+                        database,
+                        clock,
+                    ),
+                savedStateHandle =
+                    SavedStateHandle(
+                        mapOf("transferId" to transferId, "amountInput" to amountInput),
+                    ),
+                clock = clock,
             ),
         )
     }

@@ -36,6 +36,7 @@ import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.open
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.relativeLabel
 import java.time.LocalDate
@@ -63,8 +64,9 @@ fun TransactionsScreen(
             onClearFilter = viewModel::clearFilter,
         )
 
-        if (state.undoableDeletion != null) {
+        state.undoableDeletion?.let { deletion ->
             UndoBanner(
+                isTransfer = deletion is DeletedTransaction.Transfer,
                 onUndo = viewModel::undoDeletion,
                 modifier =
                     Modifier
@@ -257,6 +259,7 @@ private fun LazyListScope.noMatchesState(onClearFilter: () -> Unit) {
 /** The one place a deletion can be taken back, for as long as it is on screen. */
 @Composable
 private fun UndoBanner(
+    isTransfer: Boolean,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -270,7 +273,10 @@ private fun UndoBanner(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.transaction_deleted),
+            text =
+                stringResource(
+                    if (isTransfer) R.string.transfer_deleted else R.string.transaction_deleted,
+                ),
             style = CentsTheme.typography.subhead,
             color = CentsTheme.colors.label,
         )

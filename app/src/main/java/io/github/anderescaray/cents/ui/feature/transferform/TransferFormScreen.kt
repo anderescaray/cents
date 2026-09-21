@@ -133,7 +133,7 @@ private fun FormDialogs(
     if (state.confirmingDeletion) {
         CentsAlert(
             title = stringResource(R.string.transfer_delete_title),
-            message = stringResource(R.string.transfer_delete_message),
+            message = stringResource(R.string.transfer_delete_undo_message),
             confirmLabel = stringResource(R.string.action_delete),
             onConfirm = viewModel::confirmDeletion,
             dismissLabel = stringResource(R.string.action_cancel),

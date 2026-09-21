@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transfer_deleted">Traspaso eliminado</string>
+    <string name="transfer_delete_undo_message">Se van los dos lados y los dos saldos vuelven a como estaban. Puedes deshacerlo desde la lista durante unos segundos.</string>
+</resources>

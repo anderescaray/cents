@@ -21,3 +21,6 @@ local.properties
 # IDE and tooling
 /.idea/
 .kotlin/
+
+# Agent worktrees (Claude Code creates them here; Orca uses ~/orca/workspaces)
+.claude/worktrees/

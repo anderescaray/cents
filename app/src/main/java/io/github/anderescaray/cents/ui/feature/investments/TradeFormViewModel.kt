@@ -54,6 +54,8 @@ data class TradeFormUiState(
     val date: LocalDate = LocalDate.EPOCH,
     val today: LocalDate = LocalDate.EPOCH,
     val currency: String = "EUR",
+    /** Free text, kept as typed and trimmed only when saved. Blank means no note. */
+    val note: String = "",
     /** What is held *without* this trade, so a sale can be checked against it. */
     val heldElsewhere: Quantity = Quantity.ZERO,
     val pickingDate: Boolean = false,
@@ -227,6 +229,9 @@ class TradeFormViewModel
                     priceInput = AmountEntry.fromMinorUnits(trade.pricePerUnit.minorUnits),
                     feeInput = AmountEntry.fromMinorUnits(trade.fee.minorUnits),
                     date = trade.date,
+                    // The note is the one field that can be typed into while the trade is still
+                    // loading, and what the owner typed wins over what was stored.
+                    note = note.ifEmpty { trade.note.orEmpty() },
                 )
             }
 
@@ -306,6 +311,10 @@ class TradeFormViewModel
             form.update { it.copy(feeInput = AmountEntry.sanitize(typed)) }
         }
 
+        fun onNoteChanged(note: String) {
+            form.update { it.copy(note = note) }
+        }
+
         fun openDatePicker() {
             form.update { it.copy(pickingDate = true) }
         }
@@ -357,7 +366,10 @@ class TradeFormViewModel
                         pricePerUnit = if (state.isCorrection) zero else state.pricePerUnit,
                         fee = if (state.isCorrection) zero else state.fee,
                         date = state.date,
-                        note = null,
+                        // Carried through on every save, a correction's included: a form that
+                        // did not offer the note used to write null here, which erased the
+                        // note of any trade it edited.
+                        note = state.note.trim().ifBlank { null },
                     )
                 // The holding can be deleted from another screen while this form is open, and
                 // `trades.holdingId` is RESTRICT — so the write can be refused. An exception

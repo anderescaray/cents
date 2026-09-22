@@ -268,13 +268,17 @@ private fun TradeRow(
     CentsListRow(
         title = title,
         // A correction has no price to show, because it moved no money. Showing "at 0,00 € each"
-        // would be a number where there is not one.
+        // would be a number where there is not one. The note, when there is one, goes on a line
+        // of its own underneath: it is prose, and run into the date it would read as part of it.
         subtitle =
-            if (trade.isCorrection) {
-                trade.date.relativeLabel()
-            } else {
-                trade.date.relativeLabel() + " · " + stringResource(R.string.holding_trade_at, price)
-            },
+            listOfNotNull(
+                if (trade.isCorrection) {
+                    trade.date.relativeLabel()
+                } else {
+                    trade.date.relativeLabel() + " · " + stringResource(R.string.holding_trade_at, price)
+                },
+                trade.note?.trim()?.ifEmpty { null },
+            ).joinToString(separator = "\n"),
         value = if (trade.isCorrection) null else MoneyFormatter.format(trade.net),
         // A sale is money coming back, which is the same green the movement list gives income.
         valueColor = if (bought) CentsTheme.colors.label else CentsTheme.colors.positive,

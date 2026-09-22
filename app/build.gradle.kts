@@ -81,8 +81,12 @@ dependencies {
     // one API this needs: it is what lets the device PIN stand in when there is no fingerprint.
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.play.services.auth)
+    implementation(libs.okhttp)
     implementation(libs.vico.compose)
     testImplementation(libs.junit)
+    testImplementation(libs.mockwebserver)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.room.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)

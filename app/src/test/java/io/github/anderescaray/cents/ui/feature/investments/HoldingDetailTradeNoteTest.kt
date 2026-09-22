@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.investments
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
@@ -20,6 +21,9 @@ import io.github.anderescaray.cents.ui.feature.ViewModelKeeper
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -65,6 +69,27 @@ class HoldingDetailTradeNoteTest {
         scrollTo("Monthly plan")
 
         compose.onNodeWithText("Monthly plan", substring = true).assertIsDisplayed()
+        // On a line of its own, not run into "date · at price" where it would read as part of it.
+        val lines = tradeRowLines()
+        assertFalse(lines.single { " · " in it }.contains("Monthly plan"))
+        assertTrue(lines.contains("Monthly plan"))
+    }
+
+    @Test
+    fun `a note is trimmed, and one that is only whitespace shows no line at all`() {
+        runBlocking {
+            database.tradeDao().insert(trade(holdingId, units = 2).copy(note = "  Monthly plan  "))
+            database.tradeDao().insert(trade(holdingId, units = 3).copy(note = "   "))
+        }
+
+        showDetail()
+        scrollTo("Bought 3")
+
+        assertTrue(tradeRowLines("Bought 2").contains("Monthly plan"))
+        // The title, "date · at price" and the amount: no fourth line for a note that is not there.
+        val blankNoted = tradeRowLines("Bought 3")
+        assertEquals(3, blankNoted.size)
+        assertFalse(blankNoted.any { it.isBlank() })
     }
 
     @Test
@@ -79,6 +104,17 @@ class HoldingDetailTradeNoteTest {
         compose.onNodeWithText("Bought 2").assertIsDisplayed()
         compose.onNodeWithText("\n", substring = true).assertDoesNotExist()
     }
+
+    /**
+     * Every line of text on the row titled [title], one entry per line: the row merges its title
+     * and subtitle into one node, and the subtitle breaks onto a second line for the note.
+     */
+    private fun tradeRowLines(title: String = "Bought 2"): List<String> =
+        compose
+            .onNode(hasText(title, substring = true) and hasText(" · ", substring = true))
+            .fetchSemanticsNode()
+            .config[SemanticsProperties.Text]
+            .flatMap { it.text.lines() }
 
     /** The detail is a `LazyColumn`, and the trades sit below the fold until scrolled to. */
     private fun scrollTo(text: String) {

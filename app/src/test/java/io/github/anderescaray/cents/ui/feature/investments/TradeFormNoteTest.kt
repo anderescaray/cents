@@ -11,10 +11,13 @@ import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.repository.RoomHoldingRepository
 import io.github.anderescaray.cents.data.repository.RoomPortfolioRepository
 import io.github.anderescaray.cents.data.repository.RoomTradeRepository
+import io.github.anderescaray.cents.domain.model.Trade
 import io.github.anderescaray.cents.domain.model.TradeSide
+import io.github.anderescaray.cents.domain.repository.TradeRepository
 import io.github.anderescaray.cents.ui.feature.ViewModelKeeper
 import io.github.anderescaray.cents.ui.feature.awaitStateThat
 import io.github.anderescaray.cents.ui.navigation.Destination
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -146,6 +149,25 @@ class TradeFormNoteTest {
             assertEquals("Stock split", saved.note)
         }
 
+    @Test
+    fun `a note typed while the trade is still loading is not overwritten by the stored one`() =
+        runTest {
+            val tradeId = database.tradeDao().insert(trade(holdingId, units = 3).copy(note = "Stored"))
+            val gate = CompletableDeferred<Unit>()
+
+            val viewModel = form(tradeId = tradeId, tradeRepository = tradesGatedOn(gate))
+            // The trade cannot have been read yet: the gate is still shut.
+            viewModel.onNoteChanged("Typed first")
+            gate.complete(Unit)
+
+            viewModel.uiState.test {
+                // The quantity is only filled in from the trade, so a non-empty one means loaded.
+                val loaded = awaitStateThat { it.quantityInput.isNotEmpty() }
+                assertEquals("Typed first", loaded.note)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     /** Saves and waits for `finished`: reading the database before the write lands races it. */
     private suspend fun saveAndWait(viewModel: TradeFormViewModel) {
         viewModel.uiState.test {
@@ -163,19 +185,34 @@ class TradeFormNoteTest {
             .first()
             .single()
 
+    private fun trades(): TradeRepository =
+        RoomTradeRepository(
+            database.tradeDao(),
+            database.holdingDao(),
+            database.transactionDao(),
+            database,
+            clock,
+        )
+
+    /** The real repository, except that reading a trade waits until [gate] is opened. */
+    private fun tradesGatedOn(gate: CompletableDeferred<Unit>): TradeRepository {
+        val real = trades()
+        return object : TradeRepository by real {
+            override suspend fun findById(id: Long): Trade? {
+                gate.await()
+                return real.findById(id)
+            }
+        }
+    }
+
     private fun form(
         tradeId: Long = Destination.TradeForm.NEW,
         correcting: Boolean = false,
+        tradeRepository: TradeRepository = trades(),
     ): TradeFormViewModel =
         viewModels.keep(
             TradeFormViewModel(
-                RoomTradeRepository(
-                    database.tradeDao(),
-                    database.holdingDao(),
-                    database.transactionDao(),
-                    database,
-                    clock,
-                ),
+                tradeRepository,
                 RoomHoldingRepository(database.holdingDao(), database.transactionDao(), database, clock),
                 RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
                 clock,

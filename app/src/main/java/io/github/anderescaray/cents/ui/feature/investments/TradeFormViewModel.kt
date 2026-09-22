@@ -229,7 +229,9 @@ class TradeFormViewModel
                     priceInput = AmountEntry.fromMinorUnits(trade.pricePerUnit.minorUnits),
                     feeInput = AmountEntry.fromMinorUnits(trade.fee.minorUnits),
                     date = trade.date,
-                    note = trade.note.orEmpty(),
+                    // The note is the one field that can be typed into while the trade is still
+                    // loading, and what the owner typed wins over what was stored.
+                    note = note.ifEmpty { trade.note.orEmpty() },
                 )
             }
 

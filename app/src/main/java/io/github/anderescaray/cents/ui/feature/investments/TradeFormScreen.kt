@@ -221,11 +221,11 @@ private fun NoteField(
     note: String,
     onNoteChanged: (String) -> Unit,
 ) {
-    CentsListSection {
+    CentsListSection(header = stringResource(R.string.field_note_placeholder)) {
         CentsTextField(
             value = note,
             onValueChange = onNoteChanged,
-            placeholder = stringResource(R.string.trade_field_note_placeholder),
+            placeholder = stringResource(R.string.holding_field_note_placeholder),
             modifier = Modifier.testTag(TRADE_NOTE_FIELD_TAG),
         )
     }

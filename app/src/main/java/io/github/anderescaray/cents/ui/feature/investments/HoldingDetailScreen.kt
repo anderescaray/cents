@@ -277,7 +277,7 @@ private fun TradeRow(
                 } else {
                     trade.date.relativeLabel() + " · " + stringResource(R.string.holding_trade_at, price)
                 },
-                trade.note?.takeIf { it.isNotBlank() },
+                trade.note?.trim()?.ifEmpty { null },
             ).joinToString(separator = "\n"),
         value = if (trade.isCorrection) null else MoneyFormatter.format(trade.net),
         // A sale is money coming back, which is the same green the movement list gives income.

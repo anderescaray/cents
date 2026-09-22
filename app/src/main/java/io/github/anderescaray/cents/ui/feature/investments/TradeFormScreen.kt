@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,6 +83,7 @@ fun TradeFormScreen(
         ) {
             item(key = "side") { SideControl(state.side, viewModel::onSideChanged) }
             item(key = "fields") { TradeFields(state, viewModel) }
+            item(key = "note") { NoteField(note = state.note, onNoteChanged = viewModel::onNoteChanged) }
 
             if (!state.isNew) {
                 item(key = "delete") {
@@ -211,6 +213,25 @@ private fun TradeFields(
 }
 
 /**
+ * Why the trade was made, or anything else worth remembering about it. Optional, and in a
+ * section of its own so it never reads as one of the numbers the trade is made of.
+ */
+@Composable
+private fun NoteField(
+    note: String,
+    onNoteChanged: (String) -> Unit,
+) {
+    CentsListSection {
+        CentsTextField(
+            value = note,
+            onValueChange = onNoteChanged,
+            placeholder = stringResource(R.string.trade_field_note_placeholder),
+            modifier = Modifier.testTag(TRADE_NOTE_FIELD_TAG),
+        )
+    }
+}
+
+/**
  * Units, or the euros that went in.
  *
  * Both describe the same trade, and the app stores units either way — a partial sale reduces
@@ -265,3 +286,5 @@ private fun footerFor(state: TradeFormUiState): String =
             stringResource(R.string.trade_total_sell, MoneyFormatter.format(state.total))
         }
     }
+
+internal const val TRADE_NOTE_FIELD_TAG = "tradeNote"

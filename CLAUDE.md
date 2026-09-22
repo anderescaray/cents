@@ -4,7 +4,7 @@ Operating context for Claude Code. This file is loaded automatically in every se
 so it holds **rules and commands**, not the product description.
 
 > ⚠️ **Temporary: read [`NEXT_SESSION.md`](NEXT_SESSION.md) first.** It is the handoff from the
-> 2026-09-21 session: the steps to pick up from, in order. Delete the file and this note once
+> 2026-09-22 session: the steps to pick up from, in order. Delete the file and this note once
 > those steps are done.
 
 > **What we are building → [`docs/PRD.md`](docs/PRD.md)** (features, scope, roadmap and

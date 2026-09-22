@@ -28,7 +28,7 @@ on the phone.
 3. **#68**: if it is still open, it is ready to merge. Tell the owner so.
 4. **#69 (backup)** was reviewed on 2026-09-22 at its commit `d191aac`. **The owner should paste
    the message below into Devin's Orca task**, if that has not happened yet. When Devin pushes,
-   run `/code-review high 69` again. Point 10 is not Devin's: it is the docs branch of step 7.
+   run `/code-review high 69` again. Recording the new libraries in CLAUDE.md is not Devin's job: it goes in the docs branch of step 7.
 
    ```
    Review of #69. Fix these on the same branch, inside the same territory, then push:

@@ -14,7 +14,7 @@ Gemini CLI was used in the first wave. It is not in this one, because the owner 
 | PR / branch | Agent | State on 2026-09-22 |
 |---|---|---|
 | **#68** `anderescaray/feat-trade-note` | Claude Code | Reviewed (`/code-review high`), fixes pushed, CI green. Two follow-ups recorded in `PLAN.md` C4. Probably merged by the owner already. |
-| **#69** `anderescaray/feat-backup` | Devin | Inside its territory (checked with `--name-only`), CI green, +3146 lines. **A `/code-review high 69` was started at the end of the session; its result may never have been read.** Do not assume it was reviewed. |
+| **#69** `anderescaray/feat-backup` | Devin | Inside its territory, CI green, +3146 lines. **Reviewed with `/code-review high`: NOT ready to merge.** The findings are in step 4, with the message for Devin. |
 | `anderescaray/feat-account-detail-undo` | Cursor | **Failed midway.** Uncommitted work in `C:\Users\ander\orca\workspaces\cents\feat-account-detail-undo`: `UndoBanner.kt` extracted to `ui/components`, AccountDetail screen and view model edited, a tests folder started. There is no commit and no PR. |
 
 The OAuth client for Drive **exists** (the owner confirmed it on 2026-09-22), so #69 can be walked
@@ -26,10 +26,41 @@ on the phone.
    `gh pr list --state all --limit 6` to see what the owner merged. `git checkout main && git pull --ff-only`.
 2. **Read `FEEDBACK.md` and `DECISIONS.md`.** An *Open* item in `FEEDBACK.md` outranks everything.
 3. **#68**: if it is still open, it is ready to merge. Tell the owner so.
-4. **#69 (backup)**: run `/code-review high 69` again, unless the owner already has its result.
-   Check with `gh pr view 69 --json commits` whether Devin pushed after 2026-09-22 18:24. Send any
-   findings back to Devin as one message, the same way #68's were sent. Only then tell the owner it
-   can be merged. **Before or right after merging, the owner walks the consent flow on the phone**:
+4. **#69 (backup)** was reviewed on 2026-09-22 at its commit `d191aac`. **The owner should paste
+   the message below into Devin's Orca task**, if that has not happened yet. When Devin pushes,
+   run `/code-review high 69` again. Point 10 is not Devin's: it is the docs branch of step 7.
+
+   ```
+   Review of #69. Fix these on the same branch, inside the same territory, then push:
+
+   1. A single 401 must not stop automatic backups. On a 401: clear the token, authorize()
+      again silently, retry once. Only record NEEDS_RECONNECTING when the silent authorize
+      itself needs a resolution (DriveBackupSession.kt ~58, DriveBackupWorker.kt ~39).
+   2. Cleanup after a successful upload must not fail the backup. Catch list/delete errors
+      separately, record success anyway, and let the next run clean up. Today every retry
+      uploads another copy and they pile up (DefaultDriveBackupStorage.kt ~30).
+   3. Retention must not let a week of bad copies replace every good one. Keep copies by age
+      (the 7 newest daily + one per week for 4 weeks + one per month for 6 months), AND skip
+      the upload when the content is identical to the newest copy. Pure function, tested.
+   4. A cancelled Play services Task must become a DriveBackupException, not a coroutine
+      CancellationException: today the UI stays stuck in AUTHORIZING
+      (PlayServicesDriveAuthorization.kt ~73).
+   5. RestoreViewModel: failing to read the CURRENT ledger must not show "the file was readable
+      but writing it failed". Give it its own message. Then make current non-null in offer()
+      and RestoreUiState, since it can no longer be null.
+   6. Map Drive 403 reasons: storageQuotaExceeded -> its own "Drive is full" message and no
+      endless retry; rate limits -> NETWORK (retry); insufficientPermissions ->
+      NEEDS_RECONNECTING (DriveClient.kt ~175).
+   7. A listed file without `size` must not fail the whole listing: default it, do not throw
+      (DriveClient.kt ~218).
+   8. relativeBackupTime duplicates ui/util/DateLabels.kt. Build on LocalDate.relativeLabel()
+      and reuse date_today / date_yesterday instead of new strings.
+   9. Add a test for each of 1-7.
+
+   Run the gates again, push, do not merge.
+   ```
+
+   **Before or right after merging, the owner walks the consent flow on the phone**:
    Settings › Google Drive › turn on, grant, Back up now, then Restore from Drive lists the backup.
    The steps are in the PR description. Remind them: while the consent screen stays in *Testing*,
    Google expires the grant after 7 days, and the app should then show *Reconnect*.

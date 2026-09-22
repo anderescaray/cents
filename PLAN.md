@@ -1749,9 +1749,13 @@ parallelism.
   holding with a different company's number, in a different currency. Whenever a provider lands,
   a holding gains a **MIC code** beside its symbol, and the editor asks which listing is meant
   rather than guessing. Known now rather than suspected.
-- **A trade carries no note in the form.** The column exists and the model carries it; the form
-  does not offer it, because a trade is already four fields and the note had no obvious question
-  to answer. It costs one row the day somebody misses it.
+- ~~**A trade carries no note in the form.**~~ **It does since #68**, and editing a trade no
+  longer erases a note it already had. Two things the review of #68 left, both outside that
+  branch's territory: **the note stays on the trade** and never reaches the cash movement
+  (`RoomInvestmentRepositories.writeCash` writes `note = null`), so *Bought NVDA* cannot be found
+  by searching the note; and **`CentsListRow`'s subtitle has no line limit**, so a long note makes
+  its trade row as tall as the note. The second wants a secondary-line slot with `maxLines` in
+  `ui/components`.
 - **A test that writes through a view model and then reads the database has to wait.** `save()`
   launches into `viewModelScope` and the write lands on Room's executor, so the next line races
   it: the flow's first emission can predate the row. It passes on a quiet machine and loses on a

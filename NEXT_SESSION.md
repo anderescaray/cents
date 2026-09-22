@@ -1,81 +1,88 @@
-# NEXT_SESSION.md — temporary handoff for the session after 2026-09-21
+# NEXT_SESSION.md — temporary handoff for the session after 2026-09-22
 
 > ⚠️ **Temporary. This file exists only to carry context into the next session.** When every
 > step below is done, **delete this file and the pointer to it at the top of `CLAUDE.md`**, in
 > the same docs branch that records what the session did. Anything worth keeping goes into
-> `PLAN.md` Part C, not here. `PLAN.md` stays the permanent record; this is a sticky note.
+> `PLAN.md` Part C, not here.
 
 ## Where the last session stopped
 
-The first parallel wave through **Orca** (D24) is done. Devin, Cursor and Gemini each built one
-branch, Claude Code reviewed them, and all of them are merged: #61 (reminders), #62 (the Orca
-setup: `AGENTS.md`, `GEMINI.md`, `.worktreeinclude`), #63 (committed this month, Devin), #64
-(closed positions, Cursor), #65 (transfer undo, Gemini). D25: no paid price provider, ever.
+The second Orca wave is half done. **Agents for this wave: Devin, Cursor and Claude Code** (an
+Orca instance working as an implementer). **The owner does not want agy/Antigravity used.**
+Gemini CLI was used in the first wave. It is not in this one, because the owner chose these three.
 
-**Left open for the owner to merge:**
-- **#66** `fix/subscription-totals-currency`: the one finding from the review of #63 (an empty
-  side of the totals is zero in any currency). Gates were green locally, 700 tests.
-- **#67** `docs/first-orca-wave`: the docs pass for all of the above, plus this file.
+| PR / branch | Agent | State on 2026-09-22 |
+|---|---|---|
+| **#68** `anderescaray/feat-trade-note` | Claude Code | Reviewed (`/code-review high`), fixes pushed, CI green. Two follow-ups recorded in `PLAN.md` C4. Probably merged by the owner already. |
+| **#69** `anderescaray/feat-backup` | Devin | Inside its territory (checked with `--name-only`), CI green, +3146 lines. **A `/code-review high 69` was started at the end of the session; its result may never have been read.** Do not assume it was reviewed. |
+| `anderescaray/feat-account-detail-undo` | Cursor | **Failed midway.** Uncommitted work in `C:\Users\ander\orca\workspaces\cents\feat-account-detail-undo`: `UndoBanner.kt` extracted to `ui/components`, AccountDetail screen and view model edited, a tests folder started. There is no commit and no PR. |
 
-The machine is set up for Orca: long paths are enabled (Windows `LongPathsEnabled` and git
-`core.longpaths`), the old `.claude/worktrees` are gone, and the Gemini, Cursor and Devin
-command-line tools are installed and logged in.
+The OAuth client for Drive **exists** (the owner confirmed it on 2026-09-22), so #69 can be walked
+on the phone.
 
 ## Steps for this session, in order
 
 1. **Start-of-session checklist** (`PLAN.md` C1), with the toolchain paths from `CLAUDE.md` §6.
-   Check with `gh pr list` whether #66 and #67 are merged. If they are not, ask the owner to
-   merge them before anything else, because the docs a new wave depends on are in #67. Then
-   `git checkout main && git pull --ff-only`.
-2. **Read `FEEDBACK.md` and `DECISIONS.md`.** An *Open* item in `FEEDBACK.md` outranks
-   everything below.
-3. **Check that Orca is clean.** `git worktree list` should show only `C:\dev\cents`. If the
-   three wave worktrees (`feat-committed-this-month`, `feat-closed-positions`,
-   `feat-undo-a-deleted-transfer`) are still there, ask the owner to delete them from Orca.
-   Their branches are merged. Deleting them from inside Orca keeps its state consistent, and
-   the auto-mode classifier blocks `git worktree remove` from this session anyway.
-4. **Ask the owner: has the Google Cloud OAuth client been created?** The steps are in the
-   `feat/backup` entry in `PLAN.md` C3. If yes, write the Devin prompt for **`feat/backup`**.
-   It runs **alone**, because it adds `play-services-auth` and the Drive REST client to
-   `libs.versions.toml`. Use `AuthorizationClient` with the `drive.appdata` scope and the Drive
-   REST API, and reuse the existing JSON export and restore (D21, D22). Nothing secret goes in
-   the repo.
-5. **Ask the owner which wave comes next.** Everything left is a later roadmap phase (§9) or
-   deferred work, so it is their choice. The options are in `PLAN.md` → *Next concrete action*:
-   - **Small C4 gaps.** These are disjoint and need no schema change, so they suit three agents
-     at once: the undo banner on the account detail, the "export first" line in the restore
-     alert, the trade note field, and the midnight tick. The midnight tick touches many
-     screens, so check its territory before pairing it with anything.
-   - **Phase 5**: the uncategorized inbox and budgets. Budgets need a table, so their
-     schema-and-migration branch runs **alone** first, and the UI work fans out after it.
-   - **Phase 6**: the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
-     first two add dependencies, so each runs alone.
-   - The dashboard of cards (`PLAN.md` C7).
-6. **For the chosen wave, write one prompt per agent** in the shape used on 2026-09-21: branch
-   name, "read AGENTS.md then …", what to build, a **territory list** of the only files it may
-   write, the tests expected, and "run the gates in AGENTS.md, open a PR, do not merge".
-   Before handing them over, **check the territories against the code with a grep**: two
-   prompts that look disjoint can still share a file. Roles (D24): Devin takes the heaviest
-   work, Cursor UI kept inside one feature folder, Gemini small, well-scoped work.
-7. **As each PR arrives:** check it stayed inside its territory (`gh pr diff N --name-only`),
-   then run `/code-review high N`. Merging is the owner's job. After each merge, tell the other
-   agents to rebase onto `origin/main`.
-8. **After the wave, one docs branch** updates `PLAN.md` Part C, `CLAUDE.md` §8 and the README.
-   It also **adds the device-walk steps for #63, #64 and #65** to `docs/device-check.md`, which
-   #67 left undone. Then **delete this file and its pointer in `CLAUDE.md`.**
+   `gh pr list --state all --limit 6` to see what the owner merged. `git checkout main && git pull --ff-only`.
+2. **Read `FEEDBACK.md` and `DECISIONS.md`.** An *Open* item in `FEEDBACK.md` outranks everything.
+3. **#68**: if it is still open, it is ready to merge. Tell the owner so.
+4. **#69 (backup)**: run `/code-review high 69` again, unless the owner already has its result.
+   Check with `gh pr view 69 --json commits` whether Devin pushed after 2026-09-22 18:24. Send any
+   findings back to Devin as one message, the same way #68's were sent. Only then tell the owner it
+   can be merged. **Before or right after merging, the owner walks the consent flow on the phone**:
+   Settings › Google Drive › turn on, grant, Back up now, then Restore from Drive lists the backup.
+   The steps are in the PR description. Remind them: while the consent screen stays in *Testing*,
+   Google expires the grant after 7 days, and the app should then show *Reconnect*.
+5. **Cursor's branch**: look at its worktree (`git -C <worktree> status` and `diff`). Then give the
+   owner a message to paste into Cursor's Orca task so it finishes, commits, runs the gates and
+   opens the PR. The original prompt is below. If Cursor cannot finish it, ask the owner whether
+   Claude Code (in Orca) should take it over from the same worktree.
+6. **After #69 merges: the rest of the C4 wave.**
+   - **The "export first" line in the restore alert.** It waited because it touches
+     `ui/feature/settings`, the same folder as #69.
+   - **The midnight tick.** It touches many screens, including the account detail, so it waits for
+     Cursor's branch too. Check its territory with a grep before assigning it.
+   - **The two follow-ups from #68** in `PLAN.md` C4: the note on the cash movement, and a line
+     limit in `CentsListRow`.
+7. **After the wave, one docs branch:**
+   - update `PLAN.md` Part C, `CLAUDE.md` §8 and the README
+   - record the backup's new libraries in the `CLAUDE.md` §2 table (rule 11), using the
+     justification lines in #69's description
+   - fix CLAUDE.md §1, which says the only network calls are to the market data API; Drive is
+     now one too, and the market data API is closed (D25)
+   - add the device-walk steps for #63, #64, #65, #68, #69 and the account-detail undo to
+     `docs/device-check.md`
+   - then **delete this file and its pointer in `CLAUDE.md`**
+8. **Orca cleanup**: once their branches are merged, ask the owner to delete the wave's worktrees
+   from inside Orca. The auto-mode classifier blocks `git worktree remove` from here anyway.
 
-## Lessons from the last session, so they are not relearned
+## Cursor's original prompt (feat/account-detail-undo), for reference
 
-- **Fetch the PR fresh before claiming it lacks something.** `git fetch origin pull/N/head` goes
-  stale once an agent pushes again, and on 2026-09-21 that made Gemini's fix look missing when
-  it was not. Compare against `origin/<branch>` or the agent's worktree under
-  `C:\Users\ander\orca\workspaces\cents\`.
-- **A branch stacked on an unmerged one conflicts after the squash.** It happened to #61. The
-  fix is `git rebase --onto origin/main <old parent commit>`, after checking with `git diff`
-  that the old commit is identical to the squash that landed.
-- **`keytool` crashes on the Spanish-locale JDK** unless it is run with `-J-Duser.language=en`.
-- **A `!` prefix only works in the Claude prompt.** Pasted into Git Bash, `!` negates the
-  command's result, so `! a && b` skips `b`.
-- **Orca may name a branch `anderescaray/feat-...` rather than `feat/...`.** #64 and #65 were
-  named that way, while Devin's #63 kept `feat/...`. It makes no difference to the work, but
-  searches by branch name have to allow for both.
+It moves the private `UndoBanner` from `TransactionsScreen.kt` to `ui/components/UndoBanner.kt`,
+unchanged, and shows it on the account detail. `AccountDetailViewModel` reads the same
+`DeletedTransactionBuffer` (read-only) and gets `undoDeletion()` and `dismissUndo()`, mirroring
+`TransactionsViewModel`. Its territory is exactly these files:
+- `ui/components/UndoBanner.kt`
+- `ui/feature/transactions/TransactionsScreen.kt` (only to call the moved banner)
+- `ui/feature/accounts/AccountDetailScreen.kt` and `AccountDetailViewModel.kt`
+- `values{,-es}/strings_account_undo.xml`, only if the "from the list" wording needs to change
+- tests under `ui/feature/accounts/`
+
+The tests expected: the view model covers a single movement, a transfer's two legs, and dismiss,
+plus a Compose test that the banner is shown and Undo calls undo.
+
+## Lessons from these two sessions, so they are not relearned
+
+- **Always paste the prompt text inline in chat.** The owner copies it into Orca. A path to a
+  scratchpad file is useless to them.
+- **A Claude Code implementer in Orca loads `CLAUDE.md`, and with it this file.** Its prompt has
+  to say at the top that it is an implementer, and that it must ignore `NEXT_SESSION.md` and the
+  coordinator duties in §7.
+- **Fetch the PR fresh before claiming it lacks something.** Compare against `origin/<branch>`
+  or the agent's worktree under `C:\Users\ander\orca\workspaces\cents\`.
+- **A branch stacked on an unmerged one conflicts after the squash.** The fix is
+  `git rebase --onto origin/main <old parent commit>`.
+- **Orca names branches `anderescaray/feat-...`**, so searches have to allow for that as well as `feat/...`.
+- **A commit made after a PR's squash is lost.** The previous handoff file never reached `main`
+  for that reason. Commit the handoff before the owner merges, or put it in its own PR, as this
+  one is.

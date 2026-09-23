@@ -27,6 +27,7 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSearchField
+import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
 import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
@@ -306,6 +307,7 @@ private fun LazyListScope.day(
                 CentsListRow(
                     title = details.movementTitle(),
                     subtitle = transaction.note?.takeIf { it.isNotBlank() } ?: details.accountName,
+                    subtitleMaxLines = NOTE_MAX_LINES,
                     value = MoneyFormatter.formatSigned(transaction.signedAmount),
                     valueColor = details.movementValueColor(),
                     showSeparator = index != day.items.lastIndex,

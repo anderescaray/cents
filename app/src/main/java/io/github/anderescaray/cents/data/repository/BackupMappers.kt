@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.data.repository
 
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
+import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
@@ -11,6 +12,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
@@ -138,6 +140,9 @@ fun BackupRule.toEntity(createdAt: Instant) =
         lastGenerated = lastGenerated?.let(LocalDate::ofEpochDay),
         createdAt = createdAt,
     )
+
+fun BackupBudget.toEntity(createdAt: Instant) =
+    BudgetEntity(categoryId = categoryId, amountMinor = amountMinor, currency = currency, createdAt = createdAt)
 
 fun BackupReminder.toEntity() = RuleReminderEntity(ruleId = ruleId, offsetDays = offsetDays)
 

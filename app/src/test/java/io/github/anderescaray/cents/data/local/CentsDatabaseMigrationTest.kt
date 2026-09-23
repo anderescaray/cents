@@ -318,6 +318,45 @@ class CentsDatabaseMigrationTest {
         }
 
     @Test
+    fun `a version 6 database keeps its money and gains somewhere to put budgets`() =
+        runTest {
+            createVersion(6)
+
+            val database = openWithMigrations()
+            try {
+                val categoryId = database.categoryDao().insert(category(name = "Groceries"))
+
+                database.budgetDao().insert(budget(categoryId, amountMinor = 40_000))
+
+                assertEquals(40_000L, database.budgetDao().findByCategory(categoryId)?.amountMinor)
+                assertEquals("the movement written at v6 should survive", 2_550L, moneyIn(database))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a category has one budget, and deleting the category takes it`() =
+        runTest {
+            createVersion(6)
+
+            val database = openWithMigrations()
+            try {
+                val categoryId = database.categoryDao().insert(category(name = "Eating out"))
+                database.budgetDao().insert(budget(categoryId, amountMinor = 15_000))
+
+                // Both have to arrive through the migration: the unique index, and the cascade.
+                assertThrows(SQLiteConstraintException::class.java) {
+                    runBlocking { database.budgetDao().insert(budget(categoryId, amountMinor = 20_000)) }
+                }
+                database.categoryDao().deleteById(categoryId)
+                assertNull(database.budgetDao().findByCategory(categoryId))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `the migrated schema is one Room agrees to open`() =
         runTest {
             createVersion(1)

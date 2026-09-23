@@ -31,12 +31,14 @@ data class Backup(
      */
     val rules: List<BackupRule> = emptyList(),
     val reminders: List<BackupReminder> = emptyList(),
+    /** Empty in a file written before budgets existed, which a restore reads as none. */
+    val budgets: List<BackupBudget> = emptyList(),
 ) {
     /** How many rows are in it, for a screen that wants to say what it just wrote. */
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
-                holdings.size + trades.size + quotes.size + rules.size + reminders.size
+                holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size
 }
 
 data class BackupAccount(
@@ -134,4 +136,11 @@ data class BackupReminder(
     val ruleId: Long,
     /** Signed: occurrence + offset = the day it fires. */
     val offsetDays: Int,
+)
+
+/** A monthly limit on one expense category. Nothing points at it, so it needs no id of its own. */
+data class BackupBudget(
+    val categoryId: Long,
+    val amountMinor: Long,
+    val currency: String,
 )

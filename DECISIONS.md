@@ -29,8 +29,30 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-**Nothing is waiting here right now.** D20, D22 and D23 were all answered on 2026-09-17 and are
-in the *Answered* table below.
+### D26 · How budgets behave (asked 2026-09-23, built on the defaults)
+
+The owner chose budgets (PRD §4.4) as the next work on 2026-09-23. The PRD fixes two things: a
+monthly limit per category, and that known recurring charges count from day one. What follows is
+everything else, **each with the default that is being built**. Change any line and the next
+session changes the app.
+
+- **Monthly only, one limit per expense category.** No weekly budgets, no budget across several
+  categories, and none on income. *Default: as written.*
+- **What counts as spent:** that category's expenses this month. Transfers and a trade's cash have
+  no category, so they never count. *Default: as written.*
+- **What counts as committed:** subscriptions in that category still due before the month ends,
+  plus variable bills still waiting, at their estimate. This is the same rule as *committed this
+  month* on the Subscriptions screen, narrowed to one category. *Default: as written.*
+- **The warning:** the bar turns amber at **80 %** of the limit and red above **100 %**, with the
+  amount left or the amount over written beside it. **No notification.** A budget that interrupts
+  you is a different feature, and D23 kept interruptions to subscriptions. *Default: as written.*
+- **Where it lives:** a **Budgets** row in Settings, beside Subscriptions. It is not a chart on
+  Reports, which answers questions about the past rather than about a limit. *Default: as
+  written.*
+- **An archived category's budget** is kept but hidden, and it returns if the category does.
+  *Default: as written.*
+
+**Answer:**
 
 No door is waiting on the owner either. **D22**'s backup to Drive was built once the owner had
 created the OAuth client, and merged as #69 on 2026-09-23. The other door D20 left open, paying

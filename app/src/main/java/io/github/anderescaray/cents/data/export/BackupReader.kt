@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.data.export
 
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
@@ -121,6 +122,7 @@ object BackupReader {
             // Absent before a backup carried subscriptions, and read as none.
             rules = root.rows("recurringRules", ::rule),
             reminders = root.rows("ruleReminders", ::reminder),
+            budgets = root.rows("budgets", ::budget),
         )
 
     private fun account(row: JsonObject) =
@@ -209,6 +211,13 @@ object BackupReader {
         BackupReminder(
             ruleId = row.requireLong("ruleId"),
             offsetDays = row.requireLong("offsetDays").toInt(),
+        )
+
+    private fun budget(row: JsonObject) =
+        BackupBudget(
+            categoryId = row.requireLong("categoryId"),
+            amountMinor = row.requireLong("amountMinor"),
+            currency = row.requireString("currency"),
         )
 
     private fun quote(row: JsonObject) =

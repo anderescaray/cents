@@ -43,10 +43,13 @@ fun SettingsScreen(
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     lockViewModel: AppLockSettingsViewModel = hiltViewModel(),
+    driveViewModel: DriveBackupViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
     val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
     val lock by lockViewModel.uiState.collectAsStateWithLifecycle()
+    val drive by driveViewModel.uiState.collectAsStateWithLifecycle()
+    DriveBackupAuthorization(drive, driveViewModel)
     SettingsContent(
         onOpenCategories = onOpenCategories,
         onOpenSubscriptions = onOpenSubscriptions,
@@ -55,6 +58,16 @@ fun SettingsScreen(
         onLockChanged = lockViewModel::setEnabled,
         export = export,
         restore = restore,
+        drive = drive,
+        driveActions =
+            DriveBackupActions(
+                onAutomaticChanged = driveViewModel::setAutomaticEnabled,
+                onBackUp = driveViewModel::backUpNow,
+                onReconnect = driveViewModel::reconnect,
+                onRestore = driveViewModel::showBackups,
+                onChooseBackup = { driveViewModel.chooseBackup(it, restoreViewModel::readFromDrive) },
+                onCloseBackups = driveViewModel::closeBackups,
+            ),
         restoreActions =
             RestoreActions(
                 onStart = restoreViewModel::start,
@@ -112,7 +125,11 @@ internal fun SettingsContent(
     restoreActions: RestoreActions = RestoreActions(),
     lock: AppLockSettingsUiState = AppLockSettingsUiState(),
     onLockChanged: (Boolean) -> Unit = {},
+    drive: DriveBackupUiState = DriveBackupUiState(),
+    driveActions: DriveBackupActions = DriveBackupActions(),
 ) {
+    val dataIdle = export.step == ExportStep.IDLE && restore.step == RestoreStep.IDLE
+    val canStartData = dataIdle && !drive.isBusy && !drive.showBackups
     CentsLargeTitleScaffold(title = stringResource(R.string.tab_settings)) {
         item {
             CentsListSection(footer = stringResource(R.string.settings_categories_footer)) {
@@ -136,7 +153,14 @@ internal fun SettingsContent(
         }
         item { ResetHomeLayoutSection(onReset = onResetHomeLayout) }
         item { SecuritySection(lock = lock, onLockChanged = onLockChanged) }
-        item { DataSection(onExport = exportActions.onStart, onRestore = restoreActions.onStart) }
+        item(key = "data") {
+            DataSection(
+                onExport = exportActions.onStart.takeIf { canStartData },
+                onRestore = restoreActions.onStart.takeIf { canStartData },
+                restore = restore,
+            )
+        }
+        item(key = "driveBackup") { DriveBackupSection(drive, driveActions, enabled = dataIdle) }
         item {
             CentsButton(
                 text = stringResource(R.string.settings_add_transaction),
@@ -147,6 +171,7 @@ internal fun SettingsContent(
     }
 
     Export(state = export, actions = exportActions)
+    DriveBackupPicker(state = drive, actions = driveActions)
     Restore(state = restore, actions = restoreActions)
 }
 
@@ -197,8 +222,9 @@ private fun SecuritySection(
  */
 @Composable
 private fun DataSection(
-    onExport: () -> Unit,
-    onRestore: () -> Unit,
+    onExport: (() -> Unit)?,
+    onRestore: (() -> Unit)?,
+    restore: RestoreUiState,
 ) {
     CentsListSection(
         header = stringResource(R.string.settings_section_data),
@@ -211,6 +237,12 @@ private fun DataSection(
         )
         CentsListRow(
             title = stringResource(R.string.settings_restore),
+            subtitle =
+                when (restore.step) {
+                    RestoreStep.READING -> stringResource(R.string.drive_backup_reading)
+                    RestoreStep.WRITING -> stringResource(R.string.drive_backup_restoring)
+                    else -> null
+                },
             showChevron = true,
             onClick = onRestore,
         )
@@ -278,6 +310,16 @@ private fun Restore(
             )
         }
 
+        RestoreStep.CURRENT_UNREADABLE -> {
+            CentsAlert(
+                title = stringResource(R.string.restore_current_unreadable_title),
+                message = stringResource(R.string.restore_current_unreadable_message),
+                confirmLabel = stringResource(R.string.action_ok),
+                onConfirm = actions.onAcknowledge,
+                onDismiss = actions.onAcknowledge,
+            )
+        }
+
         RestoreStep.IDLE, RestoreStep.PICKING, RestoreStep.READING, RestoreStep.WRITING -> {
             Unit
         }
@@ -311,7 +353,7 @@ private fun ConfirmRestoreAlert(
                 )
                 // An empty app has nothing to lose, and saying "this replaces your 0 accounts"
                 // would be alarming about nothing.
-                if (current != null && !current.isEmpty) {
+                if (!current.isEmpty) {
                     append("\n\n")
                     append(
                         stringResource(

@@ -11,11 +11,15 @@ import io.github.anderescaray.cents.data.export.DocumentReader
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.repository.BackupRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import javax.inject.Inject
 
@@ -44,6 +48,12 @@ enum class RestoreStep {
 
     /** The file was fine and the write was not. Nothing changed. */
     FAILED,
+
+    /**
+     * The file was fine, but what is recorded now could not be read, so the confirmation could not
+     * say what it would replace. Nothing changed, and nothing was written.
+     */
+    CURRENT_UNREADABLE,
 }
 
 /** Why a file was turned away, in the owner's terms rather than the parser's. */
@@ -58,8 +68,11 @@ data class RestoreUiState(
     val step: RestoreStep = RestoreStep.IDLE,
     /** What the chosen file holds, once it has been read. */
     val incoming: RestoreSummary? = null,
-    /** What is recorded right now, which is what the restore would replace. */
-    val current: RestoreSummary? = null,
+    /**
+     * What is recorded right now, which is what the restore would replace. Only meaningful while
+     * [RestoreStep.CONFIRMING]: a confirmation is never offered without it.
+     */
+    val current: RestoreSummary = RestoreSummary.NOTHING,
     val problem: RestoreProblem? = null,
     /** Set when [RestoreProblem.TOO_NEW], so the message can name both versions. */
     val fileVersion: Int = 0,
@@ -76,6 +89,10 @@ data class RestoreSummary(
     val exportedAt: Instant?,
 ) {
     val isEmpty: Boolean get() = accounts == 0 && movements == 0 && holdings == 0
+
+    companion object {
+        val NOTHING = RestoreSummary(accounts = 0, movements = 0, holdings = 0, exportedAt = null)
+    }
 }
 
 /**
@@ -101,49 +118,81 @@ class RestoreViewModel
         private val state = MutableStateFlow(RestoreUiState())
         val uiState: StateFlow<RestoreUiState> = state.asStateFlow()
 
+        private var reading: Job? = null
+
         fun start() {
+            if (state.value.isBusy) return
+            cancel()
             state.value = RestoreUiState(step = RestoreStep.PICKING)
         }
 
         fun cancel() {
+            if (state.value.step == RestoreStep.WRITING) return
+            reading?.cancel()
+            pending = null
             state.value = RestoreUiState()
         }
 
         /** The picker came back, with a file or with nothing. */
         fun readFrom(uri: Uri?) {
-            if (uri == null) {
-                cancel()
-                return
-            }
-            state.update { it.copy(step = RestoreStep.READING) }
-            viewModelScope.launch {
-                val text = runCatching { documentReader.read(uri) }.getOrNull()
-                if (text == null) {
-                    refuse(RestoreProblem.DAMAGED)
-                    return@launch
-                }
-                when (val parsed = BackupReader.parse(text, CentsDatabase.VERSION)) {
-                    is BackupParse.Restorable -> {
-                        offer(parsed.backup, currentlyRecorded())
-                    }
+            if (uri == null) cancel() else read { documentReader.read(uri) }
+        }
 
-                    BackupParse.NotABackup -> {
-                        refuse(RestoreProblem.NOT_A_BACKUP)
-                    }
+        fun readFromDrive(text: String) = read { text }
 
-                    is BackupParse.TooNew -> {
-                        state.update {
-                            it.copy(
-                                step = RestoreStep.REFUSED,
-                                problem = RestoreProblem.TOO_NEW,
-                                fileVersion = parsed.fileVersion,
-                            )
+        private fun read(source: suspend () -> String) {
+            if (state.value.step == RestoreStep.WRITING) return
+            reading?.cancel()
+            pending = null
+            state.value = RestoreUiState(step = RestoreStep.READING)
+            reading =
+                viewModelScope.launch {
+                    val parsed =
+                        try {
+                            val text = source()
+                            withContext(Dispatchers.Default) { BackupReader.parse(text, CentsDatabase.VERSION) }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            refuse(RestoreProblem.DAMAGED)
+                            return@launch
                         }
-                    }
+                    accept(parsed)
+                }
+        }
 
-                    is BackupParse.Damaged -> {
-                        refuse(RestoreProblem.DAMAGED)
+        private suspend fun accept(parsed: BackupParse) {
+            when (parsed) {
+                is BackupParse.Restorable -> {
+                    val current =
+                        try {
+                            currentlyRecorded()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            // Not FAILED: that says a write failed, and nothing was written.
+                            state.update { it.copy(step = RestoreStep.CURRENT_UNREADABLE) }
+                            return
+                        }
+                    offer(parsed.backup, current)
+                }
+
+                BackupParse.NotABackup -> {
+                    refuse(RestoreProblem.NOT_A_BACKUP)
+                }
+
+                is BackupParse.TooNew -> {
+                    state.update {
+                        it.copy(
+                            step = RestoreStep.REFUSED,
+                            problem = RestoreProblem.TOO_NEW,
+                            fileVersion = parsed.fileVersion,
+                        )
                     }
+                }
+
+                is BackupParse.Damaged -> {
+                    refuse(RestoreProblem.DAMAGED)
                 }
             }
         }
@@ -155,12 +204,18 @@ class RestoreViewModel
          * renders and a whole backup is not something a screen has any use for.
          */
         fun confirm() {
+            if (state.value.step != RestoreStep.CONFIRMING) return
             val backup = pending ?: return
+            pending = null
             state.update { it.copy(step = RestoreStep.WRITING) }
             viewModelScope.launch {
-                val restored = runCatching { backupRepository.restore(backup) }
-                state.update {
-                    it.copy(step = if (restored.isSuccess) RestoreStep.DONE else RestoreStep.FAILED)
+                try {
+                    backupRepository.restore(backup)
+                    state.update { it.copy(step = RestoreStep.DONE) }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    state.update { it.copy(step = RestoreStep.FAILED) }
                 }
             }
         }
@@ -178,12 +233,11 @@ class RestoreViewModel
          * the half that says what is about to be lost. That is the half the owner most needs,
          * so it is fetched where its absence cannot be a matter of timing.
          */
-        private suspend fun currentlyRecorded(): RestoreSummary? =
-            runCatching { backupRepository.snapshot().summarise() }.getOrNull()
+        private suspend fun currentlyRecorded(): RestoreSummary = backupRepository.snapshot().summarise()
 
         private fun offer(
             backup: Backup,
-            current: RestoreSummary?,
+            current: RestoreSummary,
         ) {
             pending = backup
             state.update {

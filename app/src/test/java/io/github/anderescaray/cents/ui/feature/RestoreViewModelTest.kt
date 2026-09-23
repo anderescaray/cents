@@ -81,8 +81,8 @@ class RestoreViewModelTest {
             val state = viewModel.uiState.first { it.step == RestoreStep.CONFIRMING }
             // Both halves of the trade. Naming only one would be asking half a question.
             assertEquals(2, state.incoming?.accounts)
-            assertEquals(1, state.current?.accounts)
-            assertEquals(1, state.current?.movements)
+            assertEquals(1, state.current.accounts)
+            assertEquals(1, state.current.movements)
         }
 
     @Test
@@ -227,7 +227,7 @@ class RestoreViewModelTest {
             // Warning somebody that this replaces their 0 accounts is alarming about nothing,
             // so the alert leaves that half out — which it can only do if it knows.
             val state = viewModel.uiState.first { it.step == RestoreStep.CONFIRMING }
-            assertTrue(state.current!!.isEmpty)
+            assertTrue(state.current.isEmpty)
         }
 
     /** A backup of a different ledger, so a restore is visibly a replacement. */

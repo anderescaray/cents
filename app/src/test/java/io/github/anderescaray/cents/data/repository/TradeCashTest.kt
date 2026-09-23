@@ -173,6 +173,26 @@ class TradeCashTest {
         }
 
     @Test
+    fun `a trade's note travels with its cash, and follows it when edited`() =
+        runTest {
+            val id = trades.addTrade(buy(units = 2, priceMinor = 20_000).copy(note = "Monthly plan"))
+
+            fun cashRows() =
+                database
+                    .transactionDao()
+                    .observeByAccount(brokerId)
+
+            // Searching the list for the note has to find the movement as well as the trade.
+            assertEquals("Monthly plan", cashRows().first().single().note)
+
+            trades.updateTrade(buy(units = 2, priceMinor = 20_000).copy(id = id, note = "One-off"))
+            assertEquals("One-off", cashRows().first().single().note)
+
+            trades.updateTrade(buy(units = 2, priceMinor = 20_000).copy(id = id, note = null))
+            assertNull(cashRows().first().single().note)
+        }
+
+    @Test
     fun `a purchase edited into a correction takes its cash back with it`() =
         runTest {
             val id = trades.addTrade(buy(units = 2, priceMinor = 20_000))

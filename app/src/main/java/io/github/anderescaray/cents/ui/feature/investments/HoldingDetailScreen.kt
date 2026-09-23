@@ -30,6 +30,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -279,6 +280,8 @@ private fun TradeRow(
                 },
                 trade.note?.trim()?.ifEmpty { null },
             ).joinToString(separator = "\n"),
+        // The date line and one line of the note: the rest is on the trade itself.
+        subtitleMaxLines = NOTE_MAX_LINES,
         value = if (trade.isCorrection) null else MoneyFormatter.format(trade.net),
         // A sale is money coming back, which is the same green the movement list gives income.
         valueColor = if (bought) CentsTheme.colors.label else CentsTheme.colors.positive,

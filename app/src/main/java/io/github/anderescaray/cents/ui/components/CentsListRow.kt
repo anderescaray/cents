@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -41,6 +42,12 @@ fun CentsListRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    /**
+     * How many lines the subtitle may take before it ends in an ellipsis. Unlimited by default;
+     * a row whose subtitle is the owner's own prose — a note — caps it, or one long note makes
+     * the row as tall as the note.
+     */
+    subtitleMaxLines: Int = Int.MAX_VALUE,
     value: String? = null,
     valueColor: Color? = null,
     leading: (@Composable () -> Unit)? = null,
@@ -84,7 +91,12 @@ fun CentsListRow(
             if (leading != null) {
                 leading()
             }
-            RowLabels(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
+            RowLabels(
+                title = title,
+                subtitle = subtitle,
+                subtitleMaxLines = subtitleMaxLines,
+                modifier = Modifier.weight(1f),
+            )
             RowAccessories(
                 value = value,
                 valueColor = valueColor,
@@ -103,6 +115,7 @@ fun CentsListRow(
 private fun RowLabels(
     title: String,
     subtitle: String?,
+    subtitleMaxLines: Int,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -116,6 +129,8 @@ private fun RowLabels(
                 text = subtitle,
                 style = CentsTheme.typography.footnote,
                 color = CentsTheme.colors.secondaryLabel,
+                maxLines = subtitleMaxLines,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -159,3 +174,6 @@ private fun ColumnScope.RowSeparator() {
                 .background(CentsTheme.colors.separator),
     )
 }
+
+/** Lines a note may take as a row's subtitle: enough to recognise it, not enough to read it all. */
+const val NOTE_MAX_LINES = 2

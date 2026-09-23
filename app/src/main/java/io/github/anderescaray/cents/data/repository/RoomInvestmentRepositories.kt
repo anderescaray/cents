@@ -168,7 +168,9 @@ class RoomTradeRepository
                     amountMinor = abs(delta.minorUnits),
                     currency = holding.currency,
                     date = trade.date,
-                    note = null,
+                    // The trade's note travels with its cash, so searching the list for it finds
+                    // the movement as well as the trade.
+                    note = trade.note,
                     tradeId = trade.id,
                     createdAt = existing?.createdAt ?: now,
                     updatedAt = now,

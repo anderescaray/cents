@@ -24,6 +24,7 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
 import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
@@ -199,6 +200,7 @@ private fun LazyListScope.movementDay(
                 CentsListRow(
                     title = details.movementTitle(),
                     subtitle = movement.note?.takeIf { it.isNotBlank() },
+                    subtitleMaxLines = NOTE_MAX_LINES,
                     value = MoneyFormatter.formatSigned(movement.signedAmount),
                     valueColor = details.movementValueColor(),
                     showSeparator = index != day.items.lastIndex,

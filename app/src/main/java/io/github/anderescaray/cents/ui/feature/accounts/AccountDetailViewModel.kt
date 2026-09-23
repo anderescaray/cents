@@ -11,6 +11,8 @@ import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
+import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
@@ -37,6 +40,8 @@ data class AccountDetailUiState(
     val days: List<AccountDay> = emptyList(),
     val today: LocalDate = LocalDate.now(),
     val isLoading: Boolean = true,
+    /** A movement or transfer just deleted from this screen's form, still offered back. */
+    val undoableDeletion: DeletedTransaction? = null,
 ) {
     val isEmpty: Boolean get() = !isLoading && days.isEmpty()
 
@@ -60,7 +65,8 @@ class AccountDetailViewModel
     @Inject
     constructor(
         accountRepository: AccountRepository,
-        transactionRepository: TransactionRepository,
+        private val transactionRepository: TransactionRepository,
+        private val deletedTransactions: DeletedTransactionBuffer,
         savedStateHandle: SavedStateHandle,
         clock: Clock,
     ) : ViewModel() {
@@ -98,7 +104,8 @@ class AccountDetailViewModel
                 account,
                 transactionRepository.observeAccountTransactionDetails(accountId),
                 monthSummary,
-            ) { account, movements, summary ->
+                deletedTransactions.deleted,
+            ) { account, movements, summary, deleted ->
                 AccountDetailUiState(
                     account = account,
                     monthSummary = summary,
@@ -109,12 +116,24 @@ class AccountDetailViewModel
                             .sortedByDescending { it.date },
                     today = LocalDate.now(clock),
                     isLoading = false,
+                    undoableDeletion = deleted,
                 )
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = AccountDetailUiState(),
             )
+
+        /**
+         * Puts a deleted movement or transfer back, with the row ids it had — the same undo the
+         * list offers, because a movement deleted from here pops back here rather than to the list.
+         */
+        fun undoDeletion() {
+            val deleted = deletedTransactions.take() ?: return
+            viewModelScope.launch { transactionRepository.restore(deleted.movements) }
+        }
+
+        fun dismissUndo() = deletedTransactions.clear()
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L

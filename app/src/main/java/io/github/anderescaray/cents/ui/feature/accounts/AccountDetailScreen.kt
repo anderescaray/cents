@@ -1,7 +1,9 @@
 package io.github.anderescaray.cents.ui.feature.accounts
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
@@ -22,11 +24,13 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.open
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.relativeLabel
 import java.time.LocalDate
@@ -46,43 +50,82 @@ fun AccountDetailScreen(
     viewModel: AccountDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val account = state.account
 
     LaunchedEffect(state.isGone) {
         if (state.isGone) onBack()
     }
 
-    CentsLargeTitleScaffold(
-        title = account?.account?.name ?: stringResource(R.string.tab_accounts),
-        bottomPadding = CentsDimens.sectionSpacing,
-        leading = {
-            CentsBackButton(label = stringResource(R.string.tab_accounts), onClick = onBack)
-        },
-        trailing = {
+    AccountDetailContent(
+        state = state,
+        onBack = onBack,
+        onEdit = onEdit,
+        onOpenTransaction = onOpenTransaction,
+        onOpenTransfer = onOpenTransfer,
+        onOpenTrade = onOpenTrade,
+        onUndo = viewModel::undoDeletion,
+    )
+}
+
+/**
+ * The screen itself, without the view model: what [AccountDetailScreen] draws, and what a test
+ * can draw from a state it builds.
+ */
+@Composable
+internal fun AccountDetailContent(
+    state: AccountDetailUiState,
+    onBack: () -> Unit,
+    onEdit: (Long) -> Unit,
+    onOpenTransaction: (Long) -> Unit,
+    onOpenTransfer: (Long) -> Unit,
+    onOpenTrade: (Long, Long) -> Unit,
+    onUndo: () -> Unit,
+) {
+    val account = state.account
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        CentsLargeTitleScaffold(
+            title = account?.account?.name ?: stringResource(R.string.tab_accounts),
+            bottomPadding = CentsDimens.sectionSpacing,
+            leading = {
+                CentsBackButton(label = stringResource(R.string.tab_accounts), onClick = onBack)
+            },
+            trailing = {
+                if (account != null) {
+                    Text(
+                        text = stringResource(R.string.action_edit),
+                        style = CentsTheme.typography.body,
+                        color = CentsTheme.colors.accent,
+                        modifier =
+                            Modifier
+                                .clickable { onEdit(account.account.id) }
+                                .padding(CentsDimens.spacingXs),
+                    )
+                }
+            },
+        ) {
             if (account != null) {
-                Text(
-                    text = stringResource(R.string.action_edit),
-                    style = CentsTheme.typography.body,
-                    color = CentsTheme.colors.accent,
-                    modifier =
-                        Modifier
-                            .clickable { onEdit(account.account.id) }
-                            .padding(CentsDimens.spacingXs),
-                )
+                balanceHeader(account)
+                state.monthSummary?.let { summary -> monthSummary(summary) }
             }
-        },
-    ) {
-        if (account != null) {
-            balanceHeader(account)
-            state.monthSummary?.let { summary -> monthSummary(summary) }
+
+            if (state.isEmpty) {
+                emptyState()
+            }
+
+            state.days.forEach { day ->
+                movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade)
+            }
         }
 
-        if (state.isEmpty) {
-            emptyState()
-        }
-
-        state.days.forEach { day ->
-            movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade)
+        state.undoableDeletion?.let { deletion ->
+            UndoBanner(
+                isTransfer = deletion is DeletedTransaction.Transfer,
+                onUndo = onUndo,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(CentsDimens.screenMargin),
+            )
         }
     }
 }

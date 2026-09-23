@@ -22,7 +22,8 @@ and the canvas of bubbles the app now opens on (#41), which changes the first th
 sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
 the same day, on a phone nobody has held it on either — on 2026-09-16 with **Walk 7**, for
 transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
-data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves.
+data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves, and on
+2026-09-23 with **Walk 11**, for the second wave and the automatic backup to Drive.
 Those last ones are the features whose failure is invisible on the screen that records them: a transfer can move both balances correctly and still leak into
 every chart, and a purchase can look perfectly recorded while the account it was paid from never
 notices.
@@ -1309,3 +1310,107 @@ You are told a subscription records into it and sent to Settings › Subscriptio
 being offered a delete that fails.
 
 > **Wrong looks like** "that could not be deleted, try again" — advice that could never work.
+
+## Walk 11 — the second wave, and the backup that happens by itself
+
+What landed on 2026-09-21 and 2026-09-23, none of it seen on a phone yet: what is still due this
+month (#63), closed positions (#64), undoing a deleted transfer (#65) or a movement from an
+account's own screen (#71), the note on a trade (#68, #73), the automatic backup to Google Drive
+(#69), subscriptions travelling inside every backup (#72), and the restore alert's last line
+(#74).
+
+### n1 · What is still due this month
+
+**Settings › Subscriptions.** Above the list, the screen now says what is **committed this
+month**, meaning every expense still due before the month ends plus any variable bill still
+waiting for its amount, at its estimate. Below it, **what share of recurring income goes to fixed
+charges**.
+
+> **Wrong looks like** a charge already recorded this month still counted as due, a bill due
+> today counted twice, or the share showing **0 %** when there is no recurring income at all.
+> It should say it cannot be worked out, and why.
+
+### n2 · A holding sold in full
+
+Sell every unit of a holding. It leaves the portfolio, which is D17, and appears in a collapsed
+**Closed positions** section at the foot of the screen, with what it made in euros and as a
+percentage.
+
+> **Wrong looks like** the portfolio total or net worth changing when the section is opened, or a
+> holding emptied by a *correction* rather than a sale showing up there. A correction made no
+> money, so it has nothing to report.
+
+### n3 · A deleted transfer comes back whole
+
+Delete a transfer from its screen. The banner on **Transactions** says *Transfer deleted*; tap
+**Undo**.
+
+> **Wrong looks like** one leg back and not the other: one account right and the other still
+> short.
+
+### n4 · Undo from an account's own screen
+
+Open an account, open one of its movements, delete it. You land back on the **account**, and the
+same banner is there. Tap **Undo**: the row returns and the balance at the top with it. Try it
+with a transfer too.
+
+> **Wrong looks like** the banner only ever showing on the Transactions list, or the balance
+> staying where the deletion left it.
+
+### n5 · A trade's note, and where it shows
+
+Record a purchase with a long note, three lines or more. On the holding, the trade shows its
+date line and **one** line of the note, ending in `…`. Search **Transactions** for a word from
+the note: the *Bought …* movement is found. Edit the note on the trade; the movement follows.
+
+> **Wrong looks like** the note gone after editing the trade (#68 fixed exactly that), a row as
+> tall as the note, or the search finding the trade's money but not by its note. A trade saved
+> before #73 finds its note only once it is saved again.
+
+### n6 · Turning on Google Drive
+
+**Settings › Google Drive**, turn on **Back up automatically**. Cancel the Google screen the first
+time: the switch stays **off** and nothing claims a backup happened. Turn it on again and grant
+access. The permission asked for is the app's own hidden folder, not your whole Drive.
+
+> **Wrong looks like** the switch left on after cancelling, the app stuck on *Connecting…*, or
+> Google asking for access to all of Drive.
+
+### n7 · Back up now, and nothing twice
+
+Tap **Back up now**. *Backup saved*, and **Last backup** reads *Today, 18:04*, the same words
+the rest of the app uses. Tap it again without changing anything: it says saved, but **Restore
+from Drive** still lists one copy, because an identical ledger is not uploaded twice. Record a
+movement and back up again: now there are two.
+
+> **Wrong looks like** a new copy every tap, or the time reading *Today at …* in one place and
+> *Today, …* in another.
+
+### n8 · Restore from Drive, and what it would replace
+
+**Restore from Drive** lists the copies, newest first, with a date and a size. Choose one. The
+alert says what the file holds **and** what is here now, subscriptions included in both. Because
+something is here, its last line tells you to cancel and use **Export a backup** first.
+**Cancel.**
+
+> **Wrong looks like** a restore starting without the alert, the alert missing the second half,
+> or the subscription counts missing.
+
+### n9 · A restore with subscriptions on the phone
+
+Only on data you can afford to lose, after an **Export a backup**: restore a Drive copy while
+the phone has subscriptions. It goes through. The subscriptions in the copy come back with their
+reminders, and the next launch does **not** write last month's rent again.
+
+> **Wrong looks like** *That could not be restored* (the failure #72 fixed), subscriptions
+> missing afterwards, or a second copy of charges already recorded.
+
+### n10 · Seven days later
+
+While the Google consent screen is in *Testing*, Google withdraws the grant after seven days.
+When that happens the Drive section should show a dated problem and a **Reconnect** row, not
+retry forever. Tap it, grant access again, and the daily backup resumes without being turned
+off and on.
+
+> **Wrong looks like** a problem that never shows, a *Reconnect* that does nothing, or the
+> switch needing to be toggled to resume.

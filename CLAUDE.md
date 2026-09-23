@@ -3,10 +3,6 @@
 Operating context for Claude Code. This file is loaded automatically in every session,
 so it holds **rules and commands**, not the product description.
 
-> ⚠️ **Temporary: read [`NEXT_SESSION.md`](NEXT_SESSION.md) first.** It is the handoff from the
-> 2026-09-22 session: the steps to pick up from, in order. Delete the file and this note once
-> those steps are done.
-
 > **What we are building → [`docs/PRD.md`](docs/PRD.md)** (features, scope, roadmap and
 > feasibility analysis). If this file and the PRD disagree about *what* to build, the PRD
 > wins; about *how* to build it, this file wins.
@@ -24,7 +20,8 @@ investment portfolio with prices pulled from the internet.
 - **Repo:** <https://github.com/anderescaray/cents> (private)
 - **Platform:** Android only. No iOS, no web.
 - **Local-first:** all data lives on the device. No backend, no user accounts. The only
-  network calls are to the market data API.
+  network calls are to **Google Drive**, for the automatic backup the owner turns on (D22), into
+  the app's own hidden folder. There is no market data API: prices are typed, for good (D25).
 - **Users:** exactly one (the owner). No multi-user, no sharing.
 
 ## 2. Stack
@@ -39,13 +36,14 @@ investment portfolio with prices pulled from the internet.
 | DI | Hilt | De facto standard, integrates with Compose and WorkManager |
 | Navigation | Navigation Compose (type-safe routes) | |
 | Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
-| Networking | Retrofit + OkHttp + kotlinx.serialization | Market data only. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
+| Networking | OkHttp (**5.3.2**) + kotlinx.serialization | **Google Drive only**, since `feat/backup` (#69): multipart upload, list, download and delete against the Drive REST v3 surface, which is small enough that the Drive Java SDK and its Google HTTP client and Guava stack would be most of the app's size for four calls. Retrofit was planned for market data and never added: D25 closed that door. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
+| Drive authorization | `play-services-auth` (**22.0.0**) | The supported `AuthorizationClient`, for the single `drive.appdata` grant and a short-lived access token per operation. Nothing is stored and no client secret exists: an Android OAuth client is matched by package name and signing certificate (D22, rule 6) |
 | Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout and the app lock |
 | App lock | `androidx.biometric` (**1.1.0**, the stable line) | The `BiometricPrompt` PRD §4.7 names: a fingerprint or the device PIN, decided by the system, with the app never seeing a credential (rule 6). Pinned to stable rather than the 1.2.0 and 1.4.0 alphas; 1.1.0 is where `setAllowedAuthenticators` arrived, which is what lets the PIN stand in |
-| Background work | WorkManager (**2.11.0**) | **In use since `feat/subscription-reminders`**: one daily job that asks what reminders land today. Nothing is scheduled per reminder — a queue of alarms would be a second copy of when the rent is, and the two would drift. Reached without `androidx.hilt:hilt-work`: a plain `CoroutineWorker` asks the Hilt graph through an `@EntryPoint`, which is two fewer artifacts and no `Configuration.Provider` (rule 11) |
+| Background work | WorkManager (**2.11.0**) | **In use since `feat/subscription-reminders`**: one daily job that asks what reminders land today, and since #69 a second, the daily Drive backup, scheduled only while its switch is on. Nothing is scheduled per reminder — a queue of alarms would be a second copy of when the rent is, and the two would drift. Reached without `androidx.hilt:hilt-work`: a plain `CoroutineWorker` asks the Hilt graph through an `@EntryPoint`, which is two fewer artifacts and no `Configuration.Provider` (rule 11) |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
-| Tests | JUnit + MockK + Turbine + in-memory Room (on the JVM via Robolectric) + Compose UI Test | Robolectric lets DAO and migration tests run in CI, which has no device |
+| Tests | JUnit + MockK + Turbine + in-memory Room (on the JVM via Robolectric) + Compose UI Test, plus `mockwebserver3` and `work-testing` | Robolectric lets DAO and migration tests run in CI, which has no device. **MockWebServer** checks the real HTTP the Drive client sends — bodies, bearer headers, paging, error mapping — without a Google account; **work-testing** runs the real backup worker, its `@EntryPoint` and its schedule on the JVM. Both test-only |
 | CI | GitHub Actions | build + tests + lint on every PR |
 
 **minSdk 26** (Android 8.0) — gives `java.time` without desugaring and covers the vast
@@ -277,9 +275,13 @@ spreadsheet — through the system picker, so the app asks for **no storage perm
 nothing goes anywhere near a third party. **And it can come back.** A backup file is read back in,
 **replacing everything** (D21) behind a confirmation that names what arrives and what goes — read
 first, so those numbers are checkable. Older files are read, newer ones refused, and a damaged one
-is turned away whole rather than half written. What is still missing is a backup that happens
-without being asked for: `feat/backup`, to Google Drive (**D22**), waiting on an OAuth client
-only the owner can create. The steps are in its entry in `PLAN.md` C3.
+is turned away whole rather than half written. **And it backs itself up** (#69, D22): once a day,
+to the app's own hidden folder on the owner's Google Drive, keeping the newest copy of each of
+the last 7 days, 4 weeks and 6 months and skipping a copy identical to the last. A token Drive
+refuses is renewed silently before anything asks the owner to reconnect. Since #72 a backup
+carries the **subscriptions and their reminders** too, with the watermark that stops a restored
+rule writing its past charges twice, and a restore is no longer refused on a phone that has
+subscriptions. The restore alert ends by saying to export first (#74).
 **And the three numbers add up.** D19 was answered on 2026-09-17: the Accounts tab shows what is
 **in accounts**, what is **invested**, and the **net worth** those come to — the parts as well as
 the sum, so it can be read with the portfolio and without it. It is only a legitimate sum because
@@ -299,7 +301,7 @@ row left empty left alone. **A purchase can also be recorded as 500 € of somet
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-699 tests run on the JVM, so CI covers the database and the UI without a device.
+789 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

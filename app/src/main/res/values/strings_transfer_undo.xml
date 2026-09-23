@@ -4,5 +4,5 @@
 -->
 <resources>
     <string name="transfer_deleted">Transfer deleted</string>
-    <string name="transfer_delete_undo_message">Both sides of it go and both balances change back. You can undo it from the list for a few seconds.</string>
+    <string name="transfer_delete_undo_message">Both sides of it go and both balances change back. For a few seconds you can undo it from the screen you go back to.</string>
 </resources>

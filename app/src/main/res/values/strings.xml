@@ -98,7 +98,7 @@
     <string name="transaction_delete">Delete movement</string>
     <string name="transaction_write_failed">That could not be saved. Try again.</string>
     <string name="transaction_delete_title">Delete this movement?</string>
-    <string name="transaction_delete_message">It leaves the list and the totals straight away. You can undo it from the list for a few seconds.</string>
+    <string name="transaction_delete_message">It leaves the list and the totals straight away. For a few seconds you can undo it from the screen you go back to.</string>
     <string name="kind_expense">Expense</string>
     <string name="kind_income">Income</string>
     <string name="field_account">Account</string>

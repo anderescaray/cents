@@ -7,6 +7,8 @@ import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
+import io.github.anderescaray.cents.domain.model.BackupReminder
+import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import io.github.anderescaray.cents.domain.repository.BackupRepository
@@ -48,6 +50,8 @@ class RoomBackupRepository
                     holdings = holdings(),
                     trades = trades(),
                     quotes = quotes(),
+                    rules = rules(),
+                    reminders = reminders(),
                 )
             }
 
@@ -91,6 +95,7 @@ class RoomBackupRepository
                     note = it.note,
                     transferId = it.transferId,
                     tradeId = it.tradeId,
+                    ruleId = it.ruleId,
                 )
             }
 
@@ -126,8 +131,9 @@ class RoomBackupRepository
          * Everything out, everything in, in one transaction.
          *
          * **The order is the foreign keys' order, in both directions.** Movements point at
-         * accounts, categories and trades; trades point at holdings; so the emptying goes from
-         * the leaves inward and the filling from the roots outward. Getting it wrong does not
+         * accounts, categories, trades and rules; trades point at holdings; rules point at
+         * accounts and categories, and reminders at rules; so the emptying goes from the leaves
+         * inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
          * would turn every restore into a failure, so it is written down rather than discovered.
          *
@@ -137,6 +143,8 @@ class RoomBackupRepository
         override suspend fun restore(backup: Backup) {
             database.withTransaction {
                 database.transactionDao().deleteAll()
+                database.ruleReminderDao().deleteAll()
+                database.recurringRuleDao().deleteAll()
                 database.tradeDao().deleteAll()
                 database.holdingDao().deleteAll()
                 database.priceQuoteDao().deleteAll()
@@ -146,12 +154,37 @@ class RoomBackupRepository
                 val now = clock.instant()
                 backup.accounts.forEach { database.accountDao().insert(it.toEntity(now)) }
                 backup.categories.forEach { database.categoryDao().insert(it.toEntity(now)) }
+                backup.rules.forEach { database.recurringRuleDao().insert(it.toEntity(now)) }
+                backup.reminders.forEach { database.ruleReminderDao().insert(it.toEntity()) }
                 backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
                 backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
                 backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
                 backup.quotes.forEach { database.priceQuoteDao().upsert(it.toEntity()) }
             }
         }
+
+        private suspend fun rules() =
+            database.recurringRuleDao().observeAll().first().map {
+                BackupRule(
+                    id = it.id,
+                    name = it.name,
+                    accountId = it.accountId,
+                    categoryId = it.categoryId,
+                    kind = it.kind.name,
+                    amountMinor = it.amountMinor,
+                    currency = it.currency,
+                    frequency = it.frequency.name,
+                    intervalDays = it.intervalDays,
+                    startDate = it.startDate.toEpochDay(),
+                    endDate = it.endDate?.toEpochDay(),
+                    mode = it.mode.name,
+                    active = it.active,
+                    lastGenerated = it.lastGenerated?.toEpochDay(),
+                )
+            }
+
+        private suspend fun reminders() =
+            database.ruleReminderDao().all().map { BackupReminder(ruleId = it.ruleId, offsetDays = it.offsetDays) }
 
         private suspend fun quotes() =
             database.priceQuoteDao().observeAll().first().map {

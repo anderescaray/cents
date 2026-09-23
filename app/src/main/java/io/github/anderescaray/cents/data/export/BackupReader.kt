@@ -5,6 +5,8 @@ import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
+import io.github.anderescaray.cents.domain.model.BackupReminder
+import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import kotlinx.serialization.json.Json
@@ -116,6 +118,9 @@ object BackupReader {
             holdings = root.rows("holdings", ::holding),
             trades = root.rows("trades", ::trade),
             quotes = root.rows("quotes", ::quote),
+            // Absent before a backup carried subscriptions, and read as none.
+            rules = root.rows("recurringRules", ::rule),
+            reminders = root.rows("ruleReminders", ::reminder),
         )
 
     private fun account(row: JsonObject) =
@@ -155,6 +160,7 @@ object BackupReader {
             // null means here anyway: this movement is half of nothing.
             transferId = row.long("transferId"),
             tradeId = row.long("tradeId"),
+            ruleId = row.long("ruleId"),
         )
 
     private fun holding(row: JsonObject) =
@@ -179,6 +185,30 @@ object BackupReader {
             currency = row.requireString("currency"),
             date = row.requireLong("date"),
             note = row.string("note"),
+        )
+
+    private fun rule(row: JsonObject) =
+        BackupRule(
+            id = row.requireLong("id"),
+            name = row.requireString("name"),
+            accountId = row.requireLong("accountId"),
+            categoryId = row.long("categoryId"),
+            kind = row.requireString("kind"),
+            amountMinor = row.requireLong("amountMinor"),
+            currency = row.requireString("currency"),
+            frequency = row.requireString("frequency"),
+            intervalDays = row.long("intervalDays")?.toInt(),
+            startDate = row.requireLong("startDate"),
+            endDate = row.long("endDate"),
+            mode = row.requireString("mode"),
+            active = row.boolean("active"),
+            lastGenerated = row.long("lastGenerated"),
+        )
+
+    private fun reminder(row: JsonObject) =
+        BackupReminder(
+            ruleId = row.requireLong("ruleId"),
+            offsetDays = row.requireLong("offsetDays").toInt(),
         )
 
     private fun quote(row: JsonObject) =

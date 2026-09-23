@@ -86,12 +86,15 @@ data class RestoreSummary(
     val accounts: Int,
     val movements: Int,
     val holdings: Int,
+    /** Counted so that restoring a file from before backups carried them says what it drops. */
+    val subscriptions: Int,
     val exportedAt: Instant?,
 ) {
-    val isEmpty: Boolean get() = accounts == 0 && movements == 0 && holdings == 0
+    val isEmpty: Boolean get() = accounts == 0 && movements == 0 && holdings == 0 && subscriptions == 0
 
     companion object {
-        val NOTHING = RestoreSummary(accounts = 0, movements = 0, holdings = 0, exportedAt = null)
+        val NOTHING =
+            RestoreSummary(accounts = 0, movements = 0, holdings = 0, subscriptions = 0, exportedAt = null)
     }
 }
 
@@ -256,5 +259,6 @@ private fun Backup.summarise() =
         accounts = accounts.size,
         movements = transactions.size,
         holdings = holdings.size,
+        subscriptions = rules.size,
         exportedAt = exportedAt.takeIf { it != Instant.EPOCH },
     )

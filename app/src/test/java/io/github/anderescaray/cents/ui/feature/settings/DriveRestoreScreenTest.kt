@@ -107,12 +107,12 @@ class DriveRestoreScreenTest {
         composeRule.onNodeWithText(context.getString(R.string.restore_confirm_title)).assertExists()
         composeRule
             .onNodeWithText(
-                context.getString(R.string.restore_confirm_incoming, 2, 0, 0),
+                context.getString(R.string.restore_confirm_incoming, 2, 0, 0, 0),
                 substring = true,
             ).assertExists()
         composeRule
             .onNodeWithText(
-                context.getString(R.string.restore_confirm_replaces, 1, 0, 0),
+                context.getString(R.string.restore_confirm_replaces, 1, 0, 0, 0),
                 substring = true,
             ).assertExists()
         assertEquals(0, repository.restores)

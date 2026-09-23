@@ -4,8 +4,10 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.holding
 import io.github.anderescaray.cents.data.local.quote
+import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -58,6 +60,8 @@ class RoomBackupRepositoryTest {
             val holdingId = database.holdingDao().insert(holding(accountId, symbol = "NVD.DE"))
             database.tradeDao().insert(trade(holdingId))
             database.priceQuoteDao().upsert(quote(symbol = "NVD.DE"))
+            val ruleId = database.recurringRuleDao().insert(recurringRule(accountId))
+            database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -3))
 
             val backup = backups.snapshot()
 
@@ -67,7 +71,9 @@ class RoomBackupRepositoryTest {
             assertEquals(1, backup.holdings.size)
             assertEquals(1, backup.trades.size)
             assertEquals(1, backup.quotes.size)
-            assertEquals(6, backup.rowCount)
+            assertEquals(1, backup.rules.size)
+            assertEquals(1, backup.reminders.size)
+            assertEquals(8, backup.rowCount)
         }
 
     @Test

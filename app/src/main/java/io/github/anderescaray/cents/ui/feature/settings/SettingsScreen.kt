@@ -349,6 +349,7 @@ private fun ConfirmRestoreAlert(
                         incoming.accounts,
                         incoming.movements,
                         incoming.holdings,
+                        incoming.subscriptions,
                     ),
                 )
                 // An empty app has nothing to lose, and saying "this replaces your 0 accounts"
@@ -361,6 +362,7 @@ private fun ConfirmRestoreAlert(
                             current.accounts,
                             current.movements,
                             current.holdings,
+                            current.subscriptions,
                         ),
                     )
                 }

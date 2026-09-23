@@ -13,7 +13,7 @@
     <string name="drive_backup_error_network">No se ha podido acceder a Google Drive. Comprueba la conexión e inténtalo de nuevo.</string>
     <string name="drive_backup_error_full">Google Drive está lleno y no queda espacio para la copia. Libera espacio en Drive y vuelve a crear la copia.</string>
     <string name="drive_backup_error_other">No se ha podido completar la operación con Drive. Inténtalo de nuevo.</string>
-    <string name="drive_backup_footer">Una copia diaria en el espacio oculto de la aplicación en Google Drive. Conserva la copia más reciente de cada uno de los últimos 7 días, 4 semanas y 6 meses, y no crea una copia si nada ha cambiado. No sincroniza: registra en un dispositivo y restaura en otro. Usa el mismo JSON que Exportar; no incluye las plantillas de suscripciones, los recordatorios ni los ajustes de la aplicación.</string>
+    <string name="drive_backup_footer">Una copia diaria en el espacio oculto de la aplicación en Google Drive. Conserva la copia más reciente de cada uno de los últimos 7 días, 4 semanas y 6 meses, y no crea una copia si nada ha cambiado. No sincroniza: registra en un dispositivo y restaura en otro. Usa el mismo JSON que Exportar, con las suscripciones y sus recordatorios; no incluye los ajustes de la aplicación.</string>
     <string name="drive_backup_restore">Restaurar desde Drive</string>
     <string name="drive_backup_list_title">Copias en Drive</string>
     <string name="drive_backup_list_footer">Las más recientes primero. Elige una copia para leerla. No se sustituye nada hasta que lo confirmes.</string>

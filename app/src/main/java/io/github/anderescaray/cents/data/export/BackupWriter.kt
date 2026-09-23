@@ -5,6 +5,8 @@ import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
+import io.github.anderescaray.cents.domain.model.BackupReminder
+import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import kotlinx.serialization.json.Json
@@ -72,6 +74,8 @@ object BackupWriter {
                     "holdings" to backup.holdings.toArray(::holdingJson),
                     "trades" to backup.trades.toArray(::tradeJson),
                     "quotes" to backup.quotes.toArray(::quoteJson),
+                    "recurringRules" to backup.rules.toArray(::ruleJson),
+                    "ruleReminders" to backup.reminders.toArray(::reminderJson),
                 ),
             )
         return PRETTY.encodeToString(JsonElement.serializer(), root)
@@ -114,6 +118,7 @@ object BackupWriter {
             // transfer is an unexplained expense beside an unexplained income.
             "transferId" to row.transferId.orNull(),
             "tradeId" to row.tradeId.orNull(),
+            "ruleId" to row.ruleId.orNull(),
         )
 
     private fun holdingJson(row: BackupHolding) =
@@ -138,6 +143,30 @@ object BackupWriter {
             "currency" to JsonPrimitive(row.currency),
             "date" to JsonPrimitive(row.date),
             "note" to row.note.orNull(),
+        )
+
+    private fun ruleJson(row: BackupRule) =
+        mapOf(
+            "id" to JsonPrimitive(row.id),
+            "name" to JsonPrimitive(row.name),
+            "accountId" to JsonPrimitive(row.accountId),
+            "categoryId" to row.categoryId.orNull(),
+            "kind" to JsonPrimitive(row.kind),
+            "amountMinor" to JsonPrimitive(row.amountMinor),
+            "currency" to JsonPrimitive(row.currency),
+            "frequency" to JsonPrimitive(row.frequency),
+            "intervalDays" to row.intervalDays?.toLong().orNull(),
+            "startDate" to JsonPrimitive(row.startDate),
+            "endDate" to row.endDate.orNull(),
+            "mode" to JsonPrimitive(row.mode),
+            "active" to JsonPrimitive(row.active),
+            "lastGenerated" to row.lastGenerated.orNull(),
+        )
+
+    private fun reminderJson(row: BackupReminder) =
+        mapOf(
+            "ruleId" to JsonPrimitive(row.ruleId),
+            "offsetDays" to JsonPrimitive(row.offsetDays),
         )
 
     private fun quoteJson(row: BackupQuote) =

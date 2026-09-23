@@ -7,8 +7,10 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.holding
 import io.github.anderescaray.cents.data.local.quote
+import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -72,6 +74,64 @@ class RestoreTest {
             assertEquals(original.holdings, restored.holdings)
             assertEquals(original.trades, restored.trades)
             assertEquals(original.quotes, restored.quotes)
+            assertEquals(original.rules, restored.rules)
+            assertEquals(original.reminders, restored.reminders)
+        }
+
+    @Test
+    fun `subscriptions come back with their reminders, their watermark and the movements they wrote`() =
+        runTest {
+            populateRows()
+            val checking =
+                database
+                    .accountDao()
+                    .observeAll()
+                    .first()
+                    .first { it.name == "Checking" }
+                    .id
+            val ruleId =
+                database.recurringRuleDao().insert(
+                    recurringRule(checking, name = "Rent", lastGenerated = LocalDate.of(2026, 9, 1)),
+                )
+            database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -3))
+            database.transactionDao().insert(transaction(checking, amountMinor = 80_000, ruleId = ruleId))
+            val original = backups.snapshot()
+            val text = BackupWriter.toJson(original)
+
+            wipe()
+            backups.restore(readable(text))
+
+            val restored = backups.snapshot()
+            assertEquals(original.rules, restored.rules)
+            // The watermark is what stops the next launch writing every rent since January again.
+            assertEquals(LocalDate.of(2026, 9, 1).toEpochDay(), restored.rules.single().lastGenerated)
+            assertEquals(listOf(-3), restored.reminders.map { it.offsetDays })
+            assertEquals(ruleId, restored.transactions.single { it.amountMinor == 80_000L }.ruleId)
+        }
+
+    @Test
+    fun `a phone that has subscriptions can still be restored`() =
+        runTest {
+            populate()
+            val text = BackupWriter.toJson(backups.snapshot())
+            val checking =
+                database
+                    .accountDao()
+                    .observeAll()
+                    .first()
+                    .first { it.name == "Checking" }
+                    .id
+            // A subscription added after the backup: its account key is RESTRICT, and emptying
+            // the accounts used to fail on it, refusing every restore on a phone that had one.
+            val ruleId = database.recurringRuleDao().insert(recurringRule(checking, name = "Gym"))
+            database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -1))
+
+            backups.restore(readable(text))
+
+            val restored = backups.snapshot()
+            assertTrue(restored.rules.isEmpty())
+            assertTrue(restored.reminders.isEmpty())
+            assertEquals(2, restored.accounts.size)
         }
 
     @Test
@@ -204,6 +264,10 @@ class RestoreTest {
         assertNull(backup.transactions.single().transferId)
         assertNull(backup.transactions.single().tradeId)
         assertEquals(2_550L, backup.transactions.single().amountMinor)
+        // Written before a backup carried subscriptions: none, rather than a damaged file.
+        assertTrue(backup.rules.isEmpty())
+        assertTrue(backup.reminders.isEmpty())
+        assertNull(backup.transactions.single().ruleId)
     }
 
     @Test
@@ -271,6 +335,8 @@ class RestoreTest {
 
     private suspend fun wipe() {
         database.transactionDao().deleteAll()
+        database.ruleReminderDao().deleteAll()
+        database.recurringRuleDao().deleteAll()
         database.tradeDao().deleteAll()
         database.holdingDao().deleteAll()
         database.priceQuoteDao().deleteAll()

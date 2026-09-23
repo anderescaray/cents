@@ -4,6 +4,8 @@ import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
+import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.entity.TradeEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.AccountType
@@ -12,10 +14,14 @@ import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
+import io.github.anderescaray.cents.domain.model.BackupReminder
+import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.QuoteSource
+import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import java.time.Instant
@@ -78,6 +84,7 @@ fun BackupTransaction.toEntity(createdAt: Instant) =
         note = note,
         transferId = transferId,
         tradeId = tradeId,
+        ruleId = ruleId,
         createdAt = createdAt,
         updatedAt = createdAt,
     )
@@ -108,6 +115,31 @@ fun BackupTrade.toEntity(createdAt: Instant) =
         note = note,
         createdAt = createdAt,
     )
+
+/**
+ * An unknown frequency falls back to monthly and an unknown mode to *ask first*: of the wrong
+ * guesses, those are the ones least likely to write money nobody expected.
+ */
+fun BackupRule.toEntity(createdAt: Instant) =
+    RecurringRuleEntity(
+        id = id,
+        name = name,
+        accountId = accountId,
+        categoryId = categoryId,
+        kind = enumOrDefault(kind, TransactionKind.EXPENSE),
+        amountMinor = amountMinor,
+        currency = currency,
+        frequency = enumOrDefault(frequency, Frequency.MONTHLY),
+        intervalDays = intervalDays,
+        startDate = LocalDate.ofEpochDay(startDate),
+        endDate = endDate?.let(LocalDate::ofEpochDay),
+        mode = enumOrDefault(mode, RuleMode.CONFIRM),
+        active = active,
+        lastGenerated = lastGenerated?.let(LocalDate::ofEpochDay),
+        createdAt = createdAt,
+    )
+
+fun BackupReminder.toEntity() = RuleReminderEntity(ruleId = ruleId, offsetDays = offsetDays)
 
 fun BackupQuote.toEntity() =
     PriceQuoteEntity(

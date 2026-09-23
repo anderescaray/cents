@@ -60,6 +60,8 @@ class BackupWriterTest {
                 "holdings",
                 "trades",
                 "quotes",
+                "recurringRules",
+                "ruleReminders",
             ),
             json.keys,
         )

@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
@@ -52,6 +53,7 @@ class RoomBackupRepository
                     quotes = quotes(),
                     rules = rules(),
                     reminders = reminders(),
+                    budgets = budgets(),
                 )
             }
 
@@ -132,8 +134,8 @@ class RoomBackupRepository
          *
          * **The order is the foreign keys' order, in both directions.** Movements point at
          * accounts, categories, trades and rules; trades point at holdings; rules point at
-         * accounts and categories, and reminders at rules; so the emptying goes from the leaves
-         * inward and the filling from the roots outward. Getting it wrong does not
+         * accounts and categories, reminders at rules and budgets at categories; so the emptying
+         * goes from the leaves inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
          * would turn every restore into a failure, so it is written down rather than discovered.
          *
@@ -143,6 +145,7 @@ class RoomBackupRepository
         override suspend fun restore(backup: Backup) {
             database.withTransaction {
                 database.transactionDao().deleteAll()
+                database.budgetDao().deleteAll()
                 database.ruleReminderDao().deleteAll()
                 database.recurringRuleDao().deleteAll()
                 database.tradeDao().deleteAll()
@@ -156,6 +159,7 @@ class RoomBackupRepository
                 backup.categories.forEach { database.categoryDao().insert(it.toEntity(now)) }
                 backup.rules.forEach { database.recurringRuleDao().insert(it.toEntity(now)) }
                 backup.reminders.forEach { database.ruleReminderDao().insert(it.toEntity()) }
+                backup.budgets.forEach { database.budgetDao().insert(it.toEntity(now)) }
                 backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
                 backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
                 backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
@@ -185,6 +189,11 @@ class RoomBackupRepository
 
         private suspend fun reminders() =
             database.ruleReminderDao().all().map { BackupReminder(ruleId = it.ruleId, offsetDays = it.offsetDays) }
+
+        private suspend fun budgets() =
+            database.budgetDao().all().map {
+                BackupBudget(categoryId = it.categoryId, amountMinor = it.amountMinor, currency = it.currency)
+            }
 
         private suspend fun quotes() =
             database.priceQuoteDao().observeAll().first().map {

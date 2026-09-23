@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.data.local
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
+import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
@@ -174,4 +175,15 @@ fun recurringRule(
     active = active,
     lastGenerated = lastGenerated,
     createdAt = FIXED_INSTANT,
+)
+
+fun budget(
+    categoryId: Long,
+    amountMinor: Long = 30_000,
+    currency: String = "EUR",
+) = BudgetEntity(
+    categoryId = categoryId,
+    amountMinor = amountMinor,
+    currency = currency,
+    createdAt = Instant.parse("2026-09-23T10:00:00Z"),
 )

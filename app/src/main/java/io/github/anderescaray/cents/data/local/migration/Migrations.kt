@@ -21,7 +21,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    erased financial history on a real device.
  */
 val ALL_MIGRATIONS: Array<Migration>
-    get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+    get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 
 /**
  * v1 to v2 — the investments tables.
@@ -221,6 +221,31 @@ val MIGRATION_5_6 =
             db.execSQL(
                 "CREATE UNIQUE INDEX IF NOT EXISTS `index_rule_reminders_ruleId_offsetDays` " +
                     "ON `rule_reminders` (`ruleId`, `offsetDays`)",
+            )
+        }
+    }
+
+/**
+ * v6 to v7 — somewhere to keep a monthly limit per expense category (PRD §4.4).
+ *
+ * Purely additive, like every migration before it: one table and its index. An install made
+ * before budgets existed opens with none, which is exactly what it has.
+ */
+val MIGRATION_6_7 =
+    object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `budgets` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`categoryId` INTEGER NOT NULL, " +
+                    "`amountMinor` INTEGER NOT NULL, " +
+                    "`currency` TEXT NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_budgets_categoryId` ON `budgets` (`categoryId`)",
             )
         }
     }

@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.data.export
 
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
@@ -76,6 +77,7 @@ object BackupWriter {
                     "quotes" to backup.quotes.toArray(::quoteJson),
                     "recurringRules" to backup.rules.toArray(::ruleJson),
                     "ruleReminders" to backup.reminders.toArray(::reminderJson),
+                    "budgets" to backup.budgets.toArray(::budgetJson),
                 ),
             )
         return PRETTY.encodeToString(JsonElement.serializer(), root)
@@ -167,6 +169,13 @@ object BackupWriter {
         mapOf(
             "ruleId" to JsonPrimitive(row.ruleId),
             "offsetDays" to JsonPrimitive(row.offsetDays),
+        )
+
+    private fun budgetJson(row: BackupBudget) =
+        mapOf(
+            "categoryId" to JsonPrimitive(row.categoryId),
+            "amountMinor" to JsonPrimitive(row.amountMinor),
+            "currency" to JsonPrimitive(row.currency),
         )
 
     private fun quoteJson(row: BackupQuote) =

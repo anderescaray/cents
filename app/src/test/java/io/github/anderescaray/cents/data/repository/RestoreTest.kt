@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.export.BackupReader
 import io.github.anderescaray.cents.data.export.BackupWriter
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.budget
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
@@ -76,6 +77,7 @@ class RestoreTest {
             assertEquals(original.quotes, restored.quotes)
             assertEquals(original.rules, restored.rules)
             assertEquals(original.reminders, restored.reminders)
+            assertEquals(original.budgets, restored.budgets)
         }
 
     @Test
@@ -325,6 +327,7 @@ class RestoreTest {
         val checking = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 100_000))
         val broker = database.accountDao().insert(account(name = "Broker"))
         val groceries = database.categoryDao().insert(category(name = "Groceries"))
+        database.budgetDao().insert(budget(groceries, amountMinor = 40_000))
         database.transactionDao().insert(
             transaction(checking, categoryId = groceries, amountMinor = 2_550, note = "Weekly shop"),
         )
@@ -335,6 +338,7 @@ class RestoreTest {
 
     private suspend fun wipe() {
         database.transactionDao().deleteAll()
+        database.budgetDao().deleteAll()
         database.ruleReminderDao().deleteAll()
         database.recurringRuleDao().deleteAll()
         database.tradeDao().deleteAll()

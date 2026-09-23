@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.AccountDao
+import io.github.anderescaray.cents.data.local.dao.BudgetDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
 import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
@@ -60,4 +61,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRuleReminderDao(database: CentsDatabase): RuleReminderDao = database.ruleReminderDao()
+
+    @Provides
+    fun provideBudgetDao(database: CentsDatabase): BudgetDao = database.budgetDao()
 }

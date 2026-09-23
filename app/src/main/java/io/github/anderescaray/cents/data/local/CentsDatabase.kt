@@ -6,6 +6,7 @@ import androidx.room.TypeConverters
 import io.github.anderescaray.cents.data.local.converter.Converters
 import io.github.anderescaray.cents.data.local.converter.InvestmentConverters
 import io.github.anderescaray.cents.data.local.dao.AccountDao
+import io.github.anderescaray.cents.data.local.dao.BudgetDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
 import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
@@ -14,6 +15,7 @@ import io.github.anderescaray.cents.data.local.dao.RuleReminderDao
 import io.github.anderescaray.cents.data.local.dao.TradeDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
+import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
@@ -32,6 +34,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
         PriceQuoteEntity::class,
         RecurringRuleEntity::class,
         RuleReminderEntity::class,
+        BudgetEntity::class,
     ],
     version = CentsDatabase.VERSION,
     exportSchema = true,
@@ -54,15 +57,18 @@ abstract class CentsDatabase : RoomDatabase() {
 
     abstract fun ruleReminderDao(): RuleReminderDao
 
+    abstract fun budgetDao(): BudgetDao
+
     companion object {
         /**
          * v2 (2026-09-09) added holdings, trades and price quotes; v3 (2026-09-16) added
          * `transactions.transferId`, which pairs the two legs of a transfer; v4 (2026-09-16)
          * added `transactions.tradeId`, which ties a purchase to the cash it took out of the
-         * account; v5 (2026-09-17) added `recurring_rules` and `transactions.ruleId`. See
+         * account; v5 (2026-09-17) added `recurring_rules` and `transactions.ruleId`; v6
+         * (2026-09-17) added `rule_reminders`; v7 (2026-09-23) added `budgets`. See
          * `Migrations.kt`.
          */
-        const val VERSION = 6
+        const val VERSION = 7
         const val NAME = "cents.db"
     }
 }

@@ -28,6 +28,8 @@ import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
+import io.github.anderescaray.cents.ui.feature.budgets.BudgetEditScreen
+import io.github.anderescaray.cents.ui.feature.budgets.BudgetsScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
 import io.github.anderescaray.cents.ui.feature.filters.TransactionFiltersScreen
@@ -191,6 +193,7 @@ private fun CentsNavHost(
             SettingsScreen(
                 onOpenCategories = { navController.navigate(Destination.Categories) },
                 onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
+                onOpenBudgets = { navController.navigate(Destination.Budgets) },
                 onResetHomeLayout = home::resetLayout,
             )
         }
@@ -406,5 +409,17 @@ private fun NavGraphBuilder.recurringRoutes(navController: NavHostController) {
             onDone = { navController.popBackStack() },
             onCreateAccount = { navController.navigate(Destination.AccountEdit()) },
         )
+    }
+    composable<Destination.Budgets> {
+        BudgetsScreen(
+            onBack = { navController.popBackStack() },
+            onNewBudget = { navController.navigate(Destination.BudgetEdit()) { launchSingleTop = true } },
+            onEditBudget = { id ->
+                navController.navigate(Destination.BudgetEdit(budgetId = id)) { launchSingleTop = true }
+            },
+        )
+    }
+    composable<Destination.BudgetEdit> {
+        BudgetEditScreen(onDone = { navController.popBackStack() })
     }
 }

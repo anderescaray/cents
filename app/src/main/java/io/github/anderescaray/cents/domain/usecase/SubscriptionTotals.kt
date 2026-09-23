@@ -95,6 +95,14 @@ fun subscriptionTotalsOf(
     )
 }
 
+/**
+ * What this rule is still known to take before the month ends, counted the way *committed this
+ * month* on the Subscriptions screen counts it — so a budget and that screen can never disagree
+ * about the same rent.
+ */
+fun RecurringRule.committedThisMonth(today: LocalDate): Money =
+    Money(Math.multiplyExact(amount.minorUnits, committedOccurrenceCount(today)), amount.currency)
+
 private fun RecurringRule.committedOccurrenceCount(today: LocalDate): Long {
     val month = YearMonth.from(today)
     val remaining =

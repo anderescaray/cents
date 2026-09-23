@@ -154,6 +154,20 @@ sealed interface Destination {
     @Serializable
     data object Subscriptions : Destination
 
+    /** Every monthly limit, against the month it is in (`DECISIONS.md` D26). */
+    @Serializable
+    data object Budgets : Destination
+
+    /** [budgetId] is [BudgetEdit.NEW] when the screen is setting a new limit. */
+    @Serializable
+    data class BudgetEdit(
+        val budgetId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
     /**
      * The bills waiting for a figure: every variable-amount rule that has fallen due.
      *
@@ -245,6 +259,8 @@ enum class TopLevelTab(
                 Destination.Subscriptions::class,
                 Destination.RuleForm::class,
                 Destination.PendingCharges::class,
+                Destination.Budgets::class,
+                Destination.BudgetEdit::class,
             ),
         labelRes = R.string.tab_settings,
         iconRes = R.drawable.ic_tab_settings,

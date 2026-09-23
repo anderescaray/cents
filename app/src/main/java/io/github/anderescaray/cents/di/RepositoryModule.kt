@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomBackupRepository
+import io.github.anderescaray.cents.data.repository.RoomBudgetRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomRecurringRuleRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
@@ -19,6 +20,7 @@ import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByCatego
 import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByWeekdayRepository
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.BackupRepository
+import io.github.anderescaray.cents.domain.repository.BudgetRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
@@ -80,6 +82,9 @@ abstract class RepositoryModule {
 
     @Binds
     abstract fun bindCategoryTrendRepository(impl: RoomCategoryTrendRepository): CategoryTrendRepository
+
+    @Binds
+    abstract fun bindBudgetRepository(impl: RoomBudgetRepository): BudgetRepository
 
     companion object {
         /**

@@ -1,10 +1,7 @@
 package io.github.anderescaray.cents.ui.feature.transactions
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
@@ -31,6 +27,7 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSearchField
+import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.open
@@ -256,39 +253,6 @@ private fun LazyListScope.noMatchesState(onClearFilter: () -> Unit) {
     }
 }
 
-/** The one place a deletion can be taken back, for as long as it is on screen. */
-@Composable
-private fun UndoBanner(
-    isTransfer: Boolean,
-    onUndo: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(BANNER_RADIUS.dp))
-                .background(CentsTheme.colors.barBackground)
-                .padding(horizontal = CentsDimens.spacingL, vertical = CentsDimens.spacingM),
-        horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text =
-                stringResource(
-                    if (isTransfer) R.string.transfer_deleted else R.string.transaction_deleted,
-                ),
-            style = CentsTheme.typography.subhead,
-            color = CentsTheme.colors.label,
-        )
-        Text(
-            text = stringResource(R.string.action_undo),
-            style = CentsTheme.typography.headline,
-            color = CentsTheme.colors.accent,
-            modifier = Modifier.clickable(onClick = onUndo),
-        )
-    }
-}
-
 private fun LazyListScope.monthSummary(summary: PeriodSummary) {
     item(key = "summary") {
         CentsListSection(header = stringResource(R.string.transactions_this_month)) {
@@ -353,8 +317,6 @@ private fun LazyListScope.day(
         }
     }
 }
-
-private const val BANNER_RADIUS = 14
 
 internal const val FILTERS_BUTTON_TAG = "openFilters"
 internal const val SHOW_EVERYTHING_TAG = "showEverything"

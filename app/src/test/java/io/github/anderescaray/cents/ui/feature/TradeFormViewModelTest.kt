@@ -352,6 +352,9 @@ class TradeFormViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
             viewModel.save()
+            // The write lands on Room's executor, so wait for the form to say it is done, as every
+            // other save in this file does, rather than reading a table that may not have it yet.
+            viewModel.uiState.first { it.finished }
 
             val saved =
                 database

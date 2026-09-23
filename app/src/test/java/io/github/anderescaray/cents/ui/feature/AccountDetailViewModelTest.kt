@@ -258,15 +258,23 @@ class AccountDetailViewModelTest {
             RoomTransferRepository(database.transactionDao(), database, clock).deleteTransfer(transferId)
             deleted.remember(legs)
 
+            // The balance and the movements are two queries, so a state can carry one of them
+            // before the other has caught up: wait for the balance itself rather than asserting it
+            // on the first state whose movements moved.
             viewModel.uiState.test {
-                val offered = awaitStateThat { it.undoableDeletion != null && it.days.isEmpty() }
+                val offered =
+                    awaitStateThat {
+                        it.undoableDeletion != null && it.days.isEmpty() &&
+                            it.account?.balance == Money(10_000, "EUR")
+                    }
                 assertTrue(offered.undoableDeletion is DeletedTransaction.Transfer)
-                assertEquals(Money(10_000, "EUR"), requireNotNull(offered.account).balance)
 
                 viewModel.undoDeletion()
 
-                val restored = awaitStateThat { it.undoableDeletion == null && it.days.isNotEmpty() }
-                assertEquals(Money(8_000, "EUR"), requireNotNull(restored.account).balance)
+                awaitStateThat {
+                    it.undoableDeletion == null && it.days.isNotEmpty() &&
+                        it.account?.balance == Money(8_000, "EUR")
+                }
                 cancelAndIgnoreRemainingEvents()
             }
             assertEquals(legs.map { it.id }.toSet(), transactions.findTransferLegs(transferId).map { it.id }.toSet())

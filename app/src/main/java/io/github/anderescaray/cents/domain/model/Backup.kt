@@ -25,12 +25,18 @@ data class Backup(
     val holdings: List<BackupHolding>,
     val trades: List<BackupTrade>,
     val quotes: List<BackupQuote>,
+    /**
+     * The subscriptions, salaries and rent that record themselves. Empty in a file written before
+     * a backup carried them, which a restore then reads as *there were none*.
+     */
+    val rules: List<BackupRule> = emptyList(),
+    val reminders: List<BackupReminder> = emptyList(),
 ) {
     /** How many rows are in it, for a screen that wants to say what it just wrote. */
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
-                holdings.size + trades.size + quotes.size
+                holdings.size + trades.size + quotes.size + rules.size + reminders.size
 }
 
 data class BackupAccount(
@@ -66,6 +72,8 @@ data class BackupTransaction(
     val note: String?,
     val transferId: Long?,
     val tradeId: Long?,
+    /** The recurring rule that wrote it, so a restored rule can still say what it produced. */
+    val ruleId: Long? = null,
 )
 
 data class BackupHolding(
@@ -98,4 +106,32 @@ data class BackupQuote(
     /** Epoch millis: a quote is an instant, not a day. */
     val asOf: Long,
     val source: String,
+)
+
+/**
+ * A recurring rule as stored. [lastGenerated] is the part that must not be lost: it is the
+ * watermark that stops a restored rule from writing every charge since [startDate] a second time.
+ */
+data class BackupRule(
+    val id: Long,
+    val name: String,
+    val accountId: Long,
+    val categoryId: Long?,
+    val kind: String,
+    val amountMinor: Long,
+    val currency: String,
+    val frequency: String,
+    val intervalDays: Int?,
+    /** Epoch days, like every other date in the file. */
+    val startDate: Long,
+    val endDate: Long?,
+    val mode: String,
+    val active: Boolean,
+    val lastGenerated: Long?,
+)
+
+data class BackupReminder(
+    val ruleId: Long,
+    /** Signed: occurrence + offset = the day it fires. */
+    val offsetDays: Int,
 )

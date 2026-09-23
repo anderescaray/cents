@@ -260,8 +260,8 @@
     <!-- Putting a backup back (D21) -->
     <string name="settings_restore">Restore from a backup</string>
     <string name="restore_confirm_title">Replace everything with this backup?</string>
-    <string name="restore_confirm_incoming">The file holds %1$d accounts, %2$d movements and %3$d holdings.</string>
-    <string name="restore_confirm_replaces">It replaces what is here now: %1$d accounts, %2$d movements and %3$d holdings. That cannot be undone.</string>
+    <string name="restore_confirm_incoming">The file holds %1$d accounts, %2$d movements, %3$d holdings and %4$d subscriptions.</string>
+    <string name="restore_confirm_replaces">It replaces what is here now: %1$d accounts, %2$d movements, %3$d holdings and %4$d subscriptions. That cannot be undone.</string>
     <string name="restore_confirm_action">Replace everything</string>
     <string name="restore_done_title">Restored</string>
     <string name="restore_done_message">The app now holds what the file held.</string>

@@ -257,8 +257,8 @@
     <!-- Restaurar una copia de seguridad (D21) -->
     <string name="settings_restore">Restaurar una copia</string>
     <string name="restore_confirm_title">¿Sustituir todo por esta copia?</string>
-    <string name="restore_confirm_incoming">El archivo tiene %1$d cuentas, %2$d movimientos y %3$d posiciones.</string>
-    <string name="restore_confirm_replaces">Sustituye lo que hay ahora: %1$d cuentas, %2$d movimientos y %3$d posiciones. Esto no se puede deshacer.</string>
+    <string name="restore_confirm_incoming">El archivo tiene %1$d cuentas, %2$d movimientos, %3$d posiciones y %4$d suscripciones.</string>
+    <string name="restore_confirm_replaces">Sustituye lo que hay ahora: %1$d cuentas, %2$d movimientos, %3$d posiciones y %4$d suscripciones. Esto no se puede deshacer.</string>
     <string name="restore_confirm_action">Sustituir todo</string>
     <string name="restore_done_title">Restaurado</string>
     <string name="restore_done_message">La app tiene ahora lo que tenía el archivo.</string>

@@ -23,6 +23,10 @@ interface RuleReminderDao {
     @Insert
     suspend fun insert(reminder: RuleReminderEntity): Long
 
+    /** Only for a restore, which replaces everything (`DECISIONS.md` D21). */
+    @Query("DELETE FROM rule_reminders")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM rule_reminders WHERE ruleId = :ruleId")
     suspend fun deleteForRule(ruleId: Long)
 }

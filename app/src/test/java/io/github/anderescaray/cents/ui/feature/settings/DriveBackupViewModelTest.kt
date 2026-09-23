@@ -195,7 +195,7 @@ class DriveBackupViewModelTest {
         }
 
     @Test
-    fun `an expired grant is recorded and exposes reconnecting`() =
+    fun `a grant refused even with a fresh token is recorded and exposes reconnecting`() =
         runTest {
             storage.failure = DriveBackupException(DriveBackupFailureKind.NEEDS_RECONNECTING)
             viewModel.backUpNow()
@@ -209,7 +209,7 @@ class DriveBackupViewModelTest {
                 preferences.state.value.lastFailure
                     ?.at,
             )
-            assertEquals(listOf("test-access-token"), authorization.invalidated)
+            assertEquals(listOf("test-access-token", "test-access-token"), authorization.invalidated)
             assertNull(preferences.state.value.lastSuccessAt)
         }
 

@@ -13,6 +13,7 @@ import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -51,7 +52,7 @@ class DriveClientTest {
             val contents = """{"schemaVersion":6,"accounts":[],"note":"España"}"""
             val name = "cents-backup-2026-09-22T031245.json"
 
-            assertEquals("uploaded", drive.upload("ephemeral-token", name, contents))
+            assertEquals("uploaded", drive.upload("ephemeral-token", name, contents, "fingerprint"))
 
             val request = server.takeRequest()
             assertEquals("POST", request.method)
@@ -71,6 +72,14 @@ class DriveClientTest {
                     .getValue("parents")
                     .jsonArray
                     .single()
+                    .jsonPrimitive.content,
+            )
+            assertEquals(
+                "fingerprint",
+                metadata
+                    .getValue("appProperties")
+                    .jsonObject
+                    .getValue("contentSha256")
                     .jsonPrimitive.content,
             )
             assertEquals(contents, parts[2].substringAfter("\r\n\r\n").removeSuffix("\r\n"))
@@ -97,7 +106,10 @@ class DriveClientTest {
             val first = server.takeRequest()
             assertEquals("appDataFolder", first.url.queryParameter("spaces"))
             assertEquals("createdTime desc", first.url.queryParameter("orderBy"))
-            assertEquals("nextPageToken,files(id,name,createdTime,size)", first.url.queryParameter("fields"))
+            assertEquals(
+                "nextPageToken,files(id,name,createdTime,size,appProperties)",
+                first.url.queryParameter("fields"),
+            )
             assertEquals("Bearer list-token", first.headers["Authorization"])
             assertEquals("page two", server.takeRequest().url.queryParameter("pageToken"))
         }
@@ -179,6 +191,88 @@ class DriveClientTest {
             val failure = runCatching { drive.list("token") }.exceptionOrNull()
             assertEquals(DriveBackupFailureKind.OTHER, (failure as DriveBackupException).kind)
         }
+
+    @Test
+    fun `a full Drive is told apart from other refusals`() =
+        runTest {
+            server.enqueue(forbidden("storageQuotaExceeded"))
+            val failure = runCatching { drive.upload("token", "name", "{}", "fingerprint") }.exceptionOrNull()
+            assertEquals(DriveBackupFailureKind.DRIVE_FULL, (failure as DriveBackupException).kind)
+        }
+
+    @Test
+    fun `a rate limit refusal is a retryable network failure`() =
+        runTest {
+            for (reason in listOf("rateLimitExceeded", "userRateLimitExceeded")) {
+                server.enqueue(forbidden(reason))
+                val failure = runCatching { drive.list("token") }.exceptionOrNull()
+                assertEquals(DriveBackupFailureKind.NETWORK, (failure as DriveBackupException).kind)
+            }
+        }
+
+    @Test
+    fun `a grant missing the scope needs reconnecting in either error shape`() =
+        runTest {
+            server.enqueue(forbidden("insufficientPermissions"))
+            server.enqueue(
+                MockResponse
+                    .Builder()
+                    .code(403)
+                    .body("""{"error":{"code":403,"details":[{"reason":"ACCESS_TOKEN_SCOPE_INSUFFICIENT"}]}}""")
+                    .build(),
+            )
+            repeat(2) {
+                val failure = runCatching { drive.list("token") }.exceptionOrNull()
+                assertEquals(DriveBackupFailureKind.NEEDS_RECONNECTING, (failure as DriveBackupException).kind)
+            }
+        }
+
+    @Test
+    fun `a 403 whose body is not JSON is still only a failure`() =
+        runTest {
+            server.enqueue(
+                MockResponse
+                    .Builder()
+                    .code(403)
+                    .body("<html>forbidden</html>")
+                    .build(),
+            )
+            val failure = runCatching { drive.list("token") }.exceptionOrNull()
+            assertEquals(DriveBackupFailureKind.OTHER, (failure as DriveBackupException).kind)
+        }
+
+    @Test
+    fun `a file without a size is still listed and one without an id is left out`() =
+        runTest {
+            val noSize =
+                """{"id":"no-size","name":"cents-backup-2026-09-22T010000.json","createdTime":"2026-09-22T01:00:00Z"}"""
+            val noId = """{"id":"","name":"cents-backup-2026-09-21T010000.json","createdTime":"2026-09-21T01:00:00Z"}"""
+            server.enqueue(response("""{"files":[$noSize,$noId,${file("sized", "2026-09-20T01:00:00Z")}]}"""))
+
+            val files = drive.list("token")
+
+            assertEquals(listOf("no-size", "sized"), files.map { it.id })
+            assertNull(files.first().sizeBytes)
+            assertEquals(2048L, files.last().sizeBytes)
+        }
+
+    @Test
+    fun `a copy's fingerprint is read back from its app properties`() =
+        runTest {
+            val withFingerprint =
+                """{"id":"a","name":"cents-backup-2026-09-22T010000.json","createdTime":"2026-09-22T01:00:00Z",""" +
+                    """"appProperties":{"contentSha256":"abc"}}"""
+            server.enqueue(response("""{"files":[$withFingerprint,${file("b", "2026-09-21T01:00:00Z")}]}"""))
+
+            assertEquals(listOf("abc", null), drive.list("token").map { it.fingerprint })
+        }
+
+    private fun forbidden(reason: String) =
+        MockResponse
+            .Builder()
+            .code(403)
+            .body("""{"error":{"code":403,"errors":[{"domain":"usageLimits","reason":"$reason"}]}}""")
+            .build()
 
     private fun response(body: String) = MockResponse.Builder().body(body).build()
 

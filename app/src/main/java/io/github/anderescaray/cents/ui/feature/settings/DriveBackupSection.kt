@@ -97,26 +97,18 @@ private fun DriveBackupStatus(
     state: DriveBackupUiState,
     onReconnect: (() -> Unit)?,
 ) {
-    val context = LocalContext.current
-    val configuration = LocalConfiguration.current
     val now by produceState(Instant.now()) {
         while (true) {
             delay(TIME_REFRESH_MILLIS)
             value = Instant.now()
         }
     }
-    val lastSuccess =
-        remember(state.preferences.lastSuccessAt, now, configuration) {
-            relativeBackupTime(context, state.preferences.lastSuccessAt, now)
-        }
+    val lastSuccess = relativeBackupTime(state.preferences.lastSuccessAt, now)
     CentsListRow(title = stringResource(R.string.drive_backup_last), subtitle = lastSuccess)
     val failure = state.failure ?: state.preferences.lastFailure?.kind
     if (failure != null) {
         val failedAt = state.preferences.lastFailure?.at
-        val whenFailed =
-            remember(failedAt, now, configuration) {
-                relativeBackupTime(context, failedAt, now)
-            }
+        val whenFailed = relativeBackupTime(failedAt, now)
         val reason = driveFailureMessage(failure)
         val timedReason = stringResource(R.string.drive_backup_problem_at, reason, whenFailed)
         CentsListRow(
@@ -215,7 +207,10 @@ private fun DriveBackupFileRow(
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val date = remember(backup.createdAt, configuration) { backupDateTime(context, backup.createdAt) }
-    val size = remember(backup.sizeBytes, configuration) { Formatter.formatFileSize(context, backup.sizeBytes) }
+    val size =
+        remember(backup.sizeBytes, configuration) {
+            backup.sizeBytes?.let { Formatter.formatFileSize(context, it) }
+        }
     CentsListRow(title = date, subtitle = size, showChevron = true, onClick = { onChoose(backup) })
 }
 
@@ -265,6 +260,7 @@ private fun driveFailureMessage(kind: DriveBackupFailureKind): String =
         when (kind) {
             DriveBackupFailureKind.NEEDS_RECONNECTING -> R.string.drive_backup_error_reconnect
             DriveBackupFailureKind.NETWORK -> R.string.drive_backup_error_network
+            DriveBackupFailureKind.DRIVE_FULL -> R.string.drive_backup_error_full
             DriveBackupFailureKind.OTHER -> R.string.drive_backup_error_other
         },
     )

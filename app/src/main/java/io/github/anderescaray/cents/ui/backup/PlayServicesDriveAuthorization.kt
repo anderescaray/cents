@@ -62,7 +62,12 @@ class PlayServicesDriveAuthorization
         }
     }
 
-private suspend fun <T> Task<T>.awaitResult(): T =
+/**
+ * A task Play services cancels is a failed authorization, not a cancelled coroutine: surfacing it
+ * as a [kotlinx.coroutines.CancellationException] would slip past every failure handler and leave
+ * the screen showing *Connecting…* for good.
+ */
+internal suspend fun <T> Task<T>.awaitResult(): T =
     suspendCancellableCoroutine { continuation ->
         addOnSuccessListener(DIRECT_EXECUTOR) { continuation.resume(it) }
         addOnFailureListener(DIRECT_EXECUTOR) {
@@ -70,7 +75,9 @@ private suspend fun <T> Task<T>.awaitResult(): T =
                 if (it is ApiException) it.toBackupException() else DriveBackupException(DriveBackupFailureKind.OTHER),
             )
         }
-        addOnCanceledListener(DIRECT_EXECUTOR) { continuation.cancel() }
+        addOnCanceledListener(DIRECT_EXECUTOR) {
+            continuation.resumeWithException(DriveBackupException(DriveBackupFailureKind.OTHER))
+        }
     }
 
 private fun ApiException.toBackupException(): DriveBackupException =

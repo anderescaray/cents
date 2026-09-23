@@ -48,6 +48,12 @@ enum class RestoreStep {
 
     /** The file was fine and the write was not. Nothing changed. */
     FAILED,
+
+    /**
+     * The file was fine, but what is recorded now could not be read, so the confirmation could not
+     * say what it would replace. Nothing changed, and nothing was written.
+     */
+    CURRENT_UNREADABLE,
 }
 
 /** Why a file was turned away, in the owner's terms rather than the parser's. */
@@ -62,8 +68,11 @@ data class RestoreUiState(
     val step: RestoreStep = RestoreStep.IDLE,
     /** What the chosen file holds, once it has been read. */
     val incoming: RestoreSummary? = null,
-    /** What is recorded right now, which is what the restore would replace. */
-    val current: RestoreSummary? = null,
+    /**
+     * What is recorded right now, which is what the restore would replace. Only meaningful while
+     * [RestoreStep.CONFIRMING]: a confirmation is never offered without it.
+     */
+    val current: RestoreSummary = RestoreSummary.NOTHING,
     val problem: RestoreProblem? = null,
     /** Set when [RestoreProblem.TOO_NEW], so the message can name both versions. */
     val fileVersion: Int = 0,
@@ -80,6 +89,10 @@ data class RestoreSummary(
     val exportedAt: Instant?,
 ) {
     val isEmpty: Boolean get() = accounts == 0 && movements == 0 && holdings == 0
+
+    companion object {
+        val NOTHING = RestoreSummary(accounts = 0, movements = 0, holdings = 0, exportedAt = null)
+    }
 }
 
 /**
@@ -144,20 +157,24 @@ class RestoreViewModel
                             refuse(RestoreProblem.DAMAGED)
                             return@launch
                         }
-                    try {
-                        accept(parsed)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        state.update { it.copy(step = RestoreStep.FAILED) }
-                    }
+                    accept(parsed)
                 }
         }
 
         private suspend fun accept(parsed: BackupParse) {
             when (parsed) {
                 is BackupParse.Restorable -> {
-                    offer(parsed.backup, currentlyRecorded())
+                    val current =
+                        try {
+                            currentlyRecorded()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            // Not FAILED: that says a write failed, and nothing was written.
+                            state.update { it.copy(step = RestoreStep.CURRENT_UNREADABLE) }
+                            return
+                        }
+                    offer(parsed.backup, current)
                 }
 
                 BackupParse.NotABackup -> {
@@ -220,7 +237,7 @@ class RestoreViewModel
 
         private fun offer(
             backup: Backup,
-            current: RestoreSummary?,
+            current: RestoreSummary,
         ) {
             pending = backup
             state.update {

@@ -9,6 +9,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
@@ -20,10 +23,12 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
+import java.net.HttpURLConnection.HTTP_FORBIDDEN
 import java.net.HttpURLConnection.HTTP_INTERNAL_ERROR
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
 import java.net.HttpURLConnection.HTTP_UNAUTHORIZED
 import java.time.Instant
+import java.time.format.DateTimeParseException
 import kotlin.coroutines.resumeWithException
 
 interface DriveFiles {
@@ -31,6 +36,7 @@ interface DriveFiles {
         accessToken: String,
         name: String,
         contents: String,
+        fingerprint: String,
     ): String
 
     suspend fun list(accessToken: String): List<DriveBackup>
@@ -54,9 +60,13 @@ class DriveClient(
         accessToken: String,
         name: String,
         contents: String,
+        fingerprint: String,
     ): String =
         withContext(Dispatchers.IO) {
-            val metadata = json.encodeToString(UploadMetadata(name, listOf("appDataFolder")))
+            val metadata =
+                json.encodeToString(
+                    UploadMetadata(name, listOf("appDataFolder"), mapOf(FINGERPRINT_PROPERTY to fingerprint)),
+                )
             val body =
                 MultipartBody
                     .Builder()
@@ -85,14 +95,14 @@ class DriveClient(
                     filesUrl()
                         .newBuilder()
                         .addQueryParameter("spaces", "appDataFolder")
-                        .addQueryParameter("fields", "nextPageToken,files(id,name,createdTime,size)")
+                        .addQueryParameter("fields", "nextPageToken,files(id,name,createdTime,size,appProperties)")
                         .addQueryParameter("orderBy", "createdTime desc")
                         .addQueryParameter("q", "trashed = false")
                         .addQueryParameter("pageSize", PAGE_SIZE.toString())
                         .apply { pageToken?.let { addQueryParameter("pageToken", it) } }
                         .build()
                 val page = json.decodeFromString<FilePage>(request(authorized(url, accessToken).build()))
-                files += page.files.filter { isDriveBackupFile(it.name) }.map { it.toBackup() }
+                files += page.files.filter { isDriveBackupFile(it.name) }.mapNotNull { it.toBackup() }
                 pageToken = page.nextPageToken?.takeIf { it.isNotEmpty() }
                 check(pageToken == null || seenPages.add(pageToken))
             } while (pageToken != null)
@@ -168,6 +178,10 @@ class DriveClient(
                 throw DriveBackupException(DriveBackupFailureKind.NETWORK)
             }
 
+            code == HTTP_FORBIDDEN -> {
+                throw DriveBackupException(forbiddenKind(body.string()))
+            }
+
             code == HTTP_NOT_FOUND && method == "DELETE" -> {
                 ""
             }
@@ -181,12 +195,44 @@ class DriveClient(
             }
         }
 
-    private companion object {
-        val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-        val json = Json { ignoreUnknownKeys = true }
-        const val PAGE_SIZE = 1000
-        const val HTTP_TOO_MANY_REQUESTS = 429
-        const val LAST_SERVER_ERROR = 599
+    internal companion object {
+        /** The app property a copy's [DriveBackup.fingerprint] is stored under. */
+        const val FINGERPRINT_PROPERTY = "contentSha256"
+
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+        private val json = Json { ignoreUnknownKeys = true }
+        private const val PAGE_SIZE = 1000
+        private const val HTTP_TOO_MANY_REQUESTS = 429
+        private const val LAST_SERVER_ERROR = 599
+        private val FULL_REASONS = setOf("storageQuotaExceeded")
+        private val RATE_REASONS =
+            setOf("rateLimitExceeded", "userRateLimitExceeded", "dailyLimitExceeded", "sharingRateLimitExceeded")
+        private val PERMISSION_REASONS = setOf("insufficientPermissions", "ACCESS_TOKEN_SCOPE_INSUFFICIENT")
+
+        /**
+         * A 403 from Drive is several different answers under one code, told apart only by the
+         * reasons in its body: a full Drive, a rate limit, or a grant missing the scope. Each wants
+         * a different response, so each gets its own kind; anything else stays [OTHER].
+         */
+        internal fun forbiddenKind(body: String): DriveBackupFailureKind {
+            val reasons = errorReasons(body)
+            return when {
+                reasons.any { it in FULL_REASONS } -> DriveBackupFailureKind.DRIVE_FULL
+                reasons.any { it in PERMISSION_REASONS } -> DriveBackupFailureKind.NEEDS_RECONNECTING
+                reasons.any { it in RATE_REASONS } -> DriveBackupFailureKind.NETWORK
+                else -> DriveBackupFailureKind.OTHER
+            }
+        }
+
+        /** Both shapes Google uses: `error.errors[].reason` and the newer `error.details[].reason`. */
+        private fun errorReasons(body: String): Set<String> {
+            val root = runCatching { json.parseToJsonElement(body) }.getOrNull()
+            val error = (root as? JsonObject)?.get("error") as? JsonObject
+            return listOf("errors", "details")
+                .flatMap { key -> (error?.get(key) as? JsonArray).orEmpty() }
+                .mapNotNull { ((it as? JsonObject)?.get("reason") as? JsonPrimitive)?.content }
+                .toSet()
+        }
     }
 }
 
@@ -194,6 +240,7 @@ class DriveClient(
 private data class UploadMetadata(
     val name: String,
     val parents: List<String>,
+    val appProperties: Map<String, String>,
 )
 
 @Serializable
@@ -213,10 +260,29 @@ private data class DriveFile(
     val name: String,
     val createdTime: String,
     val size: String? = null,
+    val appProperties: Map<String, String>? = null,
 ) {
-    fun toBackup(): DriveBackup {
-        val bytes = requireNotNull(size).toLong()
-        require(id.isNotBlank() && bytes >= 0)
-        return DriveBackup(id, name, Instant.parse(createdTime), bytes)
+    /**
+     * One odd entry is left out rather than failing the whole listing: a missing size only costs
+     * the row its subtitle, and a copy with no usable id or date cannot be offered anyway.
+     */
+    fun toBackup(): DriveBackup? {
+        val created =
+            try {
+                Instant.parse(createdTime)
+            } catch (_: DateTimeParseException) {
+                null
+            }
+        return if (id.isBlank() || created == null) {
+            null
+        } else {
+            DriveBackup(
+                id = id,
+                name = name,
+                createdAt = created,
+                sizeBytes = size?.toLongOrNull()?.takeIf { it >= 0 },
+                fingerprint = appProperties?.get(DriveClient.FINGERPRINT_PROPERTY),
+            )
+        }
     }
 }

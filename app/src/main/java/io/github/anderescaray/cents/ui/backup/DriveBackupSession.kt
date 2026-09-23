@@ -26,18 +26,16 @@ class DriveBackupSession
         fun fromIntent(intent: Intent): DriveGrant = authorization.fromIntent(intent)
 
         suspend fun backUp(accessToken: String) {
-            withToken(accessToken) {
-                storage.create(accessToken)
-                preferences.recordSuccess(clock.instant())
-            }
+            withToken(accessToken) { token -> storage.create(token) }
+            preferences.recordSuccess(clock.instant())
         }
 
-        suspend fun list(accessToken: String): List<DriveBackup> = withToken(accessToken) { storage.list(accessToken) }
+        suspend fun list(accessToken: String): List<DriveBackup> = withToken(accessToken) { storage.list(it) }
 
         suspend fun download(
             accessToken: String,
             id: String,
-        ): String = withToken(accessToken) { storage.download(accessToken, id) }
+        ): String = withToken(accessToken) { storage.download(it, id) }
 
         suspend fun recordFailure(failure: Exception): DriveBackupFailure {
             if (failure is CancellationException) throw failure
@@ -46,24 +44,44 @@ class DriveBackupSession
             return record
         }
 
+        /**
+         * Runs [action], and if Drive refuses the token, **asks for a fresh one silently and tries
+         * once more**.
+         *
+         * An access token lives about an hour and a cached one can be refused before its time, so
+         * a single 401 says nothing about whether the grant is gone. Only a silent authorization
+         * that itself needs the owner — a [DriveGrant.Resolution] — means reconnecting is really
+         * required; before this, one stale token stopped automatic backups until the owner
+         * happened to open Settings.
+         */
         private suspend fun <T> withToken(
             accessToken: String,
-            action: suspend () -> T,
+            action: suspend (String) -> T,
         ): T =
             try {
-                action()
+                action(accessToken)
             } catch (failure: DriveBackupException) {
-                if (failure.kind == DriveBackupFailureKind.NEEDS_RECONNECTING) {
-                    try {
-                        authorization.invalidateToken(accessToken)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
-                        Unit
-                    }
+                if (failure.kind != DriveBackupFailureKind.NEEDS_RECONNECTING) throw failure
+                invalidate(accessToken)
+                val renewed = authorization.authorize()
+                if (renewed !is DriveGrant.Authorized) throw failure
+                try {
+                    action(renewed.accessToken)
+                } catch (again: DriveBackupException) {
+                    if (again.kind == DriveBackupFailureKind.NEEDS_RECONNECTING) invalidate(renewed.accessToken)
+                    throw again
                 }
-                throw failure
             }
+
+        private suspend fun invalidate(accessToken: String) {
+            try {
+                authorization.invalidateToken(accessToken)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Unit
+            }
+        }
     }
 
 internal fun Exception.backupFailureKind(): DriveBackupFailureKind =

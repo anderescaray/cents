@@ -99,18 +99,69 @@ class DriveBackupWorkerTest {
         }
 
     @Test
-    fun `a rejected token is invalidated and requires reconnecting`() =
+    fun `one rejected token is renewed silently and the backup still happens`() =
         runTest {
-            storage.failure = DriveBackupException(DriveBackupFailureKind.NEEDS_RECONNECTING)
+            storage.failures += DriveBackupException(DriveBackupFailureKind.NEEDS_RECONNECTING)
+            authorization.grants += DriveGrant.Authorized("stale-token")
+
+            assertEquals(Result.success(), worker.doWork())
+
+            assertEquals(listOf("stale-token"), authorization.invalidated)
+            assertEquals(listOf("stale-token", "test-access-token"), storage.tokens)
+            assertEquals(1, storage.uploads)
+            assertNull(preferences.state.value.lastFailure)
+            assertEquals(clock.instant(), preferences.state.value.lastSuccessAt)
+        }
+
+    @Test
+    fun `a rejected token needs reconnecting only when the silent renewal needs the owner`() =
+        runTest {
+            storage.failures += DriveBackupException(DriveBackupFailureKind.NEEDS_RECONNECTING)
+            authorization.grants += DriveGrant.Authorized("stale-token")
+            authorization.grants +=
+                DriveGrant.Resolution(
+                    PendingIntent.getActivity(application, 0, Intent("authorize"), PendingIntent.FLAG_IMMUTABLE),
+                )
 
             assertEquals(Result.failure(), worker.doWork())
 
-            assertEquals(listOf("test-access-token"), authorization.invalidated)
+            assertEquals(listOf("stale-token"), authorization.invalidated)
+            assertEquals(0, storage.uploads)
             assertEquals(
                 DriveBackupFailureKind.NEEDS_RECONNECTING,
                 preferences.state.value.lastFailure
                     ?.kind,
             )
+        }
+
+    @Test
+    fun `a token refused again after renewal requires reconnecting`() =
+        runTest {
+            storage.failure = DriveBackupException(DriveBackupFailureKind.NEEDS_RECONNECTING)
+
+            assertEquals(Result.failure(), worker.doWork())
+
+            assertEquals(2, authorization.requests)
+            assertEquals(listOf("test-access-token", "test-access-token"), authorization.invalidated)
+            assertEquals(
+                DriveBackupFailureKind.NEEDS_RECONNECTING,
+                preferences.state.value.lastFailure
+                    ?.kind,
+            )
+        }
+
+    @Test
+    fun `a full Drive is recorded as such and not retried in a loop`() =
+        runTest {
+            storage.failure = DriveBackupException(DriveBackupFailureKind.DRIVE_FULL)
+
+            assertEquals(Result.failure(), worker.doWork())
+
+            assertEquals(
+                DriveBackupFailure(clock.instant(), DriveBackupFailureKind.DRIVE_FULL),
+                preferences.state.value.lastFailure,
+            )
+            assertEquals(1, authorization.requests)
         }
 
     @Test

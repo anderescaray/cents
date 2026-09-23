@@ -76,7 +76,11 @@ class RestoreReadingSafetyTest {
             repository.failSnapshot = true
             viewModel.readFrom(file)
             val state = viewModel.uiState.first { it.step != RestoreStep.READING }
-            assertEquals(RestoreStep.FAILED, state.step)
+            // Its own step, not FAILED, whose message says a write failed when nothing was written.
+            assertEquals(RestoreStep.CURRENT_UNREADABLE, state.step)
+            assertEquals(0, repository.restores)
+            viewModel.confirm()
+            advanceUntilIdle()
             assertEquals(0, repository.restores)
         }
 

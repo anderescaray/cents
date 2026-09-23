@@ -310,6 +310,16 @@ private fun Restore(
             )
         }
 
+        RestoreStep.CURRENT_UNREADABLE -> {
+            CentsAlert(
+                title = stringResource(R.string.restore_current_unreadable_title),
+                message = stringResource(R.string.restore_current_unreadable_message),
+                confirmLabel = stringResource(R.string.action_ok),
+                onConfirm = actions.onAcknowledge,
+                onDismiss = actions.onAcknowledge,
+            )
+        }
+
         RestoreStep.IDLE, RestoreStep.PICKING, RestoreStep.READING, RestoreStep.WRITING -> {
             Unit
         }
@@ -343,7 +353,7 @@ private fun ConfirmRestoreAlert(
                 )
                 // An empty app has nothing to lose, and saying "this replaces your 0 accounts"
                 // would be alarming about nothing.
-                if (current != null && !current.isEmpty) {
+                if (!current.isEmpty) {
                     append("\n\n")
                     append(
                         stringResource(

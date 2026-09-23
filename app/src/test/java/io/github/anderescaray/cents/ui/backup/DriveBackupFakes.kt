@@ -39,6 +39,9 @@ class MemoryDriveBackupRepository(
 
 class FakeDriveAuthorization : DriveAuthorization {
     var grant: DriveGrant = DriveGrant.Authorized("test-access-token")
+
+    /** Handed out one per request before [grant] is, for a test that needs the answer to change. */
+    val grants = ArrayDeque<DriveGrant>()
     var intentGrant: DriveGrant = DriveGrant.Authorized("resolved-access-token")
     var failure: Exception? = null
     var waiting: CompletableDeferred<DriveGrant>? = null
@@ -48,7 +51,7 @@ class FakeDriveAuthorization : DriveAuthorization {
     override suspend fun authorize(): DriveGrant {
         requests++
         failure?.let { throw it }
-        return waiting?.await() ?: grant
+        return waiting?.await() ?: grants.removeFirstOrNull() ?: grant
     }
 
     override fun fromIntent(intent: Intent): DriveGrant {
@@ -65,6 +68,9 @@ class FakeDriveBackupStorage : DriveBackupStorage {
     var files: List<DriveBackup> = emptyList()
     var contents: String = ""
     var failure: Exception? = null
+
+    /** Thrown one per call before [failure] is, for a failure that happens once and then clears. */
+    val failures = ArrayDeque<Exception>()
     var waiting: CompletableDeferred<Unit>? = null
     val tokens = mutableListOf<String>()
     var uploads = 0
@@ -72,6 +78,7 @@ class FakeDriveBackupStorage : DriveBackupStorage {
 
     override suspend fun create(accessToken: String) {
         tokens += accessToken
+        failures.removeFirstOrNull()?.let { throw it }
         failure?.let { throw it }
         waiting?.await()
         uploads++
@@ -79,6 +86,7 @@ class FakeDriveBackupStorage : DriveBackupStorage {
 
     override suspend fun list(accessToken: String): List<DriveBackup> {
         tokens += accessToken
+        failures.removeFirstOrNull()?.let { throw it }
         failure?.let { throw it }
         return files
     }
@@ -88,6 +96,7 @@ class FakeDriveBackupStorage : DriveBackupStorage {
         id: String,
     ): String {
         tokens += accessToken
+        failures.removeFirstOrNull()?.let { throw it }
         failure?.let { throw it }
         downloads++
         waiting?.await()

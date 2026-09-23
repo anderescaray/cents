@@ -5,15 +5,15 @@
     <string name="drive_backup_now">Back up now</string>
     <string name="drive_backup_last">Last backup</string>
     <string name="drive_backup_never">Never</string>
-    <string name="drive_backup_today_at">Today at %1$s</string>
-    <string name="drive_backup_yesterday_at">Yesterday at %1$s</string>
+    <string name="drive_backup_day_time">%1$s, %2$s</string>
     <string name="drive_backup_last_problem">Last problem</string>
     <string name="drive_backup_problem_at">%1$s\n%2$s</string>
     <string name="drive_backup_reconnect">Reconnect</string>
     <string name="drive_backup_error_reconnect">Google Drive access has expired or was revoked. Reconnect to resume backups.</string>
     <string name="drive_backup_error_network">Could not reach Google Drive. Check your connection and try again.</string>
+    <string name="drive_backup_error_full">Google Drive is full, so there was no room for a backup. Free some space in Drive and back up again.</string>
     <string name="drive_backup_error_other">The Drive operation could not be completed. Try again.</string>
-    <string name="drive_backup_footer">A daily copy in hidden Google Drive app storage. Keeps the newest 7 backups. This is not sync: record on one device and restore on another. Uses the same JSON as Export; subscription templates, reminders and app settings are not included.</string>
+    <string name="drive_backup_footer">A daily copy in hidden Google Drive app storage. Keeps the newest copy of each of the last 7 days, 4 weeks and 6 months, and skips a copy when nothing has changed. This is not sync: record on one device and restore on another. Uses the same JSON as Export; subscription templates, reminders and app settings are not included.</string>
     <string name="drive_backup_restore">Restore from Drive</string>
     <string name="drive_backup_list_title">Drive backups</string>
     <string name="drive_backup_list_footer">Newest first. Choose a copy to read it. Nothing is replaced until you confirm.</string>
@@ -30,4 +30,6 @@
     <string name="drive_backup_retry">Try again</string>
     <string name="drive_backup_reading">Reading backup…</string>
     <string name="drive_backup_restoring">Restoring backup…</string>
+    <string name="restore_current_unreadable_title">Nothing was restored</string>
+    <string name="restore_current_unreadable_message">The backup is fine, but Cents could not read what it holds now, so it cannot say what a restore would replace. Nothing has changed.</string>
 </resources>

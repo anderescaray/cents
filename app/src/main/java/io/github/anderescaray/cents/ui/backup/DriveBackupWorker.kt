@@ -62,10 +62,14 @@ class DriveBackupWorker(
     ): Result =
         try {
             val recorded = session.recordFailure(failure)
-            if (recorded.kind == DriveBackupFailureKind.NEEDS_RECONNECTING) Result.failure() else Result.retry()
+            // Retrying cannot fix either of these; tomorrow's run tries again once the owner has.
+            if (recorded.kind in GIVE_UP_UNTIL_TOMORROW) Result.failure() else Result.retry()
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
             Result.retry()
         }
 }
+
+private val GIVE_UP_UNTIL_TOMORROW =
+    setOf(DriveBackupFailureKind.NEEDS_RECONNECTING, DriveBackupFailureKind.DRIVE_FULL)

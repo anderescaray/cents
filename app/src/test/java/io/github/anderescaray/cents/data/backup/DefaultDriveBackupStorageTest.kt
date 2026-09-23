@@ -25,12 +25,14 @@ import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 @RunWith(RobolectricTestRunner::class)
 class DefaultDriveBackupStorageTest {
     private lateinit var database: CentsDatabase
     private lateinit var backups: RoomBackupRepository
-    private val clock = Clock.fixed(Instant.parse("2026-09-22T03:12:45Z"), ZoneOffset.UTC)
+    private val clock = Clock.fixed(NOW, ZoneOffset.UTC)
+    private val later = Clock.fixed(NOW.plus(1, ChronoUnit.DAYS), ZoneOffset.UTC)
     private val drive = MemoryDriveFiles()
 
     @Before
@@ -71,7 +73,8 @@ class DefaultDriveBackupStorageTest {
             assertEquals("cents-backup-2026-09-22T031245.json", uploaded.name)
             assertEquals(BackupWriter.toJson(snapshot), downloaded)
             assertEquals(BackupParse.Restorable(snapshot), BackupReader.parse(downloaded, CentsDatabase.VERSION))
-            assertEquals(listOf("upload", "list", "list", "download"), drive.operations)
+            assertEquals(listOf("list", "upload", "list", "download"), drive.operations)
+            assertEquals(fingerprintOf(snapshot), uploaded.fingerprint)
         }
 
     @Test
@@ -84,31 +87,20 @@ class DefaultDriveBackupStorageTest {
         }
 
     @Test
-    fun `seven existing copies lose only the oldest after an eighth arrives`() =
-        runTest {
-            drive.seed(7)
-
-            DefaultDriveBackupStorage(backups, drive).create("token")
-
-            assertEquals(listOf("old-1"), drive.deleted)
-            assertEquals(7, drive.files.size)
-            assertEquals("upload", drive.operations.first())
-        }
-
-    @Test
-    fun `nine existing copies lose three old copies after the new one succeeds`() =
+    fun `older daily copies lose only the ones retention no longer needs`() =
         runTest {
             drive.seed(9)
 
             DefaultDriveBackupStorage(backups, drive).create("token")
 
-            assertEquals(listOf("old-3", "old-2", "old-1"), drive.deleted)
-            assertEquals(7, drive.files.size)
-            assertEquals(listOf("upload", "list", "delete", "delete", "delete"), drive.operations)
+            // Kept: the new copy and the six days before it, and old-9 as the newest of its
+            // week (2026-09-07 to 09-13).
+            assertEquals(listOf("old-7", "old-8"), drive.deleted)
+            assertEquals(listOf("list", "upload", "delete", "delete"), drive.operations)
         }
 
     @Test
-    fun `a failed upload never lists or deletes existing copies`() =
+    fun `a failed upload deletes nothing`() =
         runTest {
             drive.seed(9)
             drive.failUpload = true
@@ -118,11 +110,11 @@ class DefaultDriveBackupStorageTest {
             assertTrue(failure is IOException)
             assertTrue(drive.deleted.isEmpty())
             assertEquals(9, drive.files.size)
-            assertEquals(listOf("upload"), drive.operations)
+            assertEquals(listOf("list", "upload"), drive.operations)
         }
 
     @Test
-    fun `an incomplete listing never starts retention`() =
+    fun `a listing that fails uploads nothing and deletes nothing`() =
         runTest {
             drive.seed(9)
             drive.failList = true
@@ -131,7 +123,47 @@ class DefaultDriveBackupStorageTest {
 
             assertTrue(failure is IOException)
             assertTrue(drive.deleted.isEmpty())
+            assertEquals(9, drive.files.size)
+        }
+
+    @Test
+    fun `a failed clean-up does not fail a backup that is already safe`() =
+        runTest {
+            drive.seed(9)
+            drive.failDelete = true
+            val storage = DefaultDriveBackupStorage(backups, drive)
+
+            storage.create("token")
+
             assertEquals(10, drive.files.size)
+            assertEquals(listOf("list", "upload", "delete"), drive.operations)
+        }
+
+    @Test
+    fun `nothing is uploaded when the newest copy already holds the same ledger`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val storage = DefaultDriveBackupStorage(backups, drive)
+            storage.create("token")
+            drive.operations.clear()
+
+            // A later snapshot differs only in when it was taken.
+            DefaultDriveBackupStorage(RoomBackupRepository(database, later), drive).create("token")
+
+            assertEquals(listOf("list"), drive.operations)
+            assertEquals(1, drive.files.size)
+        }
+
+    @Test
+    fun `a changed ledger is uploaded even when a copy exists`() =
+        runTest {
+            val storage = DefaultDriveBackupStorage(backups, drive)
+            storage.create("token")
+            database.accountDao().insert(account(name = "Savings"))
+
+            DefaultDriveBackupStorage(RoomBackupRepository(database, later), drive).create("token")
+
+            assertEquals(2, drive.files.size)
         }
 }
 
@@ -142,11 +174,12 @@ private class MemoryDriveFiles : DriveFiles {
     private val contents = mutableMapOf<String, String>()
     var failUpload = false
     var failList = false
+    var failDelete = false
 
     fun seed(count: Int) {
         files +=
             (1..count).map {
-                DriveBackup("old-$it", "old.json", Instant.EPOCH.plusSeconds(it.toLong()), 10)
+                DriveBackup("old-$it", "old.json", NOW.minus(it.toLong(), ChronoUnit.DAYS), 10)
             }
     }
 
@@ -154,11 +187,12 @@ private class MemoryDriveFiles : DriveFiles {
         accessToken: String,
         name: String,
         contents: String,
+        fingerprint: String,
     ): String {
         operations += "upload"
         if (failUpload) throw IOException("offline")
         val id = "new-${files.size}"
-        files += DriveBackup(id, name, Instant.parse("2026-09-22T03:12:45Z"), contents.toByteArray().size.toLong())
+        files += DriveBackup(id, name, NOW, contents.toByteArray().size.toLong(), fingerprint)
         this.contents[id] = contents
         return id
     }
@@ -182,8 +216,11 @@ private class MemoryDriveFiles : DriveFiles {
         id: String,
     ) {
         operations += "delete"
+        if (failDelete) throw IOException("offline")
         deleted += id
         files.removeAll { it.id == id }
         contents.remove(id)
     }
 }
+
+private val NOW: Instant = Instant.parse("2026-09-22T03:12:45Z")

@@ -5,15 +5,15 @@
     <string name="drive_backup_now">Crear copia ahora</string>
     <string name="drive_backup_last">Última copia</string>
     <string name="drive_backup_never">Nunca</string>
-    <string name="drive_backup_today_at">Hoy a las %1$s</string>
-    <string name="drive_backup_yesterday_at">Ayer a las %1$s</string>
+    <string name="drive_backup_day_time">%1$s, %2$s</string>
     <string name="drive_backup_last_problem">Último problema</string>
     <string name="drive_backup_problem_at">%1$s\n%2$s</string>
     <string name="drive_backup_reconnect">Volver a conectar</string>
     <string name="drive_backup_error_reconnect">El acceso a Google Drive ha caducado o se ha revocado. Vuelve a conectar para reanudar las copias.</string>
     <string name="drive_backup_error_network">No se ha podido acceder a Google Drive. Comprueba la conexión e inténtalo de nuevo.</string>
+    <string name="drive_backup_error_full">Google Drive está lleno y no queda espacio para la copia. Libera espacio en Drive y vuelve a crear la copia.</string>
     <string name="drive_backup_error_other">No se ha podido completar la operación con Drive. Inténtalo de nuevo.</string>
-    <string name="drive_backup_footer">Una copia diaria en el espacio oculto de la aplicación en Google Drive. Conserva las 7 copias más recientes. No sincroniza: registra en un dispositivo y restaura en otro. Usa el mismo JSON que Exportar; no incluye las plantillas de suscripciones, los recordatorios ni los ajustes de la aplicación.</string>
+    <string name="drive_backup_footer">Una copia diaria en el espacio oculto de la aplicación en Google Drive. Conserva la copia más reciente de cada uno de los últimos 7 días, 4 semanas y 6 meses, y no crea una copia si nada ha cambiado. No sincroniza: registra en un dispositivo y restaura en otro. Usa el mismo JSON que Exportar; no incluye las plantillas de suscripciones, los recordatorios ni los ajustes de la aplicación.</string>
     <string name="drive_backup_restore">Restaurar desde Drive</string>
     <string name="drive_backup_list_title">Copias en Drive</string>
     <string name="drive_backup_list_footer">Las más recientes primero. Elige una copia para leerla. No se sustituye nada hasta que lo confirmes.</string>
@@ -30,4 +30,6 @@
     <string name="drive_backup_retry">Reintentar</string>
     <string name="drive_backup_reading">Leyendo copia…</string>
     <string name="drive_backup_restoring">Restaurando copia…</string>
+    <string name="restore_current_unreadable_title">No se ha restaurado nada</string>
+    <string name="restore_current_unreadable_message">La copia está bien, pero Cents no ha podido leer lo que contiene ahora, así que no puede decirte qué sustituiría la restauración. No ha cambiado nada.</string>
 </resources>

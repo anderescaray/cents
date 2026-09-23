@@ -2235,7 +2235,8 @@ non-skippable `UiState` turns into visible jank.
 **Walk the app on the phone, with [`docs/device-check.md`](docs/device-check.md) open.** Still
 the owner's (C5), and still the biggest gap:
 - Walks 4 to 10 have never been walked.
-- **Walk 11** (`n1`–`n10`) is new: everything from 2026-09-21 to 2026-09-23.
+- **Walk 11** (`n1`–`n11`) is new: everything from 2026-09-21 to 2026-09-23.
+- **Walk 12** (`g1`–`g5`) is budgets (#80, #81).
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.
@@ -2258,6 +2259,16 @@ next branch: an *Open* entry there outranks anything planned.
   - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
     first two add dependencies and run alone.
   - The dashboard of cards is in C7.
+  - **What replaces the bubbles** (C7). The owner does not much like the canvas and will say
+    what they want instead. Until they do, no time goes into it.
+- As of 2026-09-23 the owner has not chosen between the inbox, Phase 6 and the bubble
+  replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
+  something *Open*.
+
+**A cloud session cannot build locally** while the environment blocks `dl.google.com` (Google
+Maven, where the Android Gradle plugin and AndroidX come from). CI still builds and tests every
+PR. Allowing that host in the environment's network settings would let a session run the gates
+before it pushes.
 
 **Before running agents in Orca again, clean up:** the second wave's worktrees can be deleted
 from inside Orca now that every branch in it is merged.

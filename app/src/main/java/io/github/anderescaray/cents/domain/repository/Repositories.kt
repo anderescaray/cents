@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.domain.repository
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Backup
+import io.github.anderescaray.cents.domain.model.Budget
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.DueReminder
@@ -348,4 +349,28 @@ interface RecurringRuleRepository {
      * you have just entered is how somebody turns notifications off.
      */
     suspend fun dueReminders(today: LocalDate): List<DueReminder>
+}
+
+/** Monthly limits per expense category, and what each category has spent (`DECISIONS.md` D26). */
+interface BudgetRepository {
+    fun observeBudgets(): Flow<List<Budget>>
+
+    /**
+     * What each expense category took between [from] and [to], by category id.
+     *
+     * The same exclusions every report makes: a transfer leg and a trade's cash are not spending,
+     * and have no category anyway. Uncategorized spending has no budget to count against.
+     */
+    fun observeSpentByCategory(
+        from: LocalDate,
+        to: LocalDate,
+        currency: String,
+    ): Flow<Map<Long, Money>>
+
+    suspend fun findById(id: Long): Budget?
+
+    /** Creates it when its id is [Budget.NEW], and replaces the limit otherwise. Returns the id. */
+    suspend fun saveBudget(budget: Budget): Long
+
+    suspend fun deleteBudget(id: Long)
 }

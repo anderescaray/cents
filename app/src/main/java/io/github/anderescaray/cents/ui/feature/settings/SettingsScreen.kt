@@ -40,6 +40,7 @@ fun SettingsScreen(
     onOpenCategories: () -> Unit,
     onOpenSubscriptions: () -> Unit,
     onResetHomeLayout: () -> Unit,
+    onOpenBudgets: () -> Unit = {},
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     lockViewModel: AppLockSettingsViewModel = hiltViewModel(),
@@ -53,6 +54,7 @@ fun SettingsScreen(
     SettingsContent(
         onOpenCategories = onOpenCategories,
         onOpenSubscriptions = onOpenSubscriptions,
+        onOpenBudgets = onOpenBudgets,
         onResetHomeLayout = onResetHomeLayout,
         lock = lock,
         onLockChanged = lockViewModel::setEnabled,
@@ -119,6 +121,7 @@ internal fun SettingsContent(
     onOpenCategories: () -> Unit,
     onResetHomeLayout: () -> Unit,
     onOpenSubscriptions: () -> Unit = {},
+    onOpenBudgets: () -> Unit = {},
     export: ExportUiState = ExportUiState(),
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
@@ -148,6 +151,16 @@ internal fun SettingsContent(
                     showChevron = true,
                     showSeparator = false,
                     onClick = onOpenSubscriptions,
+                )
+            }
+        }
+        item {
+            CentsListSection(footer = stringResource(R.string.settings_budgets_footer)) {
+                CentsListRow(
+                    title = stringResource(R.string.settings_budgets),
+                    showChevron = true,
+                    showSeparator = false,
+                    onClick = onOpenBudgets,
                 )
             }
         }

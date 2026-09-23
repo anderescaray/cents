@@ -30,6 +30,7 @@
     <string name="drive_backup_retry">Try again</string>
     <string name="drive_backup_reading">Reading backup…</string>
     <string name="drive_backup_restoring">Restoring backup…</string>
+    <string name="restore_confirm_export_first">To keep a copy of what is here, cancel and use %1$s first.</string>
     <string name="restore_current_unreadable_title">Nothing was restored</string>
     <string name="restore_current_unreadable_message">The backup is fine, but Cents could not read what it holds now, so it cannot say what a restore would replace. Nothing has changed.</string>
 </resources>

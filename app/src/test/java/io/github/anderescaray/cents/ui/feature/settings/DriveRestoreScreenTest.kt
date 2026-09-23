@@ -115,6 +115,15 @@ class DriveRestoreScreenTest {
                 context.getString(R.string.restore_confirm_replaces, 1, 0, 0, 0),
                 substring = true,
             ).assertExists()
+        // What is here is about to go, so the alert says how to keep a copy of it first.
+        composeRule
+            .onNodeWithText(
+                context.getString(
+                    R.string.restore_confirm_export_first,
+                    context.getString(R.string.settings_export),
+                ),
+                substring = true,
+            ).assertExists()
         assertEquals(0, repository.restores)
 
         composeRule.onNodeWithText(context.getString(R.string.action_cancel)).performClick()

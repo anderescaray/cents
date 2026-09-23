@@ -30,6 +30,7 @@
     <string name="drive_backup_retry">Reintentar</string>
     <string name="drive_backup_reading">Leyendo copia…</string>
     <string name="drive_backup_restoring">Restaurando copia…</string>
+    <string name="restore_confirm_export_first">Para conservar una copia de lo que hay ahora, cancela y usa %1$s antes.</string>
     <string name="restore_current_unreadable_title">No se ha restaurado nada</string>
     <string name="restore_current_unreadable_message">La copia está bien, pero Cents no ha podido leer lo que contiene ahora, así que no puede decirte qué sustituiría la restauración. No ha cambiado nada.</string>
 </resources>

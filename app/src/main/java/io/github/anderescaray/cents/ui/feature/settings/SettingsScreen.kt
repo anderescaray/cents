@@ -365,6 +365,15 @@ private fun ConfirmRestoreAlert(
                             current.subscriptions,
                         ),
                     )
+                    // The one way back from a restore is a copy taken before it, and this alert
+                    // is the last moment it can be taken. Named by the row it lives on.
+                    append("\n\n")
+                    append(
+                        stringResource(
+                            R.string.restore_confirm_export_first,
+                            stringResource(R.string.settings_export),
+                        ),
+                    )
                 }
             },
         confirmLabel = stringResource(R.string.restore_confirm_action),

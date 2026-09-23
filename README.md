@@ -14,7 +14,7 @@ folder in the owner's own Google Drive.
 > positions and net worth, recurring subscriptions that record themselves, ask for variable
 > bills, remind you before a charge and say what is still committed this month, JSON/CSV export
 > and restore, a daily automatic backup to the owner's own Google Drive, and a biometric lock.
-> 789 tests.
+> Budgets, the first piece of Phase 5, landed the same day. 816 tests.
 >
 > **Earlier status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
 > Recording money works end to end: accounts, categories, transactions and balances that trace
@@ -118,7 +118,7 @@ parallel work demand it.
 | 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
 | 3 | Transfers, recurring rules and subscriptions, export/import and automatic backup to Drive, biometric lock | **Built** |
 | 4 | Investment portfolio with prices and P&L | **Built** · prices are typed by hand: no free provider carries these European listings, and paying for one was declined |
-| 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | Planned |
+| 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | **Begun** · budgets built; the inbox and capture not started |
 | 6 | Widget, animations, Baseline Profile, accessibility | Planned |
 
 ## Documentation

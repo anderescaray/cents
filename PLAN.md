@@ -503,7 +503,29 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
-**Where this session stopped (2026-09-23): the second wave, finished by one agent.** The owner
+**Where the 2026-09-23 session stopped, second half: budgets, and the bubbles on notice.**
+After the second wave the owner chose **budgets** (PRD §4.4, Phase 5), with the phone still out
+of reach.
+- **#80** is the table: Room **v7**, `MIGRATION_6_7` and its tests, and budgets carried in
+  every backup.
+  - Its `7.json` was **written by hand**, because the container still could not reach
+    `dl.google.com`. The `identityHash` uses Room's own algorithm, reconstructed and first
+    checked by reproducing the hashes of versions 1–6 exactly.
+  - CI and the migration test accepted it.
+  - If a local build ever rewrites the file, the diff is the thing to look at.
+- **#81** is the screen, Settings › Budgets: one row per budget, with what is left, what made
+  it up and a bar that goes amber at 80 % and red over 100 %; and an editor with the keypad.
+  - "Spent" is the Reports ring's own SQL.
+  - "To come" is the Subscriptions screen's own *committed this month*, per category.
+- **D26** records every choice the PRD left open, each with the default that was built.
+- On the way, **#78** fixed a trade-form test that read the table before its save had landed;
+  it turned main red after #76. **#79** fixed the delete confirmation's *"undo it from the
+  list"*.
+- **The owner does not much like the bubbles**, and said they will be changed later. Until then
+  **no time goes into them**: not into the canvas, and not into walking `b1`–`b10`. What the
+  replacement is will be the owner's call when the time comes. The C7 entry says so.
+
+**Where this session stopped (2026-09-23), first half: the second wave, finished by one agent.** The owner
 ran this session with Claude Code alone, no Orca, so the coordinator also implemented. Seven PRs
 merged:
 - **#69, the automatic backup to Drive** (Devin's branch). The nine findings of its 2026-09-22
@@ -694,7 +716,8 @@ unmerged one.
 | Transfer undo | A deleted transfer can be put back from the banner on the Transactions list, **both legs or neither**, with their original ids, in one database transaction. #65. Since #71 the same banner shows on an account's detail, which is where a deletion made from there returns |
 | Drive backup | Settings › Google Drive: a **daily backup** to the app's hidden folder on the owner's Drive, **Back up now**, and **Restore from Drive** through the same confirmation a file restore uses. Keeps the newest copy of each of the last 7 days, 4 weeks and 6 months, and skips a copy identical to the newest. A refused token is renewed silently; only a grant that needs the owner asks to **Reconnect**. `play-services-auth` and OkHttp, no Drive SDK. #69 |
 | Subscriptions in backups | A backup carries the recurring rules, their reminders and which movements each rule wrote, with the watermark that keeps a restored rule from writing its past again. A restore works on a phone that has subscriptions, and its alert counts them on both sides and says to export first. #72, #74 |
-| Tests | 789 on `main` after #73, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Budgets | Settings › Budgets: a monthly limit per expense category. Each row shows what is left or how far over, what was spent and what is still to come from the category's subscriptions, and a bar that turns amber at 80 % and red above 100 %. The editor uses the keypad, and a budget is deleted behind a confirmation. Room v7. #80, #81, D26 |
+| Tests | 816 on `main` after #81, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1678,6 +1701,14 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
 - [x] **`feat/midnight-tick`**: **#76**. Screens left open across midnight move to the new day.
       See C4.
 
+### Phase 5 — begun with budgets (2026-09-23)
+
+- [x] **`feat/budgets-schema`**: **#80**. Room v7: `budgets`, one per expense category, with
+      `CASCADE` from the category. Budgets travel in backups.
+- [x] **`feat/budgets-screen`**: **#81**. Settings › Budgets and the editor, on D26's defaults.
+- [ ] **The uncategorized inbox**, then notification capture (PRD §4.6, experimental). Neither
+      is started, and both wait for the owner to ask.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -2139,6 +2170,12 @@ lost nor smuggled into a branch that was supposed to be about something else.
 
 ### Bubbles instead of a tab bar
 
+> **2026-09-23: to be replaced.** Having lived with them, the owner does not much like the bubbles
+> and means to change them later. Until then no time goes into the canvas: no fixes, no polish,
+> no walk (`b1`–`b10` are skipped). The replacement is undecided and is the owner's to describe:
+> the plain tab bar that ADR 0001 specified, or something new. When it is decided, it supersedes
+> ADR 0002, and that ADR should say so.
+
 Requested 2026-08-20, decided the same day in D8. Instead of four fixed tabs, the app opens
 on a canvas of **four bubbles** — one per section — draggable anywhere, resizable, each
 drifting with a small continuous motion.
@@ -2216,8 +2253,8 @@ next branch: an *Open* entry there outranks anything planned.
 **What comes next when there is no feedback:**
 - **A wave the owner has to choose.** Everything else left is a later roadmap phase
   (`CLAUDE.md` §9) or deferred work:
-  - **Phase 5** is the uncategorized inbox and **budgets**. Budgets need a table, so their schema
-    branch runs alone before any UI goes wide.
+  - **Phase 5**: budgets are built (#80, #81). What is left is the uncategorized inbox and,
+    after it, notification capture.
   - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
     first two add dependencies and run alone.
   - The dashboard of cards is in C7.
@@ -2228,8 +2265,9 @@ from inside Orca now that every branch in it is merged.
 **Two questions the walk should settle**, both written into it rather than left to be
 remembered:
 
-- **`07`**: the app reopens on the section that was last open, not on the canvas, so the
-  bubbles are usually not what you see on launch. That is what D8 asked for; whether it is what
-  it should do is a thing only the hand can say. It is one flag either way.
-- **`b3`/`b8`**: whether a bubble can be pinched or dragged somewhere unusable, and whether
-  **Reset the bubble layout** is a real escape hatch or a thing you would never find in time.
+- **`07`**: the app reopens on the section that was last open, not on the canvas. That question
+  now belongs to whatever replaces the bubbles.
+- **`g1`–`g5`**: whether a budget reads right. The "to come" part is the one most likely to
+  surprise, because it counts a charge before it has happened, on purpose.
+
+The canvas steps `b1`–`b10` are **not to be walked**: the owner is replacing the bubbles (C7).

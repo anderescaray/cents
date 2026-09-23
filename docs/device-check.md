@@ -512,6 +512,9 @@ Then check the two things the arithmetic can get wrong:
 
 ## Walk 5 — the canvas of bubbles (`feat/bubble-launcher`)
 
+> **Skip this walk (2026-09-23).** The owner is replacing the bubbles (`PLAN.md` C7), so nothing
+> here is worth a phone's time until the replacement exists.
+
 Added 2026-09-08 with #41, and **none of it has been on a phone**: it is the app's front door,
 it is built out of drag and pinch gestures, and a gesture is the thing this repo's tests can
 least honestly claim to have checked. [`ADR 0002`](decisions/0002-bubble-launcher.md) is what it
@@ -1424,3 +1427,48 @@ move the same way, but a custom range on **Reports** stays exactly where you set
 
 > **Wrong looks like** yesterday's movements still under *Today*, or August's totals shown as
 > *this month* on the 1st of September.
+
+## Walk 12 — budgets (#80, #81)
+
+Settings › Budgets. You need an expense category with a few movements this month, and ideally a
+subscription in it that falls later this month.
+
+### g1 · A first budget
+
+Tap **+**. Only expense categories without a budget are offered, and if there is just one it is
+already ticked. Type a limit on the keypad and **Save**.
+
+> **Wrong looks like** an income category in the list, a category offered twice, or **Save**
+> enabled on a limit of zero.
+
+### g2 · What it says
+
+The row shows what is **left**. Under it: what was spent this month, and, when a subscription in
+that category is still due before the month ends, what is **to come**. Add those two up by hand
+from the movements list and the Subscriptions screen.
+
+> **Wrong looks like** a transfer or a purchase of shares counted as spending, last month's
+> movements counted, or a subscription already charged this month counted twice.
+
+### g3 · The colours
+
+Set a limit a little above what the category has used: the bar is blue. Lower it until the
+used amount is 80 % or more: amber. Below what was used: red, and the row says how much
+**over**.
+
+> **Wrong looks like** amber below 80 %, or red when the category is exactly at its limit.
+
+### g4 · Editing and deleting
+
+Open the budget. The limit is there, and the category cannot be changed (the footer says how to
+move it). Change the limit and save; then **Delete budget** asks before it deletes, and the
+category and its movements are untouched.
+
+> **Wrong looks like** a delete that does not ask, or a movement gone with the budget.
+
+### g5 · It comes back from a backup
+
+With a budget set, **Export a backup** (or **Back up now** to Drive), then restore it. The
+budget is still there, with its limit.
+
+> **Wrong looks like** the budget gone after a restore.

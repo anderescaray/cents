@@ -301,7 +301,12 @@ row left empty left alone. **A purchase can also be recorded as 500 € of somet
 as units × price, which is how the platform sells it: units are still what is stored, because
 that is what a sale reduces and a price multiplies, and the footer says how many it came to
 before the save.
-789 tests run on the JVM, so CI covers the database and the UI without a device.
+**And a month can have limits** (#80, #81, **Room v7**): Settings › Budgets gives an expense
+category a monthly limit, and measures it against what went out plus what its subscriptions will
+still take before the month ends, counted from day one as PRD §4.4 asks. Amber at 80 %, red above
+100 %, no notification (D26). **The bubbles are on notice**: the owner means to replace them, so no
+time goes into the canvas until they say what with.
+816 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

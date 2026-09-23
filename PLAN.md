@@ -504,8 +504,8 @@ serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel wo
 time through Orca**, so how it runs now is described in the next paragraph.
 
 **Where this session stopped (2026-09-23): the second wave, finished by one agent.** The owner
-ran this session with Claude Code alone, no Orca, so the coordinator also implemented. Five PRs
-merged, and one was waiting on CI when this was written:
+ran this session with Claude Code alone, no Orca, so the coordinator also implemented. Seven PRs
+merged:
 - **#69, the automatic backup to Drive** (Devin's branch). The nine findings of its 2026-09-22
   review were fixed on the branch here, not by Devin:
   - a stale token is renewed silently before anything asks the owner to reconnect;
@@ -525,11 +525,13 @@ merged, and one was waiting on CI when this was written:
   `lastGenerated` watermark through a restore, so nothing is written twice.
 - **#73, the two #68 follow-ups.** A trade's note reaches its cash movement, and a note on a list
   row stops at two lines.
-- **#74, the restore alert says to export first** (waiting on CI when this was written).
+- **#74, the restore alert says to export first.**
 - **One test came in racy with #71**: the account balance and its movements are two flows, and the
   transfer-undo test asserted one on the state where the other had moved. It was fixed in #72
   and #73 on their first CI run.
-- **The midnight tick was not started.** Why, and the shape it should take, is in C4.
+- **#76, the midnight tick.** It was first deferred, because it touches four view models and
+  their tests in a session that could not run them. Then the owner asked for it, and it was
+  built with CI as the gate. How it works is in C4.
 - **This session's container could not build the app.** It could not reach `dl.google.com`, so
   it had no Android SDK and no Google Maven. What ran locally was ktlint 1.8.0 and detekt
   2.0.0-alpha.6 as CLIs, with the repo's config, over all of `app/src`, and kotlinc plus JUnit for
@@ -1673,7 +1675,8 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
       first because it made the automatic backup not a backup.
 - [x] **`feat/restore-says-export-first`**: **#74**. The C4 line, after #69 and #72 had stopped
       touching the settings screen.
-- [ ] **The midnight tick.** Not started, on purpose. The reasons and the shape are in C4.
+- [x] **`feat/midnight-tick`**: **#76**. Screens left open across midnight move to the new day.
+      See C4.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -1863,13 +1866,9 @@ parallelism.
   every later attempt saw it absent or `offline` — over USB and over wireless debugging, whose
   mDNS advertised nothing. Screenshots need it awake and unlocked, and unlocking is the owner's
   (C5).
-- **A report's idea of "today" is fixed when its flow is built.** The period comparison and
-  the trend both read the clock once, when the scope changes, so an app left open across
-  midnight keeps yesterday's clamp — a movement dated today is left out of "this period" until
-  the flow is rebuilt. The tab's flows are `WhileSubscribed(5s)`, so leaving the tab for five
-  seconds is enough to refresh it, and the same root cause is the "nothing invalidates the
-  screen at midnight" gap further down this list. Fixing it properly is one midnight tick that
-  every screen reads, not a clock re-read per view.
+- ~~**A report's idea of "today" is fixed when its flow is built.**~~ **Not since #76.** The
+  day is part of the Reports pipeline's key, so every section is asked again when it changes, and
+  a preset's period is re-derived for the new day. A custom range stays where the owner put it.
 - **The watched category is app-scoped and forgotten on restart.** It lives in a `@Singleton`
   section source, so it survives leaving the tab and dies with the process. Persisting it is a
   DataStore key, and it was not worth one until someone misses it.
@@ -2075,20 +2074,20 @@ parallelism.
 - **An account a subscription records into cannot be deleted** until the rule is deleted first,
   and a rule with charges behind it has to be stopped before it can be deleted. Two steps, both
   named on screen, and the alternative was a constraint violation reported as "try again".
-- **Nothing invalidates the screen at midnight.** "Today" and "Yesterday" come from the
-  injected clock when the state is built, so an app left open across midnight keeps
-  yesterday's labels until something else refreshes it. **Deliberately not started on
-  2026-09-23**:
-  - It touches about fifteen view models and every test that builds them, in a session that
-    could not run those tests.
-  - The obvious shape is a flow that sleeps until the next midnight and emits the new date.
-    Under a fixed test clock that flow never changes date, so `advanceUntilIdle` on the shared
-    test scheduler would spin forever.
-  - The shape that avoids both: one `@Singleton` `Today` flow that emits once on subscription and
-    again on `ACTION_DATE_CHANGED`, `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` (a
-    `callbackFlow` over a receiver), plus a re-read on `ON_START`. Tests get one emission and no
-    timer.
-  - Build it in a session that can build.
+- ~~**Nothing invalidates the screen at midnight.**~~ **Something does since #76.**
+  - **`ui/util/Today`** holds the date as a `StateFlow`. It re-reads the clock on `refresh()`
+    and emits only when the day changes.
+  - **`MainActivity`** calls `refresh()` in `onStart`. While visible, it also calls it on
+    `TIME_TICK`, `DATE_CHANGED`, `TIME_CHANGED` and `TIMEZONE_CHANGED`. `TIME_TICK` is the one
+    that reliably carries midnight.
+  - **Nothing in `Today` keeps time.** A timer sleeping until midnight never finishes under a
+    fixed test clock. A test that wants midnight moves its clock and calls `refresh()`.
+  - **What reads it:** Transactions, the account detail, Subscriptions and Reports, which are
+    the screens that stay open and show a day or a month.
+  - **What still reads the clock once:** the forms. They are short-lived, and a form left open
+    across midnight keeps the date it was opened with, which is what someone typing expects.
+  - **To walk:** leave Transactions open past midnight. *Today* becomes *Yesterday* within a
+    minute, and on the 1st the month summary starts again.
 
 ## C5. What only the owner can do
 
@@ -2215,8 +2214,7 @@ Anything that goes wrong goes in [`FEEDBACK.md`](FEEDBACK.md) with its number, a
 next branch: an *Open* entry there outranks anything planned.
 
 **What comes next when there is no feedback:**
-- **The midnight tick**, in a session that can build. The shape is in C4.
-- **Then a wave the owner has to choose.** Everything else left is a later roadmap phase
+- **A wave the owner has to choose.** Everything else left is a later roadmap phase
   (`CLAUDE.md` §9) or deferred work:
   - **Phase 5** is the uncategorized inbox and **budgets**. Budgets need a table, so their schema
     branch runs alone before any UI goes wide.

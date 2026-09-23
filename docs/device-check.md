@@ -1414,3 +1414,13 @@ off and on.
 
 > **Wrong looks like** a problem that never shows, a *Reconnect* that does nothing, or the
 > switch needing to be toggled to resume.
+
+### n11 · Left open past midnight
+
+Leave **Transactions** open on the screen across midnight, with the phone awake or woken just
+after. Within a minute, what was *Today* reads *Yesterday*. On the last night of a month, the
+**This month** summary starts again from zero. **Settings › Subscriptions** and **Reports**
+move the same way, but a custom range on **Reports** stays exactly where you set it.
+
+> **Wrong looks like** yesterday's movements still under *Today*, or August's totals shown as
+> *this month* on the 1st of September.

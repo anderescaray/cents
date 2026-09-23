@@ -17,6 +17,7 @@ import io.github.anderescaray.cents.ui.feature.transactions.TransactionsViewMode
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +37,7 @@ import org.robolectric.RobolectricTestRunner
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -73,7 +75,7 @@ class TransactionsViewModelTest {
                             database,
                             clock,
                         ),
-                    clock = clock,
+                    today = Today(clock),
                 ),
             )
     }
@@ -113,6 +115,52 @@ class TransactionsViewModelTest {
                 note = null,
             ),
         )
+
+    @Test
+    fun `left open across midnight into a new month, the list moves with the date`() =
+        runTest {
+            var now = Instant.parse("2026-08-31T23:00:00Z")
+            val movingClock =
+                object : Clock() {
+                    override fun instant(): Instant = now
+
+                    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+                    override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+                }
+            val today = Today(movingClock)
+            val accountId = database.accountDao().insert(account())
+            movement(accountId, LocalDate.of(2026, 8, 18), 1_250)
+            val openAcrossMidnight =
+                viewModels.keep(
+                    TransactionsViewModel(
+                        transactionRepository = transactions,
+                        deletedTransactions = deleted,
+                        filters = filters,
+                        accountRepository =
+                            RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                        today = today,
+                    ),
+                )
+
+            openAcrossMidnight.uiState.test {
+                val august = awaitStateThat { it.monthSummary?.expenses == Money(1_250, "EUR") }
+                assertEquals(LocalDate.of(2026, 8, 31), august.today)
+
+                // What the activity does on the system's minute tick after midnight.
+                now = Instant.parse("2026-09-01T00:01:00Z")
+                today.refresh()
+
+                // "This month" is September now, which has nothing in it yet, and the labels
+                // count from the new day: the 31st is Yesterday.
+                val september =
+                    awaitStateThat {
+                        it.today == LocalDate.of(2026, 9, 1) && it.monthSummary?.expenses == Money.zero("EUR")
+                    }
+                assertEquals(1, september.days.size)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     @Test
     fun `movements are grouped by day, newest day first`() =

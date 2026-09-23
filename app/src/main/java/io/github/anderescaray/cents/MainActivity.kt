@@ -1,18 +1,24 @@
 package io.github.anderescaray.cents
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.anderescaray.cents.ui.CentsApp
 import io.github.anderescaray.cents.ui.lock.AppLockGate
 import io.github.anderescaray.cents.ui.notifications.ReminderNotifier
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.Today
+import javax.inject.Inject
 
 /**
  * A `FragmentActivity` rather than a plain `ComponentActivity`, and only because of the lock:
@@ -31,10 +37,50 @@ class MainActivity : FragmentActivity() {
      */
     private var openPending by mutableStateOf(false)
 
+    @Inject
+    lateinit var today: Today
+
+    /**
+     * Tells [today] to look at the clock again whenever the system says time moved.
+     *
+     * `TIME_TICK` arrives every minute and is the one that carries midnight: `DATE_CHANGED` alone
+     * is not sent when the phone was asleep across it. The other two are the owner changing the
+     * clock or crossing a time zone. Registered only while the activity is visible, which is the
+     * only time a stale *Today* can be seen.
+     */
+    private val timeChanges =
+        object : BroadcastReceiver() {
+            override fun onReceive(
+                context: Context,
+                intent: Intent,
+            ) {
+                today.refresh()
+            }
+        }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         openPending = intent.wantsPending
+    }
+
+    override fun onStart() {
+        super.onStart()
+        today.refresh()
+        val filter =
+            IntentFilter().apply {
+                addAction(Intent.ACTION_TIME_TICK)
+                addAction(Intent.ACTION_DATE_CHANGED)
+                addAction(Intent.ACTION_TIME_CHANGED)
+                addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            }
+        // Not exported: these are system broadcasts, which reach a receiver that is not.
+        ContextCompat.registerReceiver(this, timeChanges, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onStop() {
+        unregisterReceiver(timeChanges)
+        super.onStop()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

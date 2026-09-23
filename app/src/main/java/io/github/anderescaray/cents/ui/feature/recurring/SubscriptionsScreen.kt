@@ -22,7 +22,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -57,10 +56,6 @@ fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LifecycleResumeEffect(viewModel) {
-        viewModel.refreshDate()
-        onPauseOrDispose {}
-    }
 
     SubscriptionsScreen(
         state = state,

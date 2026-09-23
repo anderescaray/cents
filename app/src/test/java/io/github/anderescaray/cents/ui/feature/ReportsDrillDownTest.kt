@@ -14,6 +14,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.reports.ReportsViewModel
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -66,7 +67,7 @@ class ReportsDrillDownTest {
                     reportSections(database, clock),
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                     filters,
-                    clock,
+                    Today(clock),
                 ),
             )
     }

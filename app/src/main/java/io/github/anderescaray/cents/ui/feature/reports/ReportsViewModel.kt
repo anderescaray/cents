@@ -9,16 +9,18 @@ import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import java.time.Clock
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -95,16 +97,36 @@ class ReportsViewModel
         private val sections: ReportSections,
         accountRepository: AccountRepository,
         private val filters: TransactionFilterStore,
-        private val clock: Clock,
+        private val today: Today,
     ) : ViewModel() {
         private val selection = MutableStateFlow(defaultSelection())
+
+        init {
+            // A preset means a range *around today*, so a new day can mean a new range: "this
+            // month" at midnight on the first is the new month. A custom range is the owner's
+            // own and stays exactly where they put it.
+            viewModelScope.launch {
+                today.date.drop(1).collect { day ->
+                    selection.update { current ->
+                        if (current.preset == PeriodPreset.CUSTOM) {
+                            current
+                        } else {
+                            current.copy(period = periodFor(current.preset, day))
+                        }
+                    }
+                }
+            }
+        }
 
         @OptIn(ExperimentalCoroutinesApi::class)
         val uiState: StateFlow<ReportsUiState> =
             combine(
                 selection,
                 accountRepository.observeAccounts(includeArchived = true),
-            ) { selected, accounts -> selected to accounts }
+                // In the key even when the range did not move: the comparison and the trend
+                // read the day when they are asked, to know how much of the period has passed.
+                today.date,
+            ) { selected, accounts, _ -> selected to accounts }
                 .flatMapLatest { (selected, accounts) ->
                     // An account the tab was narrowed to can stop existing while the tab is
                     // open — deleted from the Accounts tab, movements and all (D7). Falling
@@ -164,7 +186,7 @@ class ReportsViewModel
                 } else {
                     // Copied rather than rebuilt: changing the period is not a reason to stop
                     // looking at the account that was being looked at.
-                    current.copy(preset = preset, period = periodFor(preset, LocalDate.now(clock)))
+                    current.copy(preset = preset, period = periodFor(preset, today.date.value))
                 }
             }
         }
@@ -210,10 +232,8 @@ class ReportsViewModel
             filters.apply(filter, clearQuery = true)
         }
 
-        private fun defaultSelection(): Selection {
-            val today = LocalDate.now(clock)
-            return Selection(PeriodPreset.MONTH, periodFor(PeriodPreset.MONTH, today))
-        }
+        private fun defaultSelection(): Selection =
+            Selection(PeriodPreset.MONTH, periodFor(PeriodPreset.MONTH, today.date.value))
 
         private data class Selection(
             val preset: PeriodPreset,

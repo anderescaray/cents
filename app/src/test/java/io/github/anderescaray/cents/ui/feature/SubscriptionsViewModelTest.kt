@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.recurring.SubscriptionsUiState
 import io.github.anderescaray.cents.ui.feature.recurring.SubscriptionsViewModel
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -266,13 +267,15 @@ class SubscriptionsViewModelTest {
                     override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
                 }
             add(name = "Rent", minor = 75_000, frequency = Frequency.MONTHLY, start = LocalDate.of(2026, 10, 1))
-            val viewModel = subscriptions(movingClock)
+            val today = Today(movingClock)
+            val viewModel = viewModels.keep(SubscriptionsViewModel(repository(), today))
 
             viewModel.uiState.test {
                 assertEquals(Money.zero("EUR"), awaitStateThat { !it.isLoading }.totals.committedThisMonth)
 
                 now = Instant.parse("2026-10-01T08:00:00Z")
-                viewModel.refreshDate()
+                // What the activity does on the system's minute tick, or on coming back.
+                today.refresh()
 
                 val after = awaitStateThat { it.today == LocalDate.of(2026, 10, 1) }
                 assertEquals(Money(75_000, "EUR"), after.totals.committedThisMonth)
@@ -289,7 +292,7 @@ class SubscriptionsViewModelTest {
         return loaded
     }
 
-    private fun subscriptions(clock: Clock = this.clock) = viewModels.keep(SubscriptionsViewModel(repository(), clock))
+    private fun subscriptions() = viewModels.keep(SubscriptionsViewModel(repository(), Today(clock)))
 
     private fun repository() =
         RoomRecurringRuleRepository(database.recurringRuleDao(), database.ruleReminderDao(), database, clock)

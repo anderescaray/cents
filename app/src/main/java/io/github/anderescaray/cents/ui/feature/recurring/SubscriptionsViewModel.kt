@@ -11,15 +11,14 @@ import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.usecase.SubscriptionTotals
 import io.github.anderescaray.cents.domain.usecase.nextOccurrenceAfter
 import io.github.anderescaray.cents.domain.usecase.subscriptionTotalsOf
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -82,17 +81,16 @@ class SubscriptionsViewModel
     @Inject
     constructor(
         private val repository: RecurringRuleRepository,
-        private val clock: Clock,
+        today: Today,
     ) : ViewModel() {
-        private val date = MutableStateFlow(LocalDate.now(clock))
-
         val uiState: StateFlow<SubscriptionsUiState> =
             combine(
                 repository.observeRules(),
                 repository.observePending(),
-                date,
-            ) { rules, pending, _ ->
-                val today = LocalDate.now(clock)
+                // The day is an input, not something read once: an app left open over midnight
+                // on the last of the month has to move its "committed this month" to the new one.
+                today.date,
+            ) { rules, pending, today ->
                 val rows = rules.map { SubscriptionRow(it, it.nextOccurrenceAfter(today)) }
                 SubscriptionsUiState(
                     active = rows.filter { it.rule.active },
@@ -107,10 +105,6 @@ class SubscriptionsViewModel
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = SubscriptionsUiState(),
             )
-
-        fun refreshDate() {
-            date.value = LocalDate.now(clock)
-        }
 
         /** Stops a rule, or starts it again. Nothing it has already made is touched. */
         fun setActive(

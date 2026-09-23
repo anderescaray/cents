@@ -1,8 +1,11 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import io.github.anderescaray.cents.ui.feature.settings.SettingsContent
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
@@ -21,7 +24,7 @@ class SettingsScreenTest {
         var resets = 0
         setContent { resets++ }
 
-        composeRule.onNodeWithText("Reset the bubble layout").performClick()
+        openReset()
 
         // Rule 7: an arrangement made by hand can only be rebuilt by hand, and this row sits one
         // mis-tap away from everything else in Settings.
@@ -35,11 +38,20 @@ class SettingsScreenTest {
         var resets = 0
         setContent { resets++ }
 
-        composeRule.onNodeWithText("Reset the bubble layout").performClick()
+        openReset()
         composeRule.onNodeWithText("Reset").performClick()
 
         assertEquals(1, resets)
         composeRule.onNodeWithText("Reset the bubble layout?").assertDoesNotExist()
+    }
+
+    /**
+     * Scrolled to rather than assumed on screen: Settings is a lazy list, and a row further down
+     * than the test's window is not composed at all until it is scrolled into view.
+     */
+    private fun openReset() {
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(RESET_ROW))
+        composeRule.onNodeWithText(RESET_ROW).performClick()
     }
 
     private fun setContent(onResetHomeLayout: () -> Unit) {
@@ -48,5 +60,9 @@ class SettingsScreenTest {
                 SettingsContent(onOpenCategories = {}, onResetHomeLayout = onResetHomeLayout)
             }
         }
+    }
+
+    private companion object {
+        const val RESET_ROW = "Reset the bubble layout"
     }
 }

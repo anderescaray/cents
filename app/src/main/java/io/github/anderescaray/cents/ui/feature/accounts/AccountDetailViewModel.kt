@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,7 +25,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -68,7 +68,7 @@ class AccountDetailViewModel
         private val transactionRepository: TransactionRepository,
         private val deletedTransactions: DeletedTransactionBuffer,
         savedStateHandle: SavedStateHandle,
-        clock: Clock,
+        today: Today,
     ) : ViewModel() {
         private val accountId: Long = savedStateHandle.toRoute<Destination.AccountDetail>().accountId
 
@@ -77,23 +77,23 @@ class AccountDetailViewModel
 
         /**
          * The month's totals, re-queried only when the currency they are expressed in
-         * changes — not on every movement, which is what watching the whole account would
-         * do, since its balance moves with each one.
+         * changes, or the day does — not on every movement, which is what watching the whole
+         * account would do, since its balance moves with each one.
          */
         @OptIn(ExperimentalCoroutinesApi::class)
         private val monthSummary: Flow<PeriodSummary?> =
-            account
-                .map { it?.account?.currency }
-                .distinctUntilChanged()
-                .flatMapLatest { currency ->
+            combine(
+                account.map { it?.account?.currency }.distinctUntilChanged(),
+                today.date,
+            ) { currency, day -> currency to day }
+                .flatMapLatest { (currency, day) ->
                     if (currency == null) {
                         flowOf(null)
                     } else {
-                        val today = LocalDate.now(clock)
                         transactionRepository.observeAccountSummary(
                             accountId = accountId,
-                            from = today.withDayOfMonth(1),
-                            to = today.withDayOfMonth(today.lengthOfMonth()),
+                            from = day.withDayOfMonth(1),
+                            to = day.withDayOfMonth(day.lengthOfMonth()),
                             currency = currency,
                         )
                     }
@@ -105,7 +105,8 @@ class AccountDetailViewModel
                 transactionRepository.observeAccountTransactionDetails(accountId),
                 monthSummary,
                 deletedTransactions.deleted,
-            ) { account, movements, summary, deleted ->
+                today.date,
+            ) { account, movements, summary, deleted, day ->
                 AccountDetailUiState(
                     account = account,
                     monthSummary = summary,
@@ -114,7 +115,7 @@ class AccountDetailViewModel
                             .groupBy { it.transaction.date }
                             .map { (date, items) -> AccountDay(date, items) }
                             .sortedByDescending { it.date },
-                    today = LocalDate.now(clock),
+                    today = day,
                     isLoading = false,
                     undoableDeletion = deleted,
                 )

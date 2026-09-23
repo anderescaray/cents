@@ -14,6 +14,7 @@ import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -41,7 +41,7 @@ data class TransactionsUiState(
     val days: List<TransactionDay> = emptyList(),
     val monthSummary: PeriodSummary? = null,
     val isLoading: Boolean = true,
-    /** The day the labels are relative to, from the injected clock rather than the device. */
+    /** The day the labels are relative to, from [io.github.anderescaray.cents.ui.util.Today]. */
     val today: LocalDate = LocalDate.now(),
     /** A movement or transfer just deleted on the form, still restorable from here (rule 7). */
     val undoableDeletion: DeletedTransaction? = null,
@@ -78,7 +78,7 @@ class TransactionsViewModel
         private val deletedTransactions: DeletedTransactionBuffer,
         private val filters: TransactionFilterStore,
         accountRepository: AccountRepository,
-        clock: Clock,
+        today: Today,
     ) : ViewModel() {
         /**
          * The text as typed, updated on the keystroke and only pushed to the store once the
@@ -102,22 +102,26 @@ class TransactionsViewModel
                 filters.filter.flatMapLatest { filter ->
                     transactionRepository.observeTransactions(filter).map { filter to it }
                 },
-                accountRepository.observeAccounts().flatMapLatest { accounts ->
-                    val currency = accounts.firstOrNull()?.currency
+                // Re-asked when the day changes as well as the currency, so the summary moves to
+                // the new month at midnight on the first rather than staying on the old one.
+                combine(
+                    accountRepository.observeAccounts().map { it.firstOrNull()?.currency }.distinctUntilChanged(),
+                    today.date,
+                ) { currency, day -> currency to day }.flatMapLatest { (currency, day) ->
                     if (currency == null) {
                         flowOf(null)
                     } else {
-                        val today = LocalDate.now(clock)
                         transactionRepository.observeSummary(
-                            from = today.withDayOfMonth(1),
-                            to = today.withDayOfMonth(today.lengthOfMonth()),
+                            from = day.withDayOfMonth(1),
+                            to = day.withDayOfMonth(day.lengthOfMonth()),
                             currency = currency,
                         )
                     }
                 },
                 deletedTransactions.deleted,
                 typed,
-            ) { (filter, transactions), summary, deleted, query ->
+                today.date,
+            ) { (filter, transactions), summary, deleted, query, day ->
                 TransactionsUiState(
                     days =
                         transactions
@@ -126,7 +130,7 @@ class TransactionsViewModel
                             .sortedByDescending { it.date },
                     monthSummary = summary,
                     isLoading = false,
-                    today = LocalDate.now(clock),
+                    today = day,
                     undoableDeletion = deleted,
                     filter = filter,
                     query = query,

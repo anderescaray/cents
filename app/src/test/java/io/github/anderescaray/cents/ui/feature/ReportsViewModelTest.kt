@@ -21,6 +21,7 @@ import io.github.anderescaray.cents.ui.feature.reports.section.PeriodComparisonS
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekdaySection
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -41,6 +42,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -67,7 +69,7 @@ class ReportsViewModelTest {
                     reportSections(database, clock),
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                     filters,
-                    clock,
+                    Today(clock),
                 ),
             )
     }
@@ -109,6 +111,49 @@ class ReportsViewModelTest {
                         ?.single()
                         ?.name,
                 )
+            }
+        }
+
+    @Test
+    fun `left open into a new month, this month means the new one and a custom range stays put`() =
+        runTest {
+            var now = Instant.parse("2026-08-31T23:00:00Z")
+            val movingClock =
+                object : Clock() {
+                    override fun instant(): Instant = now
+
+                    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+                    override fun withZone(zone: ZoneId): Clock = Clock.fixed(now, zone)
+                }
+            val today = Today(movingClock)
+            database.accountDao().insert(account())
+            val openAcrossMidnight =
+                viewModels.keep(
+                    ReportsViewModel(
+                        reportSections(database, movingClock),
+                        RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                        TransactionFilterStore(),
+                        today,
+                    ),
+                )
+
+            openAcrossMidnight.uiState.test {
+                awaitStateThat { !it.isLoading && it.period.from == LocalDate.of(2026, 8, 1) }
+
+                now = Instant.parse("2026-09-01T00:01:00Z")
+                today.refresh()
+
+                awaitStateThat { it.period.from == LocalDate.of(2026, 9, 1) && it.preset == PeriodPreset.MONTH }
+
+                openAcrossMidnight.setCustomRange(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31))
+                awaitStateThat { it.preset == PeriodPreset.CUSTOM }
+                now = Instant.parse("2026-09-02T00:01:00Z")
+                today.refresh()
+
+                // The owner's own range is not a range around today, and a new day leaves it alone.
+                assertEquals(LocalDate.of(2026, 3, 1), openAcrossMidnight.uiState.value.period.from)
+                cancelAndIgnoreRemainingEvents()
             }
         }
 

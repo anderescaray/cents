@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.domain.model.Transfer
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailViewModel
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -79,7 +80,7 @@ class AccountDetailViewModelTest {
                 transactionRepository = transactions,
                 deletedTransactions = deleted,
                 savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
-                clock = clock,
+                today = Today(clock),
             ),
         )
 

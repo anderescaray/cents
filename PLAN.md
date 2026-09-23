@@ -503,7 +503,41 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
-**Where this session stopped (2026-09-21): the first Orca wave.** The owner moved the parallel
+**Where this session stopped (2026-09-23): the second wave, finished by one agent.** The owner
+ran this session with Claude Code alone, no Orca, so the coordinator also implemented. Five PRs
+merged, and one was waiting on CI when this was written:
+- **#69, the automatic backup to Drive** (Devin's branch). The nine findings of its 2026-09-22
+  review were fixed on the branch here, not by Devin:
+  - a stale token is renewed silently before anything asks the owner to reconnect;
+  - pruning can no longer fail a backup that is already uploaded;
+  - retention keeps copies by age (7 days, 4 weeks, 6 months), and a ledger identical to the
+    newest copy is not uploaded again;
+  - a cancelled Play services task is a failure rather than a hang;
+  - a full Drive has its own message and no retry loop;
+  - a listing survives a file without a size;
+  - backup times say *Today* / *Yesterday* like the rest of the app.
+- **#71, undo from the account detail.** Cursor's branch had failed with nothing committed and
+  the work only on the owner's PC, so it was rebuilt from the original prompt. `UndoBanner` now
+  lives in `ui/components`.
+- **#72, subscriptions in every backup.** #69's own description named it: the export left out
+  rules, reminders and `ruleId`. Worse, a restore on any phone with a subscription was refused,
+  because `recurring_rules.accountId` is `RESTRICT`. Both are fixed. A rule keeps its
+  `lastGenerated` watermark through a restore, so nothing is written twice.
+- **#73, the two #68 follow-ups.** A trade's note reaches its cash movement, and a note on a list
+  row stops at two lines.
+- **#74, the restore alert says to export first** (waiting on CI when this was written).
+- **One test came in racy with #71**: the account balance and its movements are two flows, and the
+  transfer-undo test asserted one on the state where the other had moved. It was fixed in #72
+  and #73 on their first CI run.
+- **The midnight tick was not started.** Why, and the shape it should take, is in C4.
+- **This session's container could not build the app.** It could not reach `dl.google.com`, so
+  it had no Android SDK and no Google Maven. What ran locally was ktlint 1.8.0 and detekt
+  2.0.0-alpha.6 as CLIs, with the repo's config, over all of `app/src`, and kotlinc plus JUnit for
+  the pure-JVM files (the Drive client, retention, the backup format). CI was the gate for the
+  rest. A cloud session that should build needs `dl.google.com` allowed in its environment's
+  network settings.
+
+**Where the session before it stopped (2026-09-21): the first Orca wave.** The owner moved the parallel
 phase onto [Orca](https://www.onorca.dev/), and **D24** fixed which tool does what. **Devin**
 (Devin CLI) is the main implementer. **Cursor** (`cursor-agent`) is the second, for UI work that
 stays inside one feature folder. **Gemini CLI** takes small, well-scoped branches. **Claude
@@ -645,7 +679,7 @@ unmerged one.
 | Investments | The fifth section: holdings grouped into stocks, ETFs, index funds and crypto, each with the trades behind it, an average cost that survives a partial sale, and what it is worth at a price typed by hand — per unit or as a total, whichever the broker is showing. What the owner holds can be **corrected** when the app and the broker disagree, as a record rather than an overwrite. Room v2, and the first migration this project has shipped |
 | Transfers | Money moves between the owner's own accounts, with an optional fee: two ordinary rows sharing one `transferId`, **counted by every balance and by no income-or-expense report**. A third segment on the entry form, its own screen behind it, and a leg that reads as *Transfer to Savings* and opens the transfer rather than half of it. Room v3 |
 | Investments and cash | A purchase takes its cost out of the account it is held in and a sale puts it back, so **a broker account's balance is the cash left in it** and the portfolio sits beside it rather than inside it. The movement carries a `tradeId`, obeys the same exclusion a transfer leg does, reads as *Bought NVD.DE* and opens the trade. Room v4 |
-| Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. No import — that is `feat/backup`'s question |
+| Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. Since #72 the JSON carries the subscriptions and their reminders too |
 | Net worth | The Accounts tab says what the owner has in three numbers — **in accounts**, **invested**, and **net worth** — because D19 asked to read it with the portfolio and without it. They only add up because a purchase spends the account's cash; an unpriced holding is left out and counted aloud |
 | Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
 | App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
@@ -655,8 +689,10 @@ unmerged one.
 | Reminders | A subscription can say something before the money goes: any number of reminders per rule, a number of days the owner picks, before the date or — for a variable one — after it. One daily job asks **what lands today** rather than booking an alarm per occurrence. Room v6 |
 | Committed this month | The Subscriptions screen also shows **what is still due to go out before the month ends**, variable bills still waiting included at their estimate, and **what share of recurring income goes to fixed charges**. Estimates are marked as estimates, and the share is shown as unavailable with a reason rather than as 0 %. #63 |
 | Closed positions | A fully sold holding stays off the portfolio (D17), and what it made is listed in a collapsed **Closed positions** section at the foot of the screen, with realised profit in euros and as a percentage. It never counts toward the portfolio total or net worth. #64 |
-| Transfer undo | A deleted transfer can be put back from the banner on the Transactions list, **both legs or neither**, with their original ids, in one database transaction. #65 |
-| Tests | 699 on `main` after #65 (700 with #66), all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Transfer undo | A deleted transfer can be put back from the banner on the Transactions list, **both legs or neither**, with their original ids, in one database transaction. #65. Since #71 the same banner shows on an account's detail, which is where a deletion made from there returns |
+| Drive backup | Settings › Google Drive: a **daily backup** to the app's hidden folder on the owner's Drive, **Back up now**, and **Restore from Drive** through the same confirmation a file restore uses. Keeps the newest copy of each of the last 7 days, 4 weeks and 6 months, and skips a copy identical to the newest. A refused token is renewed silently; only a grant that needs the owner asks to **Reconnect**. `play-services-auth` and OkHttp, no Drive SDK. #69 |
+| Subscriptions in backups | A backup carries the recurring rules, their reminders and which movements each rule wrote, with the watermark that keeps a restored rule from writing its past again. A restore works on a phone that has subscriptions, and its alert counts them on both sides and says to export first. #72, #74 |
+| Tests | 789 on `main` after #73, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1418,9 +1454,12 @@ the order the roadmap puts them, and all three now have their questions answered
       - **A correction is always in units**, and the control is not offered there at all. A
         correction says what is *held*, and holding is counted in units — asking how much of
         something you own in money is a different question with no answer.
-- [ ] **`feat/backup`** — what is left of D15's automatic half: a backup that happens **without
-      being asked for**. **D22 is answered: Google Drive, and only a backup.** What it waits on is
-      the credential — an OAuth client the owner creates in Google Cloud Console for package
+- [x] **`feat/backup`** — **#69, merged 2026-09-23.** Built by Devin in the second Orca wave.
+      Its review findings were fixed here, and #72 made the file it uploads carry the
+      subscriptions. The owner's walk is `n6`–`n10` in `docs/device-check.md`. What follows is
+      the setup as it was written down before the branch, kept because a release key will need
+      the same steps again.
+      What it waited on was the credential — an OAuth client the owner creates in Google Cloud Console for package
       `io.github.anderescaray.cents` and the signing certificate's SHA-1 — plus the Drive API
       enabled and the consent screen left in *Testing* with the owner as its only user. Nothing
       secret lands in the repo: an Android OAuth client carries no secret and is matched by
@@ -1615,6 +1654,27 @@ against the territory its prompt named and reviewed with `/code-review high` bef
       two legs (only a malformed backup could make one) was deleted first and crashed after. The
       leg count is now checked **before** anything is deleted, and a test pins three legs.
 
+### The second wave (2026-09-22 → 2026-09-23)
+
+Devin, Cursor and a Claude Code implementer were given three branches through Orca on
+2026-09-22. The owner then finished the wave with Claude Code alone, so its tail was built here.
+
+- [x] **`feat/trade-note`** (Claude Code in Orca): **#68**. A trade carries a note, and editing
+      no longer erases it. Its two follow-ups are **#73**: the note reaches the cash movement,
+      and a note on a row stops at two lines.
+- [x] **`feat/backup`** (Devin): **#69**. Its review of 2026-09-22 sent it back with nine
+      findings. They were fixed on the branch on 2026-09-23 by the coordinator, since Devin was
+      not in that session, and CI was green on the first push.
+- [x] **`feat/account-detail-undo`** (Cursor, then Claude Code): **#71**. Cursor's run failed
+      before its first commit, with the work only in its worktree on the owner's PC. It was
+      rebuilt from the same prompt, inside the same territory.
+- [x] **`fix/backup-carries-subscriptions`**: **#72**. Not planned. #69's description named the
+      gap: a backup without subscriptions, and a restore refused on any phone with one. It came
+      first because it made the automatic backup not a backup.
+- [x] **`feat/restore-says-export-first`**: **#74**. The C4 line, after #69 and #72 had stopped
+      touching the settings screen.
+- [ ] **The midnight tick.** Not started, on purpose. The reasons and the shape are in C4.
+
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
 What that wave actually taught is in C4 rather than here, because the lesson was not about
@@ -1664,12 +1724,15 @@ parallelism.
   unmentioned would understate net worth silently.
 - **A restore replaces everything, and there is no undo behind it.** D21 chose that deliberately
   over merging, and the protection is the confirmation rather than a way back: it names what the
-  file holds and what is about to go, and it is the last thing between the owner and an empty
-  ledger. The one safety net that exists is the obvious one — export before you restore — and
-  nothing in the app says so. A line in that alert is the cheapest fix if it is ever wanted.
-- **Nothing backs up on its own.** Every export is one the owner remembered to make, which is the
-  failure mode backups are famous for. `feat/backup` is the branch, D22 has answered where it
-  goes, and what it waits on now is the OAuth client.
+  file holds and what is about to go, subscriptions included since #72. Since #74 it also ends
+  by saying to cancel and export first, which is the one safety net there is.
+- ~~**Nothing backs up on its own.**~~ **It does since #69**, daily to Drive. What a backup
+  still leaves out is **app settings**: the bubble layout, the lock, and the Drive switch itself.
+  A restore on a new phone brings the money back, not the arrangement. The Drive section's footer
+  says so.
+- **A backup made before #72 has no subscriptions in it.** Restoring one replaces the phone's
+  subscriptions with none. The alert says so in numbers, because it counts subscriptions on both
+  sides, but it does not say why. Every Drive copy made since #72 carries them.
 - **Two devices are not two copies of the app.** D22 chose Drive as a *backup*, and the owner
   asked the obvious next question — whether that means the same data on a phone and a tablet. It
   does not, and the record says so rather than leaving it to be discovered: a restore replaces
@@ -1699,12 +1762,10 @@ parallelism.
   inflate both by the amount, and deleting the pair would destroy history inside an operation
   whose whole promise is that nothing is lost. The honest fix, if it is ever wanted, is for the
   reassignment sheet to name those transfers before it runs.
-- ~~**A deleted transfer has no undo.**~~ **It has one since #65**: both legs or neither. What
-  is left is older than transfers. **The undo banner lives only on the Transactions list.** A
-  movement or transfer deleted from a form opened from an account's detail returns to that
-  screen, which has no banner, and the deletion confirmation says the undo is "on the list".
-  The review of #65 found it, and it already applied to single movements. The fix is the banner
-  on the account detail too, or a confirmation that does not promise it.
+- ~~**A deleted transfer has no undo.**~~ **It has one since #65**: both legs or neither.
+  ~~**The undo banner lives only on the Transactions list.**~~ **The account detail shows it too
+  since #71**, which is where a deletion made from there returns. The deletion confirmation still
+  says the undo is "on the list", which is now slightly narrower than the truth.
 - **The kind filter still sorts transfer legs by their kind.** Filtering the list to *Income*
   shows the arriving side of every transfer in the period. The rows read as transfers and are
   excluded from the totals above them, so nothing adds up wrongly — but *Income* is not quite
@@ -1749,13 +1810,11 @@ parallelism.
   holding with a different company's number, in a different currency. Whenever a provider lands,
   a holding gains a **MIC code** beside its symbol, and the editor asks which listing is meant
   rather than guessing. Known now rather than suspected.
-- ~~**A trade carries no note in the form.**~~ **It does since #68**, and editing a trade no
-  longer erases a note it already had. Two things the review of #68 left, both outside that
-  branch's territory: **the note stays on the trade** and never reaches the cash movement
-  (`RoomInvestmentRepositories.writeCash` writes `note = null`), so *Bought NVDA* cannot be found
-  by searching the note; and **`CentsListRow`'s subtitle has no line limit**, so a long note makes
-  its trade row as tall as the note. The second wants a secondary-line slot with `maxLines` in
-  `ui/components`.
+- ~~**A trade carries no note in the form.**~~ **It does since #68**, and since #73 the note
+  reaches the cash movement too, so a search finds *Bought NVDA* by its note. A note on a list row
+  stops at `NOTE_MAX_LINES` (2). **A trade saved before #73 keeps a cash row with no note** until
+  it is saved again. Nothing backfills it, for the same reason nothing backfills trades older
+  than their cash.
 - **A test that writes through a view model and then reads the database has to wait.** `save()`
   launches into `viewModelScope` and the write lands on Room's executor, so the next line races
   it: the flow's first emission can predate the row. It passes on a quiet machine and loses on a
@@ -1908,7 +1967,7 @@ parallelism.
   option shows disabled with the reason, and restoring that account makes it available.
 - **~~No transfers, recurring rules or investments.~~** All three exist now, each with its own
   migration and migration test — transfers at v3, trades’ cash at v4, recurring rules at v5.
-  What is left of Phase 3 is `feat/backup`, which waits on the owner (D22).
+  Phase 3 is complete since `feat/backup` (#69).
 - **The app works in one currency, and no longer offers a choice** (D2, and
   `chore/single-currency`). The device's currency is used, shown read-only on the account
   form. `Money` still carries a code and still refuses to add euros to dollars, the schema
@@ -2018,7 +2077,18 @@ parallelism.
   named on screen, and the alternative was a constraint violation reported as "try again".
 - **Nothing invalidates the screen at midnight.** "Today" and "Yesterday" come from the
   injected clock when the state is built, so an app left open across midnight keeps
-  yesterday's labels until something else refreshes it.
+  yesterday's labels until something else refreshes it. **Deliberately not started on
+  2026-09-23**:
+  - It touches about fifteen view models and every test that builds them, in a session that
+    could not run those tests.
+  - The obvious shape is a flow that sleeps until the next midnight and emits the new date.
+    Under a fixed test clock that flow never changes date, so `advanceUntilIdle` on the shared
+    test scheduler would spin forever.
+  - The shape that avoids both: one `@Singleton` `Today` flow that emits once on subscription and
+    again on `ACTION_DATE_CHANGED`, `ACTION_TIME_CHANGED` and `ACTION_TIMEZONE_CHANGED` (a
+    `callbackFlow` over a receiver), plus a re-read on `ON_START`. Tests get one emission and no
+    timer.
+  - Build it in a session that can build.
 
 ## C5. What only the owner can do
 
@@ -2126,46 +2196,42 @@ non-skippable `UiState` turns into visible jank.
 
 ## Next concrete action
 
-**Walk the app on the phone, with [`docs/device-check.md`](docs/device-check.md) open.** That is
-the whole of it, and it is the owner's (C5): every branch of Phase 2 and the canvas in front of
-it were built with no device attached, so the only thing standing between "the tests are green"
-and "the app works" is an hour with the phone in hand.
+**Walk the app on the phone, with [`docs/device-check.md`](docs/device-check.md) open.** Still
+the owner's (C5), and still the biggest gap:
+- Walks 4 to 10 have never been walked.
+- **Walk 11** (`n1`–`n10`) is new: everything from 2026-09-21 to 2026-09-23.
+- If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
+  whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
+  possible on a phone with subscriptions.
+- Seven days after first granting Drive access, **`n10`** checks that the *Testing*-mode expiry
+  reads as *Reconnect* and not as a retry loop.
 
 ```bash
 adb devices                  # awake, unlocked, authorised
 ./gradlew installDebug
 ```
 
-Walk 1 (`01`–`07`) is the exit criteria and runs in order. **Walks 4 through 10 have never been
-walked at all** — the Reports tab, the canvas, investments, transfers, the export, the lock and
-the subscriptions, which is most of what the app now does. If there is time for one of them,
-make it **Walk 10 `s1`–`s3`**: a rule that writes the same charge twice looks fine on the day
-and only shows up later as a month that is quietly wrong. Anything that goes wrong goes in
-[`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the next branch: an *Open* entry there
-outranks anything planned.
+Anything that goes wrong goes in [`FEEDBACK.md`](FEEDBACK.md) with its number, and that is the
+next branch: an *Open* entry there outranks anything planned.
 
-**The walk has no steps yet for what landed on 2026-09-21**: committed this month and the income
-share (#63), closed positions (#64), and undoing a deleted transfer (#65). They are each a
-minute: open Settings › Subscriptions, sell a holding completely, delete a transfer and tap
-Undo. Writing them into `docs/device-check.md` belongs in the next docs branch.
+**What comes next when there is no feedback:**
+- **The midnight tick**, in a session that can build. The shape is in C4.
+- **Then a wave the owner has to choose.** Everything else left is a later roadmap phase
+  (`CLAUDE.md` §9) or deferred work:
+  - **Phase 5** is the uncategorized inbox and **budgets**. Budgets need a table, so their schema
+    branch runs alone before any UI goes wide.
+  - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
+    first two add dependencies and run alone.
+  - The dashboard of cards is in C7.
 
-**What comes next, in the Orca rhythm of D24:**
-- **`feat/backup`**, as soon as the owner has created the OAuth client (the steps are in its C3
-  entry). It runs **alone**, because it adds libraries to `libs.versions.toml`. Devin takes it.
-- **Then a wave the owner has to choose**, because everything left is a later roadmap phase
-  (`CLAUDE.md` §9) or deferred work. Phase 5 is the uncategorized inbox and **budgets**; budgets
-  need a table, so their schema branch runs alone before any UI work goes wide. Phase 6 is the
-  widget, the Baseline Profile and Macrobenchmark, and accessibility: the first two add
-  dependencies and run alone. The dashboard of cards is in C7. Several small gaps in C4 could
-  make a wave of their own, disjoint and without schema changes: the undo banner on the account
-  detail, a line in the restore alert saying to export first, the trade note field, and the
-  midnight tick.
+**Before running agents in Orca again, clean up:** the second wave's worktrees can be deleted
+from inside Orca now that every branch in it is merged.
 
 **Two questions the walk should settle**, both written into it rather than left to be
 remembered:
 
-- **`07`** — the app reopens on the section that was last open, not on the canvas, so the
+- **`07`**: the app reopens on the section that was last open, not on the canvas, so the
   bubbles are usually not what you see on launch. That is what D8 asked for; whether it is what
   it should do is a thing only the hand can say. It is one flag either way.
-- **`b3`/`b8`** — whether a bubble can be pinched or dragged somewhere unusable, and whether
+- **`b3`/`b8`**: whether a bubble can be pinched or dragged somewhere unusable, and whether
   **Reset the bubble layout** is a real escape hatch or a thing you would never find in time.

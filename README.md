@@ -5,14 +5,16 @@ user-defined categories, multiple accounts with transfers, recurring subscriptio
 reminders, spending analytics, and an investment portfolio with net worth.
 
 Built with Kotlin and Jetpack Compose. All data stays on the device — no backend, no user
-accounts, no telemetry.
+accounts, no telemetry. The one thing that leaves it is an optional daily backup, to a hidden
+folder in the owner's own Google Drive.
 
-> **Status (2026-09-21): Phases 1–3 built, apart from automatic backup; Phase 4 built with
-> prices typed by hand; Phases 5–6 not started.** Most of Phase 2 onward has still not been
-> walked on a real phone. Since the paragraph below was written, the app has gained transfers,
-> an investment portfolio with closed positions and net worth, recurring subscriptions that
-> record themselves, ask for variable bills, remind you before a charge and say what is still
-> committed this month, JSON/CSV export and restore, and a biometric lock. 699 tests.
+> **Status (2026-09-23): Phases 1–3 built; Phase 4 built with prices typed by hand; Phases 5–6
+> not started.** Most of Phase 2 onward has still not been walked on a real phone. Since the
+> paragraph below was written, the app has gained transfers, an investment portfolio with closed
+> positions and net worth, recurring subscriptions that record themselves, ask for variable
+> bills, remind you before a charge and say what is still committed this month, JSON/CSV export
+> and restore, a daily automatic backup to the owner's own Google Drive, and a biometric lock.
+> 789 tests.
 >
 > **Earlier status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
 > Recording money works end to end: accounts, categories, transactions and balances that trace
@@ -48,7 +50,7 @@ place that answers those questions, owned entirely by the person using it.
 | DI | Hilt |
 | Async | Coroutines + Flow |
 | Charts | Vico |
-| Networking | Retrofit + OkHttp + kotlinx.serialization |
+| Networking | OkHttp + kotlinx.serialization, for the Drive backup only |
 | Background work | WorkManager |
 | Build | Gradle KTS with a version catalog |
 | Quality | detekt, ktlint via Spotless, GitHub Actions CI |
@@ -114,7 +116,7 @@ parallel work demand it.
 | 0 | Project skeleton, CI, theme, navigation | **Done** |
 | 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
 | 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
-| 3 | Transfers, recurring rules and subscriptions, export/import, biometric lock | **Built** · except automatic backup to Drive, which waits on an OAuth client |
+| 3 | Transfers, recurring rules and subscriptions, export/import and automatic backup to Drive, biometric lock | **Built** |
 | 4 | Investment portfolio with prices and P&L | **Built** · prices are typed by hand: no free provider carries these European listings, and paying for one was declined |
 | 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | Planned |
 | 6 | Widget, animations, Baseline Profile, accessibility | Planned |
@@ -147,8 +149,9 @@ parallel work demand it.
 ```
 
 Requires Android Studio, which bundles the Android SDK and the JetBrains Runtime used to
-build (currently JDK 25). Do not install a separate JDK. API keys for market data go in
-`local.properties`, which is git-ignored.
+build (currently JDK 25). Do not install a separate JDK. No API key is needed: prices are
+typed, and the Drive backup's Android OAuth client is matched by package name and signing
+certificate, so nothing secret goes in the repo or in `local.properties`.
 
 ## License
 

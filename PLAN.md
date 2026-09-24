@@ -503,6 +503,25 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
+**Where the 2026-09-24 session stopped: the phone has the build, and Drive is connected.**
+Nothing was built. The session untangled a local merge, installed `main` on the phone, and got
+the Drive backup connected:
+- **The local checkout had merged `main` into the stale handoff branch**, after the web sessions
+  moved on. The merge was aborted rather than resolved, because every commit on that branch was
+  already in `main` as #70. Every merged branch, local and remote, was deleted, and so were the
+  second wave's Orca worktrees.
+- **The first local build since the web sessions** passed every gate and regenerated #80's
+  hand-written `7.json` byte for byte. It was installed on the phone, an Honor (`HEY3`), and
+  opened on the owner's data, so **`MIGRATION_6_7` has now run on a real phone.**
+- **Drive failed with an authorization error, because there was no Android OAuth client.** The
+  setup below says the owner had done it, but only part of it had been done. The owner created
+  the client on 2026-09-24, with the debug SHA-1 recorded below, and the switch now reads
+  connected. No code changed: the app carries no client ID, and Google matches it by package
+  and certificate.
+- **The walk itself has not started.** `n6` went as far as *connected*. Everything else in
+  walks 4 to 12 is still unwalked, and the owner means to walk it in the next session (see
+  *Next concrete action*).
+
 **Where the 2026-09-23 session stopped, second half: budgets, and the bubbles on notice.**
 After the second wave the owner chose **budgets** (PRD §4.4, Phase 5), with the phone still out
 of reach.
@@ -1504,6 +1523,9 @@ the order the roadmap puts them, and all three now have their questions answered
          debug key's SHA-1 `A6:15:3B:AD:C8:AB:09:A0:FF:34:14:D9:24:4A:2F:FA:93:13:B6:13`
          (`%USERPROFILE%\.android\debug.keystore`, shared by every build on that PC). A release
          key, if one is ever made, needs a second Android client with its own SHA-1.
+      **Step 5 had not been done when the branch merged.** The first real attempt on the phone,
+      on 2026-09-24, failed with an authorization error until the owner created the Android
+      client. If a connect ever fails again, check the client before the code.
       Nothing from those steps is pasted into the repo. The owner says it is done, and the branch
       runs **alone**, because it adds libraries to `libs.versions.toml`, which is a global lock.
       One thing to read from the keytool output: on a Spanish-locale JDK it crashes printing the
@@ -2233,7 +2255,8 @@ non-skippable `UiState` turns into visible jank.
 ## Next concrete action
 
 **Walk the app on the phone, with [`docs/device-check.md`](docs/device-check.md) open.** Still
-the owner's (C5), and still the biggest gap:
+the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has the current
+`main`, and Drive is connected**, so `n6` is done as far as connecting. Start at `n7`:
 - Walks 4 to 10 have never been walked.
 - **Walk 11** (`n1`–`n11`) is new: everything from 2026-09-21 to 2026-09-23.
 - **Walk 12** (`g1`–`g5`) is budgets (#80, #81).

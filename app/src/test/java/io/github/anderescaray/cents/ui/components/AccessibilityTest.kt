@@ -124,10 +124,10 @@ class AccessibilityTest {
     }
 
     @Test
-    fun `at the largest system font an alert's buttons and a row still show their words`() {
+    fun `at a very large system font an alert's buttons grow with their words`() {
         composeRule.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 2f)) {
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 3f)) {
                 CentsTheme {
                     CentsListSection(header = "Account") {
                         CentsListRow(title = "A long account name that has to wrap", value = "1.234,56 €")
@@ -147,7 +147,8 @@ class AccessibilityTest {
 
         composeRule.onNodeWithText("Delete").assertIsDisplayed()
         composeRule.onNodeWithText("Cancel").assertIsDisplayed()
-        // The alert's buttons grew with the text instead of cutting it off at a fixed height.
-        composeRule.onNodeWithText("Delete").assertHeightIsAtLeast(48.dp)
+        // Three times 22 sp of line is 66 dp: a button held at its old fixed 44 dp would cut the
+        // word off, and one that grows is at least as tall as the line.
+        composeRule.onNodeWithText("Delete").assertHeightIsAtLeast(60.dp)
     }
 }

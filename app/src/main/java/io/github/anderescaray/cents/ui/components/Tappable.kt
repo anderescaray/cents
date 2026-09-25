@@ -26,5 +26,7 @@ fun Modifier.tappable(
     role: Role = Role.Button,
     label: String? = null,
 ): Modifier =
-    minimumInteractiveComponentSize()
-        .clickable(enabled = enabled, onClickLabel = label, role = role, onClick = onClick)
+    // The clickable goes outside the minimum size, so the whole grown area is what answers a tap
+    // and what TalkBack outlines — not only the glyph in the middle of it.
+    clickable(enabled = enabled, onClickLabel = label, role = role, onClick = onClick)
+        .minimumInteractiveComponentSize()

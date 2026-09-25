@@ -195,8 +195,9 @@ interface TransactionDao {
      * would not be the slice's movements: it would be the slice plus every transfer and every
      * purchase in the period, each one typically far larger than anything in it.
      *
-     * [query] arrives already wrapped in `%` and with LIKE's own wildcards escaped, so a
-     * search for "50%" looks for that text and not for "50 followed by anything".
+     * [query], when given, is a `LIKE` pattern already wrapped in `%` with LIKE's own wildcards
+     * escaped. **The list no longer passes one**: `LIKE` folds case for A–Z only, so the
+     * repository matches the text itself, accents and all (see `searchKey`), and asks for null.
      *
      * [weekday] is an ISO day number, Monday 1 to Sunday 7 — `DayOfWeek.getValue()`. `date` is
      * an epoch day, so `date * 86400` is the same UTC-anchored Unix timestamp the monthly

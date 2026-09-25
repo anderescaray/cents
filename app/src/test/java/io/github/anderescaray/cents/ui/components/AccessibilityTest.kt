@@ -15,7 +15,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Rule
 import org.junit.Test
@@ -130,7 +133,7 @@ class AccessibilityTest {
         // control uses the same min-height pattern and lives in the window under test.
         composeRule.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 3f)) {
+            CompositionLocalProvider(LocalDensity provides LinearFontScale(density.density, fontScale = 3f)) {
                 CentsTheme {
                     CentsListSection(header = "Account") {
                         CentsListRow(title = "A long account name that has to wrap", value = "1.234,56 €")
@@ -150,4 +153,18 @@ class AccessibilityTest {
         // word off, and one that grows is at least as tall as the line.
         composeRule.onNodeWithText("Expense").assertHeightIsAtLeast(50.dp)
     }
+}
+
+/**
+ * A font scale applied as a plain multiplier. Android 14 scales large text non-linearly, so a
+ * 20 sp line at 3x comes to well under 60 dp, and the arithmetic in the test above would depend
+ * on the platform's curve rather than on whether the control grows.
+ */
+private class LinearFontScale(
+    override val density: Float,
+    override val fontScale: Float,
+) : Density {
+    override fun TextUnit.toDp(): Dp = Dp(value * fontScale)
+
+    override fun Dp.toSp(): TextUnit = (value / fontScale).sp
 }

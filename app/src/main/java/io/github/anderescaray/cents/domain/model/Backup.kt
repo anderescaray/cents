@@ -35,12 +35,15 @@ data class Backup(
     val budgets: List<BackupBudget> = emptyList(),
     /** Empty in a file written before groups existed, which a restore reads as none. */
     val groups: List<BackupGroup> = emptyList(),
+    /** Empty in a file written before a charge could be postponed, which a restore reads as none. */
+    val postponements: List<BackupPostponement> = emptyList(),
 ) {
     /** How many rows are in it, for a screen that wants to say what it just wrote. */
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
-                holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size + groups.size
+                holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size + groups.size +
+                postponements.size
 }
 
 data class BackupAccount(
@@ -140,6 +143,13 @@ data class BackupReminder(
     val ruleId: Long,
     /** Signed: occurrence + offset = the day it fires. */
     val offsetDays: Int,
+)
+
+/** One occurrence of a rule moved to a later day. Both dates are epoch days. */
+data class BackupPostponement(
+    val ruleId: Long,
+    val occurrence: Long,
+    val postponedTo: Long,
 )
 
 /** A monthly limit on one expense category. Nothing points at it, so it needs no id of its own. */

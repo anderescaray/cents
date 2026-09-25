@@ -48,6 +48,51 @@ fun RecurringRule.nextOccurrenceAfter(after: LocalDate): LocalDate? {
 }
 
 /**
+ * The first occurrence not yet written, whether it has fallen due or is still to come.
+ *
+ * What a postponement moves. Null once the rule has stopped or run past its end date.
+ */
+fun RecurringRule.nextUnwritten(): LocalDate? = nextOccurrenceAfter(lastGenerated ?: startDate.minusDays(1))
+
+/**
+ * The days [occurrence] can be moved to, soonest first.
+ *
+ * Counted from the later of the occurrence and today, so *three days* on a bill already waiting
+ * means three days from now rather than a date that has passed. **Never as far as the next
+ * occurrence**: moving March past April would have the rule write April first, and one
+ * occurrence overtaking another is a schedule nobody can read.
+ */
+fun RecurringRule.postponeChoices(
+    occurrence: LocalDate,
+    today: LocalDate,
+): List<LocalDate> {
+    val from = maxOf(occurrence, today)
+    val following = nextOccurrenceAfter(occurrence)
+    return POSTPONE_DAYS.map { from.plusDays(it) }.filter { following == null || it < following }
+}
+
+/**
+ * Whether [occurrence] may be moved to [to].
+ *
+ * It has to be one of the rule's days, not yet written — a written one is a movement, and its
+ * date is edited there — and [to] has to be one of [postponeChoices]' days or anywhere between
+ * them: later than the occurrence, later than today, and short of the next one.
+ */
+fun RecurringRule.canPostpone(
+    occurrence: LocalDate,
+    to: LocalDate,
+    today: LocalDate,
+): Boolean {
+    val following = nextOccurrenceAfter(occurrence)
+    return active &&
+        occursOn(occurrence) &&
+        (lastGenerated == null || occurrence > lastGenerated) &&
+        to > occurrence &&
+        to > today &&
+        (following == null || to < following)
+}
+
+/**
  * The [step]th occurrence, counted from the start date.
  *
  * **Counted from the start date, never from the occurrence before it**, and that single choice
@@ -144,6 +189,9 @@ private fun RecurringRule.stepFor(date: LocalDate): Int? {
         }
     }?.toInt()
 }
+
+/** A day, a weekend, a week or two: how far a bill or a salary is usually late. */
+private val POSTPONE_DAYS = listOf(1L, 2L, 3L, 5L, 7L, 14L)
 
 private const val MONTHS_PER_QUARTER = 3L
 private const val MONTHS_PER_YEAR = 12L

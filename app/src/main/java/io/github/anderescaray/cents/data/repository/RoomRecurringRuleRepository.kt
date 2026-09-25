@@ -5,18 +5,22 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.RecurringRuleDao
 import io.github.anderescaray.cents.data.local.dao.RuleReminderDao
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
+import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.DueReminder
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
+import io.github.anderescaray.cents.domain.model.Postponement
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.Reminder
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
+import io.github.anderescaray.cents.domain.usecase.canPostpone
 import io.github.anderescaray.cents.domain.usecase.dueOccurrences
 import io.github.anderescaray.cents.domain.usecase.occursOn
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.time.LocalDate
@@ -89,11 +93,18 @@ class RoomRecurringRuleRepository
          */
         override suspend fun generateDue(): Int {
             val today = LocalDate.now(clock)
+            val moved = movedByRule()
             var written = 0
             ruleDao.activeRules().forEach { entity ->
                 if (entity.mode != RuleMode.AUTOMATIC) return@forEach
-                val rule = entity.toDomain()
-                val due = rule.dueOccurrences(today)
+                val postponed = moved[entity.id].orEmpty()
+                // A postponed occurrence waits for its new day, and the ones behind it wait too:
+                // the watermark is a single date, so writing April past a March still to come
+                // would take March with it.
+                val due =
+                    entity.toDomain().dueOccurrences(today).takeWhile { date ->
+                        (postponed[date] ?: date) <= today
+                    }
                 if (due.isEmpty()) return@forEach
 
                 // The movements and the watermark together, or neither. Separately, a crash in
@@ -101,23 +112,40 @@ class RoomRecurringRuleRepository
                 database.withTransaction {
                     val now = clock.instant()
                     due.forEach { date ->
-                        database.transactionDao().insert(entity.movementOn(date, now))
+                        database.transactionDao().insert(entity.movementOn(postponed[date] ?: date, now))
                     }
-                    ruleDao.setLastGenerated(entity.id, due.last())
+                    advance(entity.id, due.last())
                 }
                 written += due.size
             }
             return written
         }
 
+        /** Moves the watermark, and forgets any postponement it has now passed. */
+        private suspend fun advance(
+            ruleId: Long,
+            through: LocalDate,
+        ) {
+            ruleDao.setLastGenerated(ruleId, through)
+            database.rulePostponementDao().deleteThrough(ruleId, through)
+        }
+
+        /** Every postponement, as rule → (occurrence → the day it was moved to). */
+        private suspend fun movedByRule(): Map<Long, Map<LocalDate, LocalDate>> =
+            database.rulePostponementDao().all().byRule()
+
+        private fun List<RulePostponementEntity>.byRule(): Map<Long, Map<LocalDate, LocalDate>> =
+            groupBy { it.ruleId }.mapValues { (_, rows) -> rows.associate { it.occurrence to it.postponedTo } }
+
         override fun observePending(): Flow<List<PendingCharge>> =
-            ruleDao.observeAll().map { rows ->
+            combine(ruleDao.observeAll(), database.rulePostponementDao().observeAll()) { rows, postponements ->
                 val today = LocalDate.now(clock)
+                val moved = postponements.byRule()
                 rows
                     .map { it.toDomain() }
                     .filter { it.mode == RuleMode.CONFIRM && it.active }
-                    .mapNotNull { rule -> rule.oldestPending(today) }
-                    .sortedBy { it.dueDate }
+                    .mapNotNull { rule -> rule.oldestPending(today, moved[rule.id].orEmpty()) }
+                    .sortedBy { it.recordOn }
             }
 
         override suspend fun recordPending(
@@ -125,15 +153,17 @@ class RoomRecurringRuleRepository
             dueDate: LocalDate,
             amount: Money,
         ): Boolean {
-            val entity = ruleDao.findById(ruleId)?.takeIf { it.accepts(dueDate, amount) } ?: return false
+            val (entity, pending) =
+                ruleDao.findById(ruleId)?.let { rule -> rule.waitingOn(dueDate, amount)?.let { rule to it } }
+                    ?: return false
 
             // The movement and the watermark together, for the same reason the catch-up writes
             // them together: separately, a crash in between records a charge the rule will
-            // happily record again tomorrow.
+            // happily record again tomorrow. Dated the day it was moved to, if it was.
             database.withTransaction {
                 val now = clock.instant()
-                database.transactionDao().insert(entity.movementOn(dueDate, now, amount.minorUnits))
-                ruleDao.setLastGenerated(ruleId, dueDate)
+                database.transactionDao().insert(entity.movementOn(pending.recordOn, now, amount.minorUnits))
+                advance(ruleId, dueDate)
             }
             return true
         }
@@ -142,9 +172,32 @@ class RoomRecurringRuleRepository
             ruleId: Long,
             dueDate: LocalDate,
         ): Boolean {
-            if (ruleDao.findById(ruleId)?.accepts(dueDate, amount = null) != true) return false
-            ruleDao.setLastGenerated(ruleId, dueDate)
+            if (ruleDao.findById(ruleId)?.waitingOn(dueDate, amount = null) == null) return false
+            database.withTransaction { advance(ruleId, dueDate) }
             return true
+        }
+
+        override fun observePostponements(): Flow<List<Postponement>> =
+            database.rulePostponementDao().observeAll().map { rows ->
+                rows.map { Postponement(it.ruleId, it.occurrence, it.postponedTo) }
+            }
+
+        override suspend fun postpone(
+            ruleId: Long,
+            occurrence: LocalDate,
+            to: LocalDate,
+        ): Boolean {
+            val rule = ruleDao.findById(ruleId)?.toDomain()
+            val allowed = rule != null && rule.canPostpone(occurrence, to, LocalDate.now(clock))
+            if (allowed) database.rulePostponementDao().upsert(RulePostponementEntity(ruleId, occurrence, to))
+            return allowed
+        }
+
+        override suspend fun cancelPostponement(
+            ruleId: Long,
+            occurrence: LocalDate,
+        ) {
+            database.rulePostponementDao().delete(ruleId, occurrence)
         }
 
         override suspend fun remindersFor(ruleId: Long): List<Reminder> =
@@ -171,17 +224,45 @@ class RoomRecurringRuleRepository
          */
         override suspend fun dueReminders(today: LocalDate): List<DueReminder> {
             val reminders = reminderDao.all().groupBy { it.ruleId }
-            if (reminders.isEmpty()) return emptyList()
+            val moved = movedByRule()
+            if (reminders.isEmpty() && moved.isEmpty()) return emptyList()
 
             return ruleDao.activeRules().flatMap { entity ->
                 val rule = entity.toDomain()
-                reminders[entity.id].orEmpty().mapNotNull { reminder ->
-                    val occurrence = today.minusDays(reminder.offsetDays.toLong())
-                    DueReminder(rule, occurrence, reminder.offsetDays)
-                        .takeIf { rule.occursOn(occurrence) && rule.stillWants(occurrence) }
-                }
+                val offsets = reminders[entity.id].orEmpty().map { it.offsetDays }
+                val postponed = moved[entity.id].orEmpty()
+                val onTheirOwnDay =
+                    offsets.mapNotNull { offset ->
+                        val occurrence = today.minusDays(offset.toLong())
+                        DueReminder(rule, occurrence, offset).takeIf {
+                            rule.occursOn(occurrence) && occurrence !in postponed && rule.stillWants(occurrence)
+                        }
+                    }
+                onTheirOwnDay + rule.postponedReminders(today, offsets, postponed)
             }
         }
+
+        /**
+         * Reminders about occurrences moved to a later day, counted from that day.
+         *
+         * **Always on the new day itself**, whether or not the rule has an on-the-day reminder:
+         * moving a bill is asking to be told when it comes round again. The rule's own reminders
+         * follow it too, but only those landing after the original day — the ones before it have
+         * already been sent about the date it used to have.
+         */
+        private fun RecurringRule.postponedReminders(
+            today: LocalDate,
+            offsets: List<Int>,
+            postponed: Map<LocalDate, LocalDate>,
+        ): List<DueReminder> =
+            postponed.flatMap { (occurrence, to) ->
+                (offsets + 0).distinct().mapNotNull { offset ->
+                    val firesOn = to.plusDays(offset.toLong())
+                    DueReminder(this, occurrence, offset, postponedTo = to).takeIf {
+                        firesOn == today && firesOn > occurrence && stillWants(occurrence)
+                    }
+                }
+            }
 
         /**
          * Whether a reminder about [occurrence] is still worth sending.
@@ -195,7 +276,7 @@ class RoomRecurringRuleRepository
             mode != RuleMode.CONFIRM || lastGenerated == null || occurrence > lastGenerated
 
         /**
-         * Whether this rule will take that answer for that date.
+         * The waiting occurrence this answer is for, or null if the rule will not take it.
          *
          * Two conditions, and both of them are about writing something nobody would ever notice
          * was wrong. The date has to be the rule's **oldest** waiting occurrence, because the
@@ -203,12 +284,14 @@ class RoomRecurringRuleRepository
          * it in silence. And [amount], when there is one, has to be in the rule's own currency —
          * rule 2 at the one place a figure arrives from outside the app.
          */
-        private fun RecurringRuleEntity.accepts(
+        private suspend fun RecurringRuleEntity.waitingOn(
             dueDate: LocalDate,
             amount: Money?,
-        ): Boolean {
-            if (amount != null && amount.currency != currency) return false
-            return toDomain().oldestPending(LocalDate.now(clock))?.dueDate == dueDate
+        ): PendingCharge? {
+            if (amount != null && amount.currency != currency) return null
+            return toDomain()
+                .oldestPending(LocalDate.now(clock), movedByRule()[id].orEmpty())
+                ?.takeIf { it.dueDate == dueDate }
         }
 
         /**
@@ -218,9 +301,17 @@ class RoomRecurringRuleRepository
          * the two ways of answering — so that "which one is being answered" has exactly one
          * definition rather than three that could drift apart.
          */
-        private fun RecurringRule.oldestPending(today: LocalDate): PendingCharge? {
+        private fun RecurringRule.oldestPending(
+            today: LocalDate,
+            postponed: Map<LocalDate, LocalDate>,
+        ): PendingCharge? {
             val due = dueOccurrences(today)
-            return due.firstOrNull()?.let { PendingCharge(this, it, laterCount = due.size - 1) }
+            val oldest = due.firstOrNull()
+            val movedTo = oldest?.let { postponed[it] }
+            // Moved to a day still to come: not waiting yet, and nothing behind it is either.
+            return oldest
+                ?.takeIf { movedTo == null || movedTo <= today }
+                ?.let { PendingCharge(this, it, laterCount = due.size - 1, postponedTo = movedTo) }
         }
 
         /**

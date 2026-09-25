@@ -2,12 +2,14 @@ package io.github.anderescaray.cents.data.repository
 
 import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
+import io.github.anderescaray.cents.domain.model.BackupPostponement
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
@@ -16,6 +18,7 @@ import io.github.anderescaray.cents.domain.model.BackupTransaction
 import io.github.anderescaray.cents.domain.repository.BackupRepository
 import kotlinx.coroutines.flow.first
 import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -60,6 +63,7 @@ class RoomBackupRepository
                     reminders = reminders(),
                     budgets = budgets(),
                     groups = groups(),
+                    postponements = postponements(),
                 )
             }
 
@@ -141,7 +145,7 @@ class RoomBackupRepository
          *
          * **The order is the foreign keys' order, in both directions.** Movements point at
          * accounts, categories, trades and rules; trades point at holdings; rules point at
-         * accounts and categories, reminders at rules and budgets at categories, and movements at
+         * accounts and categories, reminders and postponements at rules, budgets at categories, and movements at
          * groups too; so the emptying
          * goes from the leaves inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
@@ -155,6 +159,7 @@ class RoomBackupRepository
                 database.transactionDao().deleteAll()
                 database.groupDao().deleteAll()
                 database.budgetDao().deleteAll()
+                database.rulePostponementDao().deleteAll()
                 database.ruleReminderDao().deleteAll()
                 database.recurringRuleDao().deleteAll()
                 database.tradeDao().deleteAll()
@@ -168,6 +173,15 @@ class RoomBackupRepository
                 backup.categories.forEach { database.categoryDao().insert(it.toEntity(now)) }
                 backup.rules.forEach { database.recurringRuleDao().insert(it.toEntity(now)) }
                 backup.reminders.forEach { database.ruleReminderDao().insert(it.toEntity()) }
+                backup.postponements.forEach {
+                    database.rulePostponementDao().upsert(
+                        RulePostponementEntity(
+                            ruleId = it.ruleId,
+                            occurrence = LocalDate.ofEpochDay(it.occurrence),
+                            postponedTo = LocalDate.ofEpochDay(it.postponedTo),
+                        ),
+                    )
+                }
                 backup.budgets.forEach { database.budgetDao().insert(it.toEntity(now)) }
                 backup.groups.forEach { database.groupDao().insert(it.toEntity(now)) }
                 backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
@@ -199,6 +213,15 @@ class RoomBackupRepository
 
         private suspend fun reminders() =
             database.ruleReminderDao().all().map { BackupReminder(ruleId = it.ruleId, offsetDays = it.offsetDays) }
+
+        private suspend fun postponements() =
+            database.rulePostponementDao().all().map {
+                BackupPostponement(
+                    ruleId = it.ruleId,
+                    occurrence = it.occurrence.toEpochDay(),
+                    postponedTo = it.postponedTo.toEpochDay(),
+                )
+            }
 
         private suspend fun budgets() =
             database.budgetDao().all().map {

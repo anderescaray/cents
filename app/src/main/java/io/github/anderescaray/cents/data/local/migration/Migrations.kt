@@ -30,6 +30,7 @@ val ALL_MIGRATIONS: Array<Migration>
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
+            MIGRATION_8_9,
         )
 
 /**
@@ -287,6 +288,30 @@ val MIGRATION_7_8 =
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_transactions_groupId` ON `transactions` (`groupId`)",
+            )
+        }
+    }
+
+/**
+ * v8 to v9 — somewhere to move one occurrence of a rule to a later day.
+ *
+ * Purely additive. An install made before postponing existed has nothing postponed, and every
+ * rule keeps generating on its own dates.
+ */
+val MIGRATION_8_9 =
+    object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `rule_postponements` (" +
+                    "`ruleId` INTEGER NOT NULL, " +
+                    "`occurrence` INTEGER NOT NULL, " +
+                    "`postponedTo` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`ruleId`, `occurrence`), " +
+                    "FOREIGN KEY(`ruleId`) REFERENCES `recurring_rules`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_rule_postponements_ruleId` ON `rule_postponements` (`ruleId`)",
             )
         }
     }

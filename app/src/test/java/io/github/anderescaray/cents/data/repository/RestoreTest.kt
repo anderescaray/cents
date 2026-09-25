@@ -8,6 +8,7 @@ import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.budget
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.local.holding
@@ -145,6 +146,34 @@ class RestoreTest {
             assertEquals(LocalDate.of(2026, 9, 1).toEpochDay(), restored.rules.single().lastGenerated)
             assertEquals(listOf(-3), restored.reminders.map { it.offsetDays })
             assertEquals(ruleId, restored.transactions.single { it.amountMinor == 80_000L }.ruleId)
+        }
+
+    @Test
+    fun `a postponed charge comes back postponed`() =
+        runTest {
+            populateRows()
+            val checking =
+                database
+                    .accountDao()
+                    .observeAll()
+                    .first()
+                    .first { it.name == "Checking" }
+                    .id
+            val ruleId = database.recurringRuleDao().insert(recurringRule(checking, name = "Rent"))
+            val moved =
+                RulePostponementEntity(
+                    ruleId = ruleId,
+                    occurrence = LocalDate.of(2026, 10, 1),
+                    postponedTo = LocalDate.of(2026, 10, 4),
+                )
+            database.rulePostponementDao().upsert(moved)
+            val text = BackupWriter.toJson(backups.snapshot())
+
+            wipe()
+            backups.restore(readable(text))
+
+            // Lost, it would quietly become a rent written on the 1st after all.
+            assertEquals(listOf(moved), database.rulePostponementDao().all())
         }
 
     @Test
@@ -379,6 +408,7 @@ class RestoreTest {
         database.transactionDao().deleteAll()
         database.groupDao().deleteAll()
         database.budgetDao().deleteAll()
+        database.rulePostponementDao().deleteAll()
         database.ruleReminderDao().deleteAll()
         database.recurringRuleDao().deleteAll()
         database.tradeDao().deleteAll()

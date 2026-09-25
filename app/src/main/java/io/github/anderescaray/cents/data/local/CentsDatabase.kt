@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.data.local.dao.GroupDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
 import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
 import io.github.anderescaray.cents.data.local.dao.RecurringRuleDao
+import io.github.anderescaray.cents.data.local.dao.RulePostponementDao
 import io.github.anderescaray.cents.data.local.dao.RuleReminderDao
 import io.github.anderescaray.cents.data.local.dao.TradeDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
@@ -22,6 +23,7 @@ import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
+import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.entity.TradeEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
@@ -38,6 +40,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
         RuleReminderEntity::class,
         BudgetEntity::class,
         GroupEntity::class,
+        RulePostponementEntity::class,
     ],
     version = CentsDatabase.VERSION,
     exportSchema = true,
@@ -64,6 +67,8 @@ abstract class CentsDatabase : RoomDatabase() {
 
     abstract fun groupDao(): GroupDao
 
+    abstract fun rulePostponementDao(): RulePostponementDao
+
     companion object {
         /**
          * v2 (2026-09-09) added holdings, trades and price quotes; v3 (2026-09-16) added
@@ -71,9 +76,10 @@ abstract class CentsDatabase : RoomDatabase() {
          * added `transactions.tradeId`, which ties a purchase to the cash it took out of the
          * account; v5 (2026-09-17) added `recurring_rules` and `transactions.ruleId`; v6
          * (2026-09-17) added `rule_reminders`; v7 (2026-09-23) added `budgets`; v8
-         * (2026-09-25) added `movement_groups` and `transactions.groupId`. See `Migrations.kt`.
+         * (2026-09-25) added `movement_groups` and `transactions.groupId`; v9 (2026-09-25) added
+         * `rule_postponements`. See `Migrations.kt`.
          */
-        const val VERSION = 8
+        const val VERSION = 9
         const val NAME = "cents.db"
     }
 }

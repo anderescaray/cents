@@ -112,6 +112,36 @@ class PendingChargesViewModelTest {
         }
 
     @Test
+    fun `postponing one bill takes it off the list and keeps what was typed into the others`() =
+        runTest {
+            val electricity = add("Electricity", start = LocalDate.of(2026, 4, 10))
+            add("Water", start = LocalDate.of(2026, 4, 5))
+
+            val viewModel = pending()
+            viewModel.uiState.test {
+                val loaded = awaitStateThat { it.rows.size == 2 }
+                viewModel.onTyped(electricity, "74.12")
+                awaitStateThat { it.answeredCount == 1 }
+
+                val water = loaded.rows.single { it.name == "Water" }
+                viewModel.requestPostpone(water)
+                awaitStateThat { it.postponing != null }
+                // Three days from today, not from the 5th, which has already passed.
+                viewModel.postpone(LocalDate.of(2026, 4, 23))
+
+                val state = awaitStateThat { it.postponing == null && it.rows.size == 1 }
+                assertEquals("Electricity", state.rows.single().name)
+                assertEquals(
+                    7_412L,
+                    state.rows
+                        .single()
+                        .amount.minorUnits,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `skipping asks first, and then records nothing`() =
         runTest {
             add("Electricity", start = LocalDate.of(2026, 3, 10))

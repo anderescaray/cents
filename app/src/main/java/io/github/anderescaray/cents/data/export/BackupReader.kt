@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
+import io.github.anderescaray.cents.domain.model.BackupPostponement
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
@@ -125,6 +126,7 @@ object BackupReader {
             reminders = root.rows("ruleReminders", ::reminder),
             budgets = root.rows("budgets", ::budget),
             groups = root.rows("groups", ::group),
+            postponements = root.rows("rulePostponements", ::postponement),
         )
 
     private fun account(row: JsonObject) =
@@ -214,6 +216,13 @@ object BackupReader {
         BackupReminder(
             ruleId = row.requireLong("ruleId"),
             offsetDays = row.requireLong("offsetDays").toInt(),
+        )
+
+    private fun postponement(row: JsonObject) =
+        BackupPostponement(
+            ruleId = row.requireLong("ruleId"),
+            occurrence = row.requireLong("occurrence"),
+            postponedTo = row.requireLong("postponedTo"),
         )
 
     private fun budget(row: JsonObject) =

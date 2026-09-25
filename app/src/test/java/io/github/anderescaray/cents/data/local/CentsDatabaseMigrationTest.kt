@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
 import io.github.anderescaray.cents.domain.model.AssetClass
@@ -21,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import java.time.LocalDate
 
 /**
  * Every migration this database has, tested from the schema that actually shipped.
@@ -420,6 +422,41 @@ class CentsDatabaseMigrationTest {
                 val survivor = database.transactionDao().findById(movementId)
                 assertEquals(4_200L, survivor?.amountMinor)
                 assertNull(survivor?.groupId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a version 8 database keeps its rules and gains somewhere to put a postponement`() =
+        runTest {
+            createVersion(8)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val ruleId = database.recurringRuleDao().insert(recurringRule(accountId = accountId))
+                val moved =
+                    RulePostponementEntity(
+                        ruleId = ruleId,
+                        occurrence = LocalDate.of(2026, 10, 15),
+                        postponedTo = LocalDate.of(2026, 10, 18),
+                    )
+                database.rulePostponementDao().upsert(moved)
+
+                assertEquals(listOf(moved), database.rulePostponementDao().all())
+                assertEquals("the movement written at v8 should survive", 2_550L, moneyIn(database))
+
+                // `CASCADE` arriving through the migration: a postponement is the rule's
+                // configuration, and goes with it.
+                database.recurringRuleDao().delete(database.recurringRuleDao().findById(ruleId)!!)
+                assertTrue(database.rulePostponementDao().all().isEmpty())
             } finally {
                 database.close()
             }

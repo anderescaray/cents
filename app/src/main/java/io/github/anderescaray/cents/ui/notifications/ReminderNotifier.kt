@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.anderescaray.cents.MainActivity
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.DueReminder
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -73,7 +74,14 @@ class ReminderNotifier
         private fun bodyFor(due: DueReminder): String {
             val whenIt = whenLabel(due)
             return if (due.asksForAmount) {
-                context.getString(R.string.reminder_variable_body, whenIt)
+                // A salary is asked about too, and "what it cost" is the wrong question for one.
+                val body =
+                    if (due.rule.kind == TransactionKind.INCOME) {
+                        R.string.reminder_variable_income_body
+                    } else {
+                        R.string.reminder_variable_body
+                    }
+                context.getString(body, whenIt)
             } else {
                 context.getString(
                     R.string.reminder_fixed_body,

@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.PeriodSummary
+import io.github.anderescaray.cents.domain.model.Postponement
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.Reminder
 import io.github.anderescaray.cents.domain.model.Transaction
@@ -339,6 +340,27 @@ interface RecurringRuleRepository {
         ruleId: Long,
         dueDate: LocalDate,
     ): Boolean
+
+    /** Every occurrence currently moved to a later day. */
+    fun observePostponements(): Flow<List<Postponement>>
+
+    /**
+     * Moves one occurrence to a later day, or moves it again.
+     *
+     * Returns false, and changes nothing, when `canPostpone` says no: an occurrence already
+     * written, a day not later than it, or one that reaches the next occurrence.
+     */
+    suspend fun postpone(
+        ruleId: Long,
+        occurrence: LocalDate,
+        to: LocalDate,
+    ): Boolean
+
+    /** Puts a postponed occurrence back on its own day. */
+    suspend fun cancelPostponement(
+        ruleId: Long,
+        occurrence: LocalDate,
+    )
 
     /** The nudges this rule carries, soonest first. */
     suspend fun remindersFor(ruleId: Long): List<Reminder>

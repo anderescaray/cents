@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
+import io.github.anderescaray.cents.domain.model.Postponement
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.usecase.SubscriptionTotals
@@ -27,6 +28,8 @@ import javax.inject.Inject
 data class SubscriptionRow(
     val rule: RecurringRule,
     val nextDue: LocalDate?,
+    /** Whether [nextDue] is a day an occurrence was moved to rather than one of its own. */
+    val postponed: Boolean = false,
 ) {
     val id: Long get() = rule.id
 }
@@ -87,11 +90,13 @@ class SubscriptionsViewModel
             combine(
                 repository.observeRules(),
                 repository.observePending(),
+                repository.observePostponements(),
                 // The day is an input, not something read once: an app left open over midnight
                 // on the last of the month has to move its "committed this month" to the new one.
                 today.date,
-            ) { rules, pending, today ->
-                val rows = rules.map { SubscriptionRow(it, it.nextOccurrenceAfter(today)) }
+            ) { rules, pending, postponements, today ->
+                val moved = postponements.groupBy { it.ruleId }
+                val rows = rules.map { rule -> rule.rowFor(today, moved[rule.id].orEmpty()) }
                 SubscriptionsUiState(
                     active = rows.filter { it.rule.active },
                     stopped = rows.filterNot { it.rule.active },
@@ -105,6 +110,22 @@ class SubscriptionsViewModel
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = SubscriptionsUiState(),
             )
+
+        /**
+         * The row, with the next day it comes round — which is a postponed day when one of its
+         * occurrences has been moved and still lies ahead, since that is when the money moves.
+         */
+        private fun RecurringRule.rowFor(
+            today: LocalDate,
+            moved: List<Postponement>,
+        ): SubscriptionRow {
+            val own = nextOccurrenceAfter(today)
+            val movedDays = moved.filter { it.postponedTo > today }.map { it.postponedTo }
+            // Its own next day stands aside when that very occurrence is the one that moved.
+            val ownStill = own?.takeIf { day -> moved.none { it.occurrence == day } }
+            val next = (movedDays + listOfNotNull(ownStill)).minOrNull()
+            return SubscriptionRow(this, next, postponed = next != null && next in movedDays)
+        }
 
         /** Stops a rule, or starts it again. Nothing it has already made is touched. */
         fun setActive(

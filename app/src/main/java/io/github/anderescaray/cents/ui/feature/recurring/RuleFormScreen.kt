@@ -222,6 +222,9 @@ private fun RuleFields(
         item(key = "kind") { KindControl(state, viewModel) }
         item(key = "name") { NameSection(state, viewModel, keypad) }
         item(key = "schedule") { ScheduleSection(state, viewModel) }
+        if (state.isEditing && state.ruleActive) {
+            item(key = "next") { NextOneSection() }
+        }
         remindersSection(state, viewModel)
         accountSection(state, viewModel, onCreateAccount)
         categorySection(state, viewModel)

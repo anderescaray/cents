@@ -351,7 +351,7 @@
     <!-- Bills the app will not guess (D23) -->
     <string name="pending_title">Amounts</string>
     <string name="pending_header">Waiting for an amount</string>
-    <string name="pending_footer">Type what each one actually came to. Each is recorded on the day it fell due, not today — so a bill you answer late still counts in the month it was for.</string>
+    <string name="pending_footer">Type what each one actually came to. Each is recorded on the day it fell due, or the day you moved it to, not today — so a bill you answer late still counts in the month it was for. Tap a row to postpone it a few days.</string>
     <string name="pending_empty_title">Nothing is waiting</string>
     <string name="pending_empty_footer">This is where subscriptions set to “ask me the amount” wait for a figure. Cents never invents one.</string>
     <string name="pending_skip">Skip</string>

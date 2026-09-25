@@ -64,6 +64,7 @@ class BackupWriterTest {
                 "ruleReminders",
                 "budgets",
                 "groups",
+                "rulePostponements",
             ),
             json.keys,
         )

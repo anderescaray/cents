@@ -2288,6 +2288,38 @@ constraints: chart aggregation belongs in SQL `GROUP BY`, not in a Kotlin loop o
 of rows, and a resizable grid of live charts is exactly the screen where a missing `key` or a
 non-skippable `UiState` turns into visible jank.
 
+### Choosing which charts show, and in what order (requested 2026-09-25)
+
+Requested by the owner on 2026-09-25, to be placed during the **UI/UX pass**, the same one that
+replaces the bubbles. It is not built, and nothing about where it lives is decided yet.
+
+- **Every chart has a title.** The Reports tab shows a list of those titles.
+- **The owner drags the list into the order they want** and the Reports tab shows the charts in
+  that order.
+- **Any chart can be hidden**, and shown again from the same list.
+- **Where the list lives is open.** It could be the Reports tab itself, with an *Edit* mode
+  where the owner sees the result while arranging, or Settings. The owner leans towards the
+  Reports tab, but it is to be decided in the UI/UX pass.
+
+What makes it cheap: each view on the Reports tab is already a self-contained
+`ReportSection` (`ui/feature/reports/ReportSection.kt`), so an order and a set of hidden ones is
+a list of section ids in DataStore, which already stores the home canvas layout. The iOS pattern
+for it (rule 12) is an edit list with drag handles and a show/hide control on each row, as in
+Control Center's *Customize*. This is the modest first step towards the dashboard above.
+Reordering and hiding come first; resizing cards can come later.
+
+### Hiding a tab that is rarely used (requested 2026-09-25)
+
+The same idea applied to the app's sections. **Accounts** is the example given: accounts are
+created at the start and then very rarely, so its tab could be hidden while it is not in use.
+Decide it together with the bubble replacement, since both are about what the main navigation
+shows. Two things to keep in mind:
+
+- **Nothing may become unreachable.** A new movement needs an account, and the net worth lives
+  on the Accounts tab. A hidden tab needs another way in, for example a row in Settings. Hiding
+  must not delete any data or turn any feature off.
+- **At least one tab must stay visible**, and hiding a tab is undone the same way it was done.
+
 ---
 
 ## Next concrete action

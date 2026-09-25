@@ -33,6 +33,11 @@ import java.time.LocalDate
  * is, and counted by the balance exactly as one is, which is what makes an investments account's
  * balance read as the cash left in it.
  *
+ * A row with a [groupId] is **part of an occasion** — a trip, a freelance job — and, like
+ * [ruleId], that changes nothing about how it counts: the trip's dinner is still a restaurant
+ * expense in its own month. `SET NULL` for the same reason too: a group is a way of reading
+ * movements, and deleting one must never delete what it grouped.
+ *
  * Deleting an account or a category that still has transactions is refused by the
  * foreign keys ([ForeignKey.RESTRICT]); both are archived instead.
  */
@@ -63,6 +68,12 @@ import java.time.LocalDate
             childColumns = ["ruleId"],
             onDelete = ForeignKey.SET_NULL,
         ),
+        ForeignKey(
+            entity = GroupEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["groupId"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
     indices = [
         Index(value = ["accountId"]),
@@ -72,6 +83,7 @@ import java.time.LocalDate
         Index(value = ["transferId"]),
         Index(value = ["tradeId"]),
         Index(value = ["ruleId"]),
+        Index(value = ["groupId"]),
     ],
 )
 data class TransactionEntity(
@@ -114,6 +126,8 @@ data class TransactionEntity(
      * rule can say what it has produced, and so a catch-up can tell that a period is done.
      */
     val ruleId: Long? = null,
+    /** The occasion this belongs to, and null for most movements (PRD §4.9). */
+    val groupId: Long? = null,
     val attachmentUri: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,

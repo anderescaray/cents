@@ -209,6 +209,7 @@ interface TransactionDao {
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
                t.date AS date, t.note AS note,
                t.transferId AS transferId, t.tradeId AS tradeId,
+               t.groupId AS groupId, g.name AS groupName,
                a.name AS accountName,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
@@ -238,6 +239,7 @@ interface TransactionDao {
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
+        LEFT JOIN movement_groups g ON g.id = t.groupId
         WHERE (:accountId IS NULL OR t.accountId = :accountId)
           AND (:categoryId IS NULL OR t.categoryId = :categoryId)
           AND (
@@ -245,6 +247,7 @@ interface TransactionDao {
             OR (t.categoryId IS NULL AND t.transferId IS NULL AND t.tradeId IS NULL)
           )
           AND (:kind IS NULL OR t.kind = :kind)
+          AND (:groupId IS NULL OR t.groupId = :groupId)
           AND (:from IS NULL OR t.date >= :from)
           AND (:to IS NULL OR t.date <= :to)
           AND (
@@ -258,6 +261,7 @@ interface TransactionDao {
             OR t.note LIKE :query ESCAPE '\'
             OR c.name LIKE :query ESCAPE '\'
             OR a.name LIKE :query ESCAPE '\'
+            OR g.name LIKE :query ESCAPE '\'
           )
         ORDER BY t.date DESC, t.id DESC
         """,
@@ -268,6 +272,7 @@ interface TransactionDao {
         categoryId: Long?,
         uncategorized: Boolean,
         kind: TransactionKind?,
+        groupId: Long?,
         from: LocalDate?,
         to: LocalDate?,
         weekday: Int?,
@@ -283,6 +288,7 @@ interface TransactionDao {
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
                t.date AS date, t.note AS note,
                t.transferId AS transferId, t.tradeId AS tradeId,
+               t.groupId AS groupId, g.name AS groupName,
                a.name AS accountName,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
@@ -312,6 +318,7 @@ interface TransactionDao {
         FROM transactions t
         INNER JOIN accounts a ON a.id = t.accountId
         LEFT JOIN categories c ON c.id = t.categoryId
+        LEFT JOIN movement_groups g ON g.id = t.groupId
         WHERE t.accountId = :accountId
         ORDER BY t.date DESC, t.id DESC
         """,
@@ -397,6 +404,35 @@ interface TransactionDao {
         from: LocalDate,
         to: LocalDate,
         accountId: Long?,
+    ): Flow<List<CategoryTotal>>
+
+    /**
+     * What one group's movements of one [kind] came to, per category — the ring on a group's
+     * screen (PRD §4.9).
+     *
+     * [observeTotalsByCategory] with a group where the period was: no dates, because a group is
+     * its own span, and the same exclusions and the same surviving uncategorized slice.
+     */
+    @Query(
+        """
+        SELECT t.categoryId AS categoryId,
+               c.name AS categoryName,
+               c.colorArgb AS categoryColorArgb,
+               SUM(t.amountMinor) AS totalMinor,
+               COUNT(*) AS transactionCount
+        FROM transactions t
+        LEFT JOIN categories c ON c.id = t.categoryId
+        WHERE t.kind = :kind
+          AND t.groupId = :groupId
+          AND t.transferId IS NULL
+          AND t.tradeId IS NULL
+        GROUP BY t.categoryId
+        ORDER BY totalMinor DESC, categoryName ASC
+        """,
+    )
+    fun observeGroupTotalsByCategory(
+        groupId: Long,
+        kind: TransactionKind,
     ): Flow<List<CategoryTotal>>
 
     /**
@@ -681,6 +717,9 @@ data class TransactionWithNames(
     val note: String?,
     val transferId: Long?,
     val tradeId: Long?,
+    /** The occasion it belongs to (PRD §4.9), and its name for the row, both null for most. */
+    val groupId: Long?,
+    val groupName: String?,
     val accountName: String,
     val categoryName: String?,
     val categoryColorArgb: Int?,

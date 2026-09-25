@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
+import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
@@ -30,7 +31,11 @@ import javax.inject.Singleton
  * The tables are read through the flows every screen already uses, taking their first emission.
  * That is six queries and no new DAO surface: an export is not a new way of reading the
  * database, it is the same reading written down.
+ *
+ * @suppress TooManyFunctions — one small reader per table, the shape `BackupWriter` has for the
+ * same reason: each says what one table becomes in the file, and a new table is a new function.
  */
+@Suppress("TooManyFunctions")
 @Singleton
 class RoomBackupRepository
     @Inject
@@ -54,6 +59,7 @@ class RoomBackupRepository
                     rules = rules(),
                     reminders = reminders(),
                     budgets = budgets(),
+                    groups = groups(),
                 )
             }
 
@@ -98,6 +104,7 @@ class RoomBackupRepository
                     transferId = it.transferId,
                     tradeId = it.tradeId,
                     ruleId = it.ruleId,
+                    groupId = it.groupId,
                 )
             }
 
@@ -134,7 +141,8 @@ class RoomBackupRepository
          *
          * **The order is the foreign keys' order, in both directions.** Movements point at
          * accounts, categories, trades and rules; trades point at holdings; rules point at
-         * accounts and categories, reminders at rules and budgets at categories; so the emptying
+         * accounts and categories, reminders at rules and budgets at categories, and movements at
+         * groups too; so the emptying
          * goes from the leaves inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
          * would turn every restore into a failure, so it is written down rather than discovered.
@@ -145,6 +153,7 @@ class RoomBackupRepository
         override suspend fun restore(backup: Backup) {
             database.withTransaction {
                 database.transactionDao().deleteAll()
+                database.groupDao().deleteAll()
                 database.budgetDao().deleteAll()
                 database.ruleReminderDao().deleteAll()
                 database.recurringRuleDao().deleteAll()
@@ -160,6 +169,7 @@ class RoomBackupRepository
                 backup.rules.forEach { database.recurringRuleDao().insert(it.toEntity(now)) }
                 backup.reminders.forEach { database.ruleReminderDao().insert(it.toEntity()) }
                 backup.budgets.forEach { database.budgetDao().insert(it.toEntity(now)) }
+                backup.groups.forEach { database.groupDao().insert(it.toEntity(now)) }
                 backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
                 backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
                 backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
@@ -193,6 +203,16 @@ class RoomBackupRepository
         private suspend fun budgets() =
             database.budgetDao().all().map {
                 BackupBudget(categoryId = it.categoryId, amountMinor = it.amountMinor, currency = it.currency)
+            }
+
+        private suspend fun groups() =
+            database.groupDao().all().map {
+                BackupGroup(
+                    id = it.id,
+                    name = it.name,
+                    startDate = it.startDate?.toEpochDay(),
+                    endDate = it.endDate?.toEpochDay(),
+                )
             }
 
         private suspend fun quotes() =

@@ -11,6 +11,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.BudgetDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
+import io.github.anderescaray.cents.data.local.dao.GroupDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
 import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
 import io.github.anderescaray.cents.data.local.dao.RecurringRuleDao
@@ -64,4 +65,7 @@ object DatabaseModule {
 
     @Provides
     fun provideBudgetDao(database: CentsDatabase): BudgetDao = database.budgetDao()
+
+    @Provides
+    fun provideGroupDao(database: CentsDatabase): GroupDao = database.groupDao()
 }

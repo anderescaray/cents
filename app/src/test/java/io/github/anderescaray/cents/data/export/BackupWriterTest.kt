@@ -63,6 +63,7 @@ class BackupWriterTest {
                 "recurringRules",
                 "ruleReminders",
                 "budgets",
+                "groups",
             ),
             json.keys,
         )
@@ -120,10 +121,10 @@ class BackupWriterTest {
     fun `the csv has one row per movement, under a header`() {
         val lines = BackupWriter.toCsv(backup()).trim().lines()
 
-        assertEquals("date,account,category,kind,amount,currency,note,transferId,tradeId", lines.first())
+        assertEquals("date,account,category,kind,amount,currency,note,transferId,tradeId,group", lines.first())
         assertEquals(2, lines.size)
         assertEquals(
-            "2026-09-16,Checking,Groceries,EXPENSE,25.50,EUR,Weekly shop,,",
+            "2026-09-16,Checking,Groceries,EXPENSE,25.50,EUR,Weekly shop,,,",
             lines[1],
         )
     }
@@ -153,7 +154,7 @@ class BackupWriterTest {
         // silently a different file from the one the owner thinks they have.
         assertTrue(csv, csv.contains("\"Food, \"\"drink\"\"\nand rent\""))
         val header = csv.lines().first()
-        assertEquals(9, header.split(",").size)
+        assertEquals(10, header.split(",").size)
     }
 
     @Test

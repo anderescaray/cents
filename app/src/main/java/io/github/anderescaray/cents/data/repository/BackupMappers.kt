@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.data.repository
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
+import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
@@ -14,6 +15,7 @@ import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
+import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
@@ -87,6 +89,7 @@ fun BackupTransaction.toEntity(createdAt: Instant) =
         transferId = transferId,
         tradeId = tradeId,
         ruleId = ruleId,
+        groupId = groupId,
         createdAt = createdAt,
         updatedAt = createdAt,
     )
@@ -143,6 +146,15 @@ fun BackupRule.toEntity(createdAt: Instant) =
 
 fun BackupBudget.toEntity(createdAt: Instant) =
     BudgetEntity(categoryId = categoryId, amountMinor = amountMinor, currency = currency, createdAt = createdAt)
+
+fun BackupGroup.toEntity(createdAt: Instant) =
+    GroupEntity(
+        id = id,
+        name = name,
+        startDate = startDate?.let(LocalDate::ofEpochDay),
+        endDate = endDate?.let(LocalDate::ofEpochDay),
+        createdAt = createdAt,
+    )
 
 fun BackupReminder.toEntity() = RuleReminderEntity(ruleId = ruleId, offsetDays = offsetDays)
 

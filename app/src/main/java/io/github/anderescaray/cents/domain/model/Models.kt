@@ -62,6 +62,11 @@ data class Transaction(
      * a rule is rent. It is here so a rule can say what it has produced.
      */
     val ruleId: Long? = null,
+    /**
+     * The occasion this belongs to — a trip, a freelance job — and null for most movements
+     * (PRD §4.9). Like [ruleId] it changes nothing about how the movement counts.
+     */
+    val groupId: Long? = null,
 ) {
     /** The amount as it affects a balance: negative for an expense. */
     val signedAmount: Money
@@ -89,6 +94,8 @@ data class TransactionDetails(
     val tradeSymbol: String? = null,
     /** Which holding that trade belongs to, so the row can open it. */
     val tradeHoldingId: Long? = null,
+    /** The group it belongs to, for the row to say so. Null for most movements. */
+    val groupName: String? = null,
 )
 
 /**

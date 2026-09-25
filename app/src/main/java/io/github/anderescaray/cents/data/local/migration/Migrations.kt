@@ -21,7 +21,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *    erased financial history on a real device.
  */
 val ALL_MIGRATIONS: Array<Migration>
-    get() = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+    get() =
+        arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8,
+        )
 
 /**
  * v1 to v2 — the investments tables.
@@ -246,6 +255,38 @@ val MIGRATION_6_7 =
             )
             db.execSQL(
                 "CREATE UNIQUE INDEX IF NOT EXISTS `index_budgets_categoryId` ON `budgets` (`categoryId`)",
+            )
+        }
+    }
+
+/**
+ * v7 to v8 — groups: what an occasion cost or earned, across categories (PRD §4.9).
+ *
+ * Additive, like every migration before it: one table, and one nullable column on `transactions`
+ * with its index. Every movement recorded before this belongs to no group, which is what it did.
+ *
+ * The column arrives by `ALTER TABLE` with its foreign key, exactly as `ruleId` did in v5 —
+ * SQLite accepts a `REFERENCES` clause on an added column whose default is null — and it is
+ * `SET NULL` for the same reason: deleting a group must never take a movement with it (rule 8's
+ * spirit, applied to something far less important than a subscription).
+ */
+val MIGRATION_7_8 =
+    object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `movement_groups` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`startDate` INTEGER, " +
+                    "`endDate` INTEGER, " +
+                    "`createdAt` INTEGER NOT NULL)",
+            )
+            db.execSQL(
+                "ALTER TABLE `transactions` ADD COLUMN `groupId` INTEGER " +
+                    "REFERENCES `movement_groups`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_transactions_groupId` ON `transactions` (`groupId`)",
             )
         }
     }

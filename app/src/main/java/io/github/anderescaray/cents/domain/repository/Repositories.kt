@@ -6,7 +6,10 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.Budget
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.DueReminder
+import io.github.anderescaray.cents.domain.model.Group
+import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PendingCharge
 import io.github.anderescaray.cents.domain.model.PeriodSummary
@@ -373,4 +376,45 @@ interface BudgetRepository {
     suspend fun saveBudget(budget: Budget): Long
 
     suspend fun deleteBudget(id: Long)
+}
+
+/** Occasions that cut across categories, and what each one came to (PRD §4.9, `DECISIONS.md` D27). */
+interface GroupRepository {
+    /** Every group, by name: what the form's picker offers. */
+    fun observeGroups(): Flow<List<Group>>
+
+    /**
+     * Every group with its totals, **most recent first**: by the last movement in it, and for a
+     * group that holds nothing yet by its dates or, failing those, by when it was made — so the
+     * trip created this morning is at the top rather than under last year's.
+     */
+    fun observeSummaries(currency: String): Flow<List<GroupSummary>>
+
+    /** One group's totals, or null once it has been deleted. */
+    fun observeSummary(
+        id: Long,
+        currency: String,
+    ): Flow<GroupSummary?>
+
+    /**
+     * What one group's movements of [kind] came to per category, largest first, with each one's
+     * share precomputed — the ring on the group's screen.
+     */
+    fun observeByCategory(
+        groupId: Long,
+        kind: TransactionKind,
+        currency: String,
+    ): Flow<List<CategorySpending>>
+
+    suspend fun findById(id: Long): Group?
+
+    /**
+     * Creates it when its id is [Group.NEW] and replaces it otherwise. Returns the id.
+     *
+     * The name is trimmed and has to be non-blank; the dates may be absent, but not backwards.
+     */
+    suspend fun saveGroup(group: Group): Long
+
+    /** Deletes the group and leaves every movement in it standing, without a group. */
+    suspend fun deleteGroup(id: Long)
 }

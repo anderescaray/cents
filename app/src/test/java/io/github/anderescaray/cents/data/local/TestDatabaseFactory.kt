@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
+import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
 import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
@@ -78,6 +79,8 @@ fun transaction(
     tradeId: Long? = null,
     /** Set on a movement a recurring rule generated rather than one that was typed. */
     ruleId: Long? = null,
+    /** Set on a movement that belongs to an occasion: a trip, a freelance job. */
+    groupId: Long? = null,
 ) = TransactionEntity(
     accountId = accountId,
     categoryId = categoryId,
@@ -89,6 +92,7 @@ fun transaction(
     transferId = transferId,
     tradeId = tradeId,
     ruleId = ruleId,
+    groupId = groupId,
     createdAt = FIXED_INSTANT,
     updatedAt = FIXED_INSTANT,
 )
@@ -186,4 +190,15 @@ fun budget(
     amountMinor = amountMinor,
     currency = currency,
     createdAt = Instant.parse("2026-09-23T10:00:00Z"),
+)
+
+fun group(
+    name: String = "Lisbon trip",
+    startDate: LocalDate? = null,
+    endDate: LocalDate? = null,
+) = GroupEntity(
+    name = name,
+    startDate = startDate,
+    endDate = endDate,
+    createdAt = Instant.parse("2026-09-25T10:00:00Z"),
 )

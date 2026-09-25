@@ -15,7 +15,8 @@ folder in the owner's own Google Drive.
 > bills, remind you before a charge and say what is still committed this month, JSON/CSV export
 > and restore, a daily automatic backup to the owner's own Google Drive, and a biometric lock.
 > Budgets, the first piece of Phase 5, landed the same day, and on 2026-09-25 groups: what a
-> trip or a job cost or earned across every category it touched. 846 tests.
+> trip or a job cost or earned across every category it touched, and an inbox that files what
+> was saved without a category in one tap. 852 tests.
 >
 > **Earlier status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
 > Recording money works end to end: accounts, categories, transactions and balances that trace

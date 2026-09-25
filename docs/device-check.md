@@ -24,7 +24,7 @@ the same day, on a phone nobody has held it on either — on 2026-09-16 with **W
 transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
 data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves, and on
 2026-09-23 with **Walk 11**, for the second wave and the automatic backup to Drive, then
-**Walk 12** for budgets, and on 2026-09-25 with **Walk 13**, for groups.
+**Walk 12** for budgets, and on 2026-09-25 with **Walk 13**, for groups, and **Walk 14** for the uncategorized inbox.
 Those last ones are the features whose failure is invisible on the screen that records them: a transfer can move both balances correctly and still leak into
 every chart, and a purchase can look perfectly recorded while the account it was paid from never
 notices.
@@ -1526,4 +1526,32 @@ movement is still in the list, in its category, with no group. Before deleting, 
 restore: the group and its movements come back together.
 
 > **Wrong looks like** a movement lost with the group, or a restored movement no longer in it.
+
+## Walk 14 — the uncategorized inbox (#90)
+
+You need at least one expense category and one income category.
+
+### i1 · Something to file
+
+Add two movements **without choosing a category**: an expense and an income. On the Transactions
+list, under the month summary, a row reads **To categorize** with **2**.
+
+> **Wrong looks like** no row, the wrong count, or a transfer or a share purchase counted in it.
+
+### i2 · One tap each
+
+Open it. Each movement is a card with a row of category chips under it: the expense shows only
+expense categories, the income only income ones, and no archived category appears. Tap a chip:
+the card leaves, and the movement in the list now carries that category. File the other one too.
+The row on the list disappears once nothing is waiting, and the inbox says *Nothing to categorize*.
+
+> **Wrong looks like** a card that stays after its chip is tapped, or a movement filed under the
+> wrong category.
+
+### i3 · The full form when needed
+
+Add another uncategorized movement, open the inbox and tap the movement itself (not a chip): the
+movement form opens. Pick a category there and save: it leaves the inbox all the same.
+
+> **Wrong looks like** the form opening a different movement.
 

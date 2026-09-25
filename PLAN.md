@@ -518,6 +518,11 @@ phone still out of reach:
 - **On the way, a real bug:** editing a movement a subscription wrote dropped its `ruleId`,
   because the form rebuilt the movement without it. The form now keeps it.
 - **Walk 13** (`h1`–`h6`) is the phone check for groups.
+- **Then the uncategorized inbox** (#90, PRD §4.6), the owner's choice once groups were in: a
+  *To categorize* row on the movement list counting what has no category, and a screen where each
+  one is filed with one tap on a category chip. No schema change; the count, the list and the
+  Reports *Uncategorized* slice share one predicate, which leaves out transfer legs and trade
+  cash, and filing is one `UPDATE` that refuses them. **Walk 14** (`i1`–`i3`) checks it.
 
 **Where the 2026-09-24 session stopped: the phone has the build, and Drive is connected.**
 Nothing was built. The session untangled a local merge, installed `main` on the phone, and got
@@ -753,7 +758,8 @@ unmerged one.
 | Subscriptions in backups | A backup carries the recurring rules, their reminders and which movements each rule wrote, with the watermark that keeps a restored rule from writing its past again. A restore works on a phone that has subscriptions, and its alert counts them on both sides and says to export first. #72, #74 |
 | Budgets | Settings › Budgets: a monthly limit per expense category. Each row shows what is left or how far over, what was spent and what is still to come from the category's subscriptions, and a bar that turns amber at 80 % and red above 100 %. The editor uses the keypad, and a budget is deleted behind a confirmation. Room v7. #80, #81, D26 |
 | Groups | Settings › Groups: occasions that cut across categories — a trip, a move, a freelance job. A movement can belong to one, picked on the form; a group says what it **cost** or **earned** in words, splits it by category, and opens its movements in the list. Reports and budgets are unchanged. Room v8. #86, #87, D27 |
-| Tests | 846 on `main` after #87, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Inbox | Movements saved without a category wait under **To categorize** on the Transactions list, with how many; the inbox files each with one tap on a category chip of its own kind, or opens the form. Transfers and trade cash never appear. #90 |
+| Tests | 852 on `main` after #90, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1747,8 +1753,9 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
 - [x] **`feat/budgets-screen`**: **#81**. Settings › Budgets and the editor, on D26's defaults.
 - [x] **Groups** (PRD §4.9, D27, outside the phase order): **#86**, Room v8 and the repository;
       **#87**, the screens.
-- [ ] **The uncategorized inbox**, then notification capture (PRD §4.6, experimental). Neither
-      is started, and both wait for the owner to ask.
+- [x] **`feat/uncategorized-inbox`**: **#90**. The *To categorize* row and the inbox screen.
+- [ ] **Notification capture** (PRD §4.6, experimental): payments read from notifications, landing
+      in the inbox. Not started; it waits for the owner to ask.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -2280,6 +2287,7 @@ the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has th
 - **Walk 11** (`n1`–`n11`) is new: everything from 2026-09-21 to 2026-09-23.
 - **Walk 12** (`g1`–`g5`) is budgets (#80, #81).
 - **Walk 13** (`h1`–`h6`) is groups (#86, #87).
+- **Walk 14** (`i1`–`i3`) is the uncategorized inbox (#90).
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.
@@ -2297,15 +2305,15 @@ next branch: an *Open* entry there outranks anything planned.
 **What comes next when there is no feedback:**
 - **A wave the owner has to choose.** Everything else left is a later roadmap phase
   (`CLAUDE.md` §9) or deferred work:
-  - **Phase 5**: budgets are built (#80, #81). What is left is the uncategorized inbox and,
-    after it, notification capture.
+  - **Phase 5**: budgets (#80, #81) and the inbox (#90) are built. What is left is notification
+    capture, experimental, which feeds the inbox.
   - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
     first two add dependencies and run alone.
   - The dashboard of cards is in C7.
   - **What replaces the bubbles** (C7). The owner does not much like the canvas and will say
     what they want instead. Until they do, no time goes into it.
-- Groups are built (#86, #87). As of 2026-09-25 the owner has not chosen between the inbox,
-  Phase 6 and the bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
+- Groups (#86, #87) and the inbox (#90) are built. As of 2026-09-25 the owner has not chosen
+  between notification capture, Phase 6 and the bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
   something *Open*.
 
 **A cloud session cannot build locally** while the environment blocks `dl.google.com` (Google

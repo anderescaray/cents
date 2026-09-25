@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
+import io.github.anderescaray.cents.data.local.dao.TransactionWithNames
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
@@ -25,9 +26,11 @@ import io.github.anderescaray.cents.domain.repository.TransferRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import java.text.Normalizer
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -204,8 +207,15 @@ class RoomTransactionRepository
                     weekday = filter.weekday?.value,
                     minAmountMinor = filter.minAmountMinor,
                     maxAmountMinor = filter.maxAmountMinor,
-                    query = filter.query.toLikeArgument(),
-                ).map { rows -> rows.map { it.toDomain() } }
+                    // Text is matched below rather than by SQLite's LIKE, which folds case for A–Z
+                    // only: "cafe" would miss "Café", and "ÑORA" would miss "ñora".
+                    query = null,
+                ).map { rows ->
+                    val wanted = filter.query.searchKey()
+                    rows
+                        .filter { row -> wanted.isEmpty() || row.matches(wanted) }
+                        .map { it.toDomain() }
+                }
 
         override fun observeUncategorizedCount(): Flow<Int> = transactionDao.observeUncategorizedCount()
 
@@ -417,19 +427,21 @@ class RoomTransferRepository
     }
 
 /**
- * Turns typed text into a LIKE pattern, or null when there is nothing to search for.
+ * Text as search compares it: accents stripped, case folded, surrounding space dropped.
  *
- * The wildcards are escaped before the surrounding ones are added, so a note containing
- * "50%" is found by searching for "50%" rather than matching every note starting with 50.
- * The backslash is escaped first, or it would go on to escape the escapes.
+ * The owner writes in Spanish, where "cafe" and "Café" are the same word typed two ways, and where
+ * "Ñ" is a capital SQLite's `LIKE` does not know is one. Decomposing (NFD) and dropping the marks
+ * is what makes both sides meet; ñ decomposes to n plus a tilde, so "nora" finds "Ñora" too — the
+ * cost of one rule for every accent, and a search that finds too much is the lesser failure.
  */
-private fun String.toLikeArgument(): String? {
-    val trimmed = trim()
-    if (trimmed.isEmpty()) return null
-    val escaped =
-        trimmed
-            .replace("\\", "\\\\")
-            .replace("%", "\\%")
-            .replace("_", "\\_")
-    return "%$escaped%"
-}
+internal fun String.searchKey(): String =
+    Normalizer
+        .normalize(trim(), Normalizer.Form.NFD)
+        .replace(COMBINING_MARKS, "")
+        .lowercase(Locale.ROOT)
+
+private val COMBINING_MARKS = Regex("\\p{Mn}+")
+
+/** The free-text match: the note, the category, the account and the group, as the list shows them. */
+private fun TransactionWithNames.matches(wanted: String): Boolean =
+    listOfNotNull(note, categoryName, accountName, groupName).any { it.searchKey().contains(wanted) }

@@ -193,11 +193,29 @@ class TransactionFilterTest {
         }
 
     @Test
+    fun `accents and case do not matter, either way round`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Cuenta Ñ"))
+            val cafe = database.categoryDao().insert(category(name = "Cafetería"))
+            database.transactionDao().insert(transaction(checking, cafe, amountMinor = 250, note = "Café con Ángel"))
+            database.transactionDao().insert(transaction(checking, amountMinor = 900, note = "cafe solo"))
+
+            // Typed without the accent, the accented note is found; typed with it, the plain one is.
+            assertEquals(listOf(250L, 900L), amountsFor(TransactionFilter(query = "cafe")).sorted())
+            assertEquals(listOf(250L, 900L), amountsFor(TransactionFilter(query = "CAFÉ")).sorted())
+            assertEquals(listOf(250L), amountsFor(TransactionFilter(query = "angel")))
+            // A capital Ñ, which SQLite's LIKE never folded, in the account name.
+            assertEquals(2, amountsFor(TransactionFilter(query = "cuenta ñ")).size)
+            // And a category with an accent.
+            assertEquals(listOf(250L), amountsFor(TransactionFilter(query = "cafeteria")))
+        }
+
+    @Test
     fun `the LIKE wildcards are searched for, not obeyed`() =
         runTest {
             seed()
 
-            // Escaped, this finds the note that literally contains "50%".
+            // This finds the note that literally contains "50%".
             assertEquals(listOf(700L), amountsFor(TransactionFilter(query = "50%")))
             // An underscore is the single-character wildcard: "l_nch" must not find "Lunch".
             assertEquals(emptyList<Long>(), amountsFor(TransactionFilter(query = "l_nch")))

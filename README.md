@@ -8,13 +8,14 @@ Built with Kotlin and Jetpack Compose. All data stays on the device — no backe
 accounts, no telemetry. The one thing that leaves it is an optional daily backup, to a hidden
 folder in the owner's own Google Drive.
 
-> **Status (2026-09-23): Phases 1–3 built; Phase 4 built with prices typed by hand; Phases 5–6
+> **Status (2026-09-25): Phases 1–3 built; Phase 4 built with prices typed by hand; Phases 5–6
 > not started.** Most of Phase 2 onward has still not been walked on a real phone. Since the
 > paragraph below was written, the app has gained transfers, an investment portfolio with closed
 > positions and net worth, recurring subscriptions that record themselves, ask for variable
 > bills, remind you before a charge and say what is still committed this month, JSON/CSV export
 > and restore, a daily automatic backup to the owner's own Google Drive, and a biometric lock.
-> Budgets, the first piece of Phase 5, landed the same day. 816 tests.
+> Budgets, the first piece of Phase 5, landed the same day, and on 2026-09-25 groups: what a
+> trip or a job cost or earned across every category it touched. 846 tests.
 >
 > **Earlier status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
 > Recording money works end to end: accounts, categories, transactions and balances that trace

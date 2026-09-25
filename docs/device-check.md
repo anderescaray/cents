@@ -23,7 +23,8 @@ sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section 
 the same day, on a phone nobody has held it on either — on 2026-09-16 with **Walk 7**, for
 transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
 data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves, and on
-2026-09-23 with **Walk 11**, for the second wave and the automatic backup to Drive.
+2026-09-23 with **Walk 11**, for the second wave and the automatic backup to Drive, then
+**Walk 12** for budgets, and on 2026-09-25 with **Walk 13**, for groups.
 Those last ones are the features whose failure is invisible on the screen that records them: a transfer can move both balances correctly and still leak into
 every chart, and a purchase can look perfectly recorded while the account it was paid from never
 notices.
@@ -1472,3 +1473,57 @@ With a budget set, **Export a backup** (or **Back up now** to Drive), then resto
 budget is still there, with its limit.
 
 > **Wrong looks like** the budget gone after a restore.
+
+## Walk 13 — groups (#86, #87)
+
+Settings › Groups. You need an account, an expense category or two and one income category.
+
+### h1 · A first group
+
+Tap **+**, type *Lisbon trip*, and give it a start and an end a few days apart, including today.
+**Save**. It is on the list, reading *Nothing recorded yet*.
+
+> **Wrong looks like** **Save** enabled with an empty name, or with an end before the start (the
+> footer should say so in red).
+
+### h2 · Recording into it
+
+Add an expense. Under *Category* there is now a **Group** section, with *Lisbon trip* first
+because today is inside its dates — but **not ticked**. Tick it and save. Add a second expense in
+another category, and an income (a friend paying you back), both in the group.
+
+> **Wrong looks like** the group ticked without being tapped, or the section missing once a group
+> exists.
+
+### h3 · What it cost
+
+Back on Settings › Groups, the row says *Cost you …*: the expenses minus the income. Open it:
+*Came in*, *Went out*, the dates of the first and last movement, a ring of the two expense
+categories and a list with the income under *Where it came from*. Check the sums by hand.
+
+> **Wrong looks like** the income counted as spending, or a transfer counted at all.
+
+### h4 · Into the list and back
+
+Tap a slice or a category row: the Transactions tab opens, narrowed to that group, that category
+and that direction, with the filter count showing. Tap **See its movements**: all three. The rows
+start with *Lisbon trip ·*. Clear the filter. Then, in Filters, pick the group under **Group**.
+
+> **Wrong looks like** a movement from outside the group, or the other direction mixed in.
+
+### h5 · Nothing else moved
+
+Open Reports for this month, and Settings › Budgets. The trip's expenses are there, in their own
+categories, exactly as before groups existed.
+
+> **Wrong looks like** a total that changed because a movement joined a group.
+
+### h6 · Editing, deleting, restoring
+
+Edit one of the movements and change only its note: it stays in the group. Tap the group again on
+the form to take a movement out. Then **Delete group**: it asks first, and afterwards every
+movement is still in the list, in its category, with no group. Before deleting, try an export and
+restore: the group and its movements come back together.
+
+> **Wrong looks like** a movement lost with the group, or a restored movement no longer in it.
+

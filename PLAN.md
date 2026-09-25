@@ -503,6 +503,22 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
+**Where the 2026-09-25 session stopped: groups are built.** The owner asked for a way to see
+what an occasion cost — a trip, say — across categories, and then for income to count as fully
+as expenses. It went into the PRD as §4.9 and D27 (#85), and was built the same day, with the
+phone still out of reach:
+- **#86** is the data: Room **v8**, a `movement_groups` table (not `groups`, which is an SQLite
+  keyword) and a nullable `transactions.groupId`, `SET NULL` on delete. `8.json` was written by
+  hand like `7.json`, with its hash from the same reconstructed algorithm, and CI accepted it.
+  Group totals exclude transfer legs and trade cash, like every report. Backups carry groups; the
+  CSV gains a trailing `group` column.
+- **#87** is the screens: Settings › Groups, a group's screen (what it cost or earned, in words,
+  a ring of where it went, and drill-downs into the list), the editor, a *Group* picker on the
+  movement form (covering groups offered first, never chosen), and a group filter.
+- **On the way, a real bug:** editing a movement a subscription wrote dropped its `ruleId`,
+  because the form rebuilt the movement without it. The form now keeps it.
+- **Walk 13** (`h1`–`h6`) is the phone check for groups.
+
 **Where the 2026-09-24 session stopped: the phone has the build, and Drive is connected.**
 Nothing was built. The session untangled a local merge, installed `main` on the phone, and got
 the Drive backup connected:
@@ -736,7 +752,8 @@ unmerged one.
 | Drive backup | Settings › Google Drive: a **daily backup** to the app's hidden folder on the owner's Drive, **Back up now**, and **Restore from Drive** through the same confirmation a file restore uses. Keeps the newest copy of each of the last 7 days, 4 weeks and 6 months, and skips a copy identical to the newest. A refused token is renewed silently; only a grant that needs the owner asks to **Reconnect**. `play-services-auth` and OkHttp, no Drive SDK. #69 |
 | Subscriptions in backups | A backup carries the recurring rules, their reminders and which movements each rule wrote, with the watermark that keeps a restored rule from writing its past again. A restore works on a phone that has subscriptions, and its alert counts them on both sides and says to export first. #72, #74 |
 | Budgets | Settings › Budgets: a monthly limit per expense category. Each row shows what is left or how far over, what was spent and what is still to come from the category's subscriptions, and a bar that turns amber at 80 % and red above 100 %. The editor uses the keypad, and a budget is deleted behind a confirmation. Room v7. #80, #81, D26 |
-| Tests | 816 on `main` after #81, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Groups | Settings › Groups: occasions that cut across categories — a trip, a move, a freelance job. A movement can belong to one, picked on the form; a group says what it **cost** or **earned** in words, splits it by category, and opens its movements in the list. Reports and budgets are unchanged. Room v8. #86, #87, D27 |
+| Tests | 846 on `main` after #87, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1728,6 +1745,8 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
 - [x] **`feat/budgets-schema`**: **#80**. Room v7: `budgets`, one per expense category, with
       `CASCADE` from the category. Budgets travel in backups.
 - [x] **`feat/budgets-screen`**: **#81**. Settings › Budgets and the editor, on D26's defaults.
+- [x] **Groups** (PRD §4.9, D27, outside the phase order): **#86**, Room v8 and the repository;
+      **#87**, the screens.
 - [ ] **The uncategorized inbox**, then notification capture (PRD §4.6, experimental). Neither
       is started, and both wait for the owner to ask.
 
@@ -2260,6 +2279,7 @@ the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has th
 - Walks 4 to 10 have never been walked.
 - **Walk 11** (`n1`–`n11`) is new: everything from 2026-09-21 to 2026-09-23.
 - **Walk 12** (`g1`–`g5`) is budgets (#80, #81).
+- **Walk 13** (`h1`–`h6`) is groups (#86, #87).
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.
@@ -2282,14 +2302,10 @@ next branch: an *Open* entry there outranks anything planned.
   - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
     first two add dependencies and run alone.
   - The dashboard of cards is in C7.
-  - **Groups** (PRD §4.9, `DECISIONS.md` D27): the owner's request of 2026-09-25, to see what a
-    trip or any other occasion cost across categories. One branch: a `groups` table, a nullable
-    `groupId` on movements (**Room v8**, `SET NULL` on delete), a picker on the form, the Groups
-    screen, a list filter, and the backup carrying both.
   - **What replaces the bubbles** (C7). The owner does not much like the canvas and will say
     what they want instead. Until they do, no time goes into it.
-- As of 2026-09-25 the owner has not chosen between the inbox, Phase 6, groups and the
-  bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
+- Groups are built (#86, #87). As of 2026-09-25 the owner has not chosen between the inbox,
+  Phase 6 and the bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
   something *Open*.
 
 **A cloud session cannot build locally** while the environment blocks `dl.google.com` (Google

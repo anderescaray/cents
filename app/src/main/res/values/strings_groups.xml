@@ -44,4 +44,6 @@
     <string name="filters_group_header">Group</string>
     <string name="filters_all_groups">All groups</string>
     <string name="transaction_row_in_group">%1$s · %2$s</string>
+    <string name="restore_confirm_incoming_extra">With it come %1$d budgets and %2$d groups.</string>
+    <string name="restore_confirm_replaces_extra">It also removes the %1$d budgets and %2$d groups here now.</string>
 </resources>

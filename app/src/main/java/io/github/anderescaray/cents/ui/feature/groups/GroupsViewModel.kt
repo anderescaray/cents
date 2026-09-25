@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.GroupRepository
+import io.github.anderescaray.cents.ui.util.deviceCurrency
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,7 @@ class GroupsViewModel
         val uiState: StateFlow<GroupsUiState> =
             accounts
                 .observeAccounts()
-                .map { it.firstOrNull()?.currency ?: FALLBACK_CURRENCY }
+                .map { it.firstOrNull()?.currency ?: deviceCurrency() }
                 .distinctUntilChanged()
                 .flatMapLatest { currency -> groups.observeSummaries(currency) }
                 .map { GroupsUiState(groups = it, isLoading = false) }
@@ -51,6 +52,5 @@ class GroupsViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
-            const val FALLBACK_CURRENCY = "EUR"
         }
     }

@@ -15,6 +15,7 @@ import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.GroupRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.util.deviceCurrency
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +62,7 @@ class GroupDetailViewModel
         val uiState: StateFlow<GroupDetailUiState> =
             accounts
                 .observeAccounts()
-                .map { it.firstOrNull()?.currency ?: FALLBACK_CURRENCY }
+                .map { it.firstOrNull()?.currency ?: deviceCurrency() }
                 .distinctUntilChanged()
                 .flatMapLatest { currency ->
                     combine(
@@ -99,6 +100,5 @@ class GroupDetailViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
-            const val FALLBACK_CURRENCY = "EUR"
         }
     }

@@ -75,6 +75,18 @@ class BudgetProgressTest {
     }
 
     @Test
+    fun `last month's unanswered bill is not this month's budget`() {
+        // August's bill will be recorded on 5 August when it is answered, so only September's
+        // counts against September — the Subscriptions screen still counts both, as money owed.
+        val electricity =
+            rule(categoryId = groceries.id, minor = 7_000, start = LocalDate.of(2026, 8, 5), mode = RuleMode.CONFIRM)
+
+        val row = progress(limit = 40_000, spent = 0, rules = listOf(electricity)).single()
+
+        assertEquals(Money(7_000, "EUR"), row.committed)
+    }
+
+    @Test
     fun `other categories, income and stopped rules are not this budget's business`() {
         val rules =
             listOf(

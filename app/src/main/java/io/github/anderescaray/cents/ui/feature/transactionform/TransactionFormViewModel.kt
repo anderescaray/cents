@@ -47,6 +47,13 @@ data class TransactionFormUiState(
     val groups: List<Group> = emptyList(),
     /** The occasion this belongs to (PRD §4.9), or null — which is most movements. */
     val selectedGroupId: Long? = null,
+    /**
+     * The groups in the order the picker offers them: any whose dates cover this movement's date
+     * first — the trip you are on — and the rest by name after them. **Offered, never chosen**
+     * (D27): a movement joins a group only when the owner taps it. Held rather than derived, so
+     * the list is sorted when the groups or the date change and not on every keypad digit.
+     */
+    val offeredGroups: List<Group> = emptyList(),
     val date: LocalDate = LocalDate.now(),
     val today: LocalDate = LocalDate.now(),
     val note: String = "",
@@ -79,13 +86,6 @@ data class TransactionFormUiState(
      * the same record with its direction flipped.
      */
     val canBecomeTransfer: Boolean get() = !isEditing
-
-    /**
-     * The groups in the order the picker offers them: any whose dates cover this movement's date
-     * first — the trip you are on — and the rest by name after them. **Offered, never chosen**
-     * (D27): a movement joins a group only when the owner taps it.
-     */
-    val offeredGroups: List<Group> get() = groups.sortedByDescending { it.covers(date) }
 }
 
 /** A placeholder until an account is known; never what a movement is actually saved as. */
@@ -174,13 +174,14 @@ class TransactionFormViewModel
                 groupRepository.observeGroups().collect { groups ->
                     groupsLoaded = true
                     form.update { state ->
-                        state.copy(
-                            groups = groups,
-                            // A group deleted while this form was open is no longer on offer.
-                            // Pruned only once the real list is known, for the reason the
-                            // category is: the movement and the groups load independently.
-                            selectedGroupId = state.selectedGroupId?.takeIf { id -> groups.any { it.id == id } },
-                        )
+                        state
+                            .copy(
+                                groups = groups,
+                                // A group deleted while this form was open is no longer on offer.
+                                // Pruned only once the real list is known, for the reason the
+                                // category is: the movement and the groups load independently.
+                                selectedGroupId = state.selectedGroupId?.takeIf { id -> groups.any { it.id == id } },
+                            ).withOfferedGroups()
                     }
                 }
             }
@@ -206,6 +207,7 @@ class TransactionFormViewModel
                                 !groupsLoaded || state.groups.any { it.id == id }
                             },
                     ).withOptions(state.accounts, allCategories)
+                    .withOfferedGroups()
             }
         }
 
@@ -279,7 +281,7 @@ class TransactionFormViewModel
 
         fun dismissDatePicker() = form.update { it.copy(pickingDate = false) }
 
-        fun setDate(date: LocalDate) = form.update { it.copy(date = date, pickingDate = false) }
+        fun setDate(date: LocalDate) = form.update { it.copy(date = date, pickingDate = false).withOfferedGroups() }
 
         fun setNote(note: String) = form.update { it.copy(note = note, writeFailed = false) }
 
@@ -356,3 +358,6 @@ internal fun TransactionKind.toCategoryKind(): CategoryKind =
         TransactionKind.INCOME -> CategoryKind.INCOME
         TransactionKind.EXPENSE -> CategoryKind.EXPENSE
     }
+
+private fun TransactionFormUiState.withOfferedGroups(): TransactionFormUiState =
+    copy(offeredGroups = groups.sortedByDescending { it.covers(date) })

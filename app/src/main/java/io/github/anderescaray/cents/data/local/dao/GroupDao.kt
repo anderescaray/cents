@@ -47,6 +47,25 @@ interface GroupDao {
     )
     fun observeTotals(): Flow<List<GroupTotals>>
 
+    /** [observeTotals] for one group — its screen — without summing every other group too. */
+    @Query(
+        """
+        SELECT g.id AS id, g.name AS name, g.startDate AS startDate, g.endDate AS endDate,
+               g.createdAt AS createdAt,
+               COALESCE(SUM(CASE WHEN t.kind = 'INCOME' THEN t.amountMinor ELSE 0 END), 0) AS incomeMinor,
+               COALESCE(SUM(CASE WHEN t.kind = 'EXPENSE' THEN t.amountMinor ELSE 0 END), 0) AS expenseMinor,
+               COUNT(t.id) AS movementCount,
+               MIN(t.date) AS firstDate,
+               MAX(t.date) AS lastDate
+        FROM movement_groups g
+        LEFT JOIN transactions t
+          ON t.groupId = g.id AND t.transferId IS NULL AND t.tradeId IS NULL
+        WHERE g.id = :id
+        GROUP BY g.id
+        """,
+    )
+    fun observeTotalsFor(id: Long): Flow<GroupTotals?>
+
     @Insert
     suspend fun insert(group: GroupEntity): Long
 

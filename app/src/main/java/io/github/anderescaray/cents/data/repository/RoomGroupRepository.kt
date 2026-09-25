@@ -40,8 +40,7 @@ class RoomGroupRepository
         override fun observeSummary(
             id: Long,
             currency: String,
-        ): Flow<GroupSummary?> =
-            groupDao.observeTotals().map { rows -> rows.firstOrNull { it.id == id }?.toSummary(currency) }
+        ): Flow<GroupSummary?> = groupDao.observeTotalsFor(id).map { it?.toSummary(currency) }
 
         override fun observeByCategory(
             groupId: Long,

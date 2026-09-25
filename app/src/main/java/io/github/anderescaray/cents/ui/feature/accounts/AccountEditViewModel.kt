@@ -11,14 +11,13 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.util.AmountEntry
+import io.github.anderescaray.cents.ui.util.deviceCurrency
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Currency
-import java.util.Locale
 import javax.inject.Inject
 
 data class AccountEditUiState(
@@ -27,7 +26,7 @@ data class AccountEditUiState(
     val type: AccountType = AccountType.BANK,
     /**
      * The one currency the app works in, from the device locale. Not chosen and not
-     * editable: see `DECISIONS.md` D2, and [defaultCurrency].
+     * editable: see `DECISIONS.md` D2, and [deviceCurrency].
      */
     val currency: String = "EUR",
     val colorArgb: Int = AccountPalette.first(),
@@ -82,7 +81,10 @@ class AccountEditViewModel
         // was stored in it. With no picker left (D2), nothing could then correct it.
         private val form =
             MutableStateFlow(
-                AccountEditUiState(isNew = accountId == null, currency = defaultCurrency()),
+                // What the device says money is called here. An existing account keeps whatever it was
+                // created with, so an install that predates D2 holding a second currency is left as
+                // it is rather than silently restated: the amounts in it are real.
+                AccountEditUiState(isNew = accountId == null, currency = deviceCurrency()),
             )
 
         val uiState: StateFlow<AccountEditUiState> = form.asStateFlow()
@@ -263,12 +265,4 @@ class AccountEditViewModel
                 .observeAccounts(includeArchived = true)
                 .first()
                 .maxOfOrNull { it.sortOrder + 1 } ?: 0
-
-        /**
-         * What the device says money is called here. An existing account keeps whatever it
-         * was created with, so an install that predates D2 and holds a second currency is
-         * left exactly as it is rather than silently restated — the amounts in it are real.
-         */
-        private fun defaultCurrency(locale: Locale = Locale.getDefault()): String =
-            runCatching { Currency.getInstance(locale).currencyCode }.getOrDefault("EUR")
     }

@@ -11,6 +11,7 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomGroupRepository
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.groups.GroupDate
 import io.github.anderescaray.cents.ui.feature.groups.GroupDetailViewModel
@@ -109,6 +110,7 @@ class GroupViewModelsTest {
             val checking = database.accountDao().insert(account())
             val lisbon = database.groupDao().insert(group(name = "Lisbon trip", startDate = LocalDate.of(2026, 10, 2)))
             val hotel = database.transactionDao().insert(transaction(checking, amountMinor = 18_000, groupId = lisbon))
+            filters.apply(TransactionFilter(groupId = lisbon))
             val editor = editorFor(lisbon)
 
             val loaded = editor.uiState.first { it.loaded }
@@ -121,6 +123,7 @@ class GroupViewModelsTest {
             val done = editor.uiState.first { it.finished }
 
             assertTrue("the screen knows to leave the detail behind too", done.deleted)
+            assertNull("the list is no longer narrowed to a group that is gone", filters.filter.value.groupId)
             assertTrue(groups.observeGroups().first().isEmpty())
             assertEquals(18_000L, database.transactionDao().findById(hotel)?.amountMinor)
             assertNull(database.transactionDao().findById(hotel)?.groupId)
@@ -190,6 +193,7 @@ class GroupViewModelsTest {
         viewModels.keep(
             GroupEditViewModel(
                 groups = groups,
+                filters = filters,
                 savedStateHandle = SavedStateHandle(mapOf("groupId" to groupId)),
                 clock = clock,
             ),

@@ -96,21 +96,37 @@ fun subscriptionTotalsOf(
 }
 
 /**
- * What this rule is still known to take before the month ends, counted the way *committed this
- * month* on the Subscriptions screen counts it — so a budget and that screen can never disagree
- * about the same rent.
+ * What this rule is still known to take **in this month's books** before the month ends — what a
+ * budget adds to what was spent.
+ *
+ * The same count as *committed this month* on the Subscriptions screen, with one difference, and
+ * it is deliberate: a variable bill still waiting from an **earlier** month is left out. That
+ * screen counts it because it is money still owed; but it will be recorded on its own due date,
+ * in its own month (D23), so it is no part of this month's budget. Counting it here made a budget
+ * turn red over last month's electricity.
  */
 fun RecurringRule.committedThisMonth(today: LocalDate): Money =
-    Money(Math.multiplyExact(amount.minorUnits, committedOccurrenceCount(today)), amount.currency)
+    Money(
+        Math.multiplyExact(amount.minorUnits, committedOccurrenceCount(today, earlierMonthsToo = false)),
+        amount.currency,
+    )
 
-private fun RecurringRule.committedOccurrenceCount(today: LocalDate): Long {
+private fun RecurringRule.committedOccurrenceCount(
+    today: LocalDate,
+    earlierMonthsToo: Boolean = true,
+): Long {
     val month = YearMonth.from(today)
     val remaining =
         (today.dayOfMonth..month.lengthOfMonth()).count { day ->
             val date = month.atDay(day)
             (lastGenerated == null || date > lastGenerated) && occursOn(date)
         }
-    val waiting = if (mode == RuleMode.CONFIRM) dueOccurrences(today.minusDays(1)).size else 0
+    val waiting =
+        if (mode == RuleMode.CONFIRM) {
+            dueOccurrences(today.minusDays(1)).count { earlierMonthsToo || YearMonth.from(it) == month }
+        } else {
+            0
+        }
     return remaining.toLong() + waiting
 }
 

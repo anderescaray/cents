@@ -8,6 +8,7 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.domain.repository.GroupRepository
+import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.navigation.Destination
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +57,7 @@ class GroupEditViewModel
     @Inject
     constructor(
         private val groups: GroupRepository,
+        private val filters: TransactionFilterStore,
         savedStateHandle: SavedStateHandle,
         clock: Clock,
     ) : ViewModel() {
@@ -138,6 +140,11 @@ class GroupEditViewModel
             form.update { it.copy(confirmingDelete = false, saving = true) }
             viewModelScope.launch {
                 val deleted = write { groups.deleteGroup(id) }
+                // A list still narrowed to the group — left there by its "see movements" — would
+                // otherwise read as empty with nothing on the form to say why.
+                if (deleted && filters.filter.value.groupId == id) {
+                    filters.apply(filters.filter.value.copy(groupId = null))
+                }
                 form.update { it.copy(saving = false, writeFailed = !deleted, deleted = deleted, finished = deleted) }
             }
         }

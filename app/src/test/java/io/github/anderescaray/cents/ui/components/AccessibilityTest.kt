@@ -124,7 +124,10 @@ class AccessibilityTest {
     }
 
     @Test
-    fun `at a very large system font an alert's buttons grow with their words`() {
+    fun `at a very large system font a control grows with its words`() {
+        // A dialog opens its own window, which reads the font scale from the device rather than
+        // from this CompositionLocal, so the alert cannot be measured this way; the segmented
+        // control uses the same min-height pattern and lives in the window under test.
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 3f)) {
@@ -132,23 +135,19 @@ class AccessibilityTest {
                     CentsListSection(header = "Account") {
                         CentsListRow(title = "A long account name that has to wrap", value = "1.234,56 €")
                     }
-                    CentsAlert(
-                        title = "Delete this budget?",
-                        message = "The limit goes. Nothing you have recorded changes.",
-                        confirmLabel = "Delete",
-                        onConfirm = {},
-                        dismissLabel = "Cancel",
-                        onDismiss = {},
-                        destructive = true,
+                    CentsSegmentedControl(
+                        options = listOf("Expense", "Income"),
+                        selected = "Expense",
+                        onSelect = {},
+                        label = { it },
                     )
                 }
             }
         }
 
-        composeRule.onNodeWithText("Delete").assertIsDisplayed()
-        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
-        // Three times 22 sp of line is 66 dp: a button held at its old fixed 44 dp would cut the
+        composeRule.onNodeWithText("A long account name that has to wrap").assertIsDisplayed()
+        // Three times a 20 sp line is 60 dp: a segment held at its old fixed 28 dp would cut the
         // word off, and one that grows is at least as tall as the line.
-        composeRule.onNodeWithText("Delete").assertHeightIsAtLeast(60.dp)
+        composeRule.onNodeWithText("Expense").assertHeightIsAtLeast(50.dp)
     }
 }

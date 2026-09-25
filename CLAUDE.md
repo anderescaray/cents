@@ -306,7 +306,12 @@ category a monthly limit, and measures it against what went out plus what its su
 still take before the month ends, counted from day one as PRD §4.4 asks. Amber at 80 %, red above
 100 %, no notification (D26). **The bubbles are on notice**: the owner means to replace them, so no
 time goes into the canvas until they say what with.
-816 tests run on the JVM, so CI covers the database and the UI without a device.
+**And an occasion has a total** (#86, #88, **Room v8**, D27): Settings › Groups gathers movements
+from any category under one occasion — a trip, a move, a freelance job — and says what it
+**cost** or **earned** in words, with a ring of where it went and the way into its movements. A
+movement belongs to at most one group, so totals never overlap, and joining one changes no report
+and no budget: the trip's dinner is still a restaurant expense in its own month.
+846 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

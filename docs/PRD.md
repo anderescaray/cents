@@ -52,7 +52,7 @@ Understanding these eight entities is understanding the whole app.
 | **RecurringRule** | A template for a repeating movement: subscription, salary, rent | amount, category, account, frequency, day, next date, end date, mode (auto/confirm), active |
 | **Holding** | Something I hold: stock, ETF, fund | ticker/ISIN, name, quantity, average cost, currency, account/broker |
 | **PriceQuote** | Last known price of an instrument, cached | symbol, price, currency, timestamp, source |
-| **Group** | An occasion that cuts across categories: a trip, a move, a freelance job (§4.9) | name, optional start and end date, archived |
+| **Group** | An occasion that cuts across categories: a trip, a move, a freelance job (§4.9) | name, optional start and end date |
 
 **Key decisions:**
 

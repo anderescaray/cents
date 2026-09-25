@@ -273,10 +273,25 @@ class RoomTransactionRepository
             database.withTransaction {
                 val now = clock.instant()
                 transactions.forEach { transaction ->
-                    transactionDao.insert(transaction.toEntity(createdAt = now, updatedAt = now))
+                    transactionDao.insert(transaction.withoutVanishedLinks().toEntity(createdAt = now, updatedAt = now))
                 }
             }
         }
+
+        /**
+         * An undo can outlive what the movement pointed at: the group, the subscription or the
+         * category deleted from Settings inside the undo window. Each is dropped, which is exactly
+         * what deleting it would have done to a movement that had never left — `SET NULL` for the
+         * group and the rule, and an unused category is the only kind that can be deleted, so the
+         * movement comes back uncategorized, into the inbox. Without this the insert breaks a
+         * foreign key and the undo crashes instead of undoing.
+         */
+        private suspend fun Transaction.withoutVanishedLinks(): Transaction =
+            copy(
+                groupId = groupId?.takeIf { database.groupDao().findById(it) != null },
+                ruleId = ruleId?.takeIf { database.recurringRuleDao().findById(it) != null },
+                categoryId = categoryId?.takeIf { database.categoryDao().findById(it) != null },
+            )
     }
 
 /**

@@ -120,6 +120,24 @@ class InboxTest {
         }
 
     @Test
+    fun `a movement already filed keeps its category, and an expense never takes an income one`() =
+        runTest {
+            val checking = database.accountDao().insert(account())
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            val eatingOut = database.categoryDao().insert(category(name = "Eating out"))
+            val salary = database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
+            val bread = database.transactionDao().insert(transaction(checking, amountMinor = 700))
+            val filed = database.transactionDao().insert(transaction(checking, eatingOut, amountMinor = 3_000))
+
+            // A stale inbox tapping a movement the form already classified must not overwrite it.
+            assertFalse(transactions.categorize(filed, groceries))
+            assertEquals(eatingOut, database.transactionDao().findById(filed)?.categoryId)
+            // And an expense filed under an income category would move it into the wrong ring.
+            assertFalse(transactions.categorize(bread, salary))
+            assertNull(database.transactionDao().findById(bread)?.categoryId)
+        }
+
+    @Test
     fun `each movement is offered only live categories of its own kind, and filing takes it off`() =
         runTest {
             val checking = database.accountDao().insert(account())

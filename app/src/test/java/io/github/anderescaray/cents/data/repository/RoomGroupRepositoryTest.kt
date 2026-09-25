@@ -290,6 +290,24 @@ class RoomGroupRepositoryTest {
         }
 
     @Test
+    fun `undoing a deletion after its group was deleted brings the movement back in no group`() =
+        runTest {
+            val checking = database.accountDao().insert(account())
+            val lisbon = database.groupDao().insert(group())
+            val id = database.transactionDao().insert(transaction(checking, amountMinor = 4_200, groupId = lisbon))
+            val deleted = transactions.findById(id)!!
+            transactions.deleteTransaction(id)
+            groups.deleteGroup(lisbon)
+
+            // Before, the re-insert broke the foreign key and the undo crashed the app.
+            transactions.restore(listOf(deleted))
+
+            val back = database.transactionDao().findById(id)
+            assertEquals(4_200L, back?.amountMinor)
+            assertNull(back?.groupId)
+        }
+
+    @Test
     fun `a group with dates covers them, one open end leaves that side open, none covers nothing`() {
         val october2 = LocalDate.of(2026, 10, 2)
         val october6 = LocalDate.of(2026, 10, 6)

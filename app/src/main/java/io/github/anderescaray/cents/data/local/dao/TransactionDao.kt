@@ -692,14 +692,17 @@ interface TransactionDao {
     /**
      * Files one movement under a category, and nothing else about it changes.
      *
-     * Guarded against a transfer leg and a trade's cash, which must stay unclassified or they
-     * would start counting as income and spending. Returns how many rows changed: 0 is a
-     * movement that is gone, or one of those two.
+     * Guarded four ways, each a way a stale screen could do harm: a transfer leg and a trade's
+     * cash must stay unclassified or they would start counting as income and spending; a movement
+     * already filed elsewhere — its form, a second tap — keeps the category the owner gave it; and
+     * the category has to be of the movement's own kind, or an expense would land in the income
+     * ring. Returns how many rows changed: 0 is any of those, or a movement that is gone.
      */
     @Query(
         """
         UPDATE transactions SET categoryId = :categoryId, updatedAt = :updatedAt
-        WHERE id = :id AND transferId IS NULL AND tradeId IS NULL
+        WHERE id = :id AND transferId IS NULL AND tradeId IS NULL AND categoryId IS NULL
+          AND kind = (SELECT c.kind FROM categories c WHERE c.id = :categoryId)
         """,
     )
     suspend fun setCategory(

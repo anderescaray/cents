@@ -89,8 +89,17 @@ data class RestoreSummary(
     /** Counted so that restoring a file from before backups carried them says what it drops. */
     val subscriptions: Int,
     val exportedAt: Instant?,
+    /**
+     * Configuration rather than money, so they are named apart and only when there are any: a
+     * restore replaces them like everything else, and the alert must not let them go unsaid.
+     */
+    val budgets: Int = 0,
+    val groups: Int = 0,
 ) {
-    val isEmpty: Boolean get() = accounts == 0 && movements == 0 && holdings == 0 && subscriptions == 0
+    val isEmpty: Boolean
+        get() = accounts == 0 && movements == 0 && holdings == 0 && subscriptions == 0 && budgets == 0 && groups == 0
+
+    val hasBudgetsOrGroups: Boolean get() = budgets > 0 || groups > 0
 
     companion object {
         val NOTHING =
@@ -260,5 +269,7 @@ private fun Backup.summarise() =
         movements = transactions.size,
         holdings = holdings.size,
         subscriptions = rules.size,
+        budgets = budgets.size,
+        groups = groups.size,
         exportedAt = exportedAt.takeIf { it != Instant.EPOCH },
     )

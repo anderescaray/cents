@@ -366,6 +366,10 @@ private fun ConfirmRestoreAlert(
                         incoming.subscriptions,
                     ),
                 )
+                if (incoming.hasBudgetsOrGroups) {
+                    append(" ")
+                    append(stringResource(R.string.restore_confirm_incoming_extra, incoming.budgets, incoming.groups))
+                }
                 // An empty app has nothing to lose, and saying "this replaces your 0 accounts"
                 // would be alarming about nothing.
                 if (!current.isEmpty) {
@@ -379,6 +383,10 @@ private fun ConfirmRestoreAlert(
                             current.subscriptions,
                         ),
                     )
+                    if (current.hasBudgetsOrGroups) {
+                        append(" ")
+                        append(stringResource(R.string.restore_confirm_replaces_extra, current.budgets, current.groups))
+                    }
                     // The one way back from a restore is a copy taken before it, and this alert
                     // is the last moment it can be taken. Named by the row it lives on.
                     append("\n\n")

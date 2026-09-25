@@ -6,5 +6,5 @@
     <string name="inbox_empty_message">Un movimiento guardado sin categoría espera aquí hasta que le des una. Mientras tanto sigue contando en todos los totales, como Sin categoría.</string>
     <string name="inbox_no_expense_categories">Aún no hay categorías de gasto. Crea una en Ajustes › Categorías.</string>
     <string name="inbox_no_income_categories">Aún no hay categorías de ingreso. Crea una en Ajustes › Categorías.</string>
-    <string name="inbox_write_failed">No se ha podido archivar ese movimiento. Puede que se haya eliminado mientras tanto.</string>
+    <string name="inbox_write_failed">No se ha podido archivar ese movimiento. Puede que ya tenga categoría o que se haya eliminado mientras tanto.</string>
 </resources>

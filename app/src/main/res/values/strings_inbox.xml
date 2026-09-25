@@ -6,5 +6,5 @@
     <string name="inbox_empty_message">A movement saved without a category waits here until you give it one. It still counts in every total meanwhile, as Uncategorized.</string>
     <string name="inbox_no_expense_categories">There are no expense categories yet. Create one in Settings › Categories.</string>
     <string name="inbox_no_income_categories">There are no income categories yet. Create one in Settings › Categories.</string>
-    <string name="inbox_write_failed">That movement could not be filed. It may have been deleted meanwhile.</string>
+    <string name="inbox_write_failed">That movement could not be filed. It may already have a category, or have been deleted meanwhile.</string>
 </resources>

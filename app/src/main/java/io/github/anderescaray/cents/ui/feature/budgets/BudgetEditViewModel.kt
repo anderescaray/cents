@@ -15,6 +15,7 @@ import io.github.anderescaray.cents.domain.repository.BudgetRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.util.AmountEntry
+import io.github.anderescaray.cents.ui.util.deviceCurrency
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -90,7 +91,7 @@ class BudgetEditViewModel
                         .first()
                         .firstOrNull()
                         ?.currency
-                    ?: FALLBACK_CURRENCY
+                    ?: deviceCurrency()
             val choices = expense.filter { it.id !in taken }
             form.update { state ->
                 state.copy(
@@ -173,8 +174,4 @@ class BudgetEditViewModel
             } catch (_: Exception) {
                 false
             }
-
-        private companion object {
-            const val FALLBACK_CURRENCY = "EUR"
-        }
     }

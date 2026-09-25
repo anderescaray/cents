@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.accounts
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +28,7 @@ import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.open
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
@@ -98,7 +98,7 @@ internal fun AccountDetailContent(
                         color = CentsTheme.colors.accent,
                         modifier =
                             Modifier
-                                .clickable { onEdit(account.account.id) }
+                                .tappable(onClick = { onEdit(account.account.id) })
                                 .padding(CentsDimens.spacingXs),
                     )
                 }

@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.transactions
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
@@ -18,6 +17,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
@@ -33,6 +35,7 @@ import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.open
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
@@ -99,12 +102,23 @@ internal fun TransactionsList(
         bottomPadding = CentsDimens.sectionSpacing,
         leading = { FiltersButton(count = state.filter.activeCount, onClick = onOpenFilters) },
         trailing = {
-            Text(
-                text = stringResource(R.string.action_add),
-                style = CentsTheme.typography.title2,
-                color = CentsTheme.colors.accent,
-                modifier = Modifier.clickable(onClick = onAddTransaction),
-            )
+            val addLabel = stringResource(R.string.add_transaction_title)
+            // Read aloud as what it does rather than as "plus": the label is on the button, and
+            // the glyph inside it is kept out of what TalkBack says.
+            Box(
+                modifier =
+                    Modifier
+                        .semantics { contentDescription = addLabel }
+                        .tappable(onClick = onAddTransaction),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.action_add),
+                    style = CentsTheme.typography.title2,
+                    color = CentsTheme.colors.accent,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+            }
         },
     ) {
         searchField(query = state.query, onQueryChange = onQueryChange)
@@ -155,7 +169,7 @@ private fun RowScope.FiltersButton(
             Modifier
                 .testTag(FILTERS_BUTTON_TAG)
                 .clip(RoundedCornerShape(CentsDimens.spacingS))
-                .clickable(onClick = onClick)
+                .tappable(onClick = onClick)
                 .defaultMinSize(minHeight = CentsDimens.minRowHeight)
                 .wrapContentHeight(Alignment.CenterVertically),
     )

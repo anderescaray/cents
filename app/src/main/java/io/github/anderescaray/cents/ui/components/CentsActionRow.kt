@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
@@ -32,7 +33,7 @@ fun CentsActionRow(
                 Modifier
                     .fillMaxWidth()
                     .background(CentsTheme.colors.groupedCard)
-                    .clickable(onClick = onClick)
+                    .clickable(role = Role.Button, onClick = onClick)
                     .padding(vertical = CentsDimens.spacingM),
             contentAlignment = Alignment.Center,
         ) {

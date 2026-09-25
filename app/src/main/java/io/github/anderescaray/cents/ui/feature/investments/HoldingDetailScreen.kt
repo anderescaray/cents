@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.investments
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +30,7 @@ import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -129,7 +129,7 @@ private fun EditAction(onClick: () -> Unit) {
         text = stringResource(R.string.action_edit),
         style = CentsTheme.typography.body,
         color = CentsTheme.colors.accent,
-        modifier = Modifier.clickable(onClick = onClick).padding(CentsDimens.spacingXs),
+        modifier = Modifier.tappable(onClick = onClick).padding(CentsDimens.spacingXs),
     )
 }
 

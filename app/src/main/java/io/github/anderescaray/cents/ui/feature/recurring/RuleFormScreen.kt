@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.recurring
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +42,7 @@ import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -248,7 +248,7 @@ private fun AmountHeader(
             Modifier
                 .fillMaxWidth()
                 .testTag(RULE_AMOUNT_TAG)
-                .clickable(onClick = onClick)
+                .tappable(onClick = onClick)
                 .padding(vertical = CentsDimens.spacingL),
     )
 }

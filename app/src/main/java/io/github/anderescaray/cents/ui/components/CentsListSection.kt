@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -36,8 +38,9 @@ fun CentsListSection(
                 text = header.uppercase(),
                 style = CentsTheme.typography.footnote,
                 color = CentsTheme.colors.secondaryLabel,
+                // A heading to TalkBack, so a long screen can be crossed section by section.
                 modifier =
-                    Modifier.padding(
+                    Modifier.semantics { heading() }.padding(
                         start = CentsDimens.screenMargin + CentsDimens.rowHorizontalPadding,
                         end = CentsDimens.screenMargin,
                         bottom = CentsDimens.sectionHeaderSpacing,

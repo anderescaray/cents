@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -159,7 +160,7 @@ private fun KeypadKey(
     Box(
         modifier =
             modifier
-                .height(KEY_HEIGHT.dp)
+                .heightIn(min = KEY_HEIGHT.dp)
                 .clip(RoundedCornerShape(CentsDimens.groupedCornerRadius))
                 .background(
                     if (pressed) CentsTheme.colors.rowPressed else CentsTheme.colors.groupedCard,

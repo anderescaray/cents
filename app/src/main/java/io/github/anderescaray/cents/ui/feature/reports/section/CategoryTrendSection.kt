@@ -205,8 +205,7 @@ private fun ChoiceRow(
 ) {
     CentsListRow(
         title = choice.name,
-        value = if (selected) SELECTED_MARK else null,
-        valueColor = CentsTheme.colors.accent,
+        selected = selected,
         leading = { Swatch(Color(choice.colorArgb)) },
         onClick = onClick,
     )
@@ -304,8 +303,6 @@ private fun ReportPeriod.labelPattern(): String =
 
 private val LINE_CHART_HEIGHT = 180.dp
 private val AXIS_LABEL_SIZE = 11.sp
-
-private const val SELECTED_MARK = "✓"
 
 /** Cents stores money in minor units; an axis is labelled in whole ones. */
 private const val MINOR_UNITS_PER_UNIT = 100.0

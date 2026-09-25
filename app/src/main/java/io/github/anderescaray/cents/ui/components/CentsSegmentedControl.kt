@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -38,7 +39,7 @@ fun <T> CentsSegmentedControl(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(SEGMENT_HEIGHT.dp)
+                .heightIn(min = SEGMENT_HEIGHT.dp)
                 .clip(RoundedCornerShape(SEGMENT_RADIUS.dp))
                 .background(CentsTheme.colors.switchTrackOff)
                 .padding(2.dp),
@@ -56,7 +57,7 @@ fun <T> CentsSegmentedControl(
                     Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .height(SEGMENT_INNER_HEIGHT.dp)
+                        .heightIn(min = SEGMENT_INNER_HEIGHT.dp)
                         .then(
                             if (isSelected) {
                                 Modifier.shadow(1.dp, RoundedCornerShape((SEGMENT_RADIUS - 2).dp))

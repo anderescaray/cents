@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.recurring
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +29,7 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -109,7 +109,7 @@ private fun AddRuleButton(onClick: () -> Unit) {
                 .testTag(ADD_RULE_TAG)
                 .size(CentsDimens.minRowHeight)
                 .clip(CircleShape)
-                .clickable(onClick = onClick),
+                .tappable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

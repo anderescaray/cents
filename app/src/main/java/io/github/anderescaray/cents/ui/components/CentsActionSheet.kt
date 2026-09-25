@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -63,7 +64,7 @@ fun CentsActionSheet(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(SHEET_RADIUS.dp))
                         .background(CentsTheme.colors.groupedCard)
-                        .clickable(onClick = onDismiss)
+                        .clickable(role = Role.Button, onClick = onDismiss)
                         .defaultMinSize(minHeight = SHEET_ROW_HEIGHT.dp)
                         .padding(CentsDimens.spacingM),
                 contentAlignment = Alignment.Center,
@@ -116,7 +117,7 @@ private fun SheetAction(action: CentsSheetAction) {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(enabled = action.enabled, onClick = action.onClick)
+                .clickable(enabled = action.enabled, role = Role.Button, onClick = action.onClick)
                 .defaultMinSize(minHeight = SHEET_ROW_HEIGHT.dp)
                 .padding(
                     horizontal = CentsDimens.spacingL,

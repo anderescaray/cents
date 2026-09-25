@@ -199,6 +199,12 @@ interface TransactionDao {
      * escaped. **The list no longer passes one**: `LIKE` folds case for A–Z only, so the
      * repository matches the text itself, accents and all (see `searchKey`), and asks for null.
      *
+     * **[kind] leaves transfer legs and trade cash out too**, for the same reason: *Income* is
+     * a question about money earned, and the arriving half of a transfer from savings was not
+     * earned — nor was the departing half spent. Every report already leaves them out, and a
+     * slice or bar that drills in by kind has to land on the same movements it counted. With no
+     * kind asked, they are listed as always: they happened, and the balances count them.
+     *
      * [weekday] is an ISO day number, Monday 1 to Sunday 7 — `DayOfWeek.getValue()`. `date` is
      * an epoch day, so `date * 86400` is the same UTC-anchored Unix timestamp the monthly
      * query uses; `strftime('%w', …)` counts from Sunday 0, and `((… + 6) % 7) + 1` rotates
@@ -247,7 +253,7 @@ interface TransactionDao {
             :uncategorized = 0
             OR (t.categoryId IS NULL AND t.transferId IS NULL AND t.tradeId IS NULL)
           )
-          AND (:kind IS NULL OR t.kind = :kind)
+          AND (:kind IS NULL OR (t.kind = :kind AND t.transferId IS NULL AND t.tradeId IS NULL))
           AND (:groupId IS NULL OR t.groupId = :groupId)
           AND (:from IS NULL OR t.date >= :from)
           AND (:to IS NULL OR t.date <= :to)

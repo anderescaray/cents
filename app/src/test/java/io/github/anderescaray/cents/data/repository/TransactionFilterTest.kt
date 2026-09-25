@@ -193,6 +193,30 @@ class TransactionFilterTest {
         }
 
     @Test
+    fun `income and expenses leave out transfers and share purchases, and the full list keeps them`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking"))
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            val pay = database.categoryDao().insert(category(name = "Pay", kind = CategoryKind.INCOME))
+            database.transactionDao().insert(
+                transaction(checking, pay, TransactionKind.INCOME, amountMinor = 200_000),
+            )
+            // 500 € moved to savings: the leaving and the arriving half of one transfer.
+            database.transactionDao().insert(
+                transaction(checking, kind = TransactionKind.EXPENSE, amountMinor = 50_000, transferId = 1),
+            )
+            database.transactionDao().insert(
+                transaction(savings, kind = TransactionKind.INCOME, amountMinor = 50_000, transferId = 1),
+            )
+
+            // The arriving half was not earned, and the leaving half was not spent.
+            assertEquals(listOf(200_000L), amountsFor(TransactionFilter(kind = TransactionKind.INCOME)))
+            assertEquals(emptyList<Long>(), amountsFor(TransactionFilter(kind = TransactionKind.EXPENSE)))
+            // But they happened, so the list with no kind asked still shows both halves.
+            assertEquals(3, amountsFor(TransactionFilter()).size)
+        }
+
+    @Test
     fun `accents and case do not matter, either way round`() =
         runTest {
             val checking = database.accountDao().insert(account(name = "Cuenta Ñ"))

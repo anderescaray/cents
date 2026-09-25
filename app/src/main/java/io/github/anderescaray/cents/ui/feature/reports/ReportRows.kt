@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -96,7 +97,7 @@ internal fun EmptyChart(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier.fillMaxWidth().height(EMPTY_HEIGHT),
+        modifier = modifier.fillMaxWidth().heightIn(min = EMPTY_HEIGHT),
         contentAlignment = Alignment.Center,
     ) {
         Text(

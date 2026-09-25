@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
@@ -52,6 +53,7 @@ fun CentsButton(
                     interactionSource = interactionSource,
                     indication = null,
                     enabled = enabled,
+                    role = Role.Button,
                     onClick = onClick,
                 ).padding(horizontal = 20.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center,

@@ -24,6 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
@@ -55,19 +59,33 @@ fun CentsListRow(
     showChevron: Boolean = false,
     showSeparator: Boolean = true,
     onClick: (() -> Unit)? = null,
+    /**
+     * Non-null for a row that is one choice of several: `true` draws the tick. Said to TalkBack as
+     * a selected or unselected option rather than as a "check mark" beside some text.
+     */
+    selected: Boolean? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
+    // One thing to TalkBack, read in one breath — "Groceries, 25,50 €" — rather than a title and
+    // a number it has to find separately; and a choice says whether it is the chosen one. Not
+    // merged when something interactive sits at the end — a switch, a field to type in — which
+    // has to stay a control of its own rather than a word inside the row.
+    val described =
+        modifier.semantics(mergeDescendants = trailing == null) {
+            if (selected != null) this.selected = selected
+        }
     val rowModifier =
         if (onClick != null) {
-            modifier.clickable(
+            described.clickable(
                 interactionSource = interactionSource,
                 indication = null,
+                role = if (selected != null) Role.RadioButton else Role.Button,
                 onClick = onClick,
             )
         } else {
-            modifier
+            described
         }
 
     Column(
@@ -98,8 +116,9 @@ fun CentsListRow(
                 modifier = Modifier.weight(1f),
             )
             RowAccessories(
-                value = value,
-                valueColor = valueColor,
+                value = value ?: CHECK_MARK.takeIf { selected == true },
+                valueColor = valueColor ?: CentsTheme.colors.accent.takeIf { selected == true },
+                valueSpoken = selected == null,
                 trailing = trailing,
                 showChevron = showChevron,
             )
@@ -142,12 +161,15 @@ private fun RowScope.RowAccessories(
     valueColor: Color?,
     trailing: (@Composable () -> Unit)?,
     showChevron: Boolean,
+    valueSpoken: Boolean = true,
 ) {
     if (value != null) {
         Text(
             text = value,
             style = CentsTheme.typography.body,
             color = valueColor ?: CentsTheme.colors.secondaryLabel,
+            // A tick is already said as "selected"; reading the glyph too would say it twice.
+            modifier = if (valueSpoken) Modifier else Modifier.clearAndSetSemantics {},
         )
     }
     if (trailing != null) {
@@ -174,6 +196,9 @@ private fun ColumnScope.RowSeparator() {
                 .background(CentsTheme.colors.separator),
     )
 }
+
+/** The tick a chosen row shows, the way an iOS list marks the one picked. */
+private const val CHECK_MARK = "✓"
 
 /** Lines a note may take as a row's subtitle: enough to recognise it, not enough to read it all. */
 const val NOTE_MAX_LINES = 2

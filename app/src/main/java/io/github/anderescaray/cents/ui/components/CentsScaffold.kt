@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -99,7 +103,7 @@ private fun LargeTitle(title: String) {
         style = CentsTheme.typography.largeTitle,
         color = CentsTheme.colors.label,
         modifier =
-            Modifier.padding(
+            Modifier.semantics { heading() }.padding(
                 start = CentsDimens.screenMargin,
                 end = CentsDimens.screenMargin,
                 bottom = CentsDimens.spacingS,
@@ -128,7 +132,7 @@ private fun CollapsingNavBar(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(CentsDimens.barHeight)
+                    .heightIn(min = CentsDimens.barHeight)
                     .padding(horizontal = CentsDimens.screenMargin),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -144,7 +148,10 @@ private fun CollapsingNavBar(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .alpha(alpha),
+                        .alpha(alpha)
+                        // Faded out it is not there, and TalkBack would read the title twice:
+                        // once here and once as the large one in the list.
+                        .then(if (alpha > 0f) Modifier.semantics { heading() } else Modifier.clearAndSetSemantics {}),
             )
             if (trailing != null) {
                 trailing()

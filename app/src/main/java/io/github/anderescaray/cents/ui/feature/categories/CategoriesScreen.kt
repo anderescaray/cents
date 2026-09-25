@@ -2,7 +2,6 @@ package io.github.anderescaray.cents.ui.feature.categories
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -30,6 +29,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -45,6 +45,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.accounts.DeletionFailedAlert
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -81,13 +82,14 @@ fun CategoriesScreen(
                         .testTag(ADD_CATEGORY_TAG)
                         .size(CentsDimens.minRowHeight)
                         .clip(CircleShape)
-                        .clickable { onNewCategory(state.kind) },
+                        .tappable(onClick = { onNewCategory(state.kind) }),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = stringResource(R.string.action_add),
                     style = CentsTheme.typography.title2,
                     color = CentsTheme.colors.accent,
+                    modifier = Modifier.clearAndSetSemantics {},
                 )
             }
         },

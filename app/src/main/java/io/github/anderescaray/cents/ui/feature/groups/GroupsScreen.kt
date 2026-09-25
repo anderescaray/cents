@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.groups
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
@@ -13,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -22,6 +22,7 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
@@ -104,13 +105,14 @@ private fun AddGroupButton(onClick: () -> Unit) {
                 .testTag(ADD_GROUP_TAG)
                 .size(CentsDimens.minRowHeight)
                 .clip(CircleShape)
-                .clickable(onClick = onClick),
+                .tappable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = stringResource(R.string.action_add),
             style = CentsTheme.typography.title2,
             color = CentsTheme.colors.accent,
+            modifier = Modifier.clearAndSetSemantics {},
         )
     }
 }

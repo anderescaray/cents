@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.budgets
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,6 +30,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -133,7 +133,7 @@ private fun LimitHeader(
             modifier =
                 Modifier
                     .testTag(LIMIT_TAG)
-                    .clickable(onClick = onTapped)
+                    .tappable(onClick = onTapped)
                     .padding(CentsDimens.spacingXs),
         )
         Text(
@@ -165,8 +165,7 @@ private fun LazyListScope.categorySection(
             shown.forEachIndexed { index, category ->
                 CentsListRow(
                     title = category.name,
-                    value = if (category.id == state.categoryId) SELECTED_MARK else null,
-                    valueColor = CentsTheme.colors.accent,
+                    selected = category.id == state.categoryId,
                     showSeparator = index != shown.lastIndex,
                     onClick = if (state.isNew) ({ onChoose(category.id) }) else null,
                 )
@@ -175,5 +174,4 @@ private fun LazyListScope.categorySection(
     }
 }
 
-private const val SELECTED_MARK = "✓"
 internal const val LIMIT_TAG = "budgetLimit"

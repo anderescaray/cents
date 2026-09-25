@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -50,7 +49,7 @@ fun UndoBanner(
             text = stringResource(R.string.action_undo),
             style = CentsTheme.typography.headline,
             color = CentsTheme.colors.accent,
-            modifier = Modifier.clickable(onClick = onUndo),
+            modifier = Modifier.tappable(onClick = onUndo),
         )
     }
 }

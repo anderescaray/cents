@@ -1,12 +1,12 @@
 package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -66,7 +66,7 @@ fun CentsSearchField(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(FIELD_HEIGHT.dp)
+                .heightIn(min = FIELD_HEIGHT.dp)
                 .clip(RoundedCornerShape(FIELD_RADIUS.dp))
                 .background(CentsTheme.colors.switchTrackOff)
                 .padding(horizontal = CentsDimens.spacingS),
@@ -127,7 +127,7 @@ private fun ClearButton(onClick: () -> Unit) {
                 .semantics { contentDescription = label }
                 .testTag(SEARCH_CLEAR_TAG)
                 .size(CentsDimens.minRowHeight)
-                .clickable(onClick = onClick),
+                .tappable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Box(

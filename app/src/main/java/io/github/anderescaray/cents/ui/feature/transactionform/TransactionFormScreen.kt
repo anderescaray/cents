@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.transactionform
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +40,7 @@ import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.components.EntryKindControl
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -331,7 +331,7 @@ private fun LazyListScope.deleteAction(onDelete: () -> Unit) {
                     Modifier
                         .fillMaxWidth()
                         .background(CentsTheme.colors.groupedCard)
-                        .clickable(onClick = onDelete)
+                        .tappable(onClick = onDelete)
                         .padding(vertical = CentsDimens.spacingM),
                 contentAlignment = Alignment.Center,
             ) {
@@ -367,7 +367,7 @@ private fun AmountHeader(
             Modifier
                 .fillMaxWidth()
                 .testTag(AMOUNT_HEADER_TAG)
-                .clickable(onClick = onClick)
+                .tappable(onClick = onClick)
                 .padding(vertical = CentsDimens.spacingL),
     )
 }
@@ -385,8 +385,7 @@ private fun PickerSection(
         options.forEachIndexed { index, (id, name) ->
             CentsListRow(
                 title = name,
-                value = if (id == selectedId) SELECTED_MARK else null,
-                valueColor = CentsTheme.colors.accent,
+                selected = id == selectedId,
                 showSeparator = index != options.lastIndex,
                 onClick = { onSelect(id) },
             )
@@ -394,6 +393,5 @@ private fun PickerSection(
     }
 }
 
-private const val SELECTED_MARK = "✓"
 internal const val NOTE_FIELD_TAG = "transactionNote"
 internal const val AMOUNT_HEADER_TAG = "transactionAmount"

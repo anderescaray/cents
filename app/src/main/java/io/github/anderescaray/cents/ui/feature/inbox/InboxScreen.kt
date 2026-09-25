@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.inbox
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +32,7 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.movementValueColor
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -164,7 +164,7 @@ private fun CategoryChip(
             Modifier
                 .clip(RoundedCornerShape(CHIP_RADIUS.dp))
                 .background(CentsTheme.colors.groupedBackground)
-                .clickable(onClick = onClick)
+                .tappable(onClick = onClick)
                 .padding(horizontal = CentsDimens.spacingM, vertical = CentsDimens.spacingS),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),

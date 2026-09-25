@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -29,7 +28,7 @@ fun CentsBackButton(
     Row(
         modifier =
             modifier
-                .clickable(onClick = onClick)
+                .tappable(onClick = onClick)
                 .padding(end = CentsDimens.spacingS),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingXs),

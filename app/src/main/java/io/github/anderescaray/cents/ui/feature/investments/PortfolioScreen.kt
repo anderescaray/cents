@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.investments
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
@@ -24,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -35,6 +35,7 @@ import io.github.anderescaray.cents.domain.model.Position
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -317,7 +318,7 @@ private fun UpdatePricesButton(onClick: () -> Unit) {
             Modifier
                 .testTag(UPDATE_PRICES_TAG)
                 .clip(RoundedCornerShape(CentsDimens.spacingS))
-                .clickable(onClick = onClick)
+                .tappable(onClick = onClick)
                 .defaultMinSize(minHeight = CentsDimens.minRowHeight)
                 .wrapContentHeight(Alignment.CenterVertically),
     )
@@ -333,13 +334,14 @@ private fun AddHoldingButton(onClick: () -> Unit) {
                 .testTag(ADD_HOLDING_TAG)
                 .size(CentsDimens.minRowHeight)
                 .clip(CircleShape)
-                .clickable(onClick = onClick),
+                .tappable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = stringResource(R.string.action_add),
             style = CentsTheme.typography.title2,
             color = CentsTheme.colors.accent,
+            modifier = Modifier.clearAndSetSemantics {},
         )
     }
 }

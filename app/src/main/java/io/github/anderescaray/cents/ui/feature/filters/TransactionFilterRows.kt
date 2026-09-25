@@ -26,8 +26,7 @@ internal fun SelectableRow(
 ) {
     CentsListRow(
         title = title,
-        value = if (selected) SELECTED_MARK else null,
-        valueColor = CentsTheme.colors.accent,
+        selected = selected,
         showSeparator = !last,
         onClick = onClick,
     )
@@ -98,5 +97,3 @@ internal fun TransactionFilter.amountRangeLabel(currency: String): String? {
         else -> null
     }
 }
-
-internal const val SELECTED_MARK = "✓"

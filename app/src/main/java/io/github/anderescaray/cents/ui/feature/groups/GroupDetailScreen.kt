@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.groups
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +26,7 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.reports.Swatch
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingDonut
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -87,7 +87,7 @@ internal fun GroupDetailContent(
                     modifier =
                         Modifier
                             .testTag(EDIT_GROUP_TAG)
-                            .clickable { onEdit(summary.group.id) }
+                            .tappable(onClick = { onEdit(summary.group.id) })
                             .padding(CentsDimens.spacingXs),
                 )
             }

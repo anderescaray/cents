@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.accounts
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +40,7 @@ import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
@@ -192,7 +192,7 @@ private fun OpeningBalanceHeader(
             modifier =
                 Modifier
                     .testTag(OPENING_BALANCE_TAG)
-                    .clickable(onClick = onAmountTapped)
+                    .tappable(onClick = onAmountTapped)
                     .padding(CentsDimens.spacingXs),
         )
         Text(
@@ -210,7 +210,7 @@ private fun OpeningBalanceHeader(
             modifier =
                 Modifier
                     .testTag(SIGN_TOGGLE_TAG)
-                    .clickable(onClick = onToggleSign)
+                    .tappable(onClick = onToggleSign)
                     .padding(CentsDimens.spacingXs),
         )
     }
@@ -225,8 +225,7 @@ private fun LazyListScope.typeSection(
             AccountType.entries.forEachIndexed { index, type ->
                 CentsListRow(
                     title = stringResource(type.labelRes()),
-                    value = if (type == selected) SELECTED_MARK else null,
-                    valueColor = CentsTheme.colors.accent,
+                    selected = type == selected,
                     showSeparator = index != AccountType.entries.lastIndex,
                     onClick = { onSelect(type) },
                 )
@@ -300,7 +299,6 @@ private fun LazyListScope.accountActions(
     }
 }
 
-private const val SELECTED_MARK = "✓"
 internal const val NAME_FIELD_TAG = "accountName"
 internal const val SIGN_TOGGLE_TAG = "accountSign"
 internal const val OPENING_BALANCE_TAG = "accountOpeningBalance"

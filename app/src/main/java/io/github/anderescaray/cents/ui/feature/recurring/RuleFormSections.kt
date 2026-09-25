@@ -1,7 +1,6 @@
 package io.github.anderescaray.cents.ui.feature.recurring
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +15,7 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.filters.SelectableRow
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -138,7 +138,7 @@ internal fun LazyListScope.removalAction(
                     Modifier
                         .fillMaxWidth()
                         .background(CentsTheme.colors.groupedCard)
-                        .clickable(onClick = onRemove)
+                        .tappable(onClick = onRemove)
                         .padding(vertical = CentsDimens.spacingM),
                 contentAlignment = Alignment.Center,
             ) {

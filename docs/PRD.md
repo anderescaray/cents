@@ -41,7 +41,7 @@ it on another phone, that is solved with a backup export/import, not with a serv
 
 ## 3. Data model (conceptual)
 
-Understanding these seven entities is understanding the whole app.
+Understanding these eight entities is understanding the whole app.
 
 | Entity | What it is | Main fields |
 |---|---|---|
@@ -52,6 +52,7 @@ Understanding these seven entities is understanding the whole app.
 | **RecurringRule** | A template for a repeating movement: subscription, salary, rent | amount, category, account, frequency, day, next date, end date, mode (auto/confirm), active |
 | **Holding** | Something I hold: stock, ETF, fund | ticker/ISIN, name, quantity, average cost, currency, account/broker |
 | **PriceQuote** | Last known price of an instrument, cached | symbol, price, currency, timestamp, source |
+| **Group** | An occasion that cuts across categories: a trip, a move, a freelance job (§4.9) | name, optional start and end date, archived |
 
 **Key decisions:**
 
@@ -222,6 +223,36 @@ screen transition animations, and accessibility support (TalkBack, font scaling)
 iOS-flavoured app whose accent color follows the wallpaper looks like neither platform.
 The palette is fixed, with a proper dark variant.
 
+### 4.9 Groups: what an occasion cost or earned — P1
+
+*Added by the owner on 2026-09-25. The questions it raises are `DECISIONS.md` D27, each with the
+default that gets built.*
+
+A category answers *what kind of thing* the money went on; a group answers *what for*. A trip to
+Lisbon has flights under Transport, a hotel under Housing and dinners under Restaurants, and
+none of those categories can say what the trip cost. A group can.
+
+- I create a group — *Lisbon trip* — and, while recording a movement, pick it as well as the
+  category. **The category stays required and works exactly as before**; the group is an extra,
+  optional label on top.
+- **A movement belongs to at most one group.** The total of a group is then a plain sum, and two
+  groups never count the same euro twice.
+- **Income joins a group exactly as an expense does.** A group can be mostly spending — a trip,
+  where a friend paying back their half of the hotel lowers what it cost — or mostly earning — a
+  freelance job, a market stall, selling the old car — where the expenses are what it took to
+  earn it. The group shows what came in, what went out, and the net, and says in words which way
+  it went: *cost you 840 €* or *earned you 1 150 €*.
+- A **Groups** section lists every group with its total; opening one shows the net, the date of
+  its first and last movement, a ring of its spending by category, and the movements themselves,
+  each opening the usual form.
+- **A group changes no other number.** The trip's dinner is still a Restaurants expense in
+  September's reports and budgets. Grouping is a second way of reading the same movements, not a
+  way of moving them out of the month they happened in.
+- Transfers and the cash movement of a trade cannot join a group, for the same reason they never
+  count as income or expense (§3).
+- **Deleting a group never deletes a movement** — they only lose the label, as rule 8 already
+  requires of subscriptions. It asks for confirmation first.
+
 ## 5. Feasibility analysis
 
 These are the two places where the idea meets technical reality. Worth reading before
@@ -345,6 +376,9 @@ This order is designed to put something useful in my hands as early as possible.
 | **4. Investments** | Track net worth | Manual portfolio → `PriceProvider` integration → P&L and background refresh |
 | **5. Automation** | Less manual work | Uncategorized inbox, budgets, and notification capture (experimental) |
 | **6. Polish** | Make it a pleasure to use | Widget, animations, Baseline Profile, accessibility, performance measurement |
+
+**Groups (§4.9)** were added on 2026-09-25, after the phases were set. They belong to none of
+them and depend on nothing unbuilt, so they are built whenever the owner picks them.
 
 **Rule:** no phase begins until the previous one has its tests passing and its branch
 merged into `main`.

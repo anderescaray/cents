@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
+import io.github.anderescaray.cents.domain.model.BackupPostponement
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
@@ -80,6 +81,7 @@ object BackupWriter {
                     "ruleReminders" to backup.reminders.toArray(::reminderJson),
                     "budgets" to backup.budgets.toArray(::budgetJson),
                     "groups" to backup.groups.toArray(::groupJson),
+                    "rulePostponements" to backup.postponements.toArray(::postponementJson),
                 ),
             )
         return PRETTY.encodeToString(JsonElement.serializer(), root)
@@ -172,6 +174,13 @@ object BackupWriter {
         mapOf(
             "ruleId" to JsonPrimitive(row.ruleId),
             "offsetDays" to JsonPrimitive(row.offsetDays),
+        )
+
+    private fun postponementJson(row: BackupPostponement) =
+        mapOf(
+            "ruleId" to JsonPrimitive(row.ruleId),
+            "occurrence" to JsonPrimitive(row.occurrence),
+            "postponedTo" to JsonPrimitive(row.postponedTo),
         )
 
     private fun budgetJson(row: BackupBudget) =

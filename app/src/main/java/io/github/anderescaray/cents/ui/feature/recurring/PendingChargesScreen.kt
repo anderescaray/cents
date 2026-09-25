@@ -95,6 +95,17 @@ private fun PendingDialogs(
         )
     }
 
+    state.postponing?.let { row ->
+        PostponeSheet(
+            name = row.name,
+            from = maxOf(row.dueDate, state.today),
+            today = state.today,
+            choices = row.postponeChoices,
+            onChoose = viewModel::postpone,
+            onDismiss = viewModel::cancelPostpone,
+        )
+    }
+
     if (state.writeFailed) {
         // Somewhere else answered it first, or the write was refused. Nothing is retried on its
         // own: the list has been read again, so what is on screen is what is really waiting.
@@ -150,6 +161,18 @@ private fun PendingList(
                                     today = state.today,
                                     showSeparator = index != state.rows.lastIndex,
                                     onTyped = { typed -> viewModel.onTyped(row.ruleId, typed) },
+                                    onClick =
+                                        if (row.postponeChoices.isEmpty()) {
+                                            null
+                                        } else {
+                                            (
+                                                {
+                                                    viewModel.requestPostpone(
+                                                        row,
+                                                    )
+                                                }
+                                            )
+                                        },
                                 )
                             }
                         }
@@ -166,7 +189,8 @@ private fun PendingList(
  * **The placeholder is what the rule was set up expecting**, so the box is never empty of
  * meaning — it reads as *about sixty, tell me the real one* rather than as a blank the owner has
  * to remember the shape of. The subtitle says the date it is for, because a bill answered late
- * is still recorded on the day it fell due and that has to be visible before saving.
+ * is still recorded on the day it fell due — or the day it was moved to — and that has to be
+ * visible before saving. Tapping the row, rather than the field, offers to postpone it.
  */
 @Composable
 private fun PendingField(
@@ -174,15 +198,21 @@ private fun PendingField(
     today: LocalDate,
     showSeparator: Boolean,
     onTyped: (String) -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val later = row.charge.laterCount
+    val movedFrom = row.charge.postponedTo?.let { row.dueDate }
     CentsListRow(
         modifier = modifier,
         title = row.name,
         subtitle =
             buildString {
-                append(row.dueDate.relativeLabel(today))
+                append(row.charge.recordOn.relativeLabel(today))
+                if (movedFrom != null) {
+                    append(" · ")
+                    append(stringResource(R.string.pending_moved_from, movedFrom.relativeLabel(today)))
+                }
                 if (later > 0) {
                     append(" · ")
                     append(pluralStringResource(R.plurals.pending_more_after, later, later))
@@ -198,6 +228,7 @@ private fun PendingField(
             )
         },
         showSeparator = showSeparator,
+        onClick = onClick,
     )
 }
 

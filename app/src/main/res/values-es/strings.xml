@@ -348,7 +348,7 @@
     <!-- Recibos que la app no se inventa (D23) -->
     <string name="pending_title">Importes</string>
     <string name="pending_header">Esperando un importe</string>
-    <string name="pending_footer">Escribe lo que ha costado cada uno. Se apunta el día que tocaba, no hoy, así que un recibo que contestes tarde sigue contando en el mes al que pertenece.</string>
+    <string name="pending_footer">Escribe lo que ha costado cada uno. Se apunta el día que tocaba, o el día al que lo pospusiste, no hoy, así que un recibo que contestes tarde sigue contando en el mes al que pertenece. Toca una fila para posponerla unos días.</string>
     <string name="pending_empty_title">No hay nada esperando</string>
     <string name="pending_empty_footer">Aquí esperan las suscripciones marcadas como «pregúntame el importe». Cents nunca se inventa una cifra.</string>
     <string name="pending_skip">Saltar</string>

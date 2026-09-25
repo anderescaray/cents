@@ -306,7 +306,7 @@ private fun RuleRow(
 
                 else -> {
                     stringResource(
-                        R.string.subscriptions_next_due,
+                        if (row.postponed) R.string.subscriptions_next_postponed else R.string.subscriptions_next_due,
                         frequency,
                         nextDue.relativeLabel(today),
                     )

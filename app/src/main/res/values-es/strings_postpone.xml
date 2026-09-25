@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscriptions_next_postponed">%1$s · pospuesta al %2$s</string>
+    <string name="postpone_sheet_title">Posponer %1$s</string>
+    <string name="postpone_sheet_message">Se apunta el día nuevo y esa mañana te lo recordamos. Solo se mueve esta: la siguiente sigue en su fecha.</string>
+    <plurals name="postpone_by_days">
+        <item quantity="one">%1$d día · %2$s</item>
+        <item quantity="other">%1$d días · %2$s</item>
+    </plurals>
+    <string name="next_one_header">La próxima</string>
+    <string name="next_one_due">Toca</string>
+    <string name="next_one_moved">Pospuesta al</string>
+    <string name="next_one_moved_from">Tocaba %1$s.</string>
+    <string name="next_one_postpone">Posponer…</string>
+    <string name="next_one_restore">Devolverla a su día</string>
+    <string name="next_one_footer">Posponer mueve solo esta. Se apunta el día nuevo y esa mañana te lo recordamos; las siguientes siguen en su fecha.</string>
+    <string name="pending_moved_from">pospuesta desde %1$s</string>
+    <string name="reminder_variable_income_body">Toca %1$s. Pulsa para decir cuánto has recibido.</string>
+</resources>

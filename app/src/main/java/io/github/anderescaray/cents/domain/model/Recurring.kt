@@ -65,13 +65,31 @@ data class Reminder(
 data class DueReminder(
     val rule: RecurringRule,
     val occurrence: LocalDate,
+    /** Counted from [postponedTo] when there is one, since that is the day the money moves. */
     val offsetDays: Int,
+    /** The later day this occurrence was moved to, if it was. */
+    val postponedTo: LocalDate? = null,
 ) {
     val reminder: Reminder get() = Reminder(offsetDays = offsetDays)
 
     /** Whether the owner is being asked for a figure rather than told about one. */
     val asksForAmount: Boolean get() = rule.mode == RuleMode.CONFIRM
 }
+
+/**
+ * One occurrence of a rule moved to a later day: the rent due on the 1st, paid on the 4th.
+ *
+ * **The movement is dated [postponedTo], and nothing about the rule changes.** It is one
+ * occurrence, not a new schedule, so the next month still falls where it always does — counted
+ * from the start date, as every occurrence is. A fixed charge is written on the new day; a
+ * variable one stops waiting on the Subscriptions screen until that day, and is recorded on it
+ * once answered (`DECISIONS.md` D28).
+ */
+data class Postponement(
+    val ruleId: Long,
+    val occurrence: LocalDate,
+    val postponedTo: LocalDate,
+)
 
 /**
  * One occurrence of a variable-amount rule, waiting for the number only the owner knows.
@@ -91,7 +109,12 @@ data class PendingCharge(
     val dueDate: LocalDate,
     /** Further occurrences of the same rule waiting behind this one. */
     val laterCount: Int,
+    /** The later day the owner moved it to, which is the day it is recorded on. */
+    val postponedTo: LocalDate? = null,
 ) {
+    /** The day the movement will carry: the one it was moved to, or the one it fell due on. */
+    val recordOn: LocalDate get() = postponedTo ?: dueDate
+
     /** What the rule was set up expecting, which is the starting point for the real figure. */
     val estimate: Money get() = rule.amount
 }

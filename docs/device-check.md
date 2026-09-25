@@ -24,7 +24,7 @@ the same day, on a phone nobody has held it on either — on 2026-09-16 with **W
 transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
 data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves, and on
 2026-09-23 with **Walk 11**, for the second wave and the automatic backup to Drive, then
-**Walk 12** for budgets, and on 2026-09-25 with **Walk 13**, for groups, and **Walk 14** for the uncategorized inbox.
+**Walk 12** for budgets, and on 2026-09-25 with **Walk 13**, for groups, **Walk 14** for the uncategorized inbox, **Walk 15** for the Income and Expenses filters, **Walk 16** for TalkBack and the largest font, and **Walk 17** for postponing a charge or a salary.
 Those last ones are the features whose failure is invisible on the screen that records them: a transfer can move both balances correctly and still leak into
 every chart, and a purchase can look perfectly recorded while the account it was paid from never
 notices.
@@ -1555,3 +1555,80 @@ movement form opens. Pick a category there and save: it leaves the inbox all the
 
 > **Wrong looks like** the form opening a different movement.
 
+
+## Walk 15 — the Income and Expenses filters (#95)
+
+You need two accounts, one transfer between them and one purchase of shares in the period.
+
+### j1 · No transfers under Income or Expenses
+
+Filter the movement list to **Income**, then to **Expenses**. Neither shows a transfer leg
+(*Transfer to …* / *Transfer from …*) or the cash of a share purchase or sale (*Bought …*).
+Clear the filter: they are all back in the plain list, and the account balances have not
+changed.
+
+> **Wrong looks like** a transfer under Income or Expenses, or a transfer missing from the
+> unfiltered list.
+
+## Walk 16 — TalkBack and the largest font (#96)
+
+Turn on **TalkBack** (Settings › Accessibility), then walk a few screens by swiping right.
+
+### k1 · Rows read as one thing
+
+On the Accounts tab, each account reads as its name and its balance together, then *button*.
+In a picker (a movement's account or category), the chosen row says *selected* and the others
+*not selected*, with no tick read aloud.
+
+> **Wrong looks like** a name and a number read as two separate stops, or *"check mark"* read out.
+
+### k2 · Headings and buttons
+
+Section headers and screen titles are announced as *heading*, so a swipe up or down with the
+heading control jumps between them. The **+** on the Transactions list says *New transaction*,
+and small words like **Cancel**, **Save** and **Edit** are buttons that are easy to hit. A colour
+in the category editor says *Colour 3 of 12*.
+
+> **Wrong looks like** a **+** read as *"plus"*, or a title read twice.
+
+### k3 · The largest font
+
+Turn TalkBack off and set the system **font size** to its largest (and the display size too, if
+you want the worst case). Open the movement form, an alert (delete a movement), the segmented
+Expense / Income / Transfer control and the search field. Every word is whole: controls grow
+taller rather than cutting their text off.
+
+> **Wrong looks like** a button or a segment whose word is clipped. The alert's buttons are the
+> one piece no test measures, so look at them in particular.
+
+## Walk 17 — postponing a charge or a salary (#97)
+
+You need one subscription with a fixed amount and a salary set to *Ask me the amount*.
+
+### p1 · A fixed charge, moved a few days
+
+Open the fixed subscription in Settings › Subscriptions. Under **Next one** it says when it is
+due. Tap **Postpone…** and pick *3 days*: the row now reads *Moved to …* with the old date under
+it, and the Subscriptions list says *moved to …*. On the new day (or with the phone's date set
+forward), the movement appears **dated the new day**, and a notification arrives that morning.
+The next occurrence after it is on its usual date.
+
+> **Wrong looks like** the movement on the original date, written twice, or the following month
+> moved too.
+
+### p2 · Putting it back
+
+Postpone another occurrence, then tap **Back to its own day**. It is recorded on its usual date.
+
+> **Wrong looks like** the postponed date surviving the undo.
+
+### p3 · A variable salary, postponed from the pending screen
+
+When the salary is waiting for its amount on the Subscriptions screen, open the list of pending
+amounts and tap the salary's **row** (not the amount field). Pick a number of days: it leaves the
+list, and anything typed into other rows is still there. On the new day it is back, marked
+*moved from …*; type the amount and save. It is recorded **on the new day**, as income, and its
+notification asks *what came in*, not *what it cost*.
+
+> **Wrong looks like** the salary recorded on its old date, as an expense, or other rows losing
+> what was typed.

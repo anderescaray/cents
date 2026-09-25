@@ -29,6 +29,37 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
+### D28 · How postponing behaves (asked 2026-09-25, built on the defaults)
+
+**Built on 2026-09-25, as #97, on every default below.** Change any line and the next session
+changes the app.
+
+The owner asked on 2026-09-25 to be able to postpone a charge or a salary by some number of days,
+including a salary whose amount changes and is asked for like a variable bill. Asked whether that
+should move only the reminder or the date too, the answer was **both**: postponing by 3 days means
+it is recorded on that day, and the owner is reminded that morning, for income as well as
+expenses.
+
+- **What moves.** One occurrence: the movement is dated the new day, and the rule's schedule
+  does not change, so next month is on its usual day. *Default: as written (the owner's answer).*
+- **How far.** 1, 2, 3, 5, 7 or 14 days, each shown with the date it lands on, and **never as
+  far as the next occurrence**, so two occurrences can never swap order. *Default: as written.*
+- **From where.**
+  - From the rule's editor, for its next occurrence, counted from its own date.
+  - From the pending screen, for a variable bill or salary already waiting, counted from today.
+  - *Default: both.*
+- **A reminder on the new day, always**, even for a rule with no reminders set: moving something
+  is taken as asking to be told when it comes round again. Its own reminders that land after the
+  original day follow the new date. *Default: as written.*
+- **Undoable.** *Back to its own day* in the editor puts it back. *Default: as written.*
+- **Not for something already written.** Once a charge is recorded, it is a movement, and its date
+  is edited on the movement itself. *Default: as written.*
+- **Budgets and *committed this month* still use each rule's own dates.** A charge moved across
+  the end of a month still counts in its original month there, though the movement itself is
+  dated correctly (PLAN C4). *Default: leave it until it matters.*
+
+**Answer:**
+
 ### D27 · How groups behave (asked 2026-09-25, built on the defaults)
 
 **Built on 2026-09-25, as #86 and #87, on every default below.** Change any line and the next

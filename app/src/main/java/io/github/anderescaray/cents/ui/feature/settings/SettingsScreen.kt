@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -41,6 +42,7 @@ fun SettingsScreen(
     onOpenSubscriptions: () -> Unit,
     onResetHomeLayout: () -> Unit,
     onOpenBudgets: () -> Unit = {},
+    onOpenGroups: () -> Unit = {},
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     lockViewModel: AppLockSettingsViewModel = hiltViewModel(),
@@ -55,6 +57,7 @@ fun SettingsScreen(
         onOpenCategories = onOpenCategories,
         onOpenSubscriptions = onOpenSubscriptions,
         onOpenBudgets = onOpenBudgets,
+        onOpenGroups = onOpenGroups,
         onResetHomeLayout = onResetHomeLayout,
         lock = lock,
         onLockChanged = lockViewModel::setEnabled,
@@ -122,6 +125,7 @@ internal fun SettingsContent(
     onResetHomeLayout: () -> Unit,
     onOpenSubscriptions: () -> Unit = {},
     onOpenBudgets: () -> Unit = {},
+    onOpenGroups: () -> Unit = {},
     export: ExportUiState = ExportUiState(),
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
@@ -134,36 +138,16 @@ internal fun SettingsContent(
     val dataIdle = export.step == ExportStep.IDLE && restore.step == RestoreStep.IDLE
     val canStartData = dataIdle && !drive.isBusy && !drive.showBackups
     CentsLargeTitleScaffold(title = stringResource(R.string.tab_settings)) {
+        item { DisclosureSection(R.string.settings_categories, R.string.settings_categories_footer, onOpenCategories) }
         item {
-            CentsListSection(footer = stringResource(R.string.settings_categories_footer)) {
-                CentsListRow(
-                    title = stringResource(R.string.settings_categories),
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = onOpenCategories,
-                )
-            }
+            DisclosureSection(
+                R.string.settings_subscriptions,
+                R.string.settings_subscriptions_footer,
+                onOpenSubscriptions,
+            )
         }
-        item {
-            CentsListSection(footer = stringResource(R.string.settings_subscriptions_footer)) {
-                CentsListRow(
-                    title = stringResource(R.string.settings_subscriptions),
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = onOpenSubscriptions,
-                )
-            }
-        }
-        item {
-            CentsListSection(footer = stringResource(R.string.settings_budgets_footer)) {
-                CentsListRow(
-                    title = stringResource(R.string.settings_budgets),
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = onOpenBudgets,
-                )
-            }
-        }
+        item { DisclosureSection(R.string.settings_budgets, R.string.settings_budgets_footer, onOpenBudgets) }
+        item { DisclosureSection(R.string.settings_groups, R.string.settings_groups_footer, onOpenGroups) }
         item { ResetHomeLayoutSection(onReset = onResetHomeLayout) }
         item { SecuritySection(lock = lock, onLockChanged = onLockChanged) }
         item(key = "data") {
@@ -186,6 +170,23 @@ internal fun SettingsContent(
     Export(state = export, actions = exportActions)
     DriveBackupPicker(state = drive, actions = driveActions)
     Restore(state = restore, actions = restoreActions)
+}
+
+/** One row that opens a screen of its own, with a line under it saying what that screen is for. */
+@Composable
+private fun DisclosureSection(
+    @StringRes title: Int,
+    @StringRes footer: Int,
+    onClick: () -> Unit,
+) {
+    CentsListSection(footer = stringResource(footer)) {
+        CentsListRow(
+            title = stringResource(title),
+            showChevron = true,
+            showSeparator = false,
+            onClick = onClick,
+        )
+    }
 }
 
 /**

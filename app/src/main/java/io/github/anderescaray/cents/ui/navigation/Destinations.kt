@@ -168,6 +168,25 @@ sealed interface Destination {
         }
     }
 
+    /** Occasions that cut across categories: a trip, a move, a job (PRD §4.9). */
+    @Serializable
+    data object Groups : Destination
+
+    /** What one group came to, and the movements in it. */
+    @Serializable
+    data class GroupDetail(
+        val groupId: Long,
+    ) : Destination
+
+    @Serializable
+    data class GroupEdit(
+        val groupId: Long = NEW,
+    ) : Destination {
+        companion object {
+            const val NEW = 0L
+        }
+    }
+
     /**
      * The bills waiting for a figure: every variable-amount rule that has fallen due.
      *
@@ -261,6 +280,9 @@ enum class TopLevelTab(
                 Destination.PendingCharges::class,
                 Destination.Budgets::class,
                 Destination.BudgetEdit::class,
+                Destination.Groups::class,
+                Destination.GroupDetail::class,
+                Destination.GroupEdit::class,
             ),
         labelRes = R.string.tab_settings,
         iconRes = R.drawable.ic_tab_settings,

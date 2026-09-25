@@ -8,11 +8,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
+import io.github.anderescaray.cents.domain.repository.GroupRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
@@ -41,6 +43,10 @@ data class TransactionFormUiState(
     val categories: List<Category> = emptyList(),
     val selectedAccountId: Long? = null,
     val selectedCategoryId: Long? = null,
+    /** Every group, by name. [offeredGroups] is the order the picker shows them in. */
+    val groups: List<Group> = emptyList(),
+    /** The occasion this belongs to (PRD §4.9), or null — which is most movements. */
+    val selectedGroupId: Long? = null,
     val date: LocalDate = LocalDate.now(),
     val today: LocalDate = LocalDate.now(),
     val note: String = "",
@@ -73,6 +79,13 @@ data class TransactionFormUiState(
      * the same record with its direction flipped.
      */
     val canBecomeTransfer: Boolean get() = !isEditing
+
+    /**
+     * The groups in the order the picker offers them: any whose dates cover this movement's date
+     * first — the trip you are on — and the rest by name after them. **Offered, never chosen**
+     * (D27): a movement joins a group only when the owner taps it.
+     */
+    val offeredGroups: List<Group> get() = groups.sortedByDescending { it.covers(date) }
 }
 
 /** A placeholder until an account is known; never what a movement is actually saved as. */
@@ -94,6 +107,7 @@ class TransactionFormViewModel
         private val deletedTransactions: DeletedTransactionBuffer,
         accountRepository: AccountRepository,
         categoryRepository: CategoryRepository,
+        groupRepository: GroupRepository,
         savedStateHandle: SavedStateHandle,
         clock: Clock,
     ) : ViewModel() {
@@ -137,6 +151,9 @@ class TransactionFormViewModel
         /** Until the categories have actually arrived, an empty list means "not yet". */
         private var categoriesLoaded = false
 
+        /** Until the groups have arrived, a missing one means "not yet" rather than "deleted". */
+        private var groupsLoaded = false
+
         /** The movement as it stands on disk, kept so a deletion can be undone whole. */
         private var stored: Transaction? = null
 
@@ -152,6 +169,20 @@ class TransactionFormViewModel
                         categoriesLoaded = true
                         form.update { it.withOptions(accounts, categories) }
                     }
+            }
+            viewModelScope.launch {
+                groupRepository.observeGroups().collect { groups ->
+                    groupsLoaded = true
+                    form.update { state ->
+                        state.copy(
+                            groups = groups,
+                            // A group deleted while this form was open is no longer on offer.
+                            // Pruned only once the real list is known, for the reason the
+                            // category is: the movement and the groups load independently.
+                            selectedGroupId = state.selectedGroupId?.takeIf { id -> groups.any { it.id == id } },
+                        )
+                    }
+                }
             }
         }
 
@@ -170,6 +201,10 @@ class TransactionFormViewModel
                         date = transaction.date,
                         note = transaction.note.orEmpty(),
                         currency = transaction.amount.currency,
+                        selectedGroupId =
+                            transaction.groupId?.takeIf { id ->
+                                !groupsLoaded || state.groups.any { it.id == id }
+                            },
                     ).withOptions(state.accounts, allCategories)
             }
         }
@@ -236,6 +271,10 @@ class TransactionFormViewModel
 
         fun selectCategory(id: Long?) = form.update { it.copy(selectedCategoryId = id) }
 
+        /** Tapping the group already chosen takes the movement back out of it. */
+        fun selectGroup(id: Long) =
+            form.update { it.copy(selectedGroupId = id.takeIf { chosen -> chosen != it.selectedGroupId }) }
+
         fun openDatePicker() = form.update { it.copy(pickingDate = true) }
 
         fun dismissDatePicker() = form.update { it.copy(pickingDate = false) }
@@ -261,6 +300,10 @@ class TransactionFormViewModel
                         amount = state.amount,
                         date = state.date,
                         note = state.note.takeIf { it.isNotBlank() },
+                        // Kept from disk: editing a generated rent is still the rent that rule
+                        // wrote, and the form has no field that could have changed that.
+                        ruleId = stored?.ruleId,
+                        groupId = state.selectedGroupId,
                     )
                 val written =
                     runCatching {

@@ -214,25 +214,36 @@ internal fun SpendingDonut(
     breakdown: SpendingBreakdown,
     modifier: Modifier = Modifier,
     onSliceClick: (CategorySpending) -> Unit = {},
+) = SpendingDonut(slices = breakdown.slices, modifier = modifier, onSliceClick = onSliceClick)
+
+/**
+ * The same ring from its slices alone, for a screen whose slices are not a report period's — a
+ * group's spending (PRD §4.9) is a span of its own rather than a month.
+ */
+@Composable
+internal fun SpendingDonut(
+    slices: List<CategorySpending>,
+    modifier: Modifier = Modifier,
+    onSliceClick: (CategorySpending) -> Unit = {},
 ) {
     val fallback = CentsTheme.colors.tertiaryLabel
     val producer = remember { PieChartModelProducer() }
 
-    // Keyed on the breakdown, so the model is rebuilt when the totals change and not on
-    // every recomposition. The adding up is already done; re-running the transaction while
-    // the screen scrolls is how a chart starts costing frames.
-    LaunchedEffect(breakdown) {
-        if (breakdown.isEmpty) return@LaunchedEffect
+    // Keyed on the slices, so the model is rebuilt when the totals change and not on every
+    // recomposition. The adding up is already done; re-running the transaction while the
+    // screen scrolls is how a chart starts costing frames.
+    LaunchedEffect(slices) {
+        if (slices.isEmpty()) return@LaunchedEffect
         producer.runTransaction {
-            pieSeries { series(breakdown.slices.map { it.total.minorUnits }) }
+            pieSeries { series(slices.map { it.total.minorUnits }) }
         }
     }
 
-    if (breakdown.isEmpty) return
+    if (slices.isEmpty()) return
 
-    val slices =
-        remember(breakdown, fallback) {
-            breakdown.slices.map { slice ->
+    val fills =
+        remember(slices, fallback) {
+            slices.map { slice ->
                 PieChart.Slice(fill = Fill(slice.colorArgb?.let { Color(it) } ?: fallback))
             }
         }
@@ -240,7 +251,7 @@ internal fun SpendingDonut(
     PieChartHost(
         chart =
             rememberPieChart(
-                sliceProvider = PieChart.SliceProvider.series(slices),
+                sliceProvider = PieChart.SliceProvider.series(fills),
                 spacing = SLICE_SPACING,
                 // A ring rather than a filled circle: the hole is what stops five similar
                 // colours reading as one blob.
@@ -251,13 +262,13 @@ internal fun SpendingDonut(
             modifier
                 .fillMaxWidth()
                 .height(DONUT_HEIGHT)
-                .pointerInput(breakdown) {
+                .pointerInput(slices) {
                     // The hole is an absolute size to Vico, so it is measured here in the
                     // same pixels as the tap rather than assumed to be a fixed fraction of
                     // a ring whose diameter depends on how wide the screen is.
                     val holeDiameter = DONUT_HOLE.toPx()
                     detectTapGestures { tap ->
-                        breakdown
+                        slices
                             .sliceAt(tap, size.width.toFloat(), size.height.toFloat(), holeDiameter)
                             ?.let(onSliceClick)
                     }
@@ -288,6 +299,14 @@ internal fun SpendingBreakdown.sliceAt(
     width: Float,
     height: Float,
     holeDiameter: Float,
+): CategorySpending? = slices.sliceAt(tap, width, height, holeDiameter)
+
+/** [SpendingBreakdown.sliceAt] for a ring drawn from its slices alone. */
+internal fun List<CategorySpending>.sliceAt(
+    tap: Offset,
+    width: Float,
+    height: Float,
+    holeDiameter: Float,
 ): CategorySpending? {
     val radius = minOf(width, height) / 2f
     val fromCentre = Offset(tap.x - width / 2f, tap.y - height / 2f)
@@ -300,12 +319,12 @@ internal fun SpendingBreakdown.sliceAt(
     val clockwiseFromTop = (degrees + QUARTER_TURN + FULL_TURN) % FULL_TURN
 
     // Where each slice ends, in degrees clockwise from twelve.
-    val edges = slices.runningFold(0f) { swept, slice -> swept + slice.share * FULL_TURN }.drop(1)
+    val edges = runningFold(0f) { swept, slice -> swept + slice.share * FULL_TURN }.drop(1)
     val index = edges.indexOfFirst { clockwiseFromTop <= it }
 
     // Rounding in the shares can leave the last hair of the circle unclaimed, and it belongs
     // to the slice that was drawn there.
-    return slices.getOrNull(if (index >= 0) index else slices.lastIndex)
+    return getOrNull(if (index >= 0) index else lastIndex)
 }
 
 internal const val KIND_CONTROL_TAG = "reportsSpendingKind"

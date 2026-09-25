@@ -6,10 +6,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryFilter
+import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
+import io.github.anderescaray.cents.domain.repository.GroupRepository
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +59,8 @@ data class TransactionFiltersUiState(
     val maxAmountInput: String = AmountEntry.EMPTY,
     val accounts: List<Account> = emptyList(),
     val categories: List<Category> = emptyList(),
+    /** Every group, by name; the section is left off the form while there are none. */
+    val groups: List<Group> = emptyList(),
     /** The one currency the app works in, for saying the amount range back in money. */
     val currency: String = "EUR",
     val today: LocalDate = LocalDate.now(),
@@ -81,6 +85,7 @@ class TransactionFiltersViewModel
         private val filters: TransactionFilterStore,
         accountRepository: AccountRepository,
         categoryRepository: CategoryRepository,
+        groupRepository: GroupRepository,
         private val clock: Clock,
     ) : ViewModel() {
         private val form = MutableStateFlow(TransactionFiltersUiState(today = LocalDate.now(clock)))
@@ -125,6 +130,9 @@ class TransactionFiltersViewModel
                         }
                     }
             }
+            viewModelScope.launch {
+                groupRepository.observeGroups().collect { groups -> form.update { it.copy(groups = groups) } }
+            }
         }
 
         fun setKind(kind: TransactionKind?) = edit { it.copy(kind = kind) }
@@ -132,6 +140,9 @@ class TransactionFiltersViewModel
         fun setAccount(accountId: Long?) = edit { it.copy(accountId = accountId) }
 
         fun setCategory(category: CategoryFilter) = edit { it.copy(category = category) }
+
+        /** One group's movements, or null for every movement whatever group it is in. */
+        fun setGroup(groupId: Long?) = edit { it.copy(groupId = groupId) }
 
         /** One day of the week, or null for every day — what a weekday bar drills down to. */
         fun setWeekday(weekday: DayOfWeek?) = edit { it.copy(weekday = weekday) }

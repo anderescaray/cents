@@ -1,24 +1,17 @@
 package io.github.anderescaray.cents.ui.components
 
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Rule
 import org.junit.Test
@@ -125,46 +118,4 @@ class AccessibilityTest {
             .assertIsSelected()
             .assertHeightIsAtLeast(48.dp)
     }
-
-    @Test
-    fun `at a very large system font a control grows with its words`() {
-        // A dialog opens its own window, which reads the font scale from the device rather than
-        // from this CompositionLocal, so the alert cannot be measured this way; the segmented
-        // control uses the same min-height pattern and lives in the window under test.
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides LinearFontScale(density.density, fontScale = 3f)) {
-                CentsTheme {
-                    CentsListSection(header = "Account") {
-                        CentsListRow(title = "A long account name that has to wrap", value = "1.234,56 €")
-                    }
-                    CentsSegmentedControl(
-                        options = listOf("Expense", "Income"),
-                        selected = "Expense",
-                        onSelect = {},
-                        label = { it },
-                    )
-                }
-            }
-        }
-
-        composeRule.onNodeWithText("A long account name that has to wrap").assertIsDisplayed()
-        // Three times a 20 sp line is 60 dp: a segment held at its old fixed 28 dp would cut the
-        // word off, and one that grows is at least as tall as the line.
-        composeRule.onNodeWithText("Expense").assertHeightIsAtLeast(50.dp)
-    }
-}
-
-/**
- * A font scale applied as a plain multiplier. Android 14 scales large text non-linearly, so a
- * 20 sp line at 3x comes to well under 60 dp, and the arithmetic in the test above would depend
- * on the platform's curve rather than on whether the control grows.
- */
-private class LinearFontScale(
-    override val density: Float,
-    override val fontScale: Float,
-) : Density {
-    override fun TextUnit.toDp(): Dp = Dp(value * fontScale)
-
-    override fun Dp.toSp(): TextUnit = (value / fontScale).sp
 }

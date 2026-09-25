@@ -32,7 +32,7 @@ one from turning into a general notes file that nobody trusts.
 ### D27 · How groups behave (asked 2026-09-25, not built yet)
 
 The owner asked on 2026-09-25 for a way to see what an occasion cost — a trip, say — across
-several categories (PRD §4.9). Nothing is built yet. These are the choices it needs, **each with
+several categories (PRD §4.9), and then that incomes can be grouped as well. Nothing is built yet. These are the choices it needs, **each with
 the default that will be built** unless a line changes.
 
 - **What it is called.** *Groups* in English and *Grupos* in Spanish. *Events* or *Trips* are the
@@ -40,8 +40,11 @@ the default that will be built** unless a line changes.
 - **One group per movement, not several tags.** One group keeps every total a plain sum. Tags
   would let a dinner be both *Lisbon trip* and *Work*, at the price of totals that overlap.
   *Default: one group.*
-- **Income can join.** A friend paying back their share lowers what the trip cost, and the group
-  shows spent, received and net. *Default: yes.*
+- **Income joins a group exactly as an expense does** (the owner asked for this explicitly on
+  2026-09-25). A group can be about spending, like a trip where a friend's repayment lowers the
+  cost, or about earning, like a freelance job whose expenses are what it took to earn it. It
+  shows what came in, what went out and the net, worded as *cost you …* or *earned you …*
+  depending on the sign. *Default: yes.*
 - **Optional dates.** A group can carry a start and end date. While a movement's date falls
   inside them, the form **offers** that group at the top of the picker, but never picks it on its
   own. *Default: as written.*

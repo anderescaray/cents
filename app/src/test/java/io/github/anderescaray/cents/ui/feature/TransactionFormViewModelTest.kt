@@ -6,8 +6,11 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.group
+import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
+import io.github.anderescaray.cents.data.repository.RoomGroupRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Money
@@ -76,6 +79,7 @@ class TransactionFormViewModelTest {
                         clock,
                     ),
                 categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
+                groupRepository = RoomGroupRepository(database.groupDao(), database.transactionDao(), clock),
                 savedStateHandle = SavedStateHandle(mapOf("transactionId" to transactionId)),
                 clock = clock,
             ),
@@ -551,5 +555,92 @@ class TransactionFormViewModelTest {
             assertEquals(id, buffered.id)
             assertEquals(Money(700, "EUR"), buffered.amount)
             assertEquals("Mistake", buffered.note)
+        }
+
+    @Test
+    fun `a movement can be put in a group, and tapping the group again takes it out`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val lisbon = database.groupDao().insert(group(name = "Lisbon trip"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() && it.groups.isNotEmpty() }
+                "18".forEach(viewModel::appendDigit)
+                viewModel.selectGroup(lisbon)
+                assertEquals(lisbon, awaitStateThat { it.selectedGroupId != null }.selectedGroupId)
+                viewModel.selectGroup(lisbon)
+                awaitStateThat { it.selectedGroupId == null }
+                viewModel.selectGroup(lisbon)
+                awaitStateThat { it.selectedGroupId == lisbon }
+
+                viewModel.save()
+
+                assertTrue(awaitStateThat { it.finished }.finished)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val stored = transactions.observeTransactions().first().single()
+            assertEquals(lisbon, stored.transaction.groupId)
+            assertEquals("Lisbon trip", stored.groupName)
+        }
+
+    @Test
+    fun `editing a movement keeps its group and the rule that wrote it`() =
+        runTest {
+            val accountId = database.accountDao().insert(account(name = "Checking"))
+            val lisbon = database.groupDao().insert(group(name = "Lisbon trip"))
+            val ruleId =
+                database.recurringRuleDao().insert(recurringRule(accountId))
+            val id =
+                transactions.addTransaction(
+                    Transaction(
+                        id = 0,
+                        accountId = accountId,
+                        categoryId = null,
+                        kind = TransactionKind.EXPENSE,
+                        amount = Money(18_000, "EUR"),
+                        date = LocalDate.of(2026, 8, 10),
+                        note = null,
+                        ruleId = ruleId,
+                        groupId = lisbon,
+                    ),
+                )
+
+            val editor = formFor(id)
+            editor.uiState.test {
+                awaitStateThat { it.isEditing && it.selectedGroupId == lisbon && it.groups.isNotEmpty() }
+                editor.setNote("Hotel")
+                editor.save()
+                assertTrue(awaitStateThat { it.finished }.finished)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val stored = transactions.findById(id)!!
+            assertEquals("Hotel", stored.note)
+            assertEquals(lisbon, stored.groupId)
+            assertEquals(ruleId, stored.ruleId)
+        }
+
+    @Test
+    fun `a group whose dates cover the movement is offered first, and never chosen for you`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            // The form opens on 18 August 2026 (the test clock).
+            database.groupDao().insert(group(name = "Amsterdam"))
+            database.groupDao().insert(
+                group(name = "Zaragoza", startDate = LocalDate.of(2026, 8, 15), endDate = LocalDate.of(2026, 8, 20)),
+            )
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.groups.size == 2 }
+                assertEquals(listOf("Zaragoza", "Amsterdam"), state.offeredGroups.map { it.name })
+                assertNull(state.selectedGroupId)
+
+                // Moved outside the trip's dates, it goes back to its place by name.
+                viewModel.setDate(LocalDate.of(2026, 9, 1))
+                val later = awaitStateThat { it.date == LocalDate.of(2026, 9, 1) }
+                assertEquals(listOf("Amsterdam", "Zaragoza"), later.offeredGroups.map { it.name })
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 }

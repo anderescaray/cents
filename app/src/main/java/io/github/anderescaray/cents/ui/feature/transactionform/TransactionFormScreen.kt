@@ -203,6 +203,8 @@ private fun FormFields(
 
         categorySection(state = state, viewModel = viewModel, onCreateCategory = onCreateCategory)
 
+        groupSection(state = state, viewModel = viewModel)
+
         if (state.isEditing) {
             deleteAction(onDelete = viewModel::requestDeletion)
         }
@@ -297,6 +299,26 @@ private fun LazyListScope.categorySection(
                 },
             )
         }
+    }
+}
+
+/**
+ * Which occasion it belongs to, if any (PRD §4.9). Absent until a group exists: they are made in
+ * Settings › Groups, and an empty picker on every movement would be noise for most of them.
+ */
+private fun LazyListScope.groupSection(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+) {
+    if (state.groups.isEmpty()) return
+    item(key = "group") {
+        PickerSection(
+            header = stringResource(R.string.field_group),
+            footer = stringResource(R.string.field_group_footer),
+            options = state.offeredGroups.map { it.id to it.name },
+            selectedId = state.selectedGroupId,
+            onSelect = viewModel::selectGroup,
+        )
     }
 }
 

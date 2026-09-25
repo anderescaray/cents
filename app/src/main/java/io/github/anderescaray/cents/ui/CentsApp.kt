@@ -33,6 +33,9 @@ import io.github.anderescaray.cents.ui.feature.budgets.BudgetsScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
 import io.github.anderescaray.cents.ui.feature.filters.TransactionFiltersScreen
+import io.github.anderescaray.cents.ui.feature.groups.GroupDetailScreen
+import io.github.anderescaray.cents.ui.feature.groups.GroupEditScreen
+import io.github.anderescaray.cents.ui.feature.groups.GroupsScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeUiState
 import io.github.anderescaray.cents.ui.feature.home.HomeViewModel
@@ -179,6 +182,7 @@ private fun CentsNavHost(
         accountRoutes(navController)
         categoryRoutes(navController)
         recurringRoutes(navController)
+        groupRoutes(navController)
         investmentRoutes(navController)
 
         composable<Destination.Reports> {
@@ -194,6 +198,7 @@ private fun CentsNavHost(
                 onOpenCategories = { navController.navigate(Destination.Categories) },
                 onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
                 onOpenBudgets = { navController.navigate(Destination.Budgets) },
+                onOpenGroups = { navController.navigate(Destination.Groups) },
                 onResetHomeLayout = home::resetLayout,
             )
         }
@@ -421,5 +426,36 @@ private fun NavGraphBuilder.recurringRoutes(navController: NavHostController) {
     }
     composable<Destination.BudgetEdit> {
         BudgetEditScreen(onDone = { navController.popBackStack() })
+    }
+}
+
+/** Occasions across categories (PRD §4.9): the list, one group, and its editor. */
+private fun NavGraphBuilder.groupRoutes(navController: NavHostController) {
+    composable<Destination.Groups> {
+        GroupsScreen(
+            onBack = { navController.popBackStack() },
+            onNewGroup = { navController.navigate(Destination.GroupEdit()) { launchSingleTop = true } },
+            onOpenGroup = { id ->
+                navController.navigate(Destination.GroupDetail(groupId = id)) { launchSingleTop = true }
+            },
+        )
+    }
+    composable<Destination.GroupDetail> {
+        GroupDetailScreen(
+            onBack = { navController.popBackStack() },
+            onEdit = { id ->
+                navController.navigate(Destination.GroupEdit(groupId = id)) { launchSingleTop = true }
+            },
+            // The tab switch a Reports drill-down makes, for the same reason: the movements
+            // are the list, narrowed, rather than a second copy of it pushed on top.
+            onOpenMovements = { navController.openMovementsList() },
+        )
+    }
+    composable<Destination.GroupEdit> {
+        GroupEditScreen(
+            onDone = { navController.popBackStack() },
+            // Deleted from under its detail screen: back to the list, past a group that is gone.
+            onDeleted = { navController.popBackStack(Destination.Groups, inclusive = false) },
+        )
     }
 }

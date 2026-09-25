@@ -22,6 +22,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.PeriodSummary
+import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -306,7 +307,7 @@ private fun LazyListScope.day(
                 val transaction = details.transaction
                 CentsListRow(
                     title = details.movementTitle(),
-                    subtitle = transaction.note?.takeIf { it.isNotBlank() } ?: details.accountName,
+                    subtitle = details.subtitle(),
                     subtitleMaxLines = NOTE_MAX_LINES,
                     value = MoneyFormatter.formatSigned(transaction.signedAmount),
                     valueColor = details.movementValueColor(),
@@ -318,6 +319,16 @@ private fun LazyListScope.day(
             }
         }
     }
+}
+
+/**
+ * The note if there is one and the account otherwise — led by the group's name when the movement
+ * belongs to one, so a trip's dinners say so on the list itself (PRD §4.9).
+ */
+@Composable
+private fun TransactionDetails.subtitle(): String {
+    val base = transaction.note?.takeIf { it.isNotBlank() } ?: accountName
+    return groupName?.let { stringResource(R.string.transaction_row_in_group, it, base) } ?: base
 }
 
 internal const val FILTERS_BUTTON_TAG = "openFilters"

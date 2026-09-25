@@ -85,6 +85,7 @@ fun TransactionFiltersScreen(
             weekdaySection(state, viewModel)
             accountSection(state, viewModel)
             categorySection(state, viewModel)
+            groupSection(state, viewModel)
             amountSection(state, viewModel)
             clearSection(state, viewModel)
         }
@@ -237,6 +238,34 @@ private fun LazyListScope.categorySection(
                     selected = state.draft.category == CategoryFilter.One(category.id),
                     last = index == state.categories.lastIndex,
                     onClick = { viewModel.setCategory(CategoryFilter.One(category.id)) },
+                )
+            }
+        }
+    }
+}
+
+/** One group's movements (PRD §4.9). Left off entirely while no group exists. */
+private fun LazyListScope.groupSection(
+    state: TransactionFiltersUiState,
+    viewModel: TransactionFiltersViewModel,
+) {
+    // A filter already narrowing to a group stays visible even if the list has not arrived yet,
+    // so the form never hides something that is narrowing the list behind it.
+    if (state.groups.isEmpty() && state.draft.groupId == null) return
+    item(key = "group") {
+        CentsListSection(header = stringResource(R.string.filters_group_header)) {
+            SelectableRow(
+                title = stringResource(R.string.filters_all_groups),
+                selected = state.draft.groupId == null,
+                last = state.groups.isEmpty(),
+                onClick = { viewModel.setGroup(null) },
+            )
+            state.groups.forEachIndexed { index, group ->
+                SelectableRow(
+                    title = group.name,
+                    selected = state.draft.groupId == group.id,
+                    last = index == state.groups.lastIndex,
+                    onClick = { viewModel.setGroup(group.id) },
                 )
             }
         }

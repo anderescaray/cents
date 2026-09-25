@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_groups">Groups</string>
+    <string name="settings_groups_footer">What a trip, a move or a job cost or earned, across every category it touched.</string>
+    <string name="groups_title">Groups</string>
+    <string name="groups_add">Add a group</string>
+    <string name="groups_empty_title">No groups yet</string>
+    <string name="groups_empty_message">Make one for a trip, a move or a freelance job, then pick it when you record a movement. The movement keeps its category as well.</string>
+    <string name="groups_footer">Reports and budgets are unchanged: a movement in a group still counts in its own month and its own category.</string>
+    <string name="group_row_empty">Nothing recorded yet</string>
+    <plurals name="group_row_movements">
+        <item quantity="one">One movement</item>
+        <item quantity="other">%1$d movements</item>
+    </plurals>
+    <string name="group_row_span">%1$s · %2$s</string>
+    <string name="group_span">%1$s – %2$s</string>
+    <string name="group_cost">Cost you %1$s</string>
+    <string name="group_earned">Earned you %1$s</string>
+    <string name="group_even">Came out even</string>
+    <string name="group_came_in">Came in</string>
+    <string name="group_went_out">Went out</string>
+    <string name="group_movements">Movements</string>
+    <string name="group_dates">Dates</string>
+    <string name="group_see_movements">See its movements</string>
+    <string name="group_spending_header">Where it went</string>
+    <string name="group_income_header">Where it came from</string>
+    <string name="group_new_title">New group</string>
+    <string name="group_edit_title">Group</string>
+    <string name="group_name_header">Name</string>
+    <string name="group_name_placeholder">Lisbon trip, Wedding photos…</string>
+    <string name="group_dates_header">Dates</string>
+    <string name="group_start">Starts</string>
+    <string name="group_end">Ends</string>
+    <string name="group_date_none">Not set</string>
+    <string name="group_clear_dates">Clear dates</string>
+    <string name="group_dates_footer">Optional. While a movement\'s date falls between them, the movement form offers this group first.</string>
+    <string name="group_dates_inverted">It ends before it starts.</string>
+    <string name="group_write_failed">That could not be saved. Try again.</string>
+    <string name="group_delete">Delete group</string>
+    <string name="group_delete_title">Delete this group?</string>
+    <string name="group_delete_message">Its movements stay exactly where they are, in their months and their categories. They only stop belonging to a group.</string>
+    <string name="field_group">Group</string>
+    <string name="field_group_footer">Optional: a trip, a move, a job. Tap it again to take the movement out.</string>
+    <string name="filters_group_header">Group</string>
+    <string name="filters_all_groups">All groups</string>
+    <string name="transaction_row_in_group">%1$s · %2$s</string>
+</resources>

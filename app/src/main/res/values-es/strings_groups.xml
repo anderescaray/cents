@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_groups">Grupos</string>
+    <string name="settings_groups_footer">Lo que costó o dejó un viaje, una mudanza o un trabajo, en todas las categorías que tocó.</string>
+    <string name="groups_title">Grupos</string>
+    <string name="groups_add">Añadir un grupo</string>
+    <string name="groups_empty_title">Aún no hay grupos</string>
+    <string name="groups_empty_message">Crea uno para un viaje, una mudanza o un trabajo por tu cuenta, y elígelo al anotar un movimiento. El movimiento conserva también su categoría.</string>
+    <string name="groups_footer">Los informes y presupuestos no cambian: un movimiento de un grupo sigue contando en su mes y en su categoría.</string>
+    <string name="group_row_empty">Aún no hay nada anotado</string>
+    <plurals name="group_row_movements">
+        <item quantity="one">Un movimiento</item>
+        <item quantity="other">%1$d movimientos</item>
+    </plurals>
+    <string name="group_row_span">%1$s · %2$s</string>
+    <string name="group_span">%1$s – %2$s</string>
+    <string name="group_cost">Te costó %1$s</string>
+    <string name="group_earned">Te dejó %1$s</string>
+    <string name="group_even">Quedó a cero</string>
+    <string name="group_came_in">Entró</string>
+    <string name="group_went_out">Salió</string>
+    <string name="group_movements">Movimientos</string>
+    <string name="group_dates">Fechas</string>
+    <string name="group_see_movements">Ver sus movimientos</string>
+    <string name="group_spending_header">En qué se fue</string>
+    <string name="group_income_header">De dónde vino</string>
+    <string name="group_new_title">Nuevo grupo</string>
+    <string name="group_edit_title">Grupo</string>
+    <string name="group_name_header">Nombre</string>
+    <string name="group_name_placeholder">Viaje a Lisboa, fotos de boda…</string>
+    <string name="group_dates_header">Fechas</string>
+    <string name="group_start">Empieza</string>
+    <string name="group_end">Termina</string>
+    <string name="group_date_none">Sin fecha</string>
+    <string name="group_clear_dates">Quitar las fechas</string>
+    <string name="group_dates_footer">Opcional. Mientras la fecha de un movimiento caiga entre ellas, el formulario te ofrecerá este grupo primero.</string>
+    <string name="group_dates_inverted">Termina antes de empezar.</string>
+    <string name="group_write_failed">No se ha podido guardar. Vuelve a intentarlo.</string>
+    <string name="group_delete">Eliminar grupo</string>
+    <string name="group_delete_title">¿Eliminar este grupo?</string>
+    <string name="group_delete_message">Sus movimientos se quedan tal cual, en sus meses y sus categorías. Solo dejan de pertenecer a un grupo.</string>
+    <string name="field_group">Grupo</string>
+    <string name="field_group_footer">Opcional: un viaje, una mudanza, un trabajo. Tócalo otra vez para sacar el movimiento.</string>
+    <string name="filters_group_header">Grupo</string>
+    <string name="filters_all_groups">Todos los grupos</string>
+    <string name="transaction_row_in_group">%1$s · %2$s</string>
+</resources>

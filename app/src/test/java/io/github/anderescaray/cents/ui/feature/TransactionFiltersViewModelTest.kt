@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
+import io.github.anderescaray.cents.data.repository.RoomGroupRepository
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -73,6 +74,7 @@ class TransactionFiltersViewModelTest {
                         clock,
                     ),
                 categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
+                groupRepository = RoomGroupRepository(database.groupDao(), database.transactionDao(), clock),
                 clock = clock,
             ),
         )

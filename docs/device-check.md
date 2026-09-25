@@ -1474,7 +1474,7 @@ budget is still there, with its limit.
 
 > **Wrong looks like** the budget gone after a restore.
 
-## Walk 13 — groups (#86, #88)
+## Walk 13 — groups (#86, #87)
 
 Settings › Groups. You need an account, an expense category or two and one income category.
 

@@ -31,7 +31,7 @@ one from turning into a general notes file that nobody trusts.
 
 ### D27 · How groups behave (asked 2026-09-25, built on the defaults)
 
-**Built on 2026-09-25, as #86 and #88, on every default below.** Change any line and the next
+**Built on 2026-09-25, as #86 and #87, on every default below.** Change any line and the next
 session changes the app.
 
 The owner asked on 2026-09-25 for a way to see what an occasion cost — a trip, say — across

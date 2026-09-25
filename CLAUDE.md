@@ -314,7 +314,7 @@ and no budget: the trip's dinner is still a restaurant expense in its own month.
 **And what was saved in a hurry gets sorted later** (#90): a movement saved without a category
 waits under **To categorize** on the movement list, and one tap on a category chip files it —
 the inbox PRD §4.6 asks for before any notification capture feeds it.
-852 tests run on the JVM, so CI covers the database and the UI without a device.
+856 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

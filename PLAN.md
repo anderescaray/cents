@@ -523,6 +523,18 @@ phone still out of reach:
   one is filed with one tap on a category chip. No schema change; the count, the list and the
   Reports *Uncategorized* slice share one predicate, which leaves out transfer legs and trade
   cash, and filing is one `UPDATE` that refuses them. **Walk 14** (`i1`–`i3`) checks it.
+- **Then a `/code-review high` of everything merged without one** — budgets, groups, the inbox —
+  and its eight findings fixed in **#92**: a budget counting last month's unanswered variable bill
+  (now only this month's; the Subscriptions screen still counts all, as money owed); a hard-coded
+  EUR fallback replaced by `deviceCurrency()`; the restore alert naming budgets and groups; the
+  inbox's filing refusing a movement already categorized or a category of the other kind;
+  deleting a group clearing a list filter on it; undo no longer crashing when the movement's
+  group, rule or category was deleted in the window; and two efficiency fixes. **Lesson:** the
+  review §7 asks for is not optional because the owner is merging fast — run it before saying a
+  PR is ready.
+- **#93**: search ignores accents as well as case (*cafe* finds *Café*, *ñ* matches *Ñ*), the
+  owner's request. Matched in the repository after SQL narrows by everything else, so it needed
+  no schema change after all.
 
 **Where the 2026-09-24 session stopped: the phone has the build, and Drive is connected.**
 Nothing was built. The session untangled a local merge, installed `main` on the phone, and got
@@ -759,7 +771,7 @@ unmerged one.
 | Budgets | Settings › Budgets: a monthly limit per expense category. Each row shows what is left or how far over, what was spent and what is still to come from the category's subscriptions, and a bar that turns amber at 80 % and red above 100 %. The editor uses the keypad, and a budget is deleted behind a confirmation. Room v7. #80, #81, D26 |
 | Groups | Settings › Groups: occasions that cut across categories — a trip, a move, a freelance job. A movement can belong to one, picked on the form; a group says what it **cost** or **earned** in words, splits it by category, and opens its movements in the list. Reports and budgets are unchanged. Room v8. #86, #87, D27 |
 | Inbox | Movements saved without a category wait under **To categorize** on the Transactions list, with how many; the inbox files each with one tap on a category chip of its own kind, or opens the form. Transfers and trade cash never appear. #90 |
-| Tests | 852 on `main` after #90, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Tests | 856 on `main` after #93, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -2088,10 +2100,10 @@ parallelism.
   category path did not, and an exception escaping the view-model scope would have taken the
   app with it. Both now end in a one-button alert instead, and nothing is retried
   automatically — the owner asks again if they still want to.
-- **Search folds case for ASCII only.** SQLite's `LIKE` lowercases A–Z and nothing else, so
-  searching "cafe" does not find "Café" and vice versa. Fixing it properly means storing a
-  normalised copy of the searchable text, which is a schema change and a migration; it is
-  recorded here rather than half-done.
+- **~~Search folds case for ASCII only.~~** Fixed in #93: the text is matched in Kotlin,
+  accents and case folded, after SQL has narrowed by every other filter. The cost is a pass over
+  the narrowed rows per search, which a personal ledger does not notice; a normalised column
+  would be the fix if one ever does.
 - **Filters do not survive closing the app**, by design — see the note in C3. If they should,
   that is a saved-views feature with a name and a list, not a flag.
 - **The date row the form shows ticked is held, not worked out from the dates.** Deriving it
@@ -2275,6 +2287,38 @@ Two things to hold onto when it arrives, both already project rules rather than 
 constraints: chart aggregation belongs in SQL `GROUP BY`, not in a Kotlin loop over thousands
 of rows, and a resizable grid of live charts is exactly the screen where a missing `key` or a
 non-skippable `UiState` turns into visible jank.
+
+### Choosing which charts show, and in what order (requested 2026-09-25)
+
+Requested by the owner on 2026-09-25, to be placed during the **UI/UX pass**, the same one that
+replaces the bubbles. It is not built, and nothing about where it lives is decided yet.
+
+- **Every chart has a title.** The Reports tab shows a list of those titles.
+- **The owner drags the list into the order they want** and the Reports tab shows the charts in
+  that order.
+- **Any chart can be hidden**, and shown again from the same list.
+- **Where the list lives is open.** It could be the Reports tab itself, with an *Edit* mode
+  where the owner sees the result while arranging, or Settings. The owner leans towards the
+  Reports tab, but it is to be decided in the UI/UX pass.
+
+What makes it cheap: each view on the Reports tab is already a self-contained
+`ReportSection` (`ui/feature/reports/ReportSection.kt`), so an order and a set of hidden ones is
+a list of section ids in DataStore, which already stores the home canvas layout. The iOS pattern
+for it (rule 12) is an edit list with drag handles and a show/hide control on each row, as in
+Control Center's *Customize*. This is the modest first step towards the dashboard above.
+Reordering and hiding come first; resizing cards can come later.
+
+### Hiding a tab that is rarely used (requested 2026-09-25)
+
+The same idea applied to the app's sections. **Accounts** is the example given: accounts are
+created at the start and then very rarely, so its tab could be hidden while it is not in use.
+Decide it together with the bubble replacement, since both are about what the main navigation
+shows. Two things to keep in mind:
+
+- **Nothing may become unreachable.** A new movement needs an account, and the net worth lives
+  on the Accounts tab. A hidden tab needs another way in, for example a row in Settings. Hiding
+  must not delete any data or turn any feature off.
+- **At least one tab must stay visible**, and hiding a tab is undone the same way it was done.
 
 ---
 

@@ -2259,10 +2259,14 @@ next branch: an *Open* entry there outranks anything planned.
   - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
     first two add dependencies and run alone.
   - The dashboard of cards is in C7.
+  - **Groups** (PRD §4.9, `DECISIONS.md` D27): the owner's request of 2026-09-25, to see what a
+    trip or any other occasion cost across categories. One branch: a `groups` table, a nullable
+    `groupId` on movements (**Room v8**, `SET NULL` on delete), a picker on the form, the Groups
+    screen, a list filter, and the backup carrying both.
   - **What replaces the bubbles** (C7). The owner does not much like the canvas and will say
     what they want instead. Until they do, no time goes into it.
-- As of 2026-09-23 the owner has not chosen between the inbox, Phase 6 and the bubble
-  replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
+- As of 2026-09-25 the owner has not chosen between the inbox, Phase 6, groups and the
+  bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
   something *Open*.
 
 **A cloud session cannot build locally** while the environment blocks `dl.google.com` (Google

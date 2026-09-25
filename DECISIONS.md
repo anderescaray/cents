@@ -29,6 +29,37 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
+### D27 · How groups behave (asked 2026-09-25, not built yet)
+
+The owner asked on 2026-09-25 for a way to see what an occasion cost — a trip, say — across
+several categories (PRD §4.9). Nothing is built yet. These are the choices it needs, **each with
+the default that will be built** unless a line changes.
+
+- **What it is called.** *Groups* in English and *Grupos* in Spanish. *Events* or *Trips* are the
+  alternatives. *Default: Groups.*
+- **One group per movement, not several tags.** One group keeps every total a plain sum. Tags
+  would let a dinner be both *Lisbon trip* and *Work*, at the price of totals that overlap.
+  *Default: one group.*
+- **Income can join.** A friend paying back their share lowers what the trip cost, and the group
+  shows spent, received and net. *Default: yes.*
+- **Optional dates.** A group can carry a start and end date. While a movement's date falls
+  inside them, the form **offers** that group at the top of the picker, but never picks it on its
+  own. *Default: as written.*
+- **Reports and budgets are unchanged.** The trip's expenses still count in their month and
+  their category. There is no switch to take them out, because a trip that disappears from
+  September makes September lie. *Default: as written.*
+- **Where it lives.** A **Groups** row in Settings, beside Subscriptions and Budgets, and a group
+  filter on the movement list. *Default: as written.*
+- **Adding past movements.** The first version assigns a group from the movement form, one at a
+  time. Selecting many movements on the list and grouping them at once would come after, if
+  recording as you go turns out not to be enough. *Default: one at a time.*
+- **Subscriptions do not carry a group.** A subscription is not an occasion. *Default: as
+  written.*
+- **A budget for a group** (*the trip may cost 1 200 €*) is not in the first version. *Default:
+  later, if asked.*
+
+**Answer:**
+
 ### D26 · How budgets behave (asked 2026-09-23, built on the defaults)
 
 The owner chose budgets (PRD §4.4) as the next work on 2026-09-23. The PRD fixes two things: a

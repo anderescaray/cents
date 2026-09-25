@@ -677,6 +677,38 @@ interface TransactionDao {
     suspend fun count(): Int
 
     /**
+     * How many movements are waiting in the inbox: no category, and not a transfer leg or a
+     * trade's cash, which carry none because they are never classified (PRD §4.6). The same
+     * predicate as the *uncategorized* filter, so the count and the list it opens agree.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM transactions
+        WHERE categoryId IS NULL AND transferId IS NULL AND tradeId IS NULL
+        """,
+    )
+    fun observeUncategorizedCount(): Flow<Int>
+
+    /**
+     * Files one movement under a category, and nothing else about it changes.
+     *
+     * Guarded against a transfer leg and a trade's cash, which must stay unclassified or they
+     * would start counting as income and spending. Returns how many rows changed: 0 is a
+     * movement that is gone, or one of those two.
+     */
+    @Query(
+        """
+        UPDATE transactions SET categoryId = :categoryId, updatedAt = :updatedAt
+        WHERE id = :id AND transferId IS NULL AND tradeId IS NULL
+        """,
+    )
+    suspend fun setCategory(
+        id: Long,
+        categoryId: Long,
+        updatedAt: Instant,
+    ): Int
+
+    /**
      * Moves every movement out of one account and into another, so the first one can then
      * be deleted without taking its history with it.
      *

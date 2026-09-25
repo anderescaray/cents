@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inbox_title">Por categorizar</string>
+    <string name="inbox_row_footer">Guardados sin categoría. Toca una de sus categorías para archivarlo.</string>
+    <string name="inbox_empty_title">Nada por categorizar</string>
+    <string name="inbox_empty_message">Un movimiento guardado sin categoría espera aquí hasta que le des una. Mientras tanto sigue contando en todos los totales, como Sin categoría.</string>
+    <string name="inbox_no_expense_categories">Aún no hay categorías de gasto. Crea una en Ajustes › Categorías.</string>
+    <string name="inbox_no_income_categories">Aún no hay categorías de ingreso. Crea una en Ajustes › Categorías.</string>
+    <string name="inbox_write_failed">No se ha podido archivar ese movimiento. Puede que se haya eliminado mientras tanto.</string>
+</resources>

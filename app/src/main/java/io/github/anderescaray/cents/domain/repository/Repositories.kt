@@ -149,6 +149,18 @@ interface TransactionRepository {
      */
     fun observeTransactions(filter: TransactionFilter = TransactionFilter.None): Flow<List<TransactionDetails>>
 
+    /** How many movements wait in the uncategorized inbox (PRD §4.6). */
+    fun observeUncategorizedCount(): Flow<Int>
+
+    /**
+     * Gives one movement a category, from the inbox, without going through the form. Returns
+     * false when nothing was filed: the movement is gone, or is a transfer leg or a trade's cash.
+     */
+    suspend fun categorize(
+        id: Long,
+        categoryId: Long,
+    ): Boolean
+
     fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>>
 
     /** One account's movements, carrying the names its rows have to show. */

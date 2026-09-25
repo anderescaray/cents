@@ -177,6 +177,12 @@ class RoomCategoryRepository
         override suspend fun countTransactions(id: Long): Int = categoryDao.countTransactions(id)
     }
 
+/**
+ * @suppress TooManyFunctions — the movement list is the app's widest surface: reading, the three
+ * writes, the pair a transfer is, and the inbox's count and one-tap filing. Splitting it would put
+ * the transfer invariants this class holds (see [updateTransaction]) in two places.
+ */
+@Suppress("TooManyFunctions")
 @Singleton
 class RoomTransactionRepository
     @Inject
@@ -200,6 +206,13 @@ class RoomTransactionRepository
                     maxAmountMinor = filter.maxAmountMinor,
                     query = filter.query.toLikeArgument(),
                 ).map { rows -> rows.map { it.toDomain() } }
+
+        override fun observeUncategorizedCount(): Flow<Int> = transactionDao.observeUncategorizedCount()
+
+        override suspend fun categorize(
+            id: Long,
+            categoryId: Long,
+        ): Boolean = transactionDao.setCategory(id, categoryId, clock.instant()) > 0
 
         override fun observeTransactionsForAccount(accountId: Long): Flow<List<Transaction>> =
             transactionDao.observeByAccount(accountId).map { rows -> rows.map { it.toDomain() } }

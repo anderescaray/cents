@@ -62,6 +62,8 @@ data class TransactionsUiState(
      * app does not have.
      */
     val matchSummary: PeriodSummary? = null,
+    /** How many movements wait in the uncategorized inbox, so the list can point at it. */
+    val uncategorizedCount: Int = 0,
 ) {
     val isNarrowed: Boolean get() = filter.isNarrowed
 
@@ -137,6 +139,8 @@ class TransactionsViewModel
                     matchCount = transactions.size,
                     matchSummary = transactions.summarise(),
                 )
+            }.combine(transactionRepository.observeUncategorizedCount()) { state, waiting ->
+                state.copy(uncategorizedCount = waiting)
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),

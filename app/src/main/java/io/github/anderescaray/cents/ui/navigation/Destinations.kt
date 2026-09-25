@@ -91,6 +91,10 @@ sealed interface Destination {
     @Serializable
     data object TransactionFilters : Destination
 
+    /** Movements recorded without a category, waiting to be filed (PRD §4.6). */
+    @Serializable
+    data object Inbox : Destination
+
     @Serializable
     data class AccountDetail(
         val accountId: Long,
@@ -242,7 +246,7 @@ enum class TopLevelTab(
 ) {
     TRANSACTIONS(
         destination = Destination.Transactions,
-        owns = listOf(Destination.TransactionFilters::class),
+        owns = listOf(Destination.TransactionFilters::class, Destination.Inbox::class),
         labelRes = R.string.tab_transactions,
         iconRes = R.drawable.ic_tab_transactions,
     ),

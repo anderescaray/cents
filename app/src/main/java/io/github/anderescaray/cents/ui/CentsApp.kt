@@ -39,6 +39,7 @@ import io.github.anderescaray.cents.ui.feature.groups.GroupsScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeUiState
 import io.github.anderescaray.cents.ui.feature.home.HomeViewModel
+import io.github.anderescaray.cents.ui.feature.inbox.InboxScreen
 import io.github.anderescaray.cents.ui.feature.investments.HoldingDetailScreen
 import io.github.anderescaray.cents.ui.feature.investments.HoldingEditScreen
 import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
@@ -179,6 +180,16 @@ private fun CentsNavHost(
             )
         }
         transactionRoutes(navController)
+        // The uncategorized inbox (PRD §4.6), pushed from the movements list.
+        composable<Destination.Inbox> {
+            InboxScreen(
+                onBack = { navController.popBackStack() },
+                // The full form, for a movement that needs more than a category.
+                onOpenTransaction = { id ->
+                    navController.navigate(Destination.TransactionForm(transactionId = id)) { launchSingleTop = true }
+                },
+            )
+        }
         accountRoutes(navController)
         categoryRoutes(navController)
         recurringRoutes(navController)
@@ -237,6 +248,7 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
             onOpenFilters = {
                 navController.navigate(Destination.TransactionFilters) { launchSingleTop = true }
             },
+            onOpenInbox = { navController.navigate(Destination.Inbox) { launchSingleTop = true } },
         )
     }
     composable<Destination.TransactionFilters> {

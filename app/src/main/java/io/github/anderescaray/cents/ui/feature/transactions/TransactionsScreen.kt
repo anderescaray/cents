@@ -47,6 +47,7 @@ fun TransactionsScreen(
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
     onOpenFilters: () -> Unit,
+    onOpenInbox: () -> Unit = {},
     viewModel: TransactionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -59,6 +60,7 @@ fun TransactionsScreen(
             onOpenTransfer = onOpenTransfer,
             onOpenTrade = onOpenTrade,
             onOpenFilters = onOpenFilters,
+            onOpenInbox = onOpenInbox,
             onQueryChange = viewModel::setQuery,
             onClearFilter = viewModel::clearFilter,
         )
@@ -90,6 +92,7 @@ internal fun TransactionsList(
     onOpenFilters: () -> Unit,
     onQueryChange: (String) -> Unit,
     onClearFilter: () -> Unit,
+    onOpenInbox: () -> Unit = {},
 ) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_transactions),
@@ -113,6 +116,8 @@ internal fun TransactionsList(
             matchSummary(state, onClearFilter)
         } else {
             state.monthSummary?.let { summary -> monthSummary(summary) }
+            // Only on the plain list: a filtered one is already answering a narrower question.
+            if (state.uncategorizedCount > 0) inboxRow(state.uncategorizedCount, onOpenInbox)
         }
 
         if (state.isEmpty) {
@@ -283,6 +288,26 @@ private fun LazyListScope.monthSummary(summary: PeriodSummary) {
     }
 }
 
+/** The way into the uncategorized inbox, saying how many are waiting (PRD §4.6). */
+private fun LazyListScope.inboxRow(
+    count: Int,
+    onOpenInbox: () -> Unit,
+) {
+    item(key = "inbox") {
+        CentsListSection(footer = stringResource(R.string.inbox_row_footer)) {
+            CentsListRow(
+                title = stringResource(R.string.inbox_title),
+                value = count.toString(),
+                valueColor = CentsTheme.colors.accent,
+                showChevron = true,
+                showSeparator = false,
+                onClick = onOpenInbox,
+                modifier = Modifier.testTag(INBOX_ROW_TAG),
+            )
+        }
+    }
+}
+
 private fun LazyListScope.emptyState() {
     item(key = "empty") {
         CentsListSection(footer = stringResource(R.string.transactions_empty_footer)) {
@@ -332,6 +357,7 @@ private fun TransactionDetails.subtitle(): String {
 }
 
 internal const val FILTERS_BUTTON_TAG = "openFilters"
+internal const val INBOX_ROW_TAG = "openInbox"
 internal const val SHOW_EVERYTHING_TAG = "showEverything"
 
 /** The way out of a filter that lives on the list itself, beside what the filter matched. */

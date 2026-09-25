@@ -63,6 +63,7 @@ class BackupWriterTest {
                 "recurringRules",
                 "ruleReminders",
                 "budgets",
+                "groups",
             ),
             json.keys,
         )
@@ -153,7 +154,7 @@ class BackupWriterTest {
         // silently a different file from the one the owner thinks they have.
         assertTrue(csv, csv.contains("\"Food, \"\"drink\"\"\nand rent\""))
         val header = csv.lines().first()
-        assertEquals(9, header.split(",").size)
+        assertEquals(10, header.split(",").size)
     }
 
     @Test

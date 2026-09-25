@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
+import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
@@ -78,6 +79,7 @@ object BackupWriter {
                     "recurringRules" to backup.rules.toArray(::ruleJson),
                     "ruleReminders" to backup.reminders.toArray(::reminderJson),
                     "budgets" to backup.budgets.toArray(::budgetJson),
+                    "groups" to backup.groups.toArray(::groupJson),
                 ),
             )
         return PRETTY.encodeToString(JsonElement.serializer(), root)
@@ -121,6 +123,7 @@ object BackupWriter {
             "transferId" to row.transferId.orNull(),
             "tradeId" to row.tradeId.orNull(),
             "ruleId" to row.ruleId.orNull(),
+            "groupId" to row.groupId.orNull(),
         )
 
     private fun holdingJson(row: BackupHolding) =
@@ -178,6 +181,14 @@ object BackupWriter {
             "currency" to JsonPrimitive(row.currency),
         )
 
+    private fun groupJson(row: BackupGroup) =
+        mapOf(
+            "id" to JsonPrimitive(row.id),
+            "name" to JsonPrimitive(row.name),
+            "startDate" to row.startDate.orNull(),
+            "endDate" to row.endDate.orNull(),
+        )
+
     private fun quoteJson(row: BackupQuote) =
         mapOf(
             "symbol" to JsonPrimitive(row.symbol),
@@ -198,11 +209,13 @@ object BackupWriter {
      *
      * The ids of transfers and trades travel with each row, so a movement that is half of
      * something bigger can still be told apart from money genuinely earned or spent — the same
-     * distinction every report in the app makes.
+     * distinction every report in the app makes. The group, when there is one, goes by name,
+     * which is what a pivot table on a trip wants.
      */
     fun toCsv(backup: Backup): String {
         val accounts = backup.accounts.associate { it.id to it.name }
         val categories = backup.categories.associate { it.id to it.name }
+        val groups = backup.groups.associate { it.id to it.name }
         return buildString {
             appendLine(CSV_HEADER)
             backup.transactions.forEach { row ->
@@ -217,6 +230,8 @@ object BackupWriter {
                         row.note.orEmpty(),
                         row.transferId?.toString().orEmpty(),
                         row.tradeId?.toString().orEmpty(),
+                        // Last, so a spreadsheet built on the columns before it still lines up.
+                        groups[row.groupId].orEmpty(),
                     ).joinToString(",") { it.csvEscaped() },
                 )
             }
@@ -264,7 +279,7 @@ object BackupWriter {
 
     private const val MINOR_UNITS = 100
 
-    private const val CSV_HEADER = "date,account,category,kind,amount,currency,note,transferId,tradeId"
+    private const val CSV_HEADER = "date,account,category,kind,amount,currency,note,transferId,tradeId,group"
 
     private val PRETTY = Json { prettyPrint = true }
 }

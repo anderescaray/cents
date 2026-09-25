@@ -120,10 +120,10 @@ class BackupWriterTest {
     fun `the csv has one row per movement, under a header`() {
         val lines = BackupWriter.toCsv(backup()).trim().lines()
 
-        assertEquals("date,account,category,kind,amount,currency,note,transferId,tradeId", lines.first())
+        assertEquals("date,account,category,kind,amount,currency,note,transferId,tradeId,group", lines.first())
         assertEquals(2, lines.size)
         assertEquals(
-            "2026-09-16,Checking,Groceries,EXPENSE,25.50,EUR,Weekly shop,,",
+            "2026-09-16,Checking,Groceries,EXPENSE,25.50,EUR,Weekly shop,,,",
             lines[1],
         )
     }

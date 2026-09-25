@@ -303,6 +303,7 @@ class TradeCashTest {
                         categoryId = null,
                         uncategorized = true,
                         kind = null,
+                        groupId = null,
                         from = null,
                         to = null,
                         weekday = null,

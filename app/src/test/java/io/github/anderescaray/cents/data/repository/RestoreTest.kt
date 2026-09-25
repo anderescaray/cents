@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.data.local.budget
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
+import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.local.holding
 import io.github.anderescaray.cents.data.local.quote
 import io.github.anderescaray.cents.data.local.recurringRule
@@ -78,6 +79,41 @@ class RestoreTest {
             assertEquals(original.rules, restored.rules)
             assertEquals(original.reminders, restored.reminders)
             assertEquals(original.budgets, restored.budgets)
+            assertEquals(original.groups, restored.groups)
+        }
+
+    @Test
+    fun `a movement comes back in its group`() =
+        runTest {
+            populate()
+            val checking = database.accountDao().insert(account(name = "Travel card"))
+            val lisbon =
+                database.groupDao().insert(
+                    group(
+                        name = "Lisbon trip",
+                        startDate = LocalDate.of(2026, 10, 2),
+                        endDate = LocalDate.of(2026, 10, 6),
+                    ),
+                )
+            database.transactionDao().insert(
+                transaction(checking, amountMinor = 18_000, note = "Hotel", groupId = lisbon),
+            )
+            val text = BackupWriter.toJson(backups.snapshot())
+
+            wipe()
+            backups.restore(readable(text))
+
+            val group = database.groupDao().all().single()
+            assertEquals("Lisbon trip", group.name)
+            assertEquals(LocalDate.of(2026, 10, 2), group.startDate)
+            assertEquals(LocalDate.of(2026, 10, 6), group.endDate)
+            val hotel =
+                database
+                    .transactionDao()
+                    .observeAll()
+                    .first()
+                    .single { it.note == "Hotel" }
+            assertEquals("the hotel is still part of the trip", group.id, hotel.groupId)
         }
 
     @Test
@@ -270,6 +306,9 @@ class RestoreTest {
         assertTrue(backup.rules.isEmpty())
         assertTrue(backup.reminders.isEmpty())
         assertNull(backup.transactions.single().ruleId)
+        // And before groups: none, and a movement in none.
+        assertTrue(backup.groups.isEmpty())
+        assertNull(backup.transactions.single().groupId)
     }
 
     @Test
@@ -338,6 +377,7 @@ class RestoreTest {
 
     private suspend fun wipe() {
         database.transactionDao().deleteAll()
+        database.groupDao().deleteAll()
         database.budgetDao().deleteAll()
         database.ruleReminderDao().deleteAll()
         database.recurringRuleDao().deleteAll()

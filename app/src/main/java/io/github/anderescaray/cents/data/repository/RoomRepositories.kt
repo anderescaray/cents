@@ -192,6 +192,7 @@ class RoomTransactionRepository
                     categoryId = (filter.category as? CategoryFilter.One)?.id,
                     uncategorized = filter.category == CategoryFilter.Uncategorized,
                     kind = filter.kind,
+                    groupId = filter.groupId,
                     from = filter.from,
                     to = filter.to,
                     weekday = filter.weekday?.value,

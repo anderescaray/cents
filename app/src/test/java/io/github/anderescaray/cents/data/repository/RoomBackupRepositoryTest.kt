@@ -6,6 +6,7 @@ import io.github.anderescaray.cents.data.local.budget
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
+import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.local.holding
 import io.github.anderescaray.cents.data.local.quote
 import io.github.anderescaray.cents.data.local.recurringRule
@@ -64,6 +65,7 @@ class RoomBackupRepositoryTest {
             val ruleId = database.recurringRuleDao().insert(recurringRule(accountId))
             database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -3))
             database.budgetDao().insert(budget(categoryId, amountMinor = 40_000))
+            database.groupDao().insert(group())
 
             val backup = backups.snapshot()
 
@@ -76,7 +78,8 @@ class RoomBackupRepositoryTest {
             assertEquals(1, backup.rules.size)
             assertEquals(1, backup.reminders.size)
             assertEquals(1, backup.budgets.size)
-            assertEquals(9, backup.rowCount)
+            assertEquals(1, backup.groups.size)
+            assertEquals(10, backup.rowCount)
         }
 
     @Test

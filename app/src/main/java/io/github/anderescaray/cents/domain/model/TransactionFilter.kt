@@ -38,6 +38,8 @@ data class TransactionFilter(
     val accountId: Long? = null,
     val category: CategoryFilter = CategoryFilter.All,
     val kind: TransactionKind? = null,
+    /** One group's movements (PRD §4.9): what a group's screen opens, and a filter of its own. */
+    val groupId: Long? = null,
     val from: LocalDate? = null,
     val to: LocalDate? = null,
     /**
@@ -65,6 +67,7 @@ data class TransactionFilter(
                 accountId != null,
                 category != CategoryFilter.All,
                 kind != null,
+                groupId != null,
                 from != null || to != null,
                 weekday != null,
                 minAmountMinor != null || maxAmountMinor != null,

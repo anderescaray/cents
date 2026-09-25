@@ -271,6 +271,7 @@ class CategoryEditViewModelTest {
                         categoryId = null,
                         uncategorized = false,
                         kind = null,
+                        groupId = null,
                         from = null,
                         to = null,
                         weekday = null,

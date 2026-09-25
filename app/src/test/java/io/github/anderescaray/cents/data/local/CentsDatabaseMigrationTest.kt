@@ -357,6 +357,75 @@ class CentsDatabaseMigrationTest {
         }
 
     @Test
+    fun `a version 7 database keeps its money and gains groups`() =
+        runTest {
+            createVersion(7)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val groupId = database.groupDao().insert(group(name = "Lisbon trip"))
+                database.transactionDao().insert(
+                    transaction(accountId = accountId, amountMinor = 4_200, groupId = groupId),
+                )
+
+                val lisbon =
+                    database
+                        .groupDao()
+                        .observeTotals()
+                        .first()
+                        .single()
+                assertEquals(4_200L, lisbon.expenseMinor)
+                assertEquals(
+                    "the movement written at v7 belongs to no group, so only one counts",
+                    1,
+                    lisbon.movementCount,
+                )
+                assertEquals("the movement written at v7 should survive", 2_550L, moneyIn(database))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `deleting a group leaves its movements, in a migrated database`() =
+        runTest {
+            createVersion(7)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                val groupId = database.groupDao().insert(group())
+                val movementId =
+                    database.transactionDao().insert(
+                        transaction(accountId = accountId, amountMinor = 4_200, groupId = groupId),
+                    )
+
+                database.groupDao().deleteById(groupId)
+
+                // `SET NULL` arriving through ALTER TABLE, which is where a constraint can
+                // silently fail to arrive: a group is a way of reading movements, not their owner.
+                val survivor = database.transactionDao().findById(movementId)
+                assertEquals(4_200L, survivor?.amountMinor)
+                assertNull(survivor?.groupId)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `the migrated schema is one Room agrees to open`() =
         runTest {
             createVersion(1)

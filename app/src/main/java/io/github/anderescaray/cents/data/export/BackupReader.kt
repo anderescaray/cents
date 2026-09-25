@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
+import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
@@ -123,6 +124,7 @@ object BackupReader {
             rules = root.rows("recurringRules", ::rule),
             reminders = root.rows("ruleReminders", ::reminder),
             budgets = root.rows("budgets", ::budget),
+            groups = root.rows("groups", ::group),
         )
 
     private fun account(row: JsonObject) =
@@ -163,6 +165,7 @@ object BackupReader {
             transferId = row.long("transferId"),
             tradeId = row.long("tradeId"),
             ruleId = row.long("ruleId"),
+            groupId = row.long("groupId"),
         )
 
     private fun holding(row: JsonObject) =
@@ -218,6 +221,14 @@ object BackupReader {
             categoryId = row.requireLong("categoryId"),
             amountMinor = row.requireLong("amountMinor"),
             currency = row.requireString("currency"),
+        )
+
+    private fun group(row: JsonObject) =
+        BackupGroup(
+            id = row.requireLong("id"),
+            name = row.requireString("name"),
+            startDate = row.long("startDate"),
+            endDate = row.long("endDate"),
         )
 
     private fun quote(row: JsonObject) =

@@ -33,12 +33,14 @@ data class Backup(
     val reminders: List<BackupReminder> = emptyList(),
     /** Empty in a file written before budgets existed, which a restore reads as none. */
     val budgets: List<BackupBudget> = emptyList(),
+    /** Empty in a file written before groups existed, which a restore reads as none. */
+    val groups: List<BackupGroup> = emptyList(),
 ) {
     /** How many rows are in it, for a screen that wants to say what it just wrote. */
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
-                holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size
+                holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size + groups.size
 }
 
 data class BackupAccount(
@@ -76,6 +78,8 @@ data class BackupTransaction(
     val tradeId: Long?,
     /** The recurring rule that wrote it, so a restored rule can still say what it produced. */
     val ruleId: Long? = null,
+    /** The occasion it belongs to (PRD §4.9); absent in a file written before groups existed. */
+    val groupId: Long? = null,
 )
 
 data class BackupHolding(
@@ -143,4 +147,13 @@ data class BackupBudget(
     val categoryId: Long,
     val amountMinor: Long,
     val currency: String,
+)
+
+/** An occasion that cuts across categories. Movements point at its id, so it keeps one. */
+data class BackupGroup(
+    val id: Long,
+    val name: String,
+    /** Epoch days, like every other date in the file. */
+    val startDate: Long?,
+    val endDate: Long?,
 )

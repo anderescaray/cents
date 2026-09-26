@@ -521,10 +521,12 @@ mix = dry + rev * 0.55
 mix = np.vstack([highpass(mix[ch], 28) for ch in range(2)])
 # A gentle high shelf, so the top end speaks on a laptop.
 mix = mix + 0.35 * np.vstack([highpass(mix[ch], 3500, order=1) for ch in range(2)])
-# Glue: a gentle soft clip, then a peak ceiling.
+# Glue: a gentle soft clip, then a ceiling on the true peak: the peak between samples, which the
+# AAC encoder pushes past full scale even when every sample is below it.
+CEILING = -1.5  # dBTP
 mix = np.tanh(mix * 1.25) / np.tanh(1.25)
-peak = np.max(np.abs(mix))
-mix *= 10 ** (-1.0 / 20) / peak
+true_peak = np.max(np.abs(signal.resample_poly(mix, 4, 1, axis=1)))
+mix *= 10 ** (CEILING / 20) / true_peak
 fade = int(0.004 * SR)
 mix[:, :fade] *= np.linspace(0, 1, fade)
 tail = int(2.0 * SR)
@@ -538,4 +540,4 @@ with wave.open(out, 'wb') as w:
     w.setframerate(SR)
     w.writeframes(pcm.tobytes())
 rms = np.sqrt(np.mean(mix ** 2))
-print(f'{out}  {DUR:.3f} s  peak -1.0 dBFS  rms {20 * np.log10(rms):.1f} dBFS')
+print(f'{out}  {DUR:.3f} s  true peak {CEILING} dBTP  rms {20 * np.log10(rms):.1f} dBFS')

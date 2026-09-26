@@ -8,12 +8,13 @@
 'use strict';
 
 // ---------------------------------------------------------------------------------------------
-// Time. The cut is written on a 128 BPM grid: 32 beats, 8 bars, exactly 15 seconds.
+// Time. The film is written on a 96 BPM grid: 96 beats, 24 bars, exactly 60 seconds — twelve
+// shots of two bars (five seconds) each.
 // ---------------------------------------------------------------------------------------------
 
-const BPM = 128;
+const BPM = 96;
 const BEAT = 60 / BPM;
-const BEATS = 32;
+const BEATS = 96;
 const DURATION = BEATS * BEAT;
 const W = 1920;
 const H = 1080;
@@ -150,6 +151,9 @@ function spring(dt, f = 2.4, z = 0.55) {
 /** A spring from `a` to `b`, released at `t0`. */
 const sp = (t, t0, a, b, f, z) => lerp(a, b, spring(t - t0, f, z));
 
+/** A little kick that dies away: 0 before `dt`, a peak near 60 ms, gone by 400 ms. */
+const bump = (dt) => (dt <= 0 ? 0 : Math.exp(-dt * 9) * Math.sin(dt * 22));
+
 // ---------------------------------------------------------------------------------------------
 // Colour.
 // ---------------------------------------------------------------------------------------------
@@ -200,8 +204,6 @@ const C = {
   cardD2: '#2C2C2E',
   label2D: 'rgba(235,235,245,0.6)',
   label3D: 'rgba(235,235,245,0.3)',
-  /** The detector's own colour: not the app's, on purpose — it is the lens, not the subject. */
-  det: '#FFD60A',
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -253,9 +255,14 @@ function placeTL(e, x, y, o = {}) {
   if (o.o !== undefined) e.style.opacity = clamp(o.o).toFixed(4);
 }
 
+/** Hide or show an element, keeping whatever display it had (flex stays flex). */
 function show(e, visible) {
-  const d = visible ? '' : 'none';
-  if (e.style.display !== d) e.style.display = d;
+  if (visible) {
+    if (e.style.display === 'none') e.style.display = e.dataset.display || '';
+  } else if (e.style.display !== 'none') {
+    e.dataset.display = e.style.display;
+    e.style.display = 'none';
+  }
 }
 
 function opacity(e, v) {
@@ -347,67 +354,6 @@ function icon(name, parent, size, color, extraClass) {
     });
   };
   return { root, paths, knobs, draw };
-}
-
-// ---------------------------------------------------------------------------------------------
-// The detector. Corner brackets that lock on, a hairline box, and a tag: class and confidence,
-// the way a YOLO overlay draws them.
-// ---------------------------------------------------------------------------------------------
-
-class DetBox {
-  constructor(parent, { color = C.det, label = 'cent', thick = 4, tagSize = 20, ink = '#000', fill = 0.07 } = {}) {
-    this.color = color;
-    this.label = label;
-    this.thick = thick;
-    this.root = h('div', 'det', parent);
-    this.fill = h('div', 'det-fill', this.root, { background: rgba(color, fill) });
-    this.line = h('div', 'det-line', this.root, { borderColor: rgba(color, 0.55) });
-    this.corners = [0, 1, 2, 3].map((i) =>
-      h('div', `det-corner det-c${i}`, this.root, { borderColor: color, borderWidth: `${thick}px` }),
-    );
-    this.tag = h('div', 'det-tag', this.root, { background: color, color: ink, fontSize: `${tagSize}px` });
-    this.tagText = h('span', null, this.tag);
-    this.lastText = '';
-  }
-
-  /**
-   * x, y: centre. w, h: size. spread: how far out the brackets still are (0 = locked on).
-   * tag: 0..1 reveal of the label. conf: the confidence shown. o: opacity. arm: bracket length.
-   */
-  set({ x, y, w, h: hh, spread = 0, tag = 1, conf = 0.99, o = 1, arm, label, lineO = 1 }) {
-    const r = this.root;
-    show(r, o > 0.001);
-    if (o <= 0.001) return;
-    r.style.opacity = clamp(o).toFixed(4);
-    r.style.transform = `translate(${(x - w / 2).toFixed(2)}px,${(y - hh / 2).toFixed(2)}px)`;
-    r.style.width = `${w.toFixed(2)}px`;
-    r.style.height = `${hh.toFixed(2)}px`;
-    this.line.style.opacity = (clamp(1 - spread / 40) * lineO).toFixed(3);
-    this.fill.style.opacity = clamp(1 - spread / 40).toFixed(3);
-    const a = arm === undefined ? Math.min(46, Math.max(12, Math.min(w, hh) * 0.26)) : arm;
-    const off = [
-      [-spread, -spread],
-      [spread, -spread],
-      [spread, spread],
-      [-spread, spread],
-    ];
-    this.corners.forEach((c, i) => {
-      c.style.width = `${a}px`;
-      c.style.height = `${a}px`;
-      const cx = i === 1 || i === 2 ? w - a + this.thick / 2 : -this.thick / 2;
-      const cy = i >= 2 ? hh - a + this.thick / 2 : -this.thick / 2;
-      c.style.transform = `translate(${(cx + off[i][0]).toFixed(2)}px,${(cy + off[i][1]).toFixed(2)}px)`;
-    });
-    const text = `${label || this.label} ${conf.toFixed(2)}`;
-    if (text !== this.lastText) {
-      this.tagText.textContent = text;
-      this.lastText = text;
-    }
-    const tp = clamp(tag);
-    this.tag.style.clipPath = `inset(0 ${((1 - tp) * 100).toFixed(2)}% 0 0)`;
-    this.tag.style.transform = `translate(${(-this.thick / 2 - spread).toFixed(2)}px,${(-spread).toFixed(2)}px)`;
-    this.tag.style.opacity = tp > 0 ? 1 : 0;
-  }
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """
-Cents — motion reel. The soundtrack, synthesised from nothing.
+Cents — the film's soundtrack, synthesised from nothing.
 
     python3 showreel/soundtrack.py            reads build/cues.json, writes build/soundtrack.wav
 
-The music sits on the same 128 BPM grid the picture is cut to: eight bars, A minor to C major.
-Every sound effect is placed by a cue the picture exported — a coin found, a bubble born, a key
-pressed, a card hit — so the mix cannot drift from the frame.
+Sixty seconds on the same 96 BPM grid the picture is cut to: twenty-four bars, a warm loop in
+D major (Dmaj9 – Bm7 – Gmaj7 – A), calm enough to read over. Every sound effect is placed by a
+cue the picture exported — a key pressed, a movement filed, a salary recorded — so the mix
+cannot drift from the frame, and the interface's sounds are pitched to the chord they land in.
 
-Bar 1  Am   the detector: a drone, scanner ticks, a blip per coin found
-Bar 2  F    the kick arrives with the burst; the bubbles are the melody
-Bar 3  C    the groove drops on "Log it"; the keypad plays the tune
-Bar 4  G    three bells for the three screens the movement reaches
-Bar 5  Am   the ring unrolls; the bars climb a scale
-Bar 6  F    the montage, a stab on every cut
-Bar 7  G    …then everything drops out for "You Only Log Once."
-Bar 8  C    the impact, the coin, the chord
+Bars 1–2    the logo: a pad, and a bell for every arc of the ring
+Bars 3–4    the phone arrives; a heartbeat kick, a shaker, the bass
+Bars 5–20   the features: a gentle groove, plucks and bells for what the app does
+Bars 21–22  privacy: the drums step back
+Bars 23–24  the ring leaves the phone and becomes the logo; the chord rings out
 """
 import json
 import os
@@ -26,9 +24,9 @@ from scipy import signal
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SR = 48000
-BPM = 128
+BPM = 96
 BEAT = 60 / BPM
-DUR = 32 * BEAT  # 15 s
+DUR = 96 * BEAT  # 60 s
 N = int(round(DUR * SR))
 rng = np.random.default_rng(128)
 
@@ -291,202 +289,178 @@ def arp_note(m, t0, gain=1.0, pan=0.0, stab=False):
 # The arrangement.
 # ---------------------------------------------------------------------------------------------
 
+BAR = 4 * BEAT
 CHORDS = {
-    'Am': [57, 64, 67, 72],
-    'F': [53, 60, 64, 69],
-    'C': [60, 67, 74, 76],
-    'G': [55, 62, 67, 71],
-    'Gsus': [55, 60, 62, 67],
-    'Cmaj9': [48, 55, 64, 71, 74],
+    'D': [50, 57, 61, 64, 66],    # Dmaj9: D A C# E F#
+    'Bm': [47, 54, 57, 62, 66],   # Bm11-ish: B F# A D F#
+    'G': [43, 55, 59, 62, 66],    # Gmaj7: G G B D F#
+    'A': [45, 57, 61, 64, 69],    # A: A A C# E A
+    'Asus': [45, 57, 62, 64, 69],  # Asus4, resolving to A
 }
-BAR_CHORD = ['Am', 'F', 'C', 'G', 'Am', 'F', 'G', 'Cmaj9']
-BAR_ROOT = [45, 41, 36, 43, 45, 41, 43, 36]
-ARP = {'C': [72, 76, 79, 84], 'G': [71, 74, 79, 83], 'Am': [69, 72, 76, 81], 'F': [69, 72, 77, 81]}
+LOOP = ['D', 'Bm', 'G', 'A']
+ROOT = {'D': 38, 'Bm': 35, 'G': 43, 'A': 45}
+ARP = {'D': [69, 73, 76, 78], 'Bm': [66, 69, 74, 78], 'G': [67, 71, 74, 78], 'A': [69, 73, 76, 81]}
 
-# Pad: filtered in the intro, opening up with the drop, suspended for the breakdown.
-pad(CHORDS['Am'], b(0), b(4), gain=0.8, cutoff=700, attack=1.2)
-pad(CHORDS['F'], b(4), b(4), gain=0.9, cutoff=1300, attack=0.05)
-for bar in (2, 3, 4, 5):
-    pad(CHORDS[BAR_CHORD[bar]], b(bar * 4), b(4), gain=1.0, cutoff=2600, attack=0.03)
-pad(CHORDS['G'], b(24), b(2), gain=1.0, cutoff=2600, attack=0.03, release=0.2)
-pad(CHORDS['Gsus'], b(26), b(2), gain=0.9, cutoff=1600, attack=0.3, release=0.1)
-pad(CHORDS['Cmaj9'], b(28), b(4) - 0.05, gain=1.5, cutoff=3200, attack=0.02, release=1.2)
-pad([60, 67, 76, 79], b(29.25), b(2.75) - 0.1, gain=0.8, cutoff=4200, attack=0.4, release=1.0)
 
-# Drone under the detector.
-t = t_axis(b(4) + 0.3)
-drone = np.sin(2 * np.pi * midi(33) * t) * np.clip(t / 1.0, 0, 1) * np.clip((b(4) + 0.3 - t) / 0.3, 0, 1)
-add(drone * 0.1, 0)
+def chord_at(bar):
+    return LOOP[bar % 4]
 
-# Scanner ticks in bar 1: quiet sixteenths.
-for k in range(16):
-    hat(b(k * 0.25), gain=0.35 + 0.25 * (k % 4 == 0), pan=0.5 if k % 2 else -0.5)
 
-# Drums: the kick lands with the burst (bar 2), the full kit with the drop (bar 3), everything
-# stops for the words (bar 7, second half).
-kicks = [b(k) for k in range(4, 26)]
-for tk in kicks:
-    kick(tk, gain=0.8 if tk < b(8) else 1.0)
-for k in range(8, 26):
-    if k % 2 == 1:
-        clap(b(k), gain=0.9)
-    hat(b(k + 0.5), gain=1.0, pan=0.3)
-    if k >= 12:
-        hat(b(k + 0.25), gain=0.35, pan=-0.35)
-        hat(b(k + 0.75), gain=0.4, pan=-0.35)
-    if k % 4 == 3:
-        hat(b(k + 0.5), gain=0.7, open_=True, pan=0.2)
-# The build into the drop, end of bar 2.
-for k in range(8):
-    snare(b(6 + k * 0.25), gain=0.25 + 0.1 * k, pitch=1 + k * 0.04)
-# The roll into the impact, end of bar 7: sixteenths, then thirty-seconds.
-roll = [26 + 0.25 * k for k in range(6)] + [27.5 + 0.125 * k for k in range(4)]
-for k, at in enumerate(roll):
-    snare(b(at), gain=0.14 + 0.05 * k, pitch=1 + k * 0.05)
+# The pad, all the way through: soft in the intro, open in the middle, full at the end.
+for bar in range(24):
+    name = chord_at(bar)
+    if bar == 23:
+        break
+    if bar == 22:
+        # The last two bars: one long chord for the logo.
+        pad(CHORDS['D'] + [74], bar * BAR, 2 * BAR - 0.05, gain=1.35, cutoff=3600, attack=0.08, release=1.5)
+        break
+    cutoff = 900 if bar < 2 else 1800 if bar < 4 else 2600 if bar < 20 else 2000
+    gain = 0.8 if bar < 2 else 1.0
+    notes = CHORDS['Asus'] if (name == 'A' and bar % 8 == 3) else CHORDS[name]
+    pad(notes, bar * BAR, BAR, gain=gain, cutoff=cutoff, attack=0.9 if bar == 0 else 0.06, release=0.35)
 
-# Bass: offbeat eighths, sidechained, from the burst to the breakdown.
-for bar in range(1, 7):
-    root = BAR_ROOT[bar]
-    for k in range(4):
-        start = b(bar * 4 + k + 0.5)
-        if start >= b(26):
-            break
-        bass(root, start, b(0.45), gain=0.8 if bar == 1 else 1.0)
-        bass(root + 12, start, b(0.2), gain=0.25)
-bass(36, b(28), b(3), gain=1.1)
+# Drums: a heartbeat when the phone arrives (bar 3), the full, gentle kit from bar 5, a step
+# back for privacy (bars 21–22), and one last kick with the logo.
+kicks = []
+for bar in range(2, 23):
+    for beat in (0, 2):
+        at = bar * BAR + beat * BEAT
+        if bar >= 20 and bar < 22:
+            continue  # privacy: no kick
+        kicks.append(at)
+        kick(at, gain=0.55 if bar < 4 else 0.7)
+    if 4 <= bar < 20 and bar % 2 == 1:
+        kicks.append(bar * BAR + 3.5 * BEAT)
+        kick(bar * BAR + 3.5 * BEAT, gain=0.45)
+kicks.append(22 * BAR)
+kick(22 * BAR, gain=0.8)
+for bar in range(4, 22):
+    clap(bar * BAR + BEAT, gain=0.42)
+    clap(bar * BAR + 3 * BEAT, gain=0.42)
+# Shaker: eighths from bar 3, sixteenths in the middle.
+for bar in range(2, 23):
+    step = 0.25 if 6 <= bar < 20 else 0.5
+    k = 0
+    while k * step < 4:
+        at = bar * BAR + k * step * BEAT
+        accent = 1.0 if abs((k * step) % 1 - 0.5) < 1e-6 else 0.55
+        hat(at, gain=0.42 * accent * (0.8 if bar >= 20 else 1.0), pan=0.3 if k % 2 else -0.25)
+        k += 1
+    if 12 <= bar < 20:
+        hat(bar * BAR + 3.5 * BEAT, gain=0.45, open_=True, pan=0.2)
 
-# Arpeggio: sixteenths through the middle of the film.
-for bar in range(3, 7):
-    notes = ARP[BAR_CHORD[bar]]
-    for k in range(16):
-        at = b(bar * 4 + k * 0.25)
-        if at >= b(26):
-            break
-        arp_note(notes[k % 4] + (12 if k % 8 >= 4 else 0), at, gain=0.9, pan=0.45 if k % 2 else -0.45)
+# Bass: roots on the beat, an octave answer on the off-beat, from bar 3 to the privacy break.
+for bar in range(2, 22):
+    root = ROOT[chord_at(bar)]
+    for beat in range(4):
+        at = bar * BAR + beat * BEAT
+        bass(root, at, BEAT * 0.8, gain=0.75 if bar < 4 else 0.9)
+        if bar >= 4:
+            bass(root + 12, at + 0.5 * BEAT, BEAT * 0.35, gain=0.3)
+bass(38, 22 * BAR, 2 * BAR - 0.3, gain=0.9)
 
-# Riser into the impact, and a reverse swell into the burst.
-whoosh(b(26), b(2), 300, 9000, gain=1.1, shape='swell', send=0.3)
-t = t_axis(b(2))
-rise = np.sin(2 * np.pi * np.cumsum(midi(43) * 2 ** (2 * (t / b(2)) ** 1.5)) / SR) * (t / b(2)) ** 2 * 0.08
-add(rise, b(26), send=0.3)
-whoosh(b(3), b(1), 400, 7000, gain=0.6, shape='swell')
+# A soft arpeggio through the middle of the film.
+for bar in range(4, 22):
+    notes = ARP[chord_at(bar)]
+    for k in range(8):
+        at = bar * BAR + k * 0.5 * BEAT
+        arp_note(notes[k % 4] + (12 if (k // 4) % 2 and bar >= 12 else 0), at, gain=0.75 if bar < 20 else 0.55, pan=0.4 if k % 2 else -0.4)
 
 # ---------------------------------------------------------------------------------------------
-# Sound design, from the picture's cues.
+# Sound design, from the picture's cues. Everything the interface does has a sound, and every
+# sound is a note of the chord it lands in.
 # ---------------------------------------------------------------------------------------------
 
 with open(os.path.join(HERE, 'build', 'cues.json')) as fh:
     cues = json.load(fh)['cues']
 
-DETECT = [81, 84, 86, 88, 91, 93]
-BUBBLE = [72, 77, 81, 84, 89]
-KEYS = [76, 79, 81, 84, 88]
-HITS = [79, 83, 86]
-BARS = [69, 72, 74, 76, 79, 81]
-STAB = {'F': [65, 69, 72, 77], 'G': [67, 71, 74, 79]}
+ARCS = [74, 78, 81, 85, 86, 90]
+KEYS = [74, 76, 78, 81, 83]
+COLLECT = [74, 76, 78, 81, 83]
 
 for c in cues:
     at, kind = c['t'], c['type']
-    if kind == 'coin':
+    if kind == 'arc':
+        bell(ARCS[c['i']], at, gain=0.55, pan=(c['i'] - 2.5) * 0.15, decay=1.4)
+    elif kind == 'cent':
         if c.get('final'):
-            for j, m in enumerate([84, 88, 91, 96]):
-                bell(m, at + j * 0.035, gain=0.9, pan=(j - 1.5) * 0.2, decay=1.6)
-            blip(2200, at, dur=0.05, gain=0.6)
+            for j, m in enumerate([74, 78, 81, 86]):
+                bell(m, at + j * 0.05, gain=0.6, pan=(j - 1.5) * 0.2, decay=1.8)
         else:
-            bell(88, at, gain=0.7, decay=0.9)
-    elif kind == 'lock':
-        if c.get('final'):
-            blip(midi(84), at, dur=0.07, gain=0.9)
-            blip(midi(91), at + 0.08, dur=0.14, gain=0.9)
-        elif c.get('big'):
-            blip(midi(81), at, dur=0.06, gain=0.8)
-            blip(midi(88), at + 0.07, dur=0.1, gain=0.8)
-        else:
-            blip(midi(88), at, dur=0.045, gain=0.6)
-            blip(midi(93), at + 0.055, dur=0.07, gain=0.6)
-    elif kind == 'scan':
-        whoosh(at, b(1), 600, 6000, gain=0.45, shape='pass', q=2.5)
-    elif kind == 'detect':
-        blip(midi(DETECT[c['i'] % len(DETECT)]), at, dur=0.05, gain=0.55, pan=c.get('pan', 0) * 0.8)
-    elif kind == 'swoosh':
-        whoosh(at, 0.45, 5000, 500, gain=0.5, shape='swell')
-    elif kind == 'absorb':
-        click(at, gain=0.35, f=2400 + 120 * c['i'], pan=0.0)
-    elif kind == 'flip':
-        bell(95, at, gain=0.35, decay=0.4, ratio=5.1, index=1.2)
-    elif kind == 'burst':
-        sub_boom(at, gain=0.7, f_start=140, f_end=44, dur=0.9)
-        whoosh(at, 0.5, 300, 5000, gain=0.7, shape='fade')
-        crash(at, gain=0.45, dur=1.5)
-    elif kind == 'bubble':
-        pluck(BUBBLE[c['i']], at, gain=0.9, pan=(c['i'] - 2) * 0.3, decay=0.3)
-        blip(700 + 140 * c['i'], at, dur=0.04, gain=0.35, glide=2.0)
-    elif kind == 'pullback':
-        whoosh(at, 0.62, 3500, 300, gain=0.45, shape='pass')
-    elif kind == 'tap':
-        click(at, gain=0.8, f=1400)
-    elif kind == 'expand':
-        whoosh(at, 0.34, 400, 3000, gain=0.45, shape='pass')
-    elif kind == 'sheet':
-        whoosh(at, 0.3, 500, 2500, gain=0.3, shape='pass')
-    elif kind == 'key':
-        pluck(KEYS[c['i']], at, gain=1.0, pan=(c['i'] - 2) * 0.15, decay=0.28)
-        click(at, gain=0.45, f=2000)
-    elif kind == 'insert':
-        blip(420, at, dur=0.07, gain=0.5, glide=2.2)
-    elif kind == 'word':
-        w = c.get('w', '')
-        if w in ('You', 'Only', 'Log', 'Once.'):
-            i = c.get('i', 0)
-            sub_boom(at, gain=0.55 + 0.1 * i, f_start=120, f_end=49, dur=0.6)
-            snare(at, gain=0.35, pitch=0.7 + 0.08 * i)
-            pluck([55, 59, 62, 67][i], at, gain=0.5, decay=0.4, bright=0.5, send=0.4)
-        else:
-            chord = CHORDS['C'] if w in ('Log it', 'once.') else CHORDS['G']
-            for m in chord:
-                arp_note(m + 12, at, gain=1.4, stab=True)
-    elif kind == 'wire':
-        whoosh(at, 0.27, 800, 5000, gain=0.35, shape='swell', q=2.2)
-    elif kind == 'hit':
-        bell(HITS[c['i']], at, gain=0.9, decay=0.9, pan=[-0.3, 0.3, 0.0][c['i']])
-    elif kind == 'roll':
-        for j in range(14):
-            click(at + 0.6 * (j / 14) ** 1.6, gain=0.3 * (1 - j / 16), f=3000, pan=-0.2)
-    elif kind == 'ring':
-        whoosh(at, 0.5, 2500, 800, gain=0.25, shape='pass')
-    elif kind == 'open':
-        whoosh(at, 0.75, 300, 6000, gain=0.6, shape='pass')
-        sub_boom(at + 0.6, gain=0.3, f_start=100, f_end=50, dur=0.5)
-    elif kind == 'unroll':
-        whoosh(at, 0.55, 6000, 600, gain=0.45, shape='pass', q=3)
-        for j in range(10):
-            click(at + 0.05 * j, gain=0.18, f=2600 - 120 * j, pan=-0.4 + 0.08 * j)
-    elif kind == 'bar':
-        pluck(BARS[5 - c['i']], at, gain=0.9, pan=(2.5 - c['i']) * 0.18, decay=0.32)
-    elif kind == 'flood':
-        whoosh(at - 0.05, 0.45, 400, 7000, gain=0.6, shape='swell')
-    elif kind == 'whoosh':
-        whoosh(at - 0.02, 0.16, 800, 6000, gain=0.45, shape='swell', q=1.2)
-    elif kind == 'cut':
-        chord = STAB['F'] if c['i'] < 3 else STAB['G']
-        for m in chord:
-            arp_note(m + 12, at, gain=1.8, stab=True)
-        blip(midi(chord[-1] + 12), at, dur=0.05, gain=0.3)
-    elif kind == 'impact':
-        kick(at, gain=1.2)
-        sub_boom(at, gain=1.0, f_start=120, f_end=36, dur=1.6)
-        crash(at, gain=0.9, dur=2.4)
-        for j, m in enumerate([93, 96, 100, 103]):
-            blip(midi(m), at + 0.03 * j, dur=0.06, gain=0.5, pan=(j - 1.5) * 0.3)
-    elif kind == 'fall':
-        blip(1400, at, dur=0.55, gain=0.35, glide=0.18, send=0.3)
-        for j in range(8):
-            click(at + 0.18 + 0.045 * j, gain=0.15, f=900 + 200 * j, pan=(j - 3.5) * 0.2)
-    elif kind == 'gather':
-        whoosh(at, 0.66, 500, 8000, gain=0.55, shape='swell', q=2)
-        blip(300, at + 0.1, dur=0.56, gain=0.3, glide=6.0, send=0.3)
+            bell(86, at, gain=0.5, decay=1.2)
     elif kind == 'mark':
-        whoosh(at, 0.5, 2500, 400, gain=0.3, shape='pass')
+        whoosh(at - 0.1, 0.7, 2500, 500, gain=0.25, shape='pass')
+    elif kind == 'tagline':
+        bell(81, at + 0.1, gain=0.25, decay=1.5, index=1.2)
+    elif kind == 'phoneIn':
+        whoosh(at, 1.1, 300, 2600, gain=0.35, shape='pass', q=1.2)
+    elif kind == 'land':
+        pluck(74, at, gain=0.7, decay=0.5, bright=0.6, send=0.4)
+        bell(86, at + 0.02, gain=0.3, decay=1.0)
+    elif kind == 'lift':
+        whoosh(at, 1.0, 500, 4000, gain=0.35, shape='pass', q=1.2)
+    elif kind == 'title':
+        whoosh(at - 0.05, 0.6, 1200, 5000, gain=0.12, shape='pass', q=1.6)
+    elif kind == 'tap':
+        click(at, gain=0.45, f=1500)
+    elif kind == 'key':
+        pluck(KEYS[c['i']], at, gain=0.75, pan=(c['i'] - 2) * 0.15, decay=0.26)
+        click(at, gain=0.25, f=2200)
+    elif kind == 'sheet':
+        whoosh(at, 0.45, 500, 2500, gain=0.25, shape='pass')
+    elif kind == 'select':
+        pluck(81, at + 0.02, gain=0.55, decay=0.3)
+    elif kind == 'saved':
+        bell(81, at, gain=0.5, decay=0.9)
+        bell(86, at + 0.12, gain=0.5, decay=1.2)
+    elif kind == 'file':
+        whoosh(at + 0.35, 0.4, 3000, 800, gain=0.2, shape='pass')
+        pluck([78, 81][c['i']], at, gain=0.6, decay=0.3)
+    elif kind == 'done':
+        bell(86, at, gain=0.45, decay=1.0)
+        bell(90, at + 0.1, gain=0.4, decay=1.2)
+    elif kind == 'insight':
+        bell(78, at, gain=0.35, decay=1.2)
+    elif kind == 'collect':
+        pluck(COLLECT[c['i']], at, gain=0.65, pan=0.1, decay=0.32)
+        whoosh(at - 0.6, 0.6, 900, 3500, gain=0.12, shape='swell')
+    elif kind == 'notify':
+        bell(88, at, gain=0.5, decay=0.8)
+        bell(93, at + 0.14, gain=0.45, decay=1.1)
+    elif kind == 'toggle':
+        click(at + 0.05, gain=0.4, f=1100)
+        blip(midi(81), at + 0.08, dur=0.07, gain=0.4, glide=1.1)
+    elif kind == 'typing':
+        for j in range(8):
+            click(at + j * 0.08, gain=0.22, f=2400 + 60 * j)
+    elif kind == 'recorded':
+        for j, m in enumerate([74, 78, 81, 86]):
+            bell(m, at + j * 0.07, gain=0.4, decay=0.9, pan=(j - 1.5) * 0.2)
+    elif kind == 'postpone':
+        click(at, gain=0.3, f=1800)
+        click(at + 0.08, gain=0.3, f=2100)
+        pluck(76, at + 0.12, gain=0.45, decay=0.25)
+    elif kind == 'amber':
+        pluck(69, at, gain=0.55, decay=0.45, bright=0.5)
+    elif kind == 'over':
+        pluck(68, at, gain=0.5, decay=0.35, bright=0.4)
+        pluck(64, at + 0.08, gain=0.4, decay=0.4, bright=0.4)
+    elif kind == 'bars':
+        for j, m in enumerate([67, 71, 74, 78, 79, 83]):
+            pluck(m, at + 0.1 * j, gain=0.35, decay=0.25, pan=(j - 2.5) * 0.15)
+    elif kind == 'highlight':
+        bell(83, at + 0.1, gain=0.35, decay=1.0)
+    elif kind == 'transfer':
+        whoosh(at, 0.8, 2800, 900, gain=0.2, shape='pass')
+        pluck(81, at + 0.75, gain=0.5, decay=0.35)
+    elif kind == 'unlock':
+        bell(81, at, gain=0.45, decay=0.8)
+        bell(86, at + 0.1, gain=0.45, decay=1.1)
+        whoosh(at + 0.45, 0.6, 600, 3000, gain=0.2, shape='pass')
+    elif kind == 'backedup':
+        bell(86, at, gain=0.4, decay=0.9)
+        bell(90, at + 0.1, gain=0.4, decay=1.2)
 
 # ---------------------------------------------------------------------------------------------
 # Sidechain, reverb, master.
@@ -525,7 +499,7 @@ peak = np.max(np.abs(mix))
 mix *= 10 ** (-1.0 / 20) / peak
 fade = int(0.004 * SR)
 mix[:, :fade] *= np.linspace(0, 1, fade)
-tail = int(0.35 * SR)
+tail = int(2.0 * SR)
 mix[:, -tail:] *= np.linspace(1, 0, tail) ** 2
 
 out = os.path.join(HERE, 'build', 'soundtrack.wav')

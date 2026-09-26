@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cents — motion reel</title>
+<title>Cents — the film</title>
 <style>
   /* The app's own typeface, straight from the APK's resources: Inter 4, with its optical-size
      axis, so display sizes get the display cut. */
@@ -20,7 +20,7 @@
   #frame { position: relative; width: 1920px; height: 1080px; transform-origin: 0 0; }
   #stage {
     position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden;
-    background: #000; color: #fff;
+    background: #F4F5F9; color: #0E1117;
     font-family: 'Inter', sans-serif; font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
     perspective: 2600px;
@@ -31,76 +31,31 @@
   .layer3d { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; perspective: 2600px; }
   .tnum { font-feature-settings: 'tnum' 1; }
 
-  /* Detector overlay. */
-  .det { position: absolute; left: 0; top: 0; pointer-events: none; }
-  .det-fill { position: absolute; inset: 0; }
-  .det-line { position: absolute; inset: 0; border: 1.5px solid; }
-  .det-corner { position: absolute; left: 0; top: 0; border-style: solid; }
-  .det-c0 { border-right: none !important; border-bottom: none !important; }
-  .det-c1 { border-left: none !important; border-bottom: none !important; }
-  .det-c2 { border-left: none !important; border-top: none !important; }
-  .det-c3 { border-right: none !important; border-top: none !important; }
-  .det-tag {
-    position: absolute; left: 0; bottom: 100%; padding: 2px 9px 3px; margin-bottom: 0;
-    font-weight: 650; white-space: nowrap; letter-spacing: 0.01em; line-height: 1.25;
-    font-feature-settings: 'tnum' 1;
-  }
-
   /* Kinetic type: each line is a mask, each letter rises inside it. */
   .kin { position: absolute; left: 0; top: 0; white-space: nowrap; }
   .kin-mask { display: block; overflow: hidden; padding: 0.06em 0.05em 0.2em; margin: -0.06em -0.05em -0.2em; }
   .kin-ch { display: inline-block; }
 
-  /* The phone. An Android body — punch-hole camera, gesture pill — running an app that
-     dresses like iOS, which is what Cents is. */
-  .phone {
-    position: absolute; left: 0; top: 0; width: 424px; height: 912px; border-radius: 66px;
-    background: linear-gradient(150deg, #4b4b50 0%, #1b1b1e 18%, #0d0d0f 50%, #1b1b1e 82%, #3d3d42 100%);
-    box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.10), 0 50px 120px rgba(0,0,0,0.55), 0 12px 32px rgba(0,0,0,0.35);
-  }
-  .phone .screen {
-    position: absolute; left: 12px; top: 12px; width: 400px; height: 888px; border-radius: 54px;
-    overflow: hidden; background: #F2F2F7; color: #000;
-  }
-  .punch {
-    position: absolute; left: 192px; top: 14px; width: 16px; height: 16px; border-radius: 50%;
-    background: #050505; box-shadow: 0 0 0 2.5px #1a1a1c; z-index: 60;
-  }
-  .gesture { position: absolute; left: 140px; bottom: 8px; width: 120px; height: 5px; border-radius: 3px; background: #000; z-index: 60; }
-
-  .statusbar { position: absolute; left: 0; top: 0; width: 400px; height: 40px; z-index: 55; font-weight: 600; font-size: 15px; }
-  .statusbar .time { position: absolute; left: 30px; top: 12px; letter-spacing: -0.01em; }
-
-  /* iOS-flavoured building blocks, at the app's own metrics (ui/theme/CentsDimens.kt). */
-  .large-title { position: absolute; left: 16px; font-size: 34px; font-weight: 700; letter-spacing: -0.012em; line-height: 41px; }
-  .sec-h { position: absolute; left: 32px; font-size: 13px; line-height: 18px; color: rgba(60,60,67,0.6); letter-spacing: 0.02em; }
-  .card { position: absolute; left: 16px; width: 368px; background: #fff; border-radius: 10px; overflow: hidden; }
-  .row { position: absolute; left: 0; width: 368px; background: #fff; }
-  .row .t { position: absolute; left: 16px; font-size: 17px; letter-spacing: -0.004em; }
-  .row .st { position: absolute; left: 16px; font-size: 15px; color: rgba(60,60,67,0.6); letter-spacing: -0.002em; }
-  .row .v { position: absolute; right: 16px; font-size: 17px; letter-spacing: -0.004em; font-feature-settings: 'tnum' 1; text-align: right; }
-  .row .sep { position: absolute; left: 16px; right: 0; bottom: 0; height: 0.5px; background: rgba(60,60,67,0.29); }
-
-  .tabbar { position: absolute; left: 0; bottom: 0; width: 400px; height: 84px; background: rgba(249,249,249,0.98); border-top: 0.5px solid rgba(60,60,67,0.3); }
-  .tab { position: absolute; top: 7px; width: 80px; text-align: center; font-size: 10px; font-weight: 500; }
-  .tab svg { display: block; margin: 0 auto 3px; }
+  /* A screen inside the phone: every screen is the phone's size. */
+  .scr { position: absolute; left: 0; top: 0; width: 400px; height: 868px; }
 
   /* Preview chrome — never drawn during capture. */
   #controls { display: flex; gap: 12px; align-items: center; margin-top: 12px; font: 13px/1 -apple-system, system-ui, sans-serif; color: #ccc; }
   #controls button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid #333; background: #1c1c1e; color: #fff; cursor: pointer; }
   #controls input { width: 520px; }
   body.render #controls { display: none; }
-  body.render { display: block; background: #000; }
+  body.render { display: block; background: #F4F5F9; }
 </style>
 </head>
 <body>
 <div id="frame"><div id="stage"></div></div>
 <div id="controls">
   <button id="play">Pause</button>
-  <input id="scrub" type="range" min="0" max="15000" value="0">
+  <input id="scrub" type="range" min="0" max="60000" value="0">
   <span id="clock" class="tnum">0.000 s</span>
 </div>
 <script src="engine.js"></script>
+<script src="ui.js"></script>
 <script src="scenes.js"></script>
 <script>
   'use strict';

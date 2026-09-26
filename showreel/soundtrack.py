@@ -4,16 +4,16 @@ Cents — the film's soundtrack, synthesised from nothing.
 
     python3 showreel/soundtrack.py            reads build/cues.json, writes build/soundtrack.wav
 
-Sixty seconds on the same 96 BPM grid the picture is cut to: twenty-four bars, a warm loop in
-D major (Dmaj9 – Bm7 – Gmaj7 – A), calm enough to read over. Every sound effect is placed by a
+Sixty-five seconds on the same 96 BPM grid the picture is cut to: twenty-six bars, a warm loop
+in D major (Dmaj9 – Bm7 – Gmaj7 – A), calm enough to read over. Every sound effect is placed by a
 cue the picture exported — a key pressed, a movement filed, a salary recorded — so the mix
 cannot drift from the frame, and the interface's sounds are pitched to the chord they land in.
 
 Bars 1–2    the logo: a pad, and a bell for every arc of the ring
 Bars 3–4    the phone arrives; a heartbeat kick, a shaker, the bass
-Bars 5–20   the features: a gentle groove, plucks and bells for what the app does
-Bars 21–22  privacy: the drums step back
-Bars 23–24  the ring leaves the phone and becomes the logo; the chord rings out
+Bars 5–22   the features: a gentle groove, plucks and bells for what the app does
+Bars 23–24  privacy: the drums step back
+Bars 25–26  the ring leaves the phone and becomes the logo; the chord rings out
 """
 import json
 import os
@@ -26,7 +26,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SR = 48000
 BPM = 96
 BEAT = 60 / BPM
-DUR = 96 * BEAT  # 60 s
+BARS = 26
+DUR = 4 * BARS * BEAT  # 65 s
 N = int(round(DUR * SR))
 rng = np.random.default_rng(128)
 
@@ -290,6 +291,8 @@ def arp_note(m, t0, gain=1.0, pan=0.0, stab=False):
 # ---------------------------------------------------------------------------------------------
 
 BAR = 4 * BEAT
+PRIV = BARS - 4  # the privacy shot: the drums step back
+OUT = BARS - 2  # the ending: the ring becomes the logo again
 CHORDS = {
     'D': [50, 57, 61, 64, 66],    # Dmaj9: D A C# E F#
     'Bm': [47, 54, 57, 62, 66],   # Bm11-ish: B F# A D F#
@@ -307,65 +310,63 @@ def chord_at(bar):
 
 
 # The pad, all the way through: soft in the intro, open in the middle, full at the end.
-for bar in range(24):
+for bar in range(BARS):
     name = chord_at(bar)
-    if bar == 23:
-        break
-    if bar == 22:
+    if bar == OUT:
         # The last two bars: one long chord for the logo.
         pad(CHORDS['D'] + [74], bar * BAR, 2 * BAR - 0.05, gain=1.35, cutoff=3600, attack=0.08, release=1.5)
         break
-    cutoff = 900 if bar < 2 else 1800 if bar < 4 else 2600 if bar < 20 else 2000
+    cutoff = 900 if bar < 2 else 1800 if bar < 4 else 2600 if bar < PRIV else 2000
     gain = 0.8 if bar < 2 else 1.0
     notes = CHORDS['Asus'] if (name == 'A' and bar % 8 == 3) else CHORDS[name]
     pad(notes, bar * BAR, BAR, gain=gain, cutoff=cutoff, attack=0.9 if bar == 0 else 0.06, release=0.35)
 
 # Drums: a heartbeat when the phone arrives (bar 3), the full, gentle kit from bar 5, a step
-# back for privacy (bars 21–22), and one last kick with the logo.
+# back for privacy, and one last kick with the logo.
 kicks = []
-for bar in range(2, 23):
+for bar in range(2, OUT + 1):
     for beat in (0, 2):
         at = bar * BAR + beat * BEAT
-        if bar >= 20 and bar < 22:
+        if PRIV <= bar < OUT:
             continue  # privacy: no kick
         kicks.append(at)
         kick(at, gain=0.55 if bar < 4 else 0.7)
-    if 4 <= bar < 20 and bar % 2 == 1:
+    if 4 <= bar < PRIV and bar % 2 == 1:
         kicks.append(bar * BAR + 3.5 * BEAT)
         kick(bar * BAR + 3.5 * BEAT, gain=0.45)
-kicks.append(22 * BAR)
-kick(22 * BAR, gain=0.8)
-for bar in range(4, 22):
+kicks.append(OUT * BAR)
+kick(OUT * BAR, gain=0.8)
+for bar in range(4, OUT):
     clap(bar * BAR + BEAT, gain=0.42)
     clap(bar * BAR + 3 * BEAT, gain=0.42)
 # Shaker: eighths from bar 3, sixteenths in the middle.
-for bar in range(2, 23):
-    step = 0.25 if 6 <= bar < 20 else 0.5
+for bar in range(2, OUT + 1):
+    step = 0.25 if 6 <= bar < PRIV else 0.5
     k = 0
     while k * step < 4:
         at = bar * BAR + k * step * BEAT
         accent = 1.0 if abs((k * step) % 1 - 0.5) < 1e-6 else 0.55
-        hat(at, gain=0.42 * accent * (0.8 if bar >= 20 else 1.0), pan=0.3 if k % 2 else -0.25)
+        hat(at, gain=0.42 * accent * (0.8 if bar >= PRIV else 1.0), pan=0.3 if k % 2 else -0.25)
         k += 1
-    if 12 <= bar < 20:
+    if 12 <= bar < PRIV:
         hat(bar * BAR + 3.5 * BEAT, gain=0.45, open_=True, pan=0.2)
 
 # Bass: roots on the beat, an octave answer on the off-beat, from bar 3 to the privacy break.
-for bar in range(2, 22):
+for bar in range(2, OUT):
     root = ROOT[chord_at(bar)]
     for beat in range(4):
         at = bar * BAR + beat * BEAT
         bass(root, at, BEAT * 0.8, gain=0.75 if bar < 4 else 0.9)
         if bar >= 4:
             bass(root + 12, at + 0.5 * BEAT, BEAT * 0.35, gain=0.3)
-bass(38, 22 * BAR, 2 * BAR - 0.3, gain=0.9)
+bass(38, OUT * BAR, 2 * BAR - 0.3, gain=0.9)
 
 # A soft arpeggio through the middle of the film.
-for bar in range(4, 22):
+for bar in range(4, OUT):
     notes = ARP[chord_at(bar)]
     for k in range(8):
         at = bar * BAR + k * 0.5 * BEAT
-        arp_note(notes[k % 4] + (12 if (k // 4) % 2 and bar >= 12 else 0), at, gain=0.75 if bar < 20 else 0.55, pan=0.4 if k % 2 else -0.4)
+        arp_note(notes[k % 4] + (12 if (k // 4) % 2 and bar >= 12 else 0), at, gain=0.75 if bar < PRIV else 0.55, pan=0.4 if k % 2 else -0.4)
 
 # ---------------------------------------------------------------------------------------------
 # Sound design, from the picture's cues. Everything the interface does has a sound, and every
@@ -377,7 +378,22 @@ with open(os.path.join(HERE, 'build', 'cues.json')) as fh:
 
 ARCS = [74, 78, 81, 85, 86, 90]
 KEYS = [74, 76, 78, 81, 83]
-COLLECT = [74, 76, 78, 81, 83]
+COLLECT = [74, 76, 78, 81, 83, 86]
+
+
+def tones(at, lo, n):
+    """The first `n` notes of the chord sounding at `at`, from `lo` up: for a sound that must agree
+    with whatever bar the picture put it in."""
+    bar = int(at // BAR)
+    pcs = {m % 12 for m in CHORDS['D' if bar >= OUT else chord_at(bar)]}
+    out = []
+    m = lo
+    while len(out) < n:
+        if m % 12 in pcs:
+            out.append(m)
+        m += 1
+    return out
+
 
 for c in cues:
     at, kind = c['t'], c['type']
@@ -425,6 +441,17 @@ for c in cues:
     elif kind == 'collect':
         pluck(COLLECT[c['i']], at, gain=0.65, pan=0.1, decay=0.32)
         whoosh(at - 0.6, 0.6, 900, 3500, gain=0.12, shape='swell')
+        if c['i'] == len(COLLECT) - 1:
+            bell(tones(at, 84, 1)[0], at + 0.05, gain=0.35, decay=1.0)  # money coming back
+    elif kind == 'incoming':
+        a, b_ = tones(at, 84 + 2 * c['i'], 2)
+        bell(a, at, gain=0.45, decay=0.8, pan=0.3)
+        bell(b_, at + 0.12, gain=0.4, decay=1.1, pan=0.3)
+    elif kind == 'captured':
+        whoosh(at - 0.55, 0.55, 3500, 900, gain=0.14, shape='swell')
+        pluck(tones(at, 76 + 3 * c['i'], 1)[0], at, gain=0.6, decay=0.3)
+    elif kind == 'pick':
+        pluck(tones(at, 79, 1)[0], at, gain=0.5, decay=0.28)
     elif kind == 'notify':
         bell(88, at, gain=0.5, decay=0.8)
         bell(93, at + 0.14, gain=0.45, decay=1.1)
@@ -435,7 +462,7 @@ for c in cues:
         for j in range(8):
             click(at + j * 0.08, gain=0.22, f=2400 + 60 * j)
     elif kind == 'recorded':
-        for j, m in enumerate([74, 78, 81, 86]):
+        for j, m in enumerate(tones(at, 74, 4)):
             bell(m, at + j * 0.07, gain=0.4, decay=0.9, pan=(j - 1.5) * 0.2)
     elif kind == 'postpone':
         click(at, gain=0.3, f=1800)
@@ -459,8 +486,9 @@ for c in cues:
         bell(86, at + 0.1, gain=0.45, decay=1.1)
         whoosh(at + 0.45, 0.6, 600, 3000, gain=0.2, shape='pass')
     elif kind == 'backedup':
-        bell(86, at, gain=0.4, decay=0.9)
-        bell(90, at + 0.1, gain=0.4, decay=1.2)
+        a, b_ = tones(at, 84, 2)
+        bell(a, at, gain=0.4, decay=0.9)
+        bell(b_, at + 0.1, gain=0.4, decay=1.2)
 
 # ---------------------------------------------------------------------------------------------
 # Sidechain, reverb, master.

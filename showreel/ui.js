@@ -49,6 +49,11 @@ const CAT = {
   spotify: { name: 'Spotify', color: '#34C759', glyph: 'music' },
   rent: { name: 'Rent', color: '#007AFF', glyph: 'house' },
   unknown: { name: 'Uncategorized', color: '#8E8E93', glyph: 'question' },
+  refunds: { name: 'Refunds', color: '#30B0C7', glyph: 'refund' },
+  gifts: { name: 'Gifts', color: '#FF2D55', glyph: 'gift' },
+  // Groups are picked the way categories are, so they are drawn the same way.
+  lisbon: { name: 'Lisbon trip', color: '#5856D6', glyph: 'plane' },
+  moving: { name: 'Moving house', color: '#007AFF', glyph: 'house' },
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -88,6 +93,11 @@ const GLYPH = {
   chart: ['M6 19v-7', 'M12 19V6', 'M18 19v-4'],
   sliders: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
   arrowDown: ['M12 4.5v14', 'M6.5 13.2 12 18.7l5.5-5.5'],
+  refund: ['M9 5.8 4.8 10l4.2 4.2', 'M5 10h9.2a5 5 0 0 1 0 10H11'],
+  gift: [
+    'M4.6 9.6h14.8v3.6H4.6z', 'M6.2 13.2v7h11.6v-7', 'M12 9.6v10.6',
+    'M12 9.6c-.9-3.1-4.6-4.3-4.6-2.1 0 1.5 2.5 2.1 4.6 2.1z', 'M12 9.6c.9-3.1 4.6-4.3 4.6-2.1 0 1.5-2.5 2.1-4.6 2.1z',
+  ],
   fingerprint: [
     'M7.6 6.4a8 8 0 0 1 8.8 0', 'M5.2 10.4a8.2 8.2 0 0 1 1.6-2.6', 'M17.2 7.8a8.2 8.2 0 0 1 1.6 2.6',
     'M7.8 18.2a9 9 0 0 1-1.4-4.8 5.6 5.6 0 0 1 11.2 0', 'M10 20a7.5 7.5 0 0 1-1.1-3.9 3.1 3.1 0 0 1 6.2 0v1.1',

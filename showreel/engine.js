@@ -8,13 +8,13 @@
 'use strict';
 
 // ---------------------------------------------------------------------------------------------
-// Time. The film is written on a 96 BPM grid: 96 beats, 24 bars, exactly 60 seconds — twelve
+// Time. The film is written on a 96 BPM grid: 104 beats, 26 bars, exactly 65 seconds — thirteen
 // shots of two bars (five seconds) each.
 // ---------------------------------------------------------------------------------------------
 
 const BPM = 96;
 const BEAT = 60 / BPM;
-const BEATS = 96;
+const BEATS = 104;
 const DURATION = BEATS * BEAT;
 const W = 1920;
 const H = 1080;

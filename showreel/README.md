@@ -1,37 +1,39 @@
 # Cents — the film
 
-A one-minute film of what Cents does, one idea every five seconds. The finished film is
+A 65-second film of what Cents does, one idea every five seconds. The finished film is
 [`cents-showreel.mp4`](cents-showreel.mp4) — 1920×1080, 60 fps, H.264 with an AAC soundtrack.
 
 Nothing here is part of the Android build. Gradle reads nothing under `showreel/`.
 
 ## The cut
 
-Sixty seconds on a 96 BPM grid: twelve shots of two bars each. Every moment is timed in beats,
-so the picture and the music cannot drift apart. Each shot has a title on the left that holds
-for four seconds, and the phone on the right doing the thing the title says.
+Sixty-five seconds on a 96 BPM grid: thirteen shots of two bars each. Every moment is timed in
+beats, so the picture and the music cannot drift apart. Each shot has a title on the left that
+holds for four seconds, and the phone on the right doing the thing the title says.
 
 | # | Seconds | Shot | What happens |
 |---|---|---|---|
 | 0 | 0–5 | Intro | A ring of category colours draws itself around a cent; *Cents — See where your money goes.* |
 | 1 | 5–10 | Categories | The ring flies into the phone and becomes the month. *Most spent this month: Housing.* |
 | 2 | 10–15 | Quick entry | 42,80 € typed, Groceries picked, saved — the ring re-balances itself |
-| 3 | 15–20 | To categorize | Two movements saved without a category, each filed with one tap. *All sorted.* |
-| 4 | 20–25 | Groups | A trip's flights, hotel, dinner, taxi and tours — five categories — collected into *Lisbon trip: cost you 684,20 €* |
-| 5 | 25–30 | Subscriptions | What they cost a month and a year, and the reminder: *Netflix, 12,99 €, in 3 days.* |
-| 6 | 30–35 | Variable amounts | The salary switched to *Ask me the amount*; when it falls due it waits, the real figure is entered and recorded on the day it was due; the electricity is postponed three days |
-| 7 | 35–40 | Budgets | Limits filling up: amber at 80 %, red when over |
-| 8 | 40–45 | Reports | Income against spending month by month, the day of the week that costs the most, and this month against August |
-| 9 | 45–50 | Net worth | In accounts and invested, one number; a transfer to Savings |
-| 10 | 50–55 | Privacy | A fingerprint unlocks it; the daily Drive backup runs; JSON and CSV export |
-| 11 | 55–60 | Outro | The ring leaves the phone and becomes the logo again |
+| 3 | 15–20 | Capture | *Capture from notifications* switched on for the bank's app. A card payment at Café Central and a transfer from Ana arrive as notifications and land in *To categorize* by themselves |
+| 4 | 20–25 | To categorize | Café Central gets a category with one tap; Ana's transfer gets one and joins the *Lisbon trip* group with a second. *All sorted.* |
+| 5 | 25–30 | Groups | A trip's flights, hotel, dinner, taxi and tours — five categories — collected into *Lisbon trip*, then Ana's half of the hotel comes back: *cost you 564,15 €* |
+| 6 | 30–35 | Subscriptions | What they cost a month and a year, and the reminder: *Netflix, 12,99 €, in 3 days.* |
+| 7 | 35–40 | Variable amounts | The salary switched to *Ask me the amount*; when it falls due it waits, the real figure is entered and recorded on the day it was due; the electricity is postponed three days |
+| 8 | 40–45 | Budgets | Limits filling up: amber at 80 %, red when over |
+| 9 | 45–50 | Reports | Income against spending month by month, the day of the week that costs the most, and this month against August |
+| 10 | 50–55 | Net worth | In accounts and invested, one number; a transfer to Savings |
+| 11 | 55–60 | Privacy | A fingerprint unlocks it; the daily Drive backup runs; JSON and CSV export |
+| 12 | 60–65 | Outro | The ring leaves the phone and becomes the logo again |
 
 ## The interface
 
 The screens are **designed for the film**, not captured from the app: one idea — a ring of
 category colours that says where the money went — and otherwise white cards, one clear number
 each, and room around everything. What they show is the app's: every feature in the cut exists
-in Cents, the numbers are written the way it writes them (`2.388,40 €`, shares truncated as
+in Cents except capture from notifications, which is planned (PRD §4.6) and drawn the way it is
+designed. The numbers are written the way the app writes them (`2.388,40 €`, shares truncated as
 `SpendingSection.kt` does), the categories use the colours of `CategoryPalette.kt`, the type is
 Inter 4 straight from `app/src/main/res/font/inter_variable.ttf`, and the words — *Waiting for
 an amount*, *Cost you*, *Earned you*, *12,99 €, in 3 days.*, *Back up automatically* — come from
@@ -39,6 +41,11 @@ the string resources.
 
 The coin-in-a-ring logo is made for the film; the app still ships the default launcher icon.
 The figures are samples.
+
+The owner has chosen this look for the app itself: it is written down, with its tokens,
+components and motion, as the proposed ADR
+[`docs/decisions/0003-the-ring.md`](https://github.com/anderescaray/cents/blob/main/docs/decisions/0003-the-ring.md)
+on `main`.
 
 ## How it is made
 

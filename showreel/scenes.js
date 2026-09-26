@@ -1,20 +1,22 @@
 /*
- * Cents — the film. Sixty seconds, twelve shots of five seconds, one idea each.
+ * Cents — the film. Sixty-five seconds, thirteen shots of five seconds, one idea each.
  *
  *   0  0–5    Intro          a ring of category colours draws itself around a cent: the logo
  *   1  5–10   Categories     the ring flies into the phone and becomes the month: where it went
  *   2  10–15  Quick entry    42,80 € typed, Groceries picked, saved — the ring updates itself
- *   3  15–20  To categorize  what was saved in a hurry waits; one tap files it
- *   4  20–25  Groups         a trip's movements, from five categories, gathered into one total
- *   5  25–30  Subscriptions  what they cost a month and a year, and a reminder before a charge
- *   6  30–35  Variable       a salary set to "ask me": it waits for the real figure
- *   7  35–40  Budgets        limits filling up: amber at 80 %, red when over
- *   8  40–45  Reports        income against spending, and the days that cost the most
- *   9  45–50  Net worth      accounts, a transfer, investments: one number
- *   10 50–55  Privacy        a fingerprint, then the Drive backup and the export
- *   11 55–60  Outro          the ring leaves the phone and becomes the logo again
+ *   3  15–20  Capture        switched on, the bank's notifications arrive as movements by themselves
+ *   4  20–25  To categorize  they wait; a tap gives each a category, and a group if it has one
+ *   5  25–30  Groups         a trip's movements, from five categories, less what a friend paid back
+ *   6  30–35  Subscriptions  what they cost a month and a year, and a reminder before a charge
+ *   7  35–40  Variable       a salary set to "ask me": it waits for the real figure
+ *   8  40–45  Budgets        limits filling up: amber at 80 %, red when over
+ *   9  45–50  Reports        income against spending, and the days that cost the most
+ *   10 50–55  Net worth      accounts, a transfer, investments: one number
+ *   11 55–60  Privacy        a fingerprint, then the Drive backup and the export
+ *   12 60–65  Outro          the ring leaves the phone and becomes the logo again
  *
- * The UI is designed for the film (`ui.js`); the features, words and colours are the app's.
+ * The UI is designed for the film (`ui.js`); the features, words and colours are the app's —
+ * except capture from notifications, which is planned (PRD §4.6) and drawn here as designed.
  */
 'use strict';
 
@@ -38,6 +40,13 @@ function render(t) {
 
 /** Shot `k` starts here: every shot is two bars. */
 const S = (k) => B(8 * k);
+
+/** The shots by name, and a moment inside one: `at(SHOT.inbox, 1.5)` is a beat and a half in. */
+const SHOT = {
+  intro: 0, month: 1, entry: 2, capture: 3, inbox: 4, groups: 5, subs: 6,
+  variable: 7, budgets: 8, reports: 9, worth: 10, privacy: 11, outro: 12,
+};
+const at = (shot, beats) => S(shot) + B(beats);
 
 /** Where the element sits on the stage, whatever the page is scaled to. */
 function stageRect(el) {
@@ -92,7 +101,8 @@ const SHOTS = [
   { aura: '#007AFF' },
   { eyebrow: 'Categories', accent: '#007AFF', aura: '#007AFF', title: ['See where', 'it goes.'], sub: 'Every category at a glance — and the one that takes the most.' },
   { eyebrow: 'Quick entry', accent: '#28B45A', aura: '#34C759', title: ['Add it', 'in seconds.'], sub: 'Amount, category, done. The ring updates itself.' },
-  { eyebrow: 'To categorize', accent: '#E08600', aura: '#FF9500', title: ['Sort it', 'later.'], sub: 'Saved in a hurry? It waits here, and one tap files it.' },
+  { eyebrow: 'Automatic capture', accent: '#1995AD', aura: '#30B0C7', title: ['Or let it', 'add itself.'], sub: 'Switch it on: what your bank notifies, spent or received, arrives on its own.' },
+  { eyebrow: 'To categorize', accent: '#E08600', aura: '#FF9500', title: ['Sort it', 'later.'], sub: 'It waits here. A tap gives it a category — and a group, if it belongs to one.' },
   { eyebrow: 'Groups', accent: '#5856D6', aura: '#5856D6', title: ['Group what', 'belongs together.'], sub: 'A trip, a move, a side job — one total, across every category.' },
   { eyebrow: 'Subscriptions', accent: '#AF52DE', aura: '#AF52DE', title: ['Every', 'subscription,', 'counted.'], sub: 'What they cost you a month and a year, and a reminder before each charge.' },
   { eyebrow: 'Variable amounts', accent: '#28B45A', aura: '#34C759', title: ['Salary that', 'changes?', 'Cents asks.'], sub: 'Income and bills that vary wait for the real figure, and land on the day they were due.' },
@@ -108,8 +118,8 @@ const SHOTS = [
 // ---------------------------------------------------------------------------------------------
 
 function phonePose(t) {
-  const enter = ease.swift(prog(t, S(1) - 1.05, S(1) + 0.45));
-  const leave = ease.inOutCubic(prog(t, S(11) + 0.5, S(11) + 1.7));
+  const enter = ease.swift(prog(t, S(SHOT.month) - 1.05, S(SHOT.month) + 0.45));
+  const leave = ease.inOutCubic(prog(t, S(SHOT.outro) + 0.5, S(SHOT.outro) + 1.7));
   return {
     x: lerp(2500, 1262, enter) + leave * 1300,
     y: 540 + 7 * Math.sin((t / 9) * TAU),
@@ -139,7 +149,7 @@ function sceneStage() {
     return (t) => {
       const c = auraColor(t);
       const p = phonePose(t);
-      const onPhone = prog(t, S(1) - 1.2, S(1) + 0.4) * (1 - prog(t, S(11) + 0.3, S(11) + 1.4));
+      const onPhone = prog(t, S(SHOT.month) - 1.2, S(SHOT.month) + 0.4) * (1 - prog(t, S(SHOT.outro) + 0.3, S(SHOT.outro) + 1.4));
       const cx = lerp(960, p.x, onPhone);
       aura.style.background = `radial-gradient(circle, ${rgba(c, 0.2)} 0%, ${rgba(c, 0.09)} 34%, ${rgba(c, 0.025)} 55%, ${rgba(c, 0)} 70%)`;
       place(aura, cx, 540, { s: 1 + 0.04 * Math.sin((t / 7) * TAU) });
@@ -155,7 +165,7 @@ function sceneStage() {
 // ---------------------------------------------------------------------------------------------
 
 function sceneTitles() {
-  layer('titles', S(1) - 0.2, S(11), (root) => {
+  layer('titles', S(SHOT.month) - 0.2, S(SHOT.outro), (root) => {
     const blocks = SHOTS.map((shot, k) => {
       if (!shot.title) return null;
       const wrap = h('div', null, root, { position: 'absolute', left: '150px', top: '0', width: '800px' });
@@ -218,8 +228,8 @@ const LOGO = { r: 116, th: 26 };
 const LOGO_COLORS = ['#34C759', '#007AFF', '#FF9500', '#FF2D55', '#00C7BE', '#AF52DE'];
 const HOME_RING = { x: 200, y: 262, r: 104, th: 24 };
 const PHONE = {};
-const T_HAND = S(1) + 0.15; // the flying ring lands in the phone
-const T_LIFT = S(11) + 0.45; // and leaves it again
+const T_HAND = S(SHOT.month) + 0.15; // the flying ring lands in the phone
+const T_LIFT = S(SHOT.outro) + 0.45; // and leaves it again
 
 function monthSlices(q) {
   return MONTH.map((m) => ({ color: CAT[m.cat].color, value: lerp(m.before, m.after, q) }));
@@ -237,11 +247,11 @@ function sceneLogo() {
   cue(0.25, 'cent');
   cue(1.6, 'mark');
   cue(2.35, 'tagline');
-  cue(S(1) - 1.0, 'phoneIn');
+  cue(S(SHOT.month) - 1.0, 'phoneIn');
   cue(T_HAND, 'land');
   cue(T_LIFT, 'lift');
-  cue(S(11) + 1.55, 'cent', { final: true });
-  cue(S(11) + 1.95, 'mark', { final: true });
+  cue(S(SHOT.outro) + 1.55, 'cent', { final: true });
+  cue(S(SHOT.outro) + 1.95, 'mark', { final: true });
 
   layer('logo', 0, DURATION + 1, (root) => {
     const ringWrap = h('div', 'a', root, { width: '320px', height: '320px' });
@@ -263,12 +273,12 @@ function sceneLogo() {
     return (t) => {
       // Where the phone's own ring is on the stage right now.
       let target = null;
-      if (PHONE.anchor && ((t > S(1) - 1.2 && t < S(1) + 0.4) || (t > S(11) - 0.2 && t < S(11) + 1.8))) {
+      if (PHONE.anchor && ((t > S(SHOT.month) - 1.2 && t < S(SHOT.month) + 0.4) || (t > S(SHOT.outro) - 0.2 && t < S(SHOT.outro) + 1.8))) {
         const a = stageRect(PHONE.anchor);
         const b_ = stageRect(PHONE.anchor2);
         target = { x: a.cx, y: a.cy, k: Math.hypot(b_.cx - a.cx, b_.cy - a.cy) / 100 };
       }
-      const intro = t < S(6);
+      const intro = t < DURATION / 2;
       let x;
       let y;
       let r;
@@ -281,20 +291,20 @@ function sceneLogo() {
       let ringCx;
       if (intro) {
         const lock = ease.inOutCubic(prog(t, 1.55, 2.35));
-        const fly = ease.inOutCubic(prog(t, S(1) - 0.85, T_HAND));
+        const fly = ease.inOutCubic(prog(t, S(SHOT.month) - 0.85, T_HAND));
         ringCx = lerp(960, lockX, lock);
         x = target ? lerp(ringCx, target.x, fly) : ringCx;
         y = target ? lerp(Y, target.y, fly) : Y;
         const kk = target ? target.k : 1;
         r = lerp(LOGO.r, HOME_RING.r * kk, fly);
         th = lerp(LOGO.th, HOME_RING.th * kk, fly);
-        u = ease.inOutCubic(prog(t, S(1) - 0.7, T_HAND));
+        u = ease.inOutCubic(prog(t, S(SHOT.month) - 0.7, T_HAND));
         q = 0;
         reveal = LOGO_COLORS.map((_, i) => ease.outCubic(prog(t, 0.5 + i * 0.16, 1.0 + i * 0.16)));
         o = t < T_HAND ? 1 : 0;
       } else {
         const fly = ease.inOutCubic(prog(t, T_LIFT, T_LIFT + 1.05));
-        const lock = ease.inOutCubic(prog(t, S(11) + 1.9, S(11) + 2.7));
+        const lock = ease.inOutCubic(prog(t, S(SHOT.outro) + 1.9, S(SHOT.outro) + 2.7));
         const src = target || { x: 960, y: Y };
         const kk = target ? target.k : 1;
         ringCx = lerp(960, lockX, lock);
@@ -305,7 +315,7 @@ function sceneLogo() {
         u = 1 - ease.inOutCubic(prog(t, T_LIFT + 0.1, T_LIFT + 1.0));
         q = 1;
         o = t >= T_LIFT ? 1 : 0;
-        rot = 0.3 * ease.inOutCubic(prog(t, S(11) + 2.4, DURATION));
+        rot = 0.3 * ease.inOutCubic(prog(t, S(SHOT.outro) + 2.4, DURATION));
       }
       show(ringWrap, o > 0);
       if (o > 0) {
@@ -316,18 +326,18 @@ function sceneLogo() {
       let centS;
       let centO;
       if (intro) {
-        centS = spring(t - 0.25, 2.6, 0.55) * (1 - 0.6 * ease.inOutCubic(prog(t, S(1) - 0.85, S(1) - 0.3)));
-        centO = 1 - prog(t, S(1) - 0.75, S(1) - 0.4);
+        centS = spring(t - 0.25, 2.6, 0.55) * (1 - 0.6 * ease.inOutCubic(prog(t, S(SHOT.month) - 0.85, S(SHOT.month) - 0.3)));
+        centO = 1 - prog(t, S(SHOT.month) - 0.75, S(SHOT.month) - 0.4);
       } else {
-        centS = spring(t - (S(11) + 1.55), 2.6, 0.55);
-        centO = prog(t, S(11) + 1.55, S(11) + 1.7);
+        centS = spring(t - (S(SHOT.outro) + 1.55), 2.6, 0.55);
+        centO = prog(t, S(SHOT.outro) + 1.55, S(SHOT.outro) + 1.7);
       }
       show(cent, centO > 0 && o > 0);
       if (centO > 0 && o > 0) place(cent, x, y + 4, { s: centS, o: centO });
 
       // The name, pulled out from behind the ring; the promise under it.
-      const t0m = intro ? 1.6 : S(11) + 1.95;
-      const t1m = intro ? S(1) - 1.5 : DURATION + 1;
+      const t0m = intro ? 1.6 : S(SHOT.outro) + 1.95;
+      const t1m = intro ? S(SHOT.month) - 1.5 : DURATION + 1;
       const mp = ease.swift(prog(t, t0m, t0m + 0.9));
       const mOut = ease.inCubic(prog(t, t1m, t1m + 0.4));
       const mx = lerp(ringCx + outer - markW - 20, markX, mp);
@@ -337,11 +347,11 @@ function sceneLogo() {
       mark.style.clipPath = `inset(-30% -10% -30% ${clipL.toFixed(2)}px)`;
       mark.style.opacity = (1 - mOut).toFixed(3);
 
-      const tg0 = intro ? 2.35 : S(11) + 2.55;
+      const tg0 = intro ? 2.35 : S(SHOT.outro) + 2.55;
       const tp = ease.swift(prog(t, tg0, tg0 + 0.9));
       show(tagline, tp > 0 && mOut < 1);
       placeTL(tagline, 960 - tagW / 2, Y + 176 + 22 * (1 - tp), { o: tp * (1 - mOut) });
-      const sp = ease.swift(prog(t, S(11) + 3.1, S(11) + 3.9));
+      const sp = ease.swift(prog(t, S(SHOT.outro) + 3.1, S(SHOT.outro) + 3.9));
       show(small, !intro && sp > 0);
       placeTL(small, 960 - smallW / 2, 952 + 12 * (1 - sp), { o: sp });
     };
@@ -431,6 +441,29 @@ function buildSheet(sc) {
   return { dim, sheet, seg, amount, zero, typed, chipEls, keys, addBtn };
 }
 
+/**
+ * What the bank's app notified, as Cents records it. `note` is the notification itself; `pick`
+ * and `group` are what the owner gives it once it is waiting.
+ */
+const CAPTURED = [
+  {
+    name: 'Café Central', when: 'Today, 13:05 · from your bank', amount: -2340,
+    note: ['Card payment', `${eur(2340)} at Café Central`], cats: ['restaurants', 'groceries'], pick: 'restaurants',
+  },
+  {
+    name: 'Ana', when: '“Lisbon hotel” · from your bank', amount: 12005,
+    note: ['Transfer received', `${eur(12005)} from Ana`], cats: ['refunds', 'gifts'], pick: 'refunds', group: 'lisbon',
+  },
+];
+const INBOX = { capY: 128, capH: 132, rowH: 76, fullH: 168 };
+/** Where the two movements sit: under the switch while they arrive, at the top once filing starts. */
+const ROW_TOP = {
+  capture: [INBOX.capY + INBOX.capH + 16, INBOX.capY + INBOX.capH + 16 + INBOX.rowH + 12],
+  filing: [128, 128 + INBOX.fullH + 14],
+};
+/** The bank's app, as its notifications show it: no bank in particular. */
+const BANK = '#12355B';
+
 function buildInbox(sc) {
   const root = h('div', 'scr', sc);
   statusBar(root);
@@ -439,32 +472,62 @@ function buildInbox(sc) {
   const badge = h('div', 'tnum', head, {
     position: 'absolute', left: '234px', top: '60px', width: '30px', height: '30px', borderRadius: '15px', background: UI.blue,
     color: '#fff', fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  }, '2');
-  tx(head, 24, 94, 'Saved without a category', { size: 15, color: UI.ink2 });
-  const card = (y, name, when, amount, picks) => {
-    const c = box(root, 16, y, 368, 168);
+  }, '0');
+  tx(head, 24, 94, 'Waiting for a category', { size: 15, color: UI.ink2 });
+
+  // The switch that lets Cents read notifications, and the one app it is allowed to read.
+  const cap = box(root, 16, INBOX.capY, 368, INBOX.capH);
+  const bellC = h('div', null, cap, {
+    position: 'absolute', left: '16px', top: '16px', width: '40px', height: '40px', borderRadius: '20px', background: rgba('#30B0C7', 0.15),
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  });
+  glyph(bellC, 'bell', 22, '#30B0C7', 2.1);
+  tx(cap, 68, 16, 'Capture from notifications', { size: 16, weight: 650 });
+  tx(cap, 68, 39, 'Only the apps you pick', { size: 13, color: UI.ink2 });
+  const sw = toggle(cap, 300, 20);
+  h('div', null, cap, { position: 'absolute', left: '68px', right: '0', top: '72px', height: '1px', background: UI.line });
+  const app = h('div', null, cap, {
+    position: 'absolute', left: '20px', top: '86px', width: '32px', height: '32px', borderRadius: '9px', background: BANK,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  });
+  glyph(app, 'bank', 20, '#fff', 2);
+  tx(cap, 68, 82, 'Your bank', { size: 16, weight: 600 });
+  tx(cap, 68, 104, 'Payments and transfers', { size: 13, color: UI.ink2 });
+  const check = glyph(h('div', null, cap, { position: 'absolute', left: '324px', top: '91px' }), 'check', 22, UI.ink3, 2.6);
+
+  const empty = tx(root, 200, 300, 'Nothing waiting', { size: 15, color: UI.ink3, w: 300, align: 'center' });
+  const foot = tx(root, 24, 460, 'Cents reads the notification on this phone. It never logs in to your bank.', { size: 13, color: UI.ink2, wrap: true, w: 352, lh: 1.45 });
+
+  // A captured movement: one line while it arrives; categories, then groups, once it opens.
+  const rows = CAPTURED.map((m) => {
+    const c = box(root, 16, 0, 368, INBOX.rowH, { clip: true });
     const icon = h('div', null, c, { position: 'absolute', left: '16px', top: '18px', width: '38px', height: '38px' });
     const q = catIcon(icon, 'unknown', 0, 0, 38);
-    const pickedIcon = catIcon(icon, picks[0], 0, 0, 38);
-    tx(c, 66, 18, name, { size: 17, weight: 600 });
-    tx(c, 66, 41, when, { size: 13, color: UI.ink2 });
-    tx(c, 352, 27, amount, { size: 17, weight: 600, w: 120, align: 'right', tnum: true });
-    const chipsEls = [];
-    let x = 16;
-    let yy = 74;
-    picks.forEach((p, i) => {
-      if (i === 2) {
-        x = 16;
-        yy = 118;
-      }
-      const e = chip(c, x, yy, p, null, { h: 36, size: 14 });
-      x += e.offsetWidth + 8;
-      chipsEls.push(e);
+    const pickedIcon = catIcon(icon, m.pick, 0, 0, 38);
+    tx(c, 66, 18, m.name, { size: 17, weight: 600 });
+    tx(c, 66, 41, m.when, { size: 13, color: UI.ink2 });
+    tx(c, 352, 27, eur(m.amount, { sign: m.amount > 0 }), {
+      size: 17, weight: 600, w: 130, align: 'right', tnum: true, color: m.amount > 0 ? UI.green : UI.ink,
     });
-    return { c, q, pickedIcon, chipsEls, cat: picks[0] };
-  };
-  const c1 = card(128, 'Card payment', 'Today, 13:05 · Main account', eur(-2340), ['restaurants', 'groceries', 'shopping', 'transport']);
-  const c2 = card(310, 'Bizum · Ana', 'Yesterday · Main account', eur(-1500), ['shopping', 'restaurants', 'groceries', 'transport']);
+    let x = 16;
+    const cats = m.cats.map((cat) => {
+      const e = chip(c, x, 74, cat, null, { h: 36, size: 14 });
+      x += e.offsetWidth + 8;
+      return e;
+    });
+    const label = tx(c, 16, 128, 'Group', { size: 13, weight: 600, color: UI.ink3 });
+    x = 68;
+    const groups = ['lisbon', 'moving'].map((g) => {
+      const e = chip(c, x, 118, g, null, { h: 36, size: 14 });
+      x += e.offsetWidth + 8;
+      return e;
+    });
+    // The chips the owner taps: the movement's category, and its group if it has one.
+    const pickChip = cats[m.cats.indexOf(m.pick)];
+    const groupChip = m.group ? groups[['lisbon', 'moving'].indexOf(m.group)] : null;
+    return { c, q, pickedIcon, cats, groups, pickChip, groupChip, choices: [...cats, label, ...groups], m };
+  });
+
   const done = h('div', null, root, { position: 'absolute', left: 0, top: '300px', width: '400px', height: '200px' });
   const doneCircle = h('div', null, done, {
     position: 'absolute', left: '160px', top: '0', width: '80px', height: '80px', borderRadius: '40px', background: rgba(UI.green, 0.14),
@@ -473,7 +536,7 @@ function buildInbox(sc) {
   const doneTick = glyph(doneCircle, 'check', 40, UI.green, 3);
   tx(done, 200, 100, 'All sorted', { size: 24, weight: 700, w: 300, align: 'center' });
   tx(done, 200, 134, 'Nothing is waiting for a category.', { size: 15, color: UI.ink2, w: 320, align: 'center' });
-  return { root, head, badge, c1, c2, done, doneCircle, doneTick };
+  return { root, head, badge, cap, sw, check, empty, foot, rows, done, doneCircle, doneTick };
 }
 
 const TRIP = [
@@ -484,7 +547,9 @@ const TRIP = [
   { cat: 'tours', name: 'Tours', v: 7000 },
 ];
 const TRIP_TOTAL = TRIP.reduce((a, m) => a + m.v, 0);
-const GROUP_ARRIVE = (i) => B(33.5 + i * 0.75);
+/** Ana's half of the hotel, captured from the bank and filed into the trip: it lowers the cost. */
+const REFUND = { cat: 'refunds', name: 'Ana', v: CAPTURED[1].amount };
+const GROUP_ARRIVE = (i) => at(SHOT.groups, 1.5 + i * 0.75);
 
 function buildGroups(sc) {
   const root = h('div', 'scr', sc);
@@ -498,11 +563,12 @@ function buildGroups(sc) {
   tx(lis, 76, 46, '12 – 16 August', { size: 14, color: UI.ink2 });
   tx(lis, 18, 90, 'Cost you', { size: 14, color: UI.ink2 });
   const total = tx(lis, 18, 110, eur(0), { size: 42, weight: 700, tnum: true, ls: -0.03 });
-  const track = h('div', null, lis, { position: 'absolute', left: '18px', top: '178px', width: '332px', height: '12px', borderRadius: '6px', background: UI.fill, overflow: 'hidden' });
+  const split = tx(lis, 18, 162, `${eur(TRIP_TOTAL)} spent · ${eur(REFUND.v)} paid back`, { size: 13, color: UI.ink2, tnum: true });
+  const track = h('div', null, lis, { position: 'absolute', left: '18px', top: '186px', width: '332px', height: '12px', borderRadius: '6px', background: UI.fill, overflow: 'hidden' });
   const segs = TRIP.map((m) => h('div', null, track, { position: 'absolute', top: 0, height: '12px', background: CAT[m.cat].color }));
   let lx = 18;
   const legend = TRIP.map((m) => {
-    const e = h('div', null, lis, { position: 'absolute', left: `${lx}px`, top: '206px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: UI.ink2, whiteSpace: 'nowrap' });
+    const e = h('div', null, lis, { position: 'absolute', left: `${lx}px`, top: '214px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: UI.ink2, whiteSpace: 'nowrap' });
     h('div', null, e, { width: '8px', height: '8px', borderRadius: '4px', background: CAT[m.cat].color });
     h('span', null, e, null, m.name);
     lx += e.offsetWidth + 12;
@@ -519,7 +585,7 @@ function buildGroups(sc) {
   };
   const move = other(408, 'rent', 'Moving house', 'March · 23 movements', 'Cost you', eur(192000));
   const job = other(508, 'salary', 'Freelance job', 'Spring · 9 movements', 'Earned you', eur(320000), UI.green);
-  return { root, head, lis, total, segs, legend, move, job };
+  return { root, head, lis, total, split, segs, legend, move, job };
 }
 
 const SUBS = [
@@ -827,48 +893,56 @@ function pickChip(ch, cat, p) {
   ch.dot.querySelectorAll('path').forEach((pth) => pth.setAttribute('stroke', p > 0.5 ? '#FFFFFF' : CAT[cat].ink || CAT[cat].color));
 }
 
-// Moments, on the beat.
-const KEYS = [['4', B(17)], ['2', B(17.5)], [',', B(18)], ['8', B(18.5)], ['0', B(19)]];
-const T_CHIP = B(19.75);
-const T_ADD = B(20.5);
-const T_FILE1 = B(26);
-const T_FILE2 = B(28);
-const T_TOGGLE = B(49.5);
-const T_WAIT = B(51);
-const T_ENTER = B(52);
-const T_SAVE = B(53.75);
-const T_POSTPONE = B(54.5);
-const T_TR = S(9) + 1.9;
-const T_FP = B(81.5);
-const T_UNLOCK = B(82.6);
-const T_BACKUP = B(84.5);
+// Moments, on the beat: each is so many beats into its shot.
+const KEYS = [['4', at(SHOT.entry, 1)], ['2', at(SHOT.entry, 1.5)], [',', at(SHOT.entry, 2)], ['8', at(SHOT.entry, 2.5)], ['0', at(SHOT.entry, 3)]];
+const T_CHIP = at(SHOT.entry, 3.75);
+const T_ADD = at(SHOT.entry, 4.5);
+const T_CAPTURE = at(SHOT.capture, 1.5);
+const T_NOTE = [at(SHOT.capture, 2.5), at(SHOT.capture, 4)];
+const T_LAND = [at(SHOT.capture, 4.75), at(SHOT.capture, 6.5)];
+const T_FILE1 = at(SHOT.inbox, 1.5);
+const T_FILE2 = at(SHOT.inbox, 3.5);
+const T_GROUP = at(SHOT.inbox, 4.5);
+const T_TOGGLE = at(SHOT.variable, 1.5);
+const T_WAIT = at(SHOT.variable, 3);
+const T_ENTER = at(SHOT.variable, 4);
+const T_SAVE = at(SHOT.variable, 5.75);
+const T_POSTPONE = at(SHOT.variable, 6.5);
+const T_TR = S(SHOT.worth) + 1.9;
+const T_FP = at(SHOT.privacy, 1.5);
+const T_UNLOCK = at(SHOT.privacy, 2.6);
+const T_BACKUP = at(SHOT.privacy, 4.5);
 
 function scenePhone() {
-  cue(S(2) + 0.02, 'sheet');
+  cue(S(SHOT.entry) + 0.02, 'sheet');
   KEYS.forEach(([k, t], i) => cue(t, 'key', { i }));
   cue(T_CHIP, 'select');
   cue(T_ADD + 0.55, 'saved');
+  cue(T_CAPTURE, 'toggle');
+  T_NOTE.forEach((tn, i) => cue(tn, 'incoming', { i }));
+  T_LAND.forEach((tl, i) => cue(tl, 'captured', { i }));
   cue(T_FILE1 + 0.1, 'file', { i: 0 });
-  cue(T_FILE2 + 0.1, 'file', { i: 1 });
-  cue(T_FILE2 + 0.75, 'done');
-  cue(S(5) + 2.5, 'notify');
+  cue(T_FILE2 + 0.02, 'pick');
+  cue(T_GROUP + 0.1, 'file', { i: 1 });
+  cue(T_GROUP + 0.75, 'done');
+  cue(S(SHOT.subs) + 2.5, 'notify');
   cue(T_TOGGLE, 'toggle');
   cue(T_ENTER + 0.35, 'typing');
   cue(T_SAVE + 0.1, 'recorded');
   cue(T_POSTPONE + 0.1, 'postpone');
   BUDGETS.forEach((m, i) => {
-    const f0 = S(7) + 0.7 + i * 0.3;
+    const f0 = S(SHOT.budgets) + 0.7 + i * 0.3;
     const cross = (x) => f0 + 1.3 * inverseInOutCubic(x);
     if (m.spent / m.limit >= 0.8) cue(cross((0.8 * m.limit) / m.spent), 'amber', { i });
     if (m.spent / m.limit >= 1) cue(cross(m.limit / m.spent), 'over', { i });
   });
-  cue(S(8) + 0.5, 'bars');
-  cue(S(8) + 2.6, 'highlight');
+  cue(S(SHOT.reports) + 0.5, 'bars');
+  cue(S(SHOT.reports) + 2.6, 'highlight');
   cue(T_TR, 'transfer');
   cue(T_FP + 0.55, 'unlock');
   cue(T_BACKUP + 0.9, 'backedup');
 
-  layer('phone', S(1) - 1.2, S(11) + 1.9, (root) => {
+  layer('phone', S(SHOT.month) - 1.2, S(SHOT.outro) + 1.9, (root) => {
     const ph = makePhone(root);
     const sc = ph.screen;
     const home = buildHome(sc);
@@ -886,6 +960,7 @@ function scenePhone() {
       boxShadow: '0 0 0 2.5px rgba(255,255,255,0.9), 0 4px 14px rgba(14,17,23,0.18)', zIndex: 80,
     });
     PHONE.groupsCard = groups.lis;
+    PHONE.inboxRows = inbox.rows.map((r) => r.c);
 
     // Every tap, where the thing tapped actually is. [time, x, y] in screen pixels.
     const TAPS = [];
@@ -894,12 +969,16 @@ function scenePhone() {
       cue(t, 'tap');
     };
     const sheetTop = 64;
-    tapAt(S(2) - 0.5, 200, 804);
+    tapAt(S(SHOT.entry) - 0.5, 200, 804);
     KEYS.forEach(([k, t]) => TAPS.push([t, sheet.keys[k].x, sheetTop + sheet.keys[k].y]));
     tapAt(T_CHIP, 22 + sheet.chipEls[0].offsetWidth / 2, sheetTop + 214 + 19);
     tapAt(T_ADD, 200, sheetTop + 578 + 29);
-    tapAt(T_FILE1, 16 + 16 + inbox.c1.chipsEls[0].offsetWidth / 2, 128 + 74 + 18);
-    tapAt(T_FILE2, 16 + 16 + inbox.c2.chipsEls[0].offsetWidth / 2, 128 + 74 + 18);
+    tapAt(T_CAPTURE, 16 + 300 + 26, INBOX.capY + 20 + 16);
+    const [row1, row2] = inbox.rows;
+    const centre = (e) => 16 + e.offsetLeft + e.offsetWidth / 2;
+    tapAt(T_FILE1, centre(row1.pickChip), ROW_TOP.filing[0] + 74 + 18);
+    tapAt(T_FILE2, centre(row2.pickChip), ROW_TOP.filing[0] + 74 + 18);
+    tapAt(T_GROUP, centre(row2.groupChip), ROW_TOP.filing[0] + 118 + 18);
     tapAt(T_TOGGLE, 16 + 18 + 3 + 332 * 0.75, 136 + 44 + 18);
     tapAt(T_ENTER, 16 + 262 + 45, 128 + 20 + 18);
     tapAt(T_SAVE, 16 + 16 + 336 - 46, 128 + 76 + 28);
@@ -912,16 +991,16 @@ function scenePhone() {
       ph.root.style.transform = `translate(${(p.x - 210).toFixed(2)}px,${(p.y - 444).toFixed(2)}px) rotateX(${p.rx.toFixed(3)}deg) rotateY(${p.ry.toFixed(3)}deg) scale(${p.s})`;
 
       // ---- Home: shots 1–2, and again for the ending.
-      const second = t > S(11) - 0.7;
-      const homeOn = (t > S(1) - 1.2 && t < S(3) + 0.7) || (second && t > S(11) - 0.15);
+      const second = t > S(SHOT.outro) - 0.7;
+      const homeOn = (t > S(SHOT.month) - 1.2 && t < S(SHOT.capture) + 0.7) || (second && t > S(SHOT.outro) - 0.15);
       show(home.root, homeOn);
       if (homeOn) {
         const q = second ? 1 : ease.inOutCubic(prog(t, T_ADD + 0.55, T_ADD + 1.35));
-        const hl = second ? 0 : ease.inOutCubic(prog(t, S(1) + 1.6, S(1) + 2.2)) * (1 - ease.inOutCubic(prog(t, S(1) + 3.9, S(1) + 4.5)));
+        const hl = second ? 0 : ease.inOutCubic(prog(t, S(SHOT.month) + 1.6, S(SHOT.month) + 2.2)) * (1 - ease.inOutCubic(prog(t, S(SHOT.month) + 3.9, S(SHOT.month) + 4.5)));
         const grow = second ? 0 : ease.inOutCubic(prog(t, T_ADD + 0.55, T_ADD + 0.9)) * (1 - ease.inOutCubic(prog(t, T_ADD + 1.4, T_ADD + 1.9)));
-        const ringOut = second ? 1 - ease.swift(prog(t, S(11) - 0.12, S(11) + 0.35)) : ease.inCubic(prog(t, S(3) - 0.2, S(3) + 0.25));
-        choreo([home.head, home.list, home.bar], t, second ? S(11) - 0.12 : S(1) - 0.75, second ? undefined : S(3) - 0.2, { stagger: second ? 0.06 : 0.12, dur: second ? 0.5 : 0.7 });
-        const toastO = second ? 0 : ease.swift(prog(t, T_ADD + 0.5, T_ADD + 0.9)) * (1 - ease.inCubic(prog(t, S(3) - 0.75, S(3) - 0.45)));
+        const ringOut = second ? 1 - ease.swift(prog(t, S(SHOT.outro) - 0.12, S(SHOT.outro) + 0.35)) : ease.inCubic(prog(t, S(SHOT.capture) - 0.2, S(SHOT.capture) + 0.25));
+        choreo([home.head, home.list, home.bar], t, second ? S(SHOT.outro) - 0.12 : S(SHOT.month) - 0.75, second ? undefined : S(SHOT.capture) - 0.2, { stagger: second ? 0.06 : 0.12, dur: second ? 0.5 : 0.7 });
+        const toastO = second ? 0 : ease.swift(prog(t, T_ADD + 0.5, T_ADD + 0.9)) * (1 - ease.inCubic(prog(t, S(SHOT.capture) - 0.75, S(SHOT.capture) - 0.45)));
         home.head.style.opacity = (parseFloat(home.head.style.opacity) * (1 - toastO)).toFixed(4);
         // The ring is the logo's until it lands; then it is the phone's, until it leaves again.
         show(home.ringWrap, t >= T_HAND && t < T_LIFT);
@@ -933,7 +1012,7 @@ function scenePhone() {
           alpha: MONTH.map((m, i) => (i === 0 ? 1 : 1 - 0.62 * hl)),
           thEach: MONTH.map((m, i) => HOME_RING.th + (i === 0 ? 4 * hl : i === 1 ? 4 * grow : 0)),
         });
-        const centreO = (second ? 1 - prog(t, T_LIFT - 0.15, T_LIFT) : prog(t, S(1) + 0.1, S(1) + 0.5)) * (1 - ringOut);
+        const centreO = (second ? 1 - prog(t, T_LIFT - 0.15, T_LIFT) : prog(t, S(SHOT.month) + 0.1, S(SHOT.month) + 0.5)) * (1 - ringOut);
         home.centre.style.opacity = centreO.toFixed(3);
         const totalNow = second ? TOTAL_AFTER : countUp(t, T_ADD + 0.55, T_ADD + 1.35, TOTAL_BEFORE, TOTAL_AFTER);
         home.total.textContent = eur(totalNow);
@@ -941,24 +1020,24 @@ function scenePhone() {
           const v = second ? m.after : lerp(m.before, m.after, q);
           home.rows[i].amount.textContent = eur(v);
           home.rows[i].share.textContent = `${pct(v, totalNow)} %`;
-          const rowIn = second ? 1 : ease.swift(prog(t, S(1) + 0.15 + i * 0.07, S(1) + 0.85 + i * 0.07));
+          const rowIn = second ? 1 : ease.swift(prog(t, S(SHOT.month) + 0.15 + i * 0.07, S(SHOT.month) + 0.85 + i * 0.07));
           const hlRow = i === 0 ? hl : i === 1 ? grow : 0;
           home.rows[i].r.style.opacity = rowIn.toFixed(3);
           home.rows[i].r.style.transform = `translateY(${((1 - rowIn) * 16).toFixed(2)}px)`;
           home.rows[i].r.style.background = hlRow > 0 ? rgba(CAT[m.cat].color, 0.09 * hlRow) : 'transparent';
         });
-        const tt = ease.swift(prog(t, T_ADD + 0.55, T_ADD + 1.0)) * (1 - ease.inCubic(prog(t, S(3) - 0.75, S(3) - 0.45)));
+        const tt = ease.swift(prog(t, T_ADD + 0.55, T_ADD + 1.0)) * (1 - ease.inCubic(prog(t, S(SHOT.capture) - 0.75, S(SHOT.capture) - 0.45)));
         show(home.toast, !second && tt > 0);
         home.toast.style.opacity = tt.toFixed(3);
         home.toast.style.transform = `translateY(${(-20 * (1 - tt)).toFixed(2)}px) scale(${(0.9 + 0.1 * tt).toFixed(3)})`;
-        const press = 1 - 0.08 * (prog(t, S(2) - 0.56, S(2) - 0.5) * (1 - prog(t, S(2) - 0.4, S(2) - 0.3)));
+        const press = 1 - 0.08 * (prog(t, S(SHOT.entry) - 0.56, S(SHOT.entry) - 0.5) * (1 - prog(t, S(SHOT.entry) - 0.4, S(SHOT.entry) - 0.3)));
         home.add.style.transform = `scale(${press.toFixed(4)})`;
       }
 
       // ---- The entry sheet: rises, takes the keys, and goes.
-      const up = spring(t - S(2), 2.1, 0.86);
+      const up = spring(t - S(SHOT.entry), 2.1, 0.86);
       const down = ease.inCubic(prog(t, T_ADD + 0.2, T_ADD + 0.6));
-      const sheetOn = t > S(2) && down < 1;
+      const sheetOn = t > S(SHOT.entry) && down < 1;
       show(sheet.sheet, sheetOn);
       show(sheet.dim, sheetOn);
       if (sheetOn) {
@@ -986,36 +1065,62 @@ function scenePhone() {
         sheet.addBtn.style.transform = `scale(${(1 - 0.04 * bp).toFixed(4)})`;
       }
 
-      // ---- To categorize: two movements filed, one tap each.
-      const inbOn = t > S(3) - 0.3 && t < S(4) + 0.2;
+      // ---- Capture, then To categorize: one screen across two shots. The switch goes on, the
+      // bank's notifications land as movements, then each is given a category — and a group.
+      const inbOn = t > S(SHOT.capture) - 0.3 && t < S(SHOT.groups) + 0.2;
       show(inbox.root, inbOn);
       if (inbOn) {
-        const file = (card, tf) => {
+        choreo([inbox.head], t, S(SHOT.capture) - 0.05, S(SHOT.groups) - 0.45);
+        // The switch: in with the screen, folded away when filing starts.
+        const fold = ease.inOutCubic(prog(t, S(SHOT.inbox) - 0.4, S(SHOT.inbox) + 0.3));
+        const capIn = ease.swift(prog(t, S(SHOT.capture) + 0.05, S(SHOT.capture) + 0.75));
+        inbox.cap.style.opacity = (capIn * (1 - fold)).toFixed(4);
+        inbox.cap.style.transform = `translateY(${((1 - capIn) * 26 - 18 * fold).toFixed(2)}px) scale(${(1 - 0.04 * fold).toFixed(4)})`;
+        const on = ease.inOutCubic(prog(t, T_CAPTURE + 0.02, T_CAPTURE + 0.3));
+        inbox.sw.set(on);
+        inbox.check.color(mix(UI.ink3, UI.blue, on));
+        inbox.empty.style.opacity = (capIn * (1 - prog(t, T_LAND[0] - 0.25, T_LAND[0]))).toFixed(3);
+        const footIn = ease.swift(prog(t, S(SHOT.capture) + 0.3, S(SHOT.capture) + 1.0));
+        inbox.foot.style.opacity = (footIn * (1 - prog(t, S(SHOT.inbox) - 0.55, S(SHOT.inbox) - 0.25))).toFixed(3);
+
+        // The movements: each lands from its notification, then they move up and open.
+        const [r1, r2] = inbox.rows;
+        const pick = (chipEl, cat, tf) => {
           const sel = ease.swift(prog(t, tf, tf + 0.3));
-          pickChip(card.chipsEls[0], card.cat, sel);
-          card.pickedIcon.style.opacity = sel.toFixed(3);
-          card.q.style.opacity = (1 - sel).toFixed(3);
-          return ease.inCubic(prog(t, tf + 0.5, tf + 0.9));
+          pickChip(chipEl, cat, sel);
+          chipEl.style.transform = `scale(${(1 + 0.06 * Math.sin(Math.PI * prog(t, tf, tf + 0.3))).toFixed(4)})`;
+          return sel;
         };
-        const g1 = file(inbox.c1, T_FILE1);
-        const g2 = file(inbox.c2, T_FILE2);
+        const picked = [pick(r1.pickChip, r1.m.pick, T_FILE1), pick(r2.pickChip, r2.m.pick, T_FILE2)];
+        pick(r2.groupChip, r2.m.group, T_GROUP);
+        const gone = [ease.inCubic(prog(t, T_FILE1 + 0.5, T_FILE1 + 0.9)), ease.inCubic(prog(t, T_GROUP + 0.5, T_GROUP + 0.9))];
         const lift = spring(t - (T_FILE1 + 0.85), 2.4, 0.78);
-        inbox.c1.c.extraTf = ` translateX(${(-430 * g1).toFixed(2)}px)`;
-        inbox.c2.c.extraTf = ` translateX(${(-430 * g2).toFixed(2)}px) translateY(${(-182 * clamp(lift, 0, 1.1)).toFixed(2)}px)`;
-        choreo([inbox.head, inbox.c1.c, inbox.c2.c], t, S(3) - 0.05, S(4) - 0.45, { stagger: 0.1 });
-        inbox.badge.textContent = t < T_FILE1 + 0.5 ? '2' : t < T_FILE2 + 0.5 ? '1' : '0';
-        inbox.badge.style.background = t < T_FILE2 + 0.5 ? UI.blue : UI.green;
-        const bb = bump(t - (T_FILE1 + 0.5)) + bump(t - (T_FILE2 + 0.5));
-        inbox.badge.style.transform = `scale(${(1 + 0.18 * bb).toFixed(4)})`;
-        const dn = spring(t - (T_FILE2 + 0.75), 2.6, 0.62);
-        show(inbox.done, t > T_FILE2 + 0.75);
-        inbox.done.style.opacity = (clamp(dn * 2) * (1 - ease.inCubic(prog(t, S(4) - 0.45, S(4) - 0.1)))).toFixed(3);
+        inbox.rows.forEach((r, i) => {
+          r.pickedIcon.style.opacity = picked[i].toFixed(3);
+          r.q.style.opacity = (1 - picked[i]).toFixed(3);
+          const land = ease.swift(prog(t, T_LAND[i] - 0.1, T_LAND[i] + 0.3));
+          r.c.style.top = `${lerp(ROW_TOP.capture[i], ROW_TOP.filing[i], fold).toFixed(2)}px`;
+          r.c.style.height = `${lerp(INBOX.rowH, INBOX.fullH, fold).toFixed(2)}px`;
+          r.choices.forEach((e) => (e.style.opacity = clamp(fold * 1.6).toFixed(3)));
+          const up = i === 1 ? -(ROW_TOP.filing[1] - ROW_TOP.filing[0]) * clamp(lift, 0, 1.1) : 0;
+          r.c.style.opacity = land.toFixed(4);
+          r.c.style.transform = `translate(${(-430 * gone[i]).toFixed(2)}px,${(up + 10 * (1 - land)).toFixed(2)}px) scale(${(1 + 0.03 * bump(t - T_LAND[i])).toFixed(4)})`;
+        });
+        const waiting = [t >= T_LAND[0], t >= T_LAND[1], t < T_FILE1 + 0.5, t < T_GROUP + 0.5];
+        inbox.badge.textContent = String(Number(waiting[0] && waiting[2]) + Number(waiting[1] && waiting[3]));
+        inbox.badge.style.background = t < T_GROUP + 0.5 ? UI.blue : UI.green;
+        const bIn = clamp(spring(t - T_LAND[0], 3, 0.55), 0, 1.3);
+        const bb = bump(t - T_LAND[1]) + bump(t - (T_FILE1 + 0.5)) + bump(t - (T_GROUP + 0.5));
+        inbox.badge.style.transform = `scale(${(bIn * (1 + 0.18 * bb)).toFixed(4)})`;
+        const dn = spring(t - (T_GROUP + 0.75), 2.6, 0.62);
+        show(inbox.done, t > T_GROUP + 0.75);
+        inbox.done.style.opacity = (clamp(dn * 2) * (1 - ease.inCubic(prog(t, S(SHOT.groups) - 0.45, S(SHOT.groups) - 0.1)))).toFixed(3);
         inbox.doneCircle.style.transform = `scale(${clamp(dn, 0, 1.3).toFixed(4)})`;
-        inbox.doneTick.draw(prog(t, T_FILE2 + 0.9, T_FILE2 + 1.3));
+        inbox.doneTick.draw(prog(t, T_GROUP + 0.9, T_GROUP + 1.3));
       }
 
       // ---- Groups: the trip's total climbs as its movements arrive.
-      const grOn = t > S(4) - 0.3 && t < S(5) + 0.2;
+      const grOn = t > S(SHOT.groups) - 0.3 && t < S(SHOT.subs) + 0.2;
       show(groups.root, grOn);
       if (grOn) {
         let sum = 0;
@@ -1029,39 +1134,46 @@ function scenePhone() {
           x += w;
           groups.legend[i].style.opacity = (0.35 + 0.65 * k).toFixed(3);
         });
+        // Ana's half of the hotel arrives last, and brings the cost down.
+        const tb = GROUP_ARRIVE(TRIP.length);
+        const back = ease.swift(prog(t, tb, tb + 0.5));
+        sum -= REFUND.v * back;
         groups.total.textContent = eur(sum);
-        const lb = TRIP.reduce((a, m, i) => a + bump(t - GROUP_ARRIVE(i)), 0);
+        groups.total.style.color = mix(UI.ink, UI.green, prog(t, tb, tb + 0.12) * (1 - prog(t, tb + 0.7, tb + 1.2)));
+        groups.split.style.opacity = back.toFixed(3);
+        groups.split.style.transform = `translateY(${(6 * (1 - back)).toFixed(2)}px)`;
+        const lb = [...TRIP, REFUND].reduce((a, m, i) => a + bump(t - GROUP_ARRIVE(i)), 0);
         groups.lis.extraTf = ` scale(${(1 + 0.012 * lb).toFixed(4)})`;
-        choreo([groups.head, groups.lis, groups.move, groups.job], t, S(4) - 0.05, S(5) - 0.45, { stagger: 0.12 });
+        choreo([groups.head, groups.lis, groups.move, groups.job], t, S(SHOT.groups) - 0.05, S(SHOT.subs) - 0.45, { stagger: 0.12 });
       }
 
       // ---- Subscriptions.
-      const suOn = t > S(5) - 0.3 && t < S(6) + 0.2;
+      const suOn = t > S(SHOT.subs) - 0.3 && t < S(SHOT.variable) + 0.2;
       show(subs.root, suOn);
-      show(subs.note, suOn && t > S(5) + 2.45);
+      show(subs.note, suOn && t > S(SHOT.subs) + 2.45);
       if (suOn) {
-        choreo([subs.head, subs.sum, ...subs.rows], t, S(5) - 0.05, S(6) - 0.45, { stagger: 0.07 });
-        const mv = countUp(t, S(5) + 0.4, S(5) + 1.6, 0, SUBS_MONTH);
+        choreo([subs.head, subs.sum, ...subs.rows], t, S(SHOT.subs) - 0.05, S(SHOT.variable) - 0.45, { stagger: 0.07 });
+        const mv = countUp(t, S(SHOT.subs) + 0.4, S(SHOT.subs) + 1.6, 0, SUBS_MONTH);
         subs.month.textContent = eur(mv);
         subs.year.textContent = `${eur(mv * 12)} a year`;
-        const nd = spring(t - (S(5) + 2.5), 2.2, 0.8);
-        const nu = ease.inCubic(prog(t, S(6) - 0.75, S(6) - 0.4));
+        const nd = spring(t - (S(SHOT.subs) + 2.5), 2.2, 0.8);
+        const nu = ease.inCubic(prog(t, S(SHOT.variable) - 0.75, S(SHOT.variable) - 0.4));
         subs.note.style.transform = `translateY(${(lerp(-120, 0, clamp(nd, 0, 1.1)) - 130 * nu).toFixed(2)}px)`;
       }
 
       // ---- Variable amounts: the rule, then what is waiting.
-      const vaOn = t > S(6) - 0.3 && t < S(7) + 0.2;
+      const vaOn = t > S(SHOT.variable) - 0.3 && t < S(SHOT.budgets) + 0.2;
       show(vr.edit, vaOn && t < T_WAIT + 0.4);
       show(vr.wait, vaOn && t > T_WAIT - 0.1);
       if (vaOn) {
-        choreo([vr.eHead, vr.amt, vr.more], t, S(6) - 0.05, T_WAIT - 0.35, { stagger: 0.1 });
+        choreo([vr.eHead, vr.amt, vr.more], t, S(SHOT.variable) - 0.05, T_WAIT - 0.35, { stagger: 0.1 });
         vr.seg.set(ease.inOutCubic(prog(t, T_TOGGLE, T_TOGGLE + 0.35)));
         vr.fixed.style.opacity = (1 - prog(t, T_TOGGLE + 0.05, T_TOGGLE + 0.3)).toFixed(3);
         const ak = ease.swift(prog(t, T_TOGGLE + 0.2, T_TOGGLE + 0.7));
         vr.ask.style.opacity = ak.toFixed(3);
         vr.ask.style.transform = `translateY(${(10 * (1 - ak)).toFixed(2)}px)`;
 
-        choreo([vr.wHead, vr.sal, vr.elec, vr.foot], t, T_WAIT, S(7) - 0.45, { stagger: 0.12 });
+        choreo([vr.wHead, vr.sal, vr.elec, vr.foot], t, T_WAIT, S(SHOT.budgets) - 0.45, { stagger: 0.12 });
         // Enter opens a field under the salary; the figure is typed; Save records it.
         const open = ease.inOutCubic(prog(t, T_ENTER, T_ENTER + 0.35));
         vr.enter.style.opacity = (1 - open).toFixed(3);
@@ -1097,11 +1209,11 @@ function scenePhone() {
       }
 
       // ---- Budgets.
-      const buOn = t > S(7) - 0.3 && t < S(8) + 0.2;
+      const buOn = t > S(SHOT.budgets) - 0.3 && t < S(SHOT.reports) + 0.2;
       show(budgets.root, buOn);
       if (buOn) {
         budgets.cards.forEach((c, i) => {
-          const f0 = S(7) + 0.7 + i * 0.3;
+          const f0 = S(SHOT.budgets) + 0.7 + i * 0.3;
           const spent = c.m.spent * ease.inOutCubic(prog(t, f0, f0 + 1.3));
           const f = spent / c.m.limit;
           c.fill.style.width = `${(336 * Math.min(1, f)).toFixed(2)}px`;
@@ -1114,37 +1226,37 @@ function scenePhone() {
           const nudge = f > 1 && t > f0 + 1.2 ? Math.sin((t - f0) * 40) * 3 * Math.exp(-(t - (f0 + 1.25)) * 6) : 0;
           c.c.extraTf = ` translateX(${nudge.toFixed(2)}px)`;
         });
-        choreo([budgets.head, ...budgets.cards.map((c) => c.c)], t, S(7) - 0.05, S(8) - 0.45, { stagger: 0.09 });
+        choreo([budgets.head, ...budgets.cards.map((c) => c.c)], t, S(SHOT.budgets) - 0.05, S(SHOT.reports) - 0.45, { stagger: 0.09 });
       }
 
       // ---- Reports.
-      const reOn = t > S(8) - 0.3 && t < S(9) + 0.2;
+      const reOn = t > S(SHOT.reports) - 0.3 && t < S(SHOT.worth) + 0.2;
       show(reports.root, reOn);
       if (reOn) {
-        choreo([reports.head, reports.segWrap, reports.a, reports.b_, reports.c], t, S(8) - 0.05, S(9) - 0.45, { stagger: 0.09 });
+        choreo([reports.head, reports.segWrap, reports.a, reports.b_, reports.c], t, S(SHOT.reports) - 0.05, S(SHOT.worth) - 0.45, { stagger: 0.09 });
         reports.barsA.forEach((b2, i) => {
-          const k = ease.swift(prog(t, S(8) + 0.5 + i * 0.1, S(8) + 1.4 + i * 0.1));
+          const k = ease.swift(prog(t, S(SHOT.reports) + 0.5 + i * 0.1, S(SHOT.reports) + 1.4 + i * 0.1));
           b2.inc.style.height = `${(150 * (b2.f.inc / 250000) * k).toFixed(2)}px`;
           b2.exp.style.height = `${(150 * (b2.f.exp / 250000) * k).toFixed(2)}px`;
         });
         reports.barsB.forEach((b2, i) => {
-          const k = ease.swift(prog(t, S(8) + 1.5 + i * 0.08, S(8) + 2.3 + i * 0.08));
+          const k = ease.swift(prog(t, S(SHOT.reports) + 1.5 + i * 0.08, S(SHOT.reports) + 2.3 + i * 0.08));
           b2.e.style.height = `${(92 * (b2.v / reports.wkMax) * k).toFixed(2)}px`;
-          const sat = i === 5 ? ease.inOutCubic(prog(t, S(8) + 2.6, S(8) + 3.0)) : 0;
+          const sat = i === 5 ? ease.inOutCubic(prog(t, S(SHOT.reports) + 2.6, S(SHOT.reports) + 3.0)) : 0;
           b2.e.style.background = i === 5 ? mix('#D9E7FF', UI.amber, sat) : '#D9E7FF';
         });
-        reports.satNote.style.opacity = ease.swift(prog(t, S(8) + 2.7, S(8) + 3.3)).toFixed(3);
-        const cp = spring(t - (S(8) + 3.1), 2.8, 0.6);
+        reports.satNote.style.opacity = ease.swift(prog(t, S(SHOT.reports) + 2.7, S(SHOT.reports) + 3.3)).toFixed(3);
+        const cp = spring(t - (S(SHOT.reports) + 3.1), 2.8, 0.6);
         reports.chipC.style.transform = `scale(${clamp(cp, 0, 1.2).toFixed(4)})`;
         reports.chipC.style.opacity = clamp(cp * 2).toFixed(3);
       }
 
       // ---- What you have.
-      const woOn = t > S(9) - 0.3 && t < S(10) + 0.2;
+      const woOn = t > S(SHOT.worth) - 0.3 && t < S(SHOT.privacy) + 0.2;
       show(worth.root, woOn);
       if (woOn) {
-        choreo([worth.head, worth.nw, worth.inAcc, worth.inv, worth.acc], t, S(9) - 0.05, S(10) - 0.45, { stagger: 0.08 });
-        worth.nwVal.textContent = eur(countUp(t, S(9) + 0.35, S(9) + 1.6, 1900000, 2106840));
+        choreo([worth.head, worth.nw, worth.inAcc, worth.inv, worth.acc], t, S(SHOT.worth) - 0.05, S(SHOT.privacy) - 0.45, { stagger: 0.08 });
+        worth.nwVal.textContent = eur(countUp(t, S(SHOT.worth) + 0.35, S(SHOT.worth) + 1.6, 1900000, 2106840));
         const mv = ease.inOutCubic(prog(t, T_TR, T_TR + 0.8));
         worth.pill.style.opacity = (prog(t, T_TR - 0.15, T_TR) * (1 - prog(t, T_TR + 0.8, T_TR + 1.0))).toFixed(3);
         worth.pill.style.transform = `translateY(${lerp(-44, 30, mv).toFixed(2)}px)`;
@@ -1152,17 +1264,17 @@ function scenePhone() {
         worth.mainBal.textContent = eur(lerp(288840, 238840, q));
         worth.savBal.textContent = eur(lerp(570000, 620000, q));
         worth.spkPath.style.strokeDasharray = '1 1';
-        worth.spkPath.style.strokeDashoffset = String(1 - ease.inOutCubic(prog(t, S(9) + 1.0, S(9) + 2.0)));
+        worth.spkPath.style.strokeDashoffset = String(1 - ease.inOutCubic(prog(t, S(SHOT.worth) + 1.0, S(SHOT.worth) + 2.0)));
         const tb = ease.swift(prog(t, T_TR + 0.3, T_TR + 0.8));
-        worth.tr.style.opacity = (tb * (1 - ease.inCubic(prog(t, S(10) - 0.45, S(10) - 0.1)))).toFixed(3);
+        worth.tr.style.opacity = (tb * (1 - ease.inCubic(prog(t, S(SHOT.privacy) - 0.45, S(SHOT.privacy) - 0.1)))).toFixed(3);
       }
 
       // ---- Privacy: the lock opens, and the backup runs.
-      const prOn = t > S(10) - 0.3 && t < S(11) + 0.2;
+      const prOn = t > S(SHOT.privacy) - 0.3 && t < S(SHOT.outro) + 0.2;
       show(priv.lock, prOn && t < T_UNLOCK + 0.7);
       show(priv.back, prOn && t > T_UNLOCK);
       if (prOn) {
-        const lin = ease.swift(prog(t, S(10) - 0.05, S(10) + 0.6));
+        const lin = ease.swift(prog(t, S(SHOT.privacy) - 0.05, S(SHOT.privacy) + 0.6));
         const lout = ease.inOutCubic(prog(t, T_UNLOCK, T_UNLOCK + 0.55));
         priv.lock.style.opacity = lin.toFixed(3);
         priv.lock.style.transform = `translateY(${(-900 * lout).toFixed(2)}px)`;
@@ -1178,7 +1290,7 @@ function scenePhone() {
         const nb = prog(t, T_BACKUP - 0.04, T_BACKUP) * (1 - prog(t, T_BACKUP + 0.1, T_BACKUP + 0.3));
         priv.now.extraTf = ` scale(${(1 - 0.04 * nb).toFixed(4)})`;
         priv.now.style.background = `linear-gradient(90deg, ${rgba(UI.blue, 0.1)} ${(bk * 100).toFixed(1)}%, #fff ${(bk * 100).toFixed(1)}%)`;
-        choreo([priv.head, priv.drive, priv.now, priv.exp], t, T_UNLOCK + 0.15, S(11) - 0.45, { stagger: 0.09 });
+        choreo([priv.head, priv.drive, priv.now, priv.exp], t, T_UNLOCK + 0.15, S(SHOT.outro) - 0.45, { stagger: 0.09 });
       }
 
       // ---- The finger.
@@ -1210,10 +1322,10 @@ function inverseInOutCubic(y) {
 // ---------------------------------------------------------------------------------------------
 
 function sceneOverlays() {
-  TRIP.forEach((_, i) => cue(GROUP_ARRIVE(i), 'collect', { i }));
-  cue(S(1) + 1.9, 'insight');
+  [...TRIP, REFUND].forEach((_, i) => cue(GROUP_ARRIVE(i), 'collect', { i }));
+  cue(S(SHOT.month) + 1.9, 'insight');
 
-  layer('overlays', S(1), S(6), (root) => {
+  layer('overlays', S(SHOT.month), S(SHOT.variable), (root) => {
     // "Most spent", beside the ring, while the rest of the ring steps back.
     const call = h('div', null, root, {
       position: 'absolute', left: 0, top: 0, width: '300px', height: '124px', borderRadius: '26px', background: '#fff',
@@ -1225,7 +1337,7 @@ function sceneOverlays() {
     tx(call, 76, 76, `${eur(65000)} · ${pct(65000, TOTAL_BEFORE)} %`, { size: 15, color: UI.ink2, tnum: true });
 
     // The trip's movements, waiting beside the phone, then collected one by one.
-    const chips = TRIP.map((m) => {
+    const chips = [...TRIP, REFUND].map((m) => {
       const e = h('div', null, root, {
         position: 'absolute', left: 0, top: 0, height: '60px', borderRadius: '30px', background: '#fff', display: 'flex', alignItems: 'center',
         gap: '12px', padding: '0 22px 0 10px', boxShadow: '0 14px 34px rgba(16,24,40,0.13), 0 3px 8px rgba(16,24,40,0.06)', whiteSpace: 'nowrap',
@@ -1233,10 +1345,30 @@ function sceneOverlays() {
       const ic = h('div', null, e, { width: '40px', height: '40px', borderRadius: '20px', background: rgba(CAT[m.cat].color, 0.15), display: 'flex', alignItems: 'center', justifyContent: 'center' });
       glyph(ic, CAT[m.cat].glyph, 22, CAT[m.cat].color, 2.1);
       h('span', null, e, { fontSize: '19px', fontWeight: 650, color: UI.ink }, m.name);
-      h('span', 'tnum', e, { fontSize: '19px', fontWeight: 600, color: UI.ink2 }, eur(-m.v));
+      const back = m === REFUND;
+      h('span', 'tnum', e, { fontSize: '19px', fontWeight: 600, color: back ? UI.green : UI.ink2 }, back ? eur(m.v, { sign: true }) : eur(-m.v));
       return e;
     });
-    const spots = [[1700, 260], [1752, 400], [1690, 540], [1760, 680], [1702, 820]];
+    const spots = [[1700, 236], [1752, 358], [1690, 480], [1760, 602], [1702, 724], [1748, 846]];
+
+    // The bank's notifications, beside the phone, until Cents takes them in.
+    const notes = CAPTURED.map((m) => {
+      const e = h('div', null, root, {
+        position: 'absolute', left: 0, top: 0, width: '350px', height: '128px', borderRadius: '30px', background: '#fff',
+        boxShadow: '0 20px 50px rgba(16,24,40,0.15), 0 4px 12px rgba(16,24,40,0.06)',
+      });
+      const ic = h('div', null, e, {
+        position: 'absolute', left: '22px', top: '20px', width: '32px', height: '32px', borderRadius: '10px', background: BANK,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      });
+      glyph(ic, 'bank', 20, '#fff', 2);
+      tx(e, 66, 26, 'YOUR BANK', { size: 14, weight: 650, color: UI.ink2, ls: 0.06 });
+      tx(e, 328, 26, 'now', { size: 14, color: UI.ink2, w: 60, align: 'right' });
+      tx(e, 22, 64, m.note[0], { size: 20, weight: 700 });
+      tx(e, 22, 92, m.note[1], { size: 18, tnum: true });
+      return e;
+    });
+    const noteSpots = [[1721, 318], [1721, 488]];
 
     // The Netflix reminder, lifted out of the phone so it can be read.
     const note = h('div', null, root, {
@@ -1251,24 +1383,37 @@ function sceneOverlays() {
     tx(note, 22, 92, `${eur(1299)}, in 3 days.`, { size: 18 });
 
     return (t) => {
-      const ci = spring(t - (S(1) + 1.85), 2.2, 0.75);
-      const co = ease.inCubic(prog(t, S(1) + 3.9, S(1) + 4.3));
-      show(call, t > S(1) + 1.8 && co < 1);
+      const ci = spring(t - (S(SHOT.month) + 1.85), 2.2, 0.75);
+      const co = ease.inCubic(prog(t, S(SHOT.month) + 3.9, S(SHOT.month) + 4.3));
+      show(call, t > S(SHOT.month) + 1.8 && co < 1);
       call.style.transform = `translate(${(1546 - 40 * (1 - clamp(ci))).toFixed(2)}px,330px) scale(${(1.1 * (0.94 + 0.06 * clamp(ci))).toFixed(4)})`;
       call.style.opacity = (clamp(ci * 1.6) * (1 - co)).toFixed(3);
 
-      const ni = spring(t - (S(5) + 2.65), 2.2, 0.75);
-      const no = ease.inCubic(prog(t, S(6) - 0.8, S(6) - 0.45));
-      show(note, t > S(5) + 2.6 && no < 1);
+      const ni = spring(t - (S(SHOT.subs) + 2.65), 2.2, 0.75);
+      const no = ease.inCubic(prog(t, S(SHOT.variable) - 0.8, S(SHOT.variable) - 0.45));
+      show(note, t > S(SHOT.subs) + 2.6 && no < 1);
       note.style.transform = `translate(${(1546 - 40 * (1 - clamp(ni))).toFixed(2)}px,190px) scale(${(0.94 + 0.06 * clamp(ni)).toFixed(4)})`;
       note.style.opacity = (clamp(ni * 1.6) * (1 - no)).toFixed(3);
 
-      const card = PHONE.groupsCard && t > S(4) - 0.2 && t < S(5) ? stageRect(PHONE.groupsCard) : null;
+      notes.forEach((e, i) => {
+        const ni = spring(t - T_NOTE[i], 2.2, 0.75);
+        const fly = ease.inOutCubic(prog(t, T_LAND[i] - 0.62, T_LAND[i]));
+        const on = t > T_NOTE[i] - 0.02 && t < T_LAND[i] + 0.02;
+        show(e, on);
+        if (!on) return;
+        const row = PHONE.inboxRows ? stageRect(PHONE.inboxRows[i]) : null;
+        const [sx, sy] = noteSpots[i];
+        const x = lerp(sx - 40 * (1 - clamp(ni)), row ? row.cx : sx, fly);
+        const y = lerp(sy, row ? row.cy : sy, fly) + 40 * Math.sin(Math.PI * fly);
+        place(e, x, y, { s: (0.94 + 0.06 * clamp(ni)) * lerp(1, 0.9, fly), o: clamp(ni * 1.6) * (1 - prog(fly, 0.7, 1)) });
+      });
+
+      const card = PHONE.groupsCard && t > S(SHOT.groups) - 0.2 && t < S(SHOT.subs) ? stageRect(PHONE.groupsCard) : null;
       chips.forEach((e, i) => {
-        const appear = spring(t - (S(4) + 0.35 + i * 0.09), 2.4, 0.7);
+        const appear = spring(t - (S(SHOT.groups) + 0.35 + i * 0.09), 2.4, 0.7);
         const arrive = GROUP_ARRIVE(i);
         const fly = ease.inOutCubic(prog(t, arrive - 0.62, arrive));
-        const on = t > S(4) + 0.3 && t < arrive + 0.02;
+        const on = t > S(SHOT.groups) + 0.3 && t < arrive + 0.02;
         show(e, on);
         if (!on) return;
         const [sx, sy] = spots[i];

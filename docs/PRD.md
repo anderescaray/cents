@@ -197,15 +197,40 @@ not only when they are charged — otherwise the budget flatters you early in th
 
 **See the feasibility analysis in §5.1: "real time" carries important caveats.**
 
-### 4.6 Auto-capture from Wallet — P3 (experimental)
+### 4.6 Auto-capture from notifications — P3 (experimental)
 
-When I pay with my phone, the expense should be logged automatically, without a category,
-landing in an "uncategorized inbox" for me to classify later.
+*Extended by the owner on 2026-09-26: income as well as spending, the bank's own app as well as
+Wallet, and a group as well as a category.*
 
-- Must be **off by default** and enabled explicitly in settings.
-- **Never** connects to a bank or asks for credentials.
-- See the feasibility analysis in §5.2: this is the feature most likely not to work as
-  hoped.
+When my bank's app, or Wallet, tells me that money moved, Cents should write the movement down by
+itself. It leaves me only what a notification cannot know: what the money was for.
+
+- **An option I switch on.** It is **off by default** and turned on explicitly in settings.
+  Turning it on takes me to Android's *Notification access* screen, the only place that
+  permission can be granted (§5.2).
+- **Only the apps I pick.** I choose which apps it reads: my bank's, Wallet, or both. I tie each
+  one to one of my accounts, so what my bank's app notifies lands in that account. Every other
+  app's notifications are ignored, and nothing from them is kept.
+- **Money out and money in.** A card payment becomes an expense, and a transfer or a Bizum that
+  arrives becomes an income. The amount, the date and the time come from the notification, and
+  the merchant or the sender becomes the note.
+- **It waits in *To categorize*,** the inbox, with no category, marked as captured and by which
+  app. Until it is filed it is still a real movement. It counts in its account's balance and
+  shows as *Uncategorized* in reports, like anything else saved without a category.
+- **I file it: a category, and a group if it has one.** One tap on a category chip of its own
+  kind files it. One more puts it in a group (§4.9): the dinner of a trip, or a friend paying back
+  their half of the hotel. The category stays required, as §4.9 says, and the group stays
+  optional. The app does not pick either one for me.
+- **Nothing is counted twice.** Android reposts and updates notifications, and a payment made with
+  the phone can be announced by both Wallet and the bank. One payment is one movement, however
+  many times it is notified. A charge that a subscription already records (§4.4), like the rent
+  or Netflix, is the same money too. A captured movement that matches a rule's occurrence (same
+  account, same amount, within a few days) is offered as that occurrence rather than added as a
+  new movement.
+- **Never** connects to a bank or asks for credentials: it reads the text the phone already
+  shows.
+- See the feasibility analysis in §5.2: this is still the feature most likely not to work as
+  hoped, and what it catches depends on what each app bothers to notify.
 
 ### 4.7 Data and security — P1
 
@@ -293,31 +318,34 @@ Things to be clear about:
    terms of use — Yahoo Finance's unofficial API is popular but unsupported and its usage
    sits in a grey area, so it is not chosen as the foundation.
 
-### 5.2 Reading expenses from the Wallet app
+### 5.2 Reading movements from notifications
 
 **Verdict: partially feasible, fragile, and it may simply not work.**
 
-The important part first: **Android offers no API to read Google Wallet transactions.**
-There is no permission that says "give me my recent payments". Wallet does not share that
-data with other apps. So there is no clean, supported way to do this.
+The important part first: **Android offers no API to read Google Wallet transactions,** nor
+any bank's. There is no permission that says "give me my recent payments". Neither Wallet nor a
+bank's app shares that data with other apps. So there is no clean, supported way to do this.
 
 What **is** possible:
 
 - A **`NotificationListenerService`**: a service that, with explicit user consent, reads
-  the notifications other apps post. When you pay with your phone, Wallet (or your bank's
-  app) usually posts a notification like *"You paid €12.50 at Mercadona"*. The app can
-  read that text, extract the amount and the merchant, and create an uncategorized
-  transaction.
+  the notifications other apps post. When you pay, or money arrives, your bank's app (or
+  Wallet, for a payment made with the phone) usually posts a notification like *"You paid
+  €12.50 at Mercadona"* or *"You have received €120.05 from Ana"*. The app can read that
+  text, extract the amount, the direction and the merchant or sender, and create an
+  uncategorized transaction.
 
 Its limitations, unvarnished:
 
 1. **It is text parsing, not structured data.** It depends on the exact wording of the
-   notification, the locale, and the app that posted it. Google changes the copy and it
-   breaks. It must be built with configurable parsing rules and test fixtures, not one
+   notification, the locale, and the app that posted it. Every bank words its notifications
+   its own way, and Google or the bank changes the copy and it breaks. It must be built with
+   configurable parsing rules per app and test fixtures taken from real notifications, not one
    giant `if`.
-2. **It cannot capture what does not notify.** Physical card payments, direct debits,
-   instant transfers and online purchases produce no such notification. It will never be
-   a complete record, only an assist.
+2. **It only catches what each app notifies.** Some banks announce every card payment and
+   every transfer that arrives, while others announce only some. Direct debits and online
+   purchases often produce no notification at all, and Wallet only sees payments made with the
+   phone. It will never be a complete record, only an assist.
 3. **The permission is special.** It is not a normal runtime dialog: the user must be sent
    to Settings → Notification access and grant it manually. It is a very powerful
    permission (access to *all* notifications), so the app must process only the packages

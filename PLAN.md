@@ -535,6 +535,25 @@ phone still out of reach:
 - **#93**: search ignores accents as well as case (*cafe* finds *Café*, *ñ* matches *Ñ*), the
   owner's request. Matched in the repository after SQL narrows by everything else, so it needed
   no schema change after all.
+- **#95**: filtering the list to *Income* or *Expenses* leaves out transfer legs and trade cash,
+  which closes the C4 gap. The owner asked whether a transfer shows anywhere as money leaving one
+  account; it does, in every balance and in the Reports balance line with one account chosen, and
+  that is unchanged.
+- **#96**: the accessibility pass (Phase 6). The shared components gained TalkBack roles,
+  headings, rows read as one item, *selected* on picker rows, 48 dp targets through a new
+  `Modifier.tappable`, and minimum heights instead of fixed ones so text grows with the system
+  font. **Walk 16** (`k1`–`k3`) checks it. The font test needed Robolectric's **native graphics**,
+  since the default mode measures text with metrics that ignore font size. Also, a dialog reads its
+  font scale from the device rather than from a CompositionLocal, so an alert's growth is only
+  checked on the phone.
+- **#97**: **postponing** (D28). A rule's next occurrence, or a variable bill or salary already
+  waiting, can be moved 1–14 days, never as far as the next one. It is recorded on the new day and
+  announced that morning; the rule's schedule does not move. Room **v9** (`rule_postponements`),
+  carried in backups. A variable salary's notification now asks what came in. **Walk 17**
+  (`p1`–`p3`). **Walk 15** (`j1`) checks #95.
+- **Two requests for later** went into C7 (#94): choosing the order of the charts and hiding any
+  of them, and hiding a tab that is rarely used. Both belong to the UI/UX pass that replaces the
+  bubbles.
 
 **Where the 2026-09-24 session stopped: the phone has the build, and Drive is connected.**
 Nothing was built. The session untangled a local merge, installed `main` on the phone, and got
@@ -771,7 +790,10 @@ unmerged one.
 | Budgets | Settings › Budgets: a monthly limit per expense category. Each row shows what is left or how far over, what was spent and what is still to come from the category's subscriptions, and a bar that turns amber at 80 % and red above 100 %. The editor uses the keypad, and a budget is deleted behind a confirmation. Room v7. #80, #81, D26 |
 | Groups | Settings › Groups: occasions that cut across categories — a trip, a move, a freelance job. A movement can belong to one, picked on the form; a group says what it **cost** or **earned** in words, splits it by category, and opens its movements in the list. Reports and budgets are unchanged. Room v8. #86, #87, D27 |
 | Inbox | Movements saved without a category wait under **To categorize** on the Transactions list, with how many; the inbox files each with one tap on a category chip of its own kind, or opens the form. Transfers and trade cash never appear. #90 |
-| Tests | 856 on `main` after #93, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
+| Filters | *Income* and *Expenses* on the movement list leave out transfer legs and trade cash, as every report does; the plain list still shows them. #95 |
+| Accessibility | TalkBack reads a row as one item, says *selected* on picker rows and *heading* on titles, and every small tappable word has a 48 dp target. Controls that held text have minimum rather than fixed heights, so the largest system font grows them instead of clipping. #96 |
+| Postponing | A rule's next occurrence, or a variable bill or salary already waiting, can be moved 1–14 days, never as far as the next one. It is recorded on the new day and announced that morning; the rule's own schedule does not move, and *Back to its own day* undoes it. Carried in backups. Room v9. #97, D28 |
+| Tests | 873 on `main` after #97, all on the JVM (Robolectric), so CI covers the database and the UI without a device |
 
 ## C3. The work, branch by branch
 
@@ -1860,7 +1882,9 @@ parallelism.
   ~~**The undo banner lives only on the Transactions list.**~~ **The account detail shows it too
   since #71**, which is where a deletion made from there returns. The deletion confirmation still
   says the undo is "on the list", which is now slightly narrower than the truth.
-- **The kind filter still sorts transfer legs by their kind.** Filtering the list to *Income*
+- ~~**The kind filter still sorts transfer legs by their kind.**~~ **Closed by #95 on
+  2026-09-25**: *Income* and *Expenses* now leave out transfer legs and trade cash. What follows
+  is the gap as it was. Filtering the list to *Income*
   shows the arriving side of every transfer in the period. The rows read as transfers and are
   excluded from the totals above them, so nothing adds up wrongly — but *Income* is not quite
   what they are. The filter form gaining a transfers switch is one more section on a form that
@@ -1868,6 +1892,12 @@ parallelism.
   the one case already closed**, because it is not a preference but a drill-down: the ring's
   *Uncategorized* slice counts no legs, so the list behind it shows none either. A leg has no
   category because a transfer is not classified, not because nobody got round to it.
+- **A postponed charge still counts in its own month for budgets and *committed this month*.**
+  Both are computed from each rule's own dates, so rent moved from the 30th to the 2nd is still
+  committed in the month it left, and a budget counts it there as still to come. The movement
+  itself is dated the new day, so every report that reads movements is right. Fixing it means
+  passing the postponements into `subscriptionTotalsOf` and the budget projection. It waits until
+  somebody postpones across a month end and minds (D28).
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —
@@ -2332,6 +2362,8 @@ the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has th
 - **Walk 12** (`g1`–`g5`) is budgets (#80, #81).
 - **Walk 13** (`h1`–`h6`) is groups (#86, #87).
 - **Walk 14** (`i1`–`i3`) is the uncategorized inbox (#90).
+- **Walk 15** (`j1`) is the Income and Expenses filters (#95), **Walk 16** (`k1`–`k3`) is TalkBack
+  and the largest font (#96), and **Walk 17** (`p1`–`p3`) is postponing (#97).
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.

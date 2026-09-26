@@ -314,7 +314,13 @@ and no budget: the trip's dinner is still a restaurant expense in its own month.
 **And what was saved in a hurry gets sorted later** (#90): a movement saved without a category
 waits under **To categorize** on the movement list, and one tap on a category chip files it —
 the inbox PRD §4.6 asks for before any notification capture feeds it.
-856 tests run on the JVM, so CI covers the database and the UI without a device.
+**And a charge or a salary can wait a few days** (#97, **Room v9**, D28): a rule's next
+occurrence, or a variable bill or salary already waiting, is moved 1–14 days, never as far as the
+next one, recorded on the new day and announced that morning, while the rule's own schedule stays
+put. The same day brought the **accessibility pass** (#96): TalkBack roles and headings, 48 dp
+targets, and text that grows with the system font. It also stopped the *Income* and *Expenses*
+filters listing transfer legs (#95).
+873 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

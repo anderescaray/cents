@@ -8,7 +8,7 @@ import java.time.YearMonth
  *
  * Half of what every view on the Reports tab is asked about; the other half is which account,
  * and [ReportScope] is the two of them together. Each view's own model — [SpendingBreakdown],
- * [MonthlyFlow], [BalanceOverTime] — lives in a file of its own beside this one, so a new view
+ * [IncomeAndExpenses], [BalanceOverTime] — lives in a file of its own beside this one, so a new view
  * is a new file rather than one more edit to a growing shared one.
  *
  * A period is a [TransactionFilter] date range with a name, not a second idea of "a

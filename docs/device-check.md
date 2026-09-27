@@ -1632,3 +1632,28 @@ notification asks *what came in*, not *what it cost*.
 
 > **Wrong looks like** the salary recorded on its old date, as an expense, or other rows losing
 > what was typed.
+
+## Walk 18 — what was saved, by month, quarter or year (#100, #101)
+
+You need movements in at least two different months, with income in one of them. Open
+**Reports** and find **Income and expenses**.
+
+### f1 · Tapping a column
+
+Under the chart, the latest column is described: its name (*September 2026*), income, expenses,
+and *Saved* or *Overspent*. Tap an **older column**: that column is drawn in full, the rest are
+faded, and the figures underneath change to it. Tap **Show movements**: the list opens on that
+month's movements.
+
+> **Wrong looks like** nothing happening when a column is tapped, the wrong column being
+> described, or the chart scrolling instead of selecting. **This is the one thing on the view no
+> test can check**, because the tap goes through the chart library's own gesture handling.
+
+### f2 · Saved, and the column size
+
+Switch to **Saved**: one column per month, green where something was left and red where more
+went out than came in. Switch to **Quarters**, then **Years**, then **24**: the columns change,
+and the latest one is described again.
+
+> **Wrong looks like** a red column where the figures underneath say *Saved*, or the axis
+> labels overlapping at 24.

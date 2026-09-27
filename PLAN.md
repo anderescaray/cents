@@ -503,19 +503,33 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
-**Where the 2026-09-27 session stopped: a month opens its movements.** A cloud session, with
+**Where the 2026-09-27 session stopped: income and expenses, reshaped.** A cloud session, with
 no Android SDK, so ktlint 1.8.0 and detekt 2.0.0-alpha.6 ran as CLIs and CI is the gate for
-the rest.
-- The income-and-expenses view on Reports gained **one row per month** under its chart: what
-  was left that month, signed and red when negative, opening that month's movements.
-  `ReportScope.filterForMonth` clamps the month to the selected period, so a custom range from
-  the 20th opens the 20th onwards. This closes the drill-down gap noted on `feat/reports-drilldown`.
+the rest. The owner asked for the chart to show what was saved, and to choose its columns.
+- **The income-and-expenses view on Reports has three controls of its own.**
+  - *In and out* or *Saved*: income beside expenses, or one column of what was left, green when
+    something was left and red when more went out than came in.
+  - *Months*, *Quarters* or *Years* for each column, and **6, 12 or 24** columns. The default is
+    12 months.
+  - Like the category trend, it reads **outside the selected period**. The last column is the
+    one the period ends in, cut where the period ends, and the rest run back from there. Size
+    and count are held in the source, in memory, like the trend's category.
+- **Tapping a column describes it under the chart**: its income, its expenses, and *Saved* or
+  *Overspent* in words, with *Show movements* to open them. The latest column is described until
+  another is tapped. Vico only reports taps to a marker controller when the chart has a marker,
+  so the chart carries one that draws nothing. The tapped column is drawn in full and the rest
+  faded. **The tap is new and has not been seen on a phone.** It is also not reachable with
+  TalkBack: only the latest column's figures are.
+- The owner turned down an earlier version of this branch with **a row per month under the
+  chart**, because it grows long at 24 columns.
+- Quarters and years are summed in Kotlin from the same monthly `GROUP BY` the view always ran,
+  bounded by the months on the chart. `MonthlyFlow` became `FlowBucket` and `IncomeAndExpenses`,
+  and `filterFor` lives on the model as it does for every other view.
 - **A bug on the way:** a filtered list's totals left out transfer legs but **counted the cash
   of a share purchase or sale** as an expense or income. They now use `movesNoIncomeOrExpense`,
-  like every report, so a month opened from the chart adds up to its column.
-- The owner asked for a **saved-or-overspent figure**. It already exists as *Net* (*Balance* in
-  Spanish) under *This month*, and they want it reworded and shown on Reports during the UI
-  rework. That is in C7, recorded in #99.
+  like every report, so a column opened from the chart adds up to what it shows.
+- The *Net* row under *This month* on the movement list is unchanged. Rewording it and showing
+  what was saved at the top of Reports belong to the UI rework (C7, #99).
 
 **Where the 2026-09-25 session stopped: groups are built.** The owner asked for a way to see
 what an occasion cost — a trip, say — across categories, and then for income to count as fully
@@ -1034,10 +1048,9 @@ charts at once is how a phase turns into a month.
       tab, handing over the same `TransactionFilter` the filter form produces. Vico offers no
       hit testing for pie charts, so the ring tap reconstructs the geometry and a tap in the
       hole or off the ring deliberately does nothing.
-      **Since 2026-09-27** a month opens its movements too, from a row per month under the
-      income-and-expenses chart that says what was left (income minus expenses). A row rather
-      than a tap on the column, like the weekday view, since Vico gives the columns no hit
-      testing.
+      **Since 2026-09-27** a column opens its movements too. Tapping one describes it under the
+      chart, and *Show movements* opens them. Vico reports the tap through a marker
+      controller.
 
 - [x] **`feat/reports-balance-over-time`** — merged (#28), and **this is the branch that made
       the rest of §4.3 parallelisable.** It builds the third view and the seam under it in one
@@ -2399,6 +2412,8 @@ the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has th
 - **Walk 14** (`i1`–`i3`) is the uncategorized inbox (#90).
 - **Walk 15** (`j1`) is the Income and Expenses filters (#95), **Walk 16** (`k1`–`k3`) is TalkBack
   and the largest font (#96), and **Walk 17** (`p1`–`p3`) is postponing (#97).
+- **Walk 18** (`f1`–`f2`) is the reshaped income-and-expenses chart (#101). **`f1`, tapping a
+  column, is the owner's to check first**: it is the one part of that view no test can reach.
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.

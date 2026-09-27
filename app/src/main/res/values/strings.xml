@@ -200,6 +200,17 @@
     <string name="reports_flow_empty">No movements in this period.</string>
     <string name="reports_flow_legend_income">Income</string>
     <string name="reports_flow_legend_expenses">Expenses</string>
+    <string name="reports_flow_mode_in_and_out">In and out</string>
+    <string name="reports_flow_mode_saved">Saved</string>
+    <string name="reports_flow_size_month">Months</string>
+    <string name="reports_flow_size_quarter">Quarters</string>
+    <string name="reports_flow_size_year">Years</string>
+    <string name="reports_flow_saved">Saved</string>
+    <string name="reports_flow_overspent">Overspent</string>
+    <string name="reports_flow_show_movements">Show movements</string>
+    <string name="reports_flow_previous_column">Previous column</string>
+    <string name="reports_flow_next_column">Next column</string>
+    <string name="reports_flow_until">Until %1$s</string>
     <string name="reports_no_accounts_title">No accounts yet</string>
     <string name="reports_no_accounts_footer">Charts read the movements in your accounts. Add an account and record something, and this tab fills itself in.</string>
 

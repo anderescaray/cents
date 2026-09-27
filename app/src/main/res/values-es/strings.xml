@@ -198,6 +198,17 @@
     <string name="reports_flow_empty">No hay movimientos en este periodo.</string>
     <string name="reports_flow_legend_income">Ingresos</string>
     <string name="reports_flow_legend_expenses">Gastos</string>
+    <string name="reports_flow_mode_in_and_out">Entradas y salidas</string>
+    <string name="reports_flow_mode_saved">Ahorro</string>
+    <string name="reports_flow_size_month">Meses</string>
+    <string name="reports_flow_size_quarter">Trimestres</string>
+    <string name="reports_flow_size_year">Años</string>
+    <string name="reports_flow_saved">Ahorrado</string>
+    <string name="reports_flow_overspent">Gastado de más</string>
+    <string name="reports_flow_show_movements">Ver movimientos</string>
+    <string name="reports_flow_previous_column">Columna anterior</string>
+    <string name="reports_flow_next_column">Columna siguiente</string>
+    <string name="reports_flow_until">Hasta el %1$s</string>
     <string name="reports_no_accounts_title">Todavía no hay cuentas</string>
     <string name="reports_no_accounts_footer">Los gráficos leen los movimientos de tus cuentas. Crea una cuenta y registra algo, y esta pestaña se llena sola.</string>
 

@@ -102,7 +102,7 @@ class SubscriptionsViewModel
                     stopped = rows.filterNot { it.rule.active },
                     pending = pending,
                     today = today,
-                    totals = subscriptionTotalsOf(rules, today),
+                    totals = subscriptionTotalsOf(rules, today, postponements),
                     isLoading = false,
                 )
             }.flowOn(Dispatchers.Default).stateIn(

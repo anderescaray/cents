@@ -530,6 +530,11 @@ the rest. The owner asked for the chart to show what was saved, and to choose it
   like every report, so a column opened from the chart adds up to what it shows.
 - The *Net* row under *This month* on the movement list is unchanged. Rewording it and showing
   what was saved at the top of Reports belong to the UI rework (C7, #99).
+- **Then postponed charges in budgets** (the owner's pick). *Committed this month* and budgets
+  now count a moved occurrence in the month it moved to. Before, rent moved from the 30th to
+  the 2nd stayed in the month it left, and a charge moved from the 20th to the 27th, looked at
+  on the 25th, counted nowhere. `subscriptionTotalsOf` and `budgetProgressOf` take the
+  postponements, and D28's last point is updated.
 
 **Where the 2026-09-25 session stopped: groups are built.** The owner asked for a way to see
 what an occasion cost — a trip, say — across categories, and then for income to count as fully
@@ -1922,12 +1927,16 @@ parallelism.
   the one case already closed**, because it is not a preference but a drill-down: the ring's
   *Uncategorized* slice counts no legs, so the list behind it shows none either. A leg has no
   category because a transfer is not classified, not because nobody got round to it.
-- **A postponed charge still counts in its own month for budgets and *committed this month*.**
-  Both are computed from each rule's own dates, so rent moved from the 30th to the 2nd is still
-  committed in the month it left, and a budget counts it there as still to come. The movement
-  itself is dated the new day, so every report that reads movements is right. Fixing it means
-  passing the postponements into `subscriptionTotalsOf` and the budget projection. It waits until
-  somebody postpones across a month end and minds (D28).
+- **~~A postponed charge still counts in its own month for budgets and *committed this month*.~~**
+  Fixed on 2026-09-27: both now count a moved occurrence in the month of the day it moved to,
+  which is the day its movement is dated. That includes one moved in from last month, and one
+  moved from earlier this month to a day still ahead, which had counted nowhere.
+- **Editing a rule keeps its postponements, even one that no longer fits the new schedule.**
+  Found in review on 2026-09-27. Move the 30th's rent to the 2nd, then make the rule fortnightly
+  from a date that still lands on the 30th: the move survives, and the generator, budgets and
+  *committed this month* all still treat it as moved. Nothing checks a postponement against the
+  edited rule. The fix is to drop, when the rule is saved, any postponement whose occurrence it no
+  longer has. It has not been seen, and it needs an edit this unusual to reach.
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —

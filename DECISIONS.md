@@ -54,9 +54,9 @@ expenses.
 - **Undoable.** *Back to its own day* in the editor puts it back. *Default: as written.*
 - **Not for something already written.** Once a charge is recorded, it is a movement, and its date
   is edited on the movement itself. *Default: as written.*
-- **Budgets and *committed this month* still use each rule's own dates.** A charge moved across
-  the end of a month still counts in its original month there, though the movement itself is
-  dated correctly (PLAN C4). *Default: leave it until it matters.*
+- **Budgets and *committed this month* count a moved charge in the month it moved to**, the
+  month its movement is dated in. First built as "leave it until it matters"; the owner asked
+  for the fix on 2026-09-27, and it is built.
 
 **Answer:**
 

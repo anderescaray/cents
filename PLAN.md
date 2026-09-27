@@ -2412,6 +2412,8 @@ the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has th
 - **Walk 14** (`i1`–`i3`) is the uncategorized inbox (#90).
 - **Walk 15** (`j1`) is the Income and Expenses filters (#95), **Walk 16** (`k1`–`k3`) is TalkBack
   and the largest font (#96), and **Walk 17** (`p1`–`p3`) is postponing (#97).
+- **Walk 18** (`f1`–`f2`) is the reshaped income-and-expenses chart (#101). **`f1`, tapping a
+  column, is the owner's to check first**: it is the one part of that view no test can reach.
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.

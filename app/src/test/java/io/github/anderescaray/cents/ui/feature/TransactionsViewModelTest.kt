@@ -389,10 +389,9 @@ class TransactionsViewModelTest {
         runTest {
             val id = database.accountDao().insert(account(name = "Broker"))
             movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
-            val tradeId = database.tradeDao().insert(trade(database.holdingDao().insert(holding(id))))
-            database.transactionDao().insert(
-                transaction(id, amountMinor = 40_000, date = LocalDate.of(2026, 8, 4), tradeId = tradeId),
-            )
+            val bought = LocalDate.of(2026, 8, 4)
+            val tradeId = database.tradeDao().insert(trade(database.holdingDao().insert(holding(id)), date = bought))
+            database.transactionDao().insert(transaction(id, amountMinor = 40_000, date = bought, tradeId = tradeId))
 
             viewModel.uiState.test {
                 awaitStateThat { it.days.size == 2 }

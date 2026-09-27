@@ -49,8 +49,8 @@ import javax.inject.Singleton
 /**
  * Income against expenses, one pair of columns per month of the period.
  *
- * Under the chart, one row per month says what was left, income minus expenses, and opens
- * that month's movements. The drill-down is a row rather than a tap on the column for the
+ * Under the chart, one row per month with movements says what was left, income minus
+ * expenses, and opens that month's movements. The drill-down is a row rather than a tap on the column for the
  * same reason the weekday view's is: Vico has no hit testing to hang it on, and a row is also
  * what TalkBack can reach.
  */
@@ -79,11 +79,15 @@ data class MonthlyFlowSection(
                 )
                 val formatter =
                     remember { DateTimeFormatter.ofPattern(MONTH_ROW_PATTERN, Locale.getDefault()) }
-                months.forEachIndexed { index, month ->
+                // Only the months something happened in: the chart keeps its zeros, because a
+                // gap there reads as missing data, but a row for a quiet month, or for December
+                // in September, would be a way into an empty list.
+                val active = remember(months) { months.filterNot { it.isEmpty } }
+                active.forEachIndexed { index, month ->
                     MonthRow(
                         month = month,
                         title = month.month.atDay(1).format(formatter),
-                        last = index == months.lastIndex,
+                        last = index == active.lastIndex,
                         onClick = { actions.onDrillDown(scope.filterForMonth(month.month)) },
                     )
                 }

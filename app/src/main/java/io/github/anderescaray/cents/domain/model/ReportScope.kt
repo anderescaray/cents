@@ -39,7 +39,9 @@ data class ReportScope(
      *
      * Clamped to the period at both ends, because a custom range from the 20th touches a month
      * it only covers part of, and the column above the row adds up only that part. Opening the
-     * whole month would put movements under it that the column never counted.
+     * whole month would put movements under it that the column never counted. [month] is one
+     * the period touches; a month outside it has no part inside it, and comes back as an empty
+     * range.
      */
     fun filterForMonth(month: YearMonth): TransactionFilter =
         asFilter().copy(

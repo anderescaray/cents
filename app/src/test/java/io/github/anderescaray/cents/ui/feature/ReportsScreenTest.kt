@@ -293,6 +293,7 @@ class ReportsScreenTest {
         assertEquals(LocalDate.of(2026, 8, 31), opened?.to)
         assertEquals(CURRENT_ID, opened?.accountId)
         assertEquals(null, opened?.kind)
+        composeRule.onNodeWithText("July 2026").assertDoesNotExist()
     }
 
     @Test
@@ -629,6 +630,8 @@ class ReportsScreenTest {
 
     private fun months() =
         listOf(
+            // A quiet month: a zero on the chart, and no row under it.
+            MonthlyFlow(YearMonth.of(2026, 7), PeriodSummary(Money.zero("EUR"), Money.zero("EUR"))),
             MonthlyFlow(
                 YearMonth.of(2026, 8),
                 PeriodSummary(Money(200_000, "EUR"), Money(1_000, "EUR")),

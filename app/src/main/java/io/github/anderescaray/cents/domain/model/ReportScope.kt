@@ -1,7 +1,5 @@
 package io.github.anderescaray.cents.domain.model
 
-import java.time.YearMonth
-
 /**
  * What a report is about: a stretch of time, and whose money.
  *
@@ -32,20 +30,5 @@ data class ReportScope(
             from = period.from,
             to = period.to,
             accountId = accountId,
-        )
-
-    /**
-     * One calendar month of this scope, as the list should open it.
-     *
-     * Clamped to the period at both ends, because a custom range from the 20th touches a month
-     * it only covers part of, and the column above the row adds up only that part. Opening the
-     * whole month would put movements under it that the column never counted. [month] is one
-     * the period touches; a month outside it has no part inside it, and comes back as an empty
-     * range.
-     */
-    fun filterForMonth(month: YearMonth): TransactionFilter =
-        asFilter().copy(
-            from = maxOf(period.from, month.atDay(1)),
-            to = minOf(period.to, month.atEndOfMonth()),
         )
 }

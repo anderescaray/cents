@@ -1,11 +1,13 @@
 package io.github.anderescaray.cents.data.repository.reports
 
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
+import io.github.anderescaray.cents.domain.model.FlowBucket
+import io.github.anderescaray.cents.domain.model.FlowShape
+import io.github.anderescaray.cents.domain.model.IncomeAndExpenses
 import io.github.anderescaray.cents.domain.model.Money
-import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodSummary
-import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.ReportScope
+import io.github.anderescaray.cents.domain.model.bucketsFor
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -14,11 +16,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The columns, aggregated by SQLite.
+ * The columns, aggregated by SQLite month by month.
  *
- * The one pass Kotlin makes is over the *months* of the range, filling the empty ones with
- * zeros — a gap in a bar chart reads as missing data, and a zero reads as a quiet month.
- * That walk is bounded by the length of the period, not by the number of movements.
+ * A quarter or a year is then the sum of its months, in Kotlin. That walk is bounded by the
+ * months on the chart, at most 24 years' worth, never by the number of movements, so the
+ * aggregation that matters still happens in `GROUP BY` (`CLAUDE.md` §5) and the query stays
+ * the one this view has always run.
  */
 @Singleton
 class RoomMonthlyFlowRepository
@@ -26,34 +29,35 @@ class RoomMonthlyFlowRepository
     constructor(
         private val transactionDao: TransactionDao,
     ) : MonthlyFlowRepository {
-        override fun observeMonthlyFlow(scope: ReportScope): Flow<List<MonthlyFlow>> =
-            transactionDao
-                .observeMonthlyTotals(scope.period.from, scope.period.to, scope.accountId)
+        override fun observeFlow(
+            scope: ReportScope,
+            shape: FlowShape,
+        ): Flow<IncomeAndExpenses> {
+            val ranges = bucketsFor(scope.period, shape)
+            return transactionDao
+                .observeMonthlyTotals(ranges.first().second.from, ranges.last().second.to, scope.accountId)
                 .map { rows ->
-                    val byMonth = rows.associateBy { YearMonth.parse(it.month) }
-                    monthsIn(scope.period).map { month ->
-                        val totals = byMonth[month]
-                        MonthlyFlow(
-                            month = month,
-                            summary =
-                                PeriodSummary(
-                                    income = Money(totals?.incomeMinor ?: 0, scope.currency),
-                                    expenses = Money(totals?.expenseMinor ?: 0, scope.currency),
-                                ),
-                        )
-                    }
+                    val months = rows.map { YearMonth.parse(it.month) to it }
+                    IncomeAndExpenses(
+                        scope = scope,
+                        shape = shape,
+                        buckets =
+                            ranges.map { (whole, counted) ->
+                                val inside =
+                                    months
+                                        .filter { (month, _) -> month.atDay(1) in counted.from..counted.to }
+                                        .map { it.second }
+                                FlowBucket(
+                                    whole = whole,
+                                    counted = counted,
+                                    summary =
+                                        PeriodSummary(
+                                            income = Money(inside.sumOf { it.incomeMinor }, scope.currency),
+                                            expenses = Money(inside.sumOf { it.expenseMinor }, scope.currency),
+                                        ),
+                                )
+                            },
+                    )
                 }
+        }
     }
-
-/**
- * Every calendar month the period touches, in order and including partial ones at either
- * end. A range of a single day is one month, not zero.
- */
-private fun monthsIn(period: ReportPeriod): List<YearMonth> {
-    val first = YearMonth.from(period.from)
-    val last = YearMonth.from(period.to)
-    if (last < first) return emptyList()
-    return generateSequence(first) { it.plusMonths(1) }
-        .takeWhile { it <= last }
-        .toList()
-}

@@ -219,7 +219,7 @@ class ReportsViewModelTest {
                 assertEquals(
                     3_000L,
                     narrowed.monthlyFlow
-                        ?.single()
+                        ?.last()
                         ?.summary
                         ?.expenses
                         ?.minorUnits,
@@ -571,7 +571,13 @@ class ReportsViewModelTest {
                 awaitStateThat { !it.isLoading }
                 viewModel.selectPreset(PeriodPreset.YEAR)
 
-                val year = awaitStateThat { it.preset == PeriodPreset.YEAR && (it.monthlyFlow?.size ?: 0) > 1 }
+                // The month preset draws twelve columns too, so the year's are told apart by where
+                // they start rather than by how many there are.
+                val year =
+                    awaitStateThat {
+                        it.preset == PeriodPreset.YEAR &&
+                            it.monthlyFlow?.first()?.whole == ReportPeriod.Month(YearMonth.of(2026, 1))
+                    }
                 val months = requireNotNull(year.monthlyFlow)
                 assertEquals(MONTHS_IN_YEAR, months.size)
                 assertEquals(Money(200_000, "EUR"), months[1].summary.income)
@@ -604,7 +610,7 @@ private val ReportsUiState.spending get() = section<SpendingSection>()?.expense
 
 private val ReportsUiState.earning get() = section<SpendingSection>()?.income
 
-private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.months
+private val ReportsUiState.monthlyFlow get() = section<MonthlyFlowSection>()?.flow?.buckets
 
 private val ReportsUiState.balance get() = section<BalanceOverTimeSection>()?.balance
 

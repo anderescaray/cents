@@ -21,8 +21,11 @@ import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.CategoryTrend
 import io.github.anderescaray.cents.domain.model.ComparedRanges
 import io.github.anderescaray.cents.domain.model.ComparisonSegment
+import io.github.anderescaray.cents.domain.model.FlowBucket
+import io.github.anderescaray.cents.domain.model.FlowBucketSize
+import io.github.anderescaray.cents.domain.model.FlowShape
+import io.github.anderescaray.cents.domain.model.IncomeAndExpenses
 import io.github.anderescaray.cents.domain.model.Money
-import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.PeriodComparison
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.ReportPeriod
@@ -280,20 +283,61 @@ class ReportsScreenTest {
     }
 
     @Test
-    fun `a month's row says what was left and opens that month's movements`() {
+    fun `the latest column is described under the chart, and opens its movements`() {
         var opened: TransactionFilter? = null
         setContent(fullState(accounts = twoAccounts(), accountId = CURRENT_ID), onDrillDown = { opened = it })
 
+        // August is the latest column, so its figures are the ones shown until another is
+        // tapped: 2 000 € in, 10 € out, 1 990 € saved.
         scrollTo("August 2026")
-        composeRule.onNodeWithText("August 2026").performClick()
+        composeRule.onNodeWithText("August 2026").assertExists()
+        composeRule.onNodeWithText("July 2026").assertDoesNotExist()
 
-        // The month, inside the account the tab is narrowed to, and every kind: the row is
-        // income against expenses, so it opens both.
+        scrollTo("Show movements")
+        composeRule.onNode(hasTestTag(MonthlyFlowSection.OPEN_TAG)).performClick()
+
+        // The column's own dates, inside the account the tab is narrowed to, and every kind:
+        // the column is income against expenses, so it opens both.
         assertEquals(LocalDate.of(2026, 8, 1), opened?.from)
         assertEquals(LocalDate.of(2026, 8, 31), opened?.to)
         assertEquals(CURRENT_ID, opened?.accountId)
         assertEquals(null, opened?.kind)
-        composeRule.onNodeWithText("July 2026").assertDoesNotExist()
+    }
+
+    @Test
+    fun `what was left is said in words, and overspending is not a negative saving`() {
+        val overspent =
+            flow().copy(
+                buckets =
+                    listOf(bucket(YearMonth.of(2026, 8), income = 10_000, expenses = 18_510)),
+            )
+        setContent(
+            ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(MonthlyFlowSection(overspent) {})),
+        )
+
+        composeRule.onNodeWithText("Overspent").assertExists()
+    }
+
+    @Test
+    fun `choosing quarters or a count asks the source for other columns`() {
+        val asked = mutableListOf<FlowShape>()
+        setContent(
+            ReportsUiState(
+                isLoading = false,
+                period = AUGUST,
+                sections = listOf(MonthlyFlowSection(flow()) { asked += it }),
+            ),
+        )
+
+        selectIn(MonthlyFlowSection.SIZE_TAG, "Quarters")
+        selectIn(MonthlyFlowSection.COUNT_TAG, "24")
+
+        // Each choice is reported on the shape the state carries. A real source would then
+        // replace the state; this fake one does not, so the count arrives with months.
+        assertEquals(
+            listOf(FlowShape(FlowBucketSize.QUARTER), FlowShape(FlowBucketSize.MONTH, count = 24)),
+            asked,
+        )
     }
 
     @Test
@@ -386,7 +430,7 @@ class ReportsScreenTest {
                                     TransactionKind.INCOME,
                                 ),
                         ),
-                        MonthlyFlowSection(emptyList(), scopeFor()),
+                        MonthlyFlowSection(flow().copy(buckets = emptyList())) {},
                         BalanceOverTimeSection(
                             BalanceOverTime(AUGUST, Money(50_000, "EUR"), emptyList(), activeDays = 0),
                         ),
@@ -421,7 +465,7 @@ class ReportsScreenTest {
             ReportsUiState(
                 isLoading = false,
                 period = AUGUST,
-                sections = listOf(MonthlyFlowSection(months(), scopeFor())),
+                sections = listOf(MonthlyFlowSection(flow()) {}),
             ),
         )
 
@@ -493,6 +537,19 @@ class ReportsScreenTest {
             .performClick()
     }
 
+    /** Taps one segment of whichever control carries [tag]. */
+    private fun selectIn(
+        tag: String,
+        label: String,
+    ) {
+        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag(tag))
+        composeRule
+            .onNode(hasTestTag(tag))
+            .onChildren()
+            .filterToOne(hasText(label))
+            .performClick()
+    }
+
     /**
      * Taps one segment of the comparison section's period selector.
      */
@@ -554,7 +611,7 @@ class ReportsScreenTest {
                             TransactionKind.INCOME,
                         ),
                 ),
-                MonthlyFlowSection(months(), scopeFor(accountId)),
+                MonthlyFlowSection(flow(accountId)) {},
                 PeriodComparisonSection(
                     previous = comparison(current = 90_000, before = 120_000),
                     samePeriodLastYear =
@@ -628,15 +685,27 @@ class ReportsScreenTest {
         segment = segment,
     )
 
-    private fun months() =
-        listOf(
-            // A quiet month: a zero on the chart, and no row under it.
-            MonthlyFlow(YearMonth.of(2026, 7), PeriodSummary(Money.zero("EUR"), Money.zero("EUR"))),
-            MonthlyFlow(
-                YearMonth.of(2026, 8),
-                PeriodSummary(Money(200_000, "EUR"), Money(1_000, "EUR")),
-            ),
+    /** July quiet and August with 2 000 € in and 10 € out, the way the repository hands them over. */
+    private fun flow(accountId: Long? = null) =
+        IncomeAndExpenses(
+            scope = scopeFor(accountId),
+            shape = FlowShape(),
+            buckets =
+                listOf(
+                    bucket(YearMonth.of(2026, 7), income = 0, expenses = 0),
+                    bucket(YearMonth.of(2026, 8), income = 200_000, expenses = 1_000),
+                ),
         )
+
+    private fun bucket(
+        month: YearMonth,
+        income: Long,
+        expenses: Long,
+    ) = FlowBucket(
+        whole = ReportPeriod.Month(month),
+        counted = ReportPeriod.Month(month),
+        summary = PeriodSummary(Money(income, "EUR"), Money(expenses, "EUR")),
+    )
 
     /**
      * The scope the fake sections report on. It carries the account the state says the tab is

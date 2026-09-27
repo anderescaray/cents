@@ -13,12 +13,14 @@ import io.github.anderescaray.cents.domain.usecase.BudgetProgress
 import io.github.anderescaray.cents.domain.usecase.budgetProgressOf
 import io.github.anderescaray.cents.ui.util.Today
 import io.github.anderescaray.cents.ui.util.deviceCurrency
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
@@ -71,18 +73,20 @@ class BudgetsViewModel
                 budgets.observeBudgets(),
                 categories.observeCategories(CategoryKind.EXPENSE),
                 spentThisMonth,
-                rules.observeRules(),
+                // Two flows as one: combine takes five, and a charge's rule and the day it was moved
+                // to are one question anyway.
+                combine(rules.observeRules(), rules.observePostponements(), ::Pair),
                 today.date,
-            ) { limits, expenseCategories, spent, allRules, day: LocalDate ->
+            ) { limits, expenseCategories, spent, (allRules, postponements), day: LocalDate ->
                 val budgeted = limits.map { it.categoryId }.toSet()
                 BudgetsUiState(
-                    rows = budgetProgressOf(limits, expenseCategories, spent, allRules, day),
+                    rows = budgetProgressOf(limits, expenseCategories, spent, allRules, day, postponements),
                     canAdd = expenseCategories.any { it.id !in budgeted },
                     hasExpenseCategories = expenseCategories.isNotEmpty(),
                     month = YearMonth.from(day),
                     isLoading = false,
                 )
-            }.stateIn(
+            }.flowOn(Dispatchers.Default).stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = BudgetsUiState(),

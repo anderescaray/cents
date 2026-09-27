@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.domain
 
 import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Postponement
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -38,7 +39,7 @@ class SubscriptionTotalsTest {
 
         assertEquals(
             Money(1_000, "EUR"),
-            subscriptionTotalsOf(listOf(december, january), LocalDate.of(2026, 12, 31)).committedThisMonth,
+            subscriptionTotalsOf(listOf(december, january), LocalDate.of(2026, 12, 31), emptyList()).committedThisMonth,
         )
     }
 
@@ -129,7 +130,7 @@ class SubscriptionTotalsTest {
     fun `stopped rules and income never count as committed spending`() {
         val stopped = rule().copy(active = false, mode = RuleMode.CONFIRM)
         val income = rule().copy(id = 2, kind = TransactionKind.INCOME, mode = RuleMode.CONFIRM)
-        val totals = subscriptionTotalsOf(listOf(stopped, income), LocalDate.of(2026, 9, 17))
+        val totals = subscriptionTotalsOf(listOf(stopped, income), LocalDate.of(2026, 9, 17), emptyList())
 
         assertEquals(Money.zero("EUR"), totals.committedThisMonth)
         assertFalse(totals.committedIncludesEstimates)
@@ -204,6 +205,49 @@ class SubscriptionTotalsTest {
     }
 
     @Test
+    fun `rent moved past the month end is next month's, not this one's`() {
+        // Due on the 30th, moved to the 2nd: its movement will be dated in October.
+        val rent = rule().copy(startDate = LocalDate.of(2026, 8, 30), lastGenerated = LocalDate.of(2026, 8, 30))
+        val moved = listOf(Postponement(rent.id, LocalDate.of(2026, 9, 30), LocalDate.of(2026, 10, 2)))
+
+        val september = subscriptionTotalsOf(listOf(rent), LocalDate.of(2026, 9, 23), moved)
+        // On 1 October it is still to come, beside October's own on the 30th.
+        val october = subscriptionTotalsOf(listOf(rent), LocalDate.of(2026, 10, 1), moved)
+
+        assertEquals(Money.zero("EUR"), september.committedThisMonth)
+        assertEquals(Money(2_000, "EUR"), october.committedThisMonth)
+    }
+
+    @Test
+    fun `a charge moved from earlier this month to a day still ahead counts`() {
+        // Due on the 20th and moved to the 27th, looked at on the 25th: not written, not gone.
+        val gym = rule().copy(startDate = LocalDate.of(2026, 9, 20))
+        val moved = listOf(Postponement(gym.id, LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 27)))
+
+        val totals = subscriptionTotalsOf(listOf(gym), LocalDate.of(2026, 9, 25), moved)
+
+        assertEquals(Money(1_000, "EUR"), totals.committedThisMonth)
+    }
+
+    @Test
+    fun `a waiting variable bill moved ahead is counted once, on its new day`() {
+        val electricity = rule().copy(mode = RuleMode.CONFIRM, startDate = LocalDate.of(2026, 9, 5))
+        val moved = listOf(Postponement(electricity.id, LocalDate.of(2026, 9, 5), LocalDate.of(2026, 9, 28)))
+
+        val ahead = subscriptionTotalsOf(listOf(electricity), LocalDate.of(2026, 9, 23), moved)
+        val intoOctober =
+            subscriptionTotalsOf(
+                listOf(electricity),
+                LocalDate.of(2026, 9, 23),
+                listOf(Postponement(electricity.id, LocalDate.of(2026, 9, 5), LocalDate.of(2026, 10, 3))),
+            )
+
+        assertEquals(Money(1_000, "EUR"), ahead.committedThisMonth)
+        assertTrue(ahead.committedIncludesEstimates)
+        assertEquals(Money.zero("EUR"), intoOctober.committedThisMonth)
+    }
+
+    @Test
     fun `income share uses monthly costs for both sides and keeps an exact fraction`() {
         val expense = rule().copy(amount = Money(30_000, "EUR"), frequency = Frequency.QUARTERLY)
         val otherExpense = rule().copy(id = 2, amount = Money(40_000, "EUR"))
@@ -214,7 +258,7 @@ class SubscriptionTotalsTest {
                 amount = Money(3_000_000, "EUR"),
                 frequency = Frequency.YEARLY,
             )
-        val totals = subscriptionTotalsOf(listOf(expense, otherExpense, income), LocalDate.of(2026, 9, 17))
+        val totals = subscriptionTotalsOf(listOf(expense, otherExpense, income), LocalDate.of(2026, 9, 17), emptyList())
         val share = requireNotNull(totals.incomeShare)
 
         assertEquals(Money(50_000, "EUR"), share.monthlyExpenses)
@@ -227,7 +271,7 @@ class SubscriptionTotalsTest {
     @Test
     fun `stopped income does not supply a denominator`() {
         val income = rule().copy(kind = TransactionKind.INCOME, active = false)
-        val totals = subscriptionTotalsOf(listOf(rule(), income), LocalDate.of(2026, 9, 17))
+        val totals = subscriptionTotalsOf(listOf(rule(), income), LocalDate.of(2026, 9, 17), emptyList())
 
         assertNull(totals.incomeShare)
         assertEquals(IncomeShareUnavailableReason.NO_INCOME_RULES, totals.incomeShareUnavailableReason)
@@ -244,7 +288,7 @@ class SubscriptionTotalsTest {
     @Test
     fun `income rounding to zero cannot be a denominator`() {
         val income = rule().copy(kind = TransactionKind.INCOME, amount = Money(1, "EUR"), frequency = Frequency.YEARLY)
-        val totals = subscriptionTotalsOf(listOf(rule(), income), LocalDate.of(2026, 9, 17))
+        val totals = subscriptionTotalsOf(listOf(rule(), income), LocalDate.of(2026, 9, 17), emptyList())
 
         assertNull(totals.incomeShare)
         assertEquals(IncomeShareUnavailableReason.ZERO_MONTHLY_INCOME, totals.incomeShareUnavailableReason)
@@ -265,7 +309,11 @@ class SubscriptionTotalsTest {
         val stopped = rule().copy(id = 3, active = false, mode = RuleMode.CONFIRM)
         val share =
             requireNotNull(
-                subscriptionTotalsOf(listOf(rule(), income, stopped), LocalDate.of(2026, 9, 17)).incomeShare,
+                subscriptionTotalsOf(
+                    listOf(rule(), income, stopped),
+                    LocalDate.of(2026, 9, 17),
+                    emptyList(),
+                ).incomeShare,
             )
 
         assertEquals(Money(1_000, "EUR"), share.monthlyExpenses)
@@ -279,7 +327,7 @@ class SubscriptionTotalsTest {
             listOf(rule().copy(mode = RuleMode.CONFIRM), income),
             listOf(rule(), income.copy(mode = RuleMode.CONFIRM)),
         ).forEach { rules ->
-            val share = requireNotNull(subscriptionTotalsOf(rules, LocalDate.of(2026, 9, 17)).incomeShare)
+            val share = requireNotNull(subscriptionTotalsOf(rules, LocalDate.of(2026, 9, 17), emptyList()).incomeShare)
             assertTrue(share.includesEstimates)
         }
     }
@@ -289,7 +337,9 @@ class SubscriptionTotalsTest {
         val expense = rule().copy(amount = Money(300_000_000_000_000_001, "EUR"))
         val income = rule().copy(id = 2, kind = TransactionKind.INCOME, amount = Money(200_000_000_000_000_000, "EUR"))
         val share =
-            requireNotNull(subscriptionTotalsOf(listOf(expense, income), LocalDate.of(2026, 9, 17)).incomeShare)
+            requireNotNull(
+                subscriptionTotalsOf(listOf(expense, income), LocalDate.of(2026, 9, 17), emptyList()).incomeShare,
+            )
 
         assertEquals(expense.amount, share.monthlyExpenses)
         assertEquals(income.amount, share.monthlyIncome)
@@ -298,7 +348,7 @@ class SubscriptionTotalsTest {
     @Test
     fun `different expense currencies cannot be totalled`() {
         val other = rule().copy(id = 2, amount = Money(1_000, "USD"))
-        val totals = subscriptionTotalsOf(listOf(rule(), other), LocalDate.of(2026, 9, 1))
+        val totals = subscriptionTotalsOf(listOf(rule(), other), LocalDate.of(2026, 9, 1), emptyList())
 
         assertNull(totals.committedThisMonth)
         assertNull(totals.monthlyOutgoing)
@@ -307,7 +357,7 @@ class SubscriptionTotalsTest {
     @Test
     fun `income and expenses in different currencies cannot make a share`() {
         val income = rule().copy(id = 2, kind = TransactionKind.INCOME, amount = Money(1_000, "USD"))
-        val totals = subscriptionTotalsOf(listOf(rule(), income), LocalDate.of(2026, 9, 1))
+        val totals = subscriptionTotalsOf(listOf(rule(), income), LocalDate.of(2026, 9, 1), emptyList())
 
         assertEquals(Money(1_000, "EUR"), totals.committedThisMonth)
         assertNull(totals.incomeShare)
@@ -318,7 +368,7 @@ class SubscriptionTotalsTest {
     fun `incomes in different currencies with no expenses still total zero charges`() {
         val salary = rule().copy(kind = TransactionKind.INCOME)
         val freelance = rule().copy(id = 2, kind = TransactionKind.INCOME, amount = Money(1_000, "USD"))
-        val totals = subscriptionTotalsOf(listOf(salary, freelance), LocalDate.of(2026, 9, 1))
+        val totals = subscriptionTotalsOf(listOf(salary, freelance), LocalDate.of(2026, 9, 1), emptyList())
 
         assertEquals(Money.zero("EUR"), totals.monthlyOutgoing)
         assertEquals(Money.zero("EUR"), totals.yearlyOutgoing)
@@ -330,7 +380,7 @@ class SubscriptionTotalsTest {
     private fun totals(
         rule: RecurringRule,
         today: LocalDate = LocalDate.of(2026, 9, 17),
-    ) = subscriptionTotalsOf(listOf(rule), today)
+    ) = subscriptionTotalsOf(listOf(rule), today, emptyList())
 
     private fun rule() =
         RecurringRule(

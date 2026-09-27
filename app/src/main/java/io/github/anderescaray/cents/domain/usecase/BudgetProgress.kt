@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.domain.usecase
 import io.github.anderescaray.cents.domain.model.Budget
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Postponement
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -80,6 +81,8 @@ data class BudgetProgress(
  *
  * @param spent what each category has taken this month, by category id. A category with no
  * movements is simply absent, and reads as nothing spent.
+ * @param postponements occurrences moved to another day: each counts in the month it was moved
+ * to, which is the month its movement is dated in (D28).
  */
 fun budgetProgressOf(
     budgets: List<Budget>,
@@ -87,8 +90,10 @@ fun budgetProgressOf(
     spent: Map<Long, Money>,
     rules: List<RecurringRule>,
     today: LocalDate,
+    postponements: List<Postponement>,
 ): List<BudgetProgress> {
     val byId = categories.associateBy { it.id }
+    val moved = postponements.byRule()
     return budgets
         .mapNotNull { budget ->
             val category = byId[budget.categoryId]?.takeUnless { it.archived } ?: return@mapNotNull null
@@ -98,17 +103,15 @@ fun budgetProgressOf(
                     it.active && it.kind == TransactionKind.EXPENSE && it.categoryId == category.id &&
                         it.amount.currency == currency
                 }
-            val committed =
-                charges
-                    .map { it.committedThisMonth(today) }
-                    .fold(Money.zero(currency)) { total, amount -> total + amount }
+            val perCharge = charges.map { it to it.committedThisMonth(today, moved[it.id].orEmpty()) }
+            val committed = perCharge.fold(Money.zero(currency)) { total, (_, amount) -> total + amount }
             BudgetProgress(
                 budget = budget,
                 category = category,
                 spent = spent[category.id]?.takeIf { it.currency == currency } ?: Money.zero(currency),
                 committed = committed,
                 committedIncludesEstimates =
-                    charges.any { it.mode == RuleMode.CONFIRM && it.committedThisMonth(today).minorUnits > 0 },
+                    perCharge.any { (rule, amount) -> rule.mode == RuleMode.CONFIRM && amount.minorUnits > 0 },
             )
         }.sortedWith(compareBy({ it.category.sortOrder }, { it.category.name }))
 }

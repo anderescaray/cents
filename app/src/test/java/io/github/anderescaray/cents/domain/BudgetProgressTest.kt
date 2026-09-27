@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Postponement
 import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -87,6 +88,66 @@ class BudgetProgressTest {
     }
 
     @Test
+    fun `a charge moved into next month leaves this month's budget, and one moved in joins it`() {
+        // Due on the 30th, moved to 2 October: October's books, not September's.
+        val rent =
+            rule(
+                categoryId = groceries.id,
+                minor = 5_000,
+                start = LocalDate.of(2026, 8, 30),
+                lastGenerated = LocalDate.of(2026, 8, 30),
+            )
+        // August's bill, moved to the 25th: it will be dated in September, and it is still ahead.
+        val water =
+            rule(
+                categoryId = groceries.id,
+                minor = 3_000,
+                start = LocalDate.of(2026, 7, 31),
+                lastGenerated = LocalDate.of(2026, 7, 31),
+            )
+        val moved =
+            listOf(
+                Postponement(rent.id, LocalDate.of(2026, 9, 30), LocalDate.of(2026, 10, 2)),
+                Postponement(water.id, LocalDate.of(2026, 8, 31), LocalDate.of(2026, 9, 25)),
+            )
+
+        val row =
+            budgetProgressOf(
+                budgets = listOf(Budget(1, groceries.id, Money(40_000, "EUR"))),
+                categories = listOf(groceries, home),
+                spent = emptyMap(),
+                rules = listOf(rent, water),
+                today = today,
+                postponements = moved,
+            ).single()
+
+        // Water's own September occurrence (the 30th) and its moved August one; no rent.
+        assertEquals(Money(6_000, "EUR"), row.committed)
+    }
+
+    @Test
+    fun `last month's variable bill moved into this month is this month's budget`() {
+        // Due 31 August, moved to 3 September and still waiting: it will be recorded on the 3rd,
+        // so September counts it, beside September's own on the 30th.
+        val electricity =
+            rule(categoryId = groceries.id, minor = 7_000, start = LocalDate.of(2026, 8, 31), mode = RuleMode.CONFIRM)
+
+        val row =
+            budgetProgressOf(
+                budgets = listOf(Budget(1, groceries.id, Money(40_000, "EUR"))),
+                categories = listOf(groceries, home),
+                spent = emptyMap(),
+                rules = listOf(electricity),
+                today = today,
+                postponements =
+                    listOf(Postponement(electricity.id, LocalDate.of(2026, 8, 31), LocalDate.of(2026, 9, 3))),
+            ).single()
+
+        assertEquals(Money(14_000, "EUR"), row.committed)
+        assertTrue(row.committedIncludesEstimates)
+    }
+
+    @Test
     fun `other categories, income and stopped rules are not this budget's business`() {
         val rules =
             listOf(
@@ -130,6 +191,7 @@ class BudgetProgressTest {
                 spent = emptyMap(),
                 rules = emptyList(),
                 today = today,
+                postponements = emptyList(),
             )
 
         assertTrue(rows.isEmpty())
@@ -148,6 +210,7 @@ class BudgetProgressTest {
                 spent = emptyMap(),
                 rules = emptyList(),
                 today = today,
+                postponements = emptyList(),
             )
 
         assertEquals(listOf("Home", "Groceries"), rows.map { it.category.name })
@@ -163,6 +226,7 @@ class BudgetProgressTest {
         spent = mapOf(groceries.id to Money(spent, "EUR")),
         rules = rules,
         today = today,
+        postponements = emptyList(),
     )
 
     private fun category(

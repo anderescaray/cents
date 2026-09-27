@@ -21,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -86,9 +89,11 @@ enum class FlowMode {
  * in. **How long** a column is: a month, a quarter or a year. **How many** columns: 6, 12 or 24.
  *
  * **Tapping a column says what it holds** underneath: its income, its expenses and what was
- * saved or overspent, with the way into its movements. The latest column is the one shown
- * until another is tapped. The figures are under the chart rather than in a list of every
- * month, which at 24 columns would be longer than the rest of the tab.
+ * saved or overspent, with the way into its movements. The latest column with something in
+ * it is the one shown until another is tapped, and TalkBack moves between columns with two
+ * custom actions, since it cannot reach the chart's taps. The figures are under the chart
+ * rather than in a list of every month, which at 24 columns would be longer than the rest of
+ * the tab.
  */
 data class MonthlyFlowSection(
     val flow: IncomeAndExpenses,
@@ -105,9 +110,14 @@ data class MonthlyFlowSection(
     override fun Content(actions: ReportActions) {
         var mode by rememberSaveable { mutableStateOf(FlowMode.IN_AND_OUT) }
         val buckets = flow.buckets
-        // Back to the latest column whenever the columns themselves change.
-        var selected by rememberSaveable(flow.shape) { mutableIntStateOf(buckets.lastIndex) }
+        // Back to the latest column with something in it whenever the columns themselves
+        // change: another size or count, another period, another account. December is the
+        // last column of a year read in September, and a way into an empty list is no default.
+        var selected by rememberSaveable(flow.scope, flow.shape) {
+            mutableIntStateOf(buckets.indexOfLast { !it.isEmpty }.takeIf { it >= 0 } ?: buckets.lastIndex)
+        }
         val bucket = buckets.getOrNull(selected) ?: buckets.lastOrNull()
+        val select: (Int) -> Unit = { if (it in buckets.indices) selected = it }
 
         Column {
             FlowControls(mode = mode, onMode = { mode = it }, shape = flow.shape, onReshape = onReshape)
@@ -116,13 +126,28 @@ data class MonthlyFlowSection(
                 if (flow.isEmpty || bucket == null) {
                     EmptyChart(stringResource(R.string.reports_flow_empty))
                 } else {
-                    Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
-                        FlowChart(
-                            flow = flow,
-                            mode = mode,
-                            selected = selected,
-                            onSelect = { selected = it },
-                        )
+                    val previous = stringResource(R.string.reports_flow_previous_column)
+                    val next = stringResource(R.string.reports_flow_next_column)
+                    Box(
+                        Modifier
+                            .padding(vertical = CentsDimens.spacingM)
+                            // The columns are tapped through the chart library, which TalkBack
+                            // cannot reach, so the same move is offered as two actions.
+                            .semantics {
+                                customActions =
+                                    listOf(
+                                        CustomAccessibilityAction(previous) {
+                                            select(selected - 1)
+                                            true
+                                        },
+                                        CustomAccessibilityAction(next) {
+                                            select(selected + 1)
+                                            true
+                                        },
+                                    )
+                            },
+                    ) {
+                        FlowChart(flow = flow, mode = mode, selected = selected, onSelect = select)
                     }
                     BucketDetail(
                         bucket = bucket,
@@ -220,9 +245,17 @@ private fun BucketDetail(
     onOpen: () -> Unit,
 ) {
     val formatter = remember(size) { DateTimeFormatter.ofPattern(size.titlePattern(), Locale.getDefault()) }
+    val dayFormatter = remember { DateTimeFormatter.ofPattern(CUT_DAY_PATTERN, Locale.getDefault()) }
     val net = bucket.summary.net
 
-    CentsListRow(title = bucket.whole.from.format(formatter))
+    // A column cut where the period ends says so, or "2026" read in August looks like a
+    // whole year beside 2025's.
+    CentsListRow(
+        title = bucket.whole.from.format(formatter),
+        subtitle =
+            stringResource(R.string.reports_flow_until, bucket.counted.to.format(dayFormatter))
+                .takeIf { bucket.counted.to < bucket.whole.to },
+    )
     LegendRow(
         color = CentsTheme.colors.positive,
         label = stringResource(R.string.reports_flow_legend_income),
@@ -240,11 +273,14 @@ private fun BucketDetail(
         amount = if (net.isNegative) -net else net,
         valueColor = if (net.isNegative) CentsTheme.colors.destructive else CentsTheme.colors.positive,
     )
-    CentsActionRow(
-        label = stringResource(R.string.reports_flow_show_movements),
-        onClick = onOpen,
-        modifier = Modifier.testTag(MonthlyFlowSection.OPEN_TAG),
-    )
+    // A quiet column has nothing to open.
+    if (!bucket.isEmpty) {
+        CentsActionRow(
+            label = stringResource(R.string.reports_flow_show_movements),
+            onClick = onOpen,
+            modifier = Modifier.testTag(MonthlyFlowSection.OPEN_TAG),
+        )
+    }
 }
 
 /**
@@ -281,13 +317,7 @@ internal fun FlowChart(
     val labelStyle = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)
     val width = if (buckets.size > FlowShape.DEFAULT_COUNT) NARROW_COLUMN_WIDTH else COLUMN_WIDTH
     val columns =
-        remember(
-            mode,
-            selected,
-            positive,
-            destructive,
-            width,
-        ) { FlowColumns(mode, selected, positive, destructive, width) }
+        remember(selected, positive, destructive, width) { FlowColumns(selected, positive, destructive, width) }
     // Every other label once there are more columns than fit a name each.
     val labelSpacing = if (buckets.size > FlowShape.DEFAULT_COUNT) 2 else 1
     val itemPlacer = remember(labelSpacing) { HorizontalAxis.ItemPlacer.aligned(spacing = { labelSpacing }) }
@@ -349,6 +379,9 @@ private fun rememberFlowModel(
                     }
                 }
             }
+            // Carried with the numbers rather than beside them, so the colours can never be
+            // one mode's while the columns are still the other's.
+            extras { it[FLOW_MODE_KEY] = mode }
         }
     }
     return producer
@@ -359,7 +392,6 @@ private fun rememberFlowModel(
  * was overspent, faded on every column but the [selected] one.
  */
 private class FlowColumns(
-    private val mode: FlowMode,
     private val selected: Int,
     positive: Color,
     destructive: Color,
@@ -375,7 +407,7 @@ private class FlowColumns(
         extraStore: ExtraStore,
     ): LineComponent {
         val isGreen =
-            when (mode) {
+            when (extraStore.getOrNull(FLOW_MODE_KEY) ?: FlowMode.IN_AND_OUT) {
                 FlowMode.IN_AND_OUT -> entry.seriesIndex == 0
                 FlowMode.SAVED -> entry.y >= 0
             }
@@ -436,6 +468,12 @@ private val COLUMN_WIDTH = 10.dp
 private val NARROW_COLUMN_WIDTH = 6.dp
 private val AXIS_LABEL_SIZE = 11.sp
 private const val FADED_ALPHA = 0.35f
+
+/** "31 Aug": where a cut column stops. */
+private const val CUT_DAY_PATTERN = "d MMM"
+
+/** Which mode the numbers in a chart model were drawn for. */
+private val FLOW_MODE_KEY = ExtraStore.Key<FlowMode>()
 private const val SIZE_CONTROL_WEIGHT = 1.6f
 
 /** Cents stores money in minor units; an axis is labelled in whole ones. */

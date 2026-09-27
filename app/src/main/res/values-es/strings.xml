@@ -206,6 +206,9 @@
     <string name="reports_flow_saved">Ahorrado</string>
     <string name="reports_flow_overspent">Gastado de más</string>
     <string name="reports_flow_show_movements">Ver movimientos</string>
+    <string name="reports_flow_previous_column">Columna anterior</string>
+    <string name="reports_flow_next_column">Columna siguiente</string>
+    <string name="reports_flow_until">Hasta el %1$s</string>
     <string name="reports_no_accounts_title">Todavía no hay cuentas</string>
     <string name="reports_no_accounts_footer">Los gráficos leen los movimientos de tus cuentas. Crea una cuenta y registra algo, y esta pestaña se llena sola.</string>
 

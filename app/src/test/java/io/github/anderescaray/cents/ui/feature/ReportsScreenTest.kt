@@ -305,6 +305,23 @@ class ReportsScreenTest {
     }
 
     @Test
+    fun `a quiet latest column is not the default, and has nothing to open`() {
+        // A year read in August: September to December are still to come, and empty.
+        val withAQuietEnd =
+            flow().copy(
+                buckets =
+                    flow().buckets + bucket(YearMonth.of(2026, 9), income = 0, expenses = 0),
+            )
+        setContent(
+            ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(MonthlyFlowSection(withAQuietEnd) {})),
+        )
+
+        composeRule.onNodeWithText("August 2026").assertExists()
+        composeRule.onNodeWithText("September 2026").assertDoesNotExist()
+        composeRule.onNode(hasTestTag(MonthlyFlowSection.OPEN_TAG)).assertExists()
+    }
+
+    @Test
     fun `what was left is said in words, and overspending is not a negative saving`() {
         val overspent =
             flow().copy(

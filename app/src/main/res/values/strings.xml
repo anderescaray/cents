@@ -208,6 +208,9 @@
     <string name="reports_flow_saved">Saved</string>
     <string name="reports_flow_overspent">Overspent</string>
     <string name="reports_flow_show_movements">Show movements</string>
+    <string name="reports_flow_previous_column">Previous column</string>
+    <string name="reports_flow_next_column">Next column</string>
+    <string name="reports_flow_until">Until %1$s</string>
     <string name="reports_no_accounts_title">No accounts yet</string>
     <string name="reports_no_accounts_footer">Charts read the movements in your accounts. Add an account and record something, and this tab fills itself in.</string>
 

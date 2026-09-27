@@ -28,6 +28,7 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.MonthlyFlow
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.MonthlyFlowRepository
+import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.LegendRow
@@ -37,6 +38,7 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.feature.reports.total
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.format.DateTimeFormatter
@@ -47,10 +49,14 @@ import javax.inject.Singleton
 /**
  * Income against expenses, one pair of columns per month of the period.
  *
- * The second of the two views the tab started with, moved into a section unchanged.
+ * Under the chart, one row per month with movements says what was left, income minus
+ * expenses, and opens that month's movements. The drill-down is a row rather than a tap on the column for the
+ * same reason the weekday view's is: Vico has no hit testing to hang it on, and a row is also
+ * what TalkBack can reach.
  */
 data class MonthlyFlowSection(
     val months: List<MonthlyFlow>,
+    val scope: ReportScope,
 ) : ReportSectionState {
     override val key: String get() = KEY
 
@@ -70,8 +76,21 @@ data class MonthlyFlowSection(
                     color = CentsTheme.colors.destructive,
                     label = stringResource(R.string.reports_flow_legend_expenses),
                     amount = months.map { it.summary.expenses }.total(),
-                    last = true,
                 )
+                val formatter =
+                    remember { DateTimeFormatter.ofPattern(MONTH_ROW_PATTERN, Locale.getDefault()) }
+                // Only the months something happened in: the chart keeps its zeros, because a
+                // gap there reads as missing data, but a row for a quiet month, or for December
+                // in September, would be a way into an empty list.
+                val active = remember(months) { months.filterNot { it.isEmpty } }
+                active.forEachIndexed { index, month ->
+                    MonthRow(
+                        month = month,
+                        title = month.month.atDay(1).format(formatter),
+                        last = index == active.lastIndex,
+                        onClick = { actions.onDrillDown(scope.filterForMonth(month.month)) },
+                    )
+                }
             }
         }
     }
@@ -88,8 +107,34 @@ class MonthlyFlowSectionSource
         private val repository: MonthlyFlowRepository,
     ) : ReportSectionSource {
         override fun observe(scope: ReportScope): Flow<ReportSectionState> =
-            repository.observeMonthlyFlow(scope).map(::MonthlyFlowSection)
+            repository.observeMonthlyFlow(scope).map { MonthlyFlowSection(it, scope) }
     }
+
+/**
+ * One month: what was left of its income once its expenses were paid, signed, and red when
+ * more went out than came in — the same colour the list's *This month* summary gives it.
+ */
+@Composable
+private fun MonthRow(
+    month: MonthlyFlow,
+    title: String,
+    last: Boolean,
+    onClick: () -> Unit,
+) {
+    CentsListRow(
+        title = title,
+        value = MoneyFormatter.formatSigned(month.summary.net),
+        valueColor =
+            if (month.summary.net.isNegative) {
+                CentsTheme.colors.destructive
+            } else {
+                CentsTheme.colors.label
+            },
+        showChevron = true,
+        showSeparator = !last,
+        onClick = onClick,
+    )
+}
 
 /**
  * Green for money in and red for money out, from the same two tokens the transaction list
@@ -165,6 +210,9 @@ private val AXIS_LABEL_SIZE = 11.sp
 
 /** Three-letter month names: "Aug", "Ago" — whatever the device locale calls it. */
 private const val MONTH_LABEL_PATTERN = "LLL"
+
+/** The month in full on its row: "August 2026", "agosto 2026". */
+private const val MONTH_ROW_PATTERN = "LLLL yyyy"
 
 /** Cents stores money in minor units; an axis is labelled in whole ones. */
 private const val MINOR_UNITS_PER_UNIT = 100.0

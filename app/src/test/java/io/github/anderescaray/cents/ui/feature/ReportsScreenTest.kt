@@ -280,6 +280,23 @@ class ReportsScreenTest {
     }
 
     @Test
+    fun `a month's row says what was left and opens that month's movements`() {
+        var opened: TransactionFilter? = null
+        setContent(fullState(accounts = twoAccounts(), accountId = CURRENT_ID), onDrillDown = { opened = it })
+
+        scrollTo("August 2026")
+        composeRule.onNodeWithText("August 2026").performClick()
+
+        // The month, inside the account the tab is narrowed to, and every kind: the row is
+        // income against expenses, so it opens both.
+        assertEquals(LocalDate.of(2026, 8, 1), opened?.from)
+        assertEquals(LocalDate.of(2026, 8, 31), opened?.to)
+        assertEquals(CURRENT_ID, opened?.accountId)
+        assertEquals(null, opened?.kind)
+        composeRule.onNodeWithText("July 2026").assertDoesNotExist()
+    }
+
+    @Test
     fun `the previous period's row opens the movements behind it`() {
         var opened: TransactionFilter? = null
         setContent(fullState(), onDrillDown = { opened = it })
@@ -369,7 +386,7 @@ class ReportsScreenTest {
                                     TransactionKind.INCOME,
                                 ),
                         ),
-                        MonthlyFlowSection(emptyList()),
+                        MonthlyFlowSection(emptyList(), scopeFor()),
                         BalanceOverTimeSection(
                             BalanceOverTime(AUGUST, Money(50_000, "EUR"), emptyList(), activeDays = 0),
                         ),
@@ -404,7 +421,7 @@ class ReportsScreenTest {
             ReportsUiState(
                 isLoading = false,
                 period = AUGUST,
-                sections = listOf(MonthlyFlowSection(months())),
+                sections = listOf(MonthlyFlowSection(months(), scopeFor())),
             ),
         )
 
@@ -537,7 +554,7 @@ class ReportsScreenTest {
                             TransactionKind.INCOME,
                         ),
                 ),
-                MonthlyFlowSection(months()),
+                MonthlyFlowSection(months(), scopeFor(accountId)),
                 PeriodComparisonSection(
                     previous = comparison(current = 90_000, before = 120_000),
                     samePeriodLastYear =
@@ -613,6 +630,8 @@ class ReportsScreenTest {
 
     private fun months() =
         listOf(
+            // A quiet month: a zero on the chart, and no row under it.
+            MonthlyFlow(YearMonth.of(2026, 7), PeriodSummary(Money.zero("EUR"), Money.zero("EUR"))),
             MonthlyFlow(
                 YearMonth.of(2026, 8),
                 PeriodSummary(Money(200_000, "EUR"), Money(1_000, "EUR")),

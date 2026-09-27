@@ -503,6 +503,20 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
+**Where the 2026-09-27 session stopped: a month opens its movements.** A cloud session, with
+no Android SDK, so ktlint 1.8.0 and detekt 2.0.0-alpha.6 ran as CLIs and CI is the gate for
+the rest.
+- The income-and-expenses view on Reports gained **one row per month** under its chart: what
+  was left that month, signed and red when negative, opening that month's movements.
+  `ReportScope.filterForMonth` clamps the month to the selected period, so a custom range from
+  the 20th opens the 20th onwards. This closes the drill-down gap noted on `feat/reports-drilldown`.
+- **A bug on the way:** a filtered list's totals left out transfer legs but **counted the cash
+  of a share purchase or sale** as an expense or income. They now use `movesNoIncomeOrExpense`,
+  like every report, so a month opened from the chart adds up to its column.
+- The owner asked for a **saved-or-overspent figure**. It already exists as *Net* (*Balance* in
+  Spanish) under *This month*, and they want it reworded and shown on Reports during the UI
+  rework. That is in C7, recorded in #99.
+
 **Where the 2026-09-25 session stopped: groups are built.** The owner asked for a way to see
 what an occasion cost — a trip, say — across categories, and then for income to count as fully
 as expenses. It went into the PRD as §4.9 and D27 (#85), and was built the same day, with the
@@ -1020,7 +1034,10 @@ charts at once is how a phase turns into a month.
       tab, handing over the same `TransactionFilter` the filter form produces. Vico offers no
       hit testing for pie charts, so the ring tap reconstructs the geometry and a tap in the
       hole or off the ring deliberately does nothing.
-      *Still not built:* tapping a **month column** to see that month's movements.
+      **Since 2026-09-27** a month opens its movements too, from a row per month under the
+      income-and-expenses chart that says what was left (income minus expenses). A row rather
+      than a tap on the column, like the weekday view, since Vico gives the columns no hit
+      testing.
 
 - [x] **`feat/reports-balance-over-time`** — merged (#28), and **this is the branch that made
       the rest of §4.3 parallelisable.** It builds the third view and the seam under it in one

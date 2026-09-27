@@ -4,6 +4,9 @@ import app.cash.turbine.test
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.holding
+import io.github.anderescaray.cents.data.local.trade
+import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
@@ -376,6 +379,35 @@ class TransactionsViewModelTest {
                 // The headline number is the answer to the question, not the month it
                 // happens to sit in.
                 assertEquals(Money(3_450, "EUR"), narrowed.matchSummary?.expenses)
+                assertEquals(Money(0, "EUR"), narrowed.matchSummary?.income)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the cash of a share purchase is on a filtered list but not in its totals`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Broker"))
+            movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
+            val tradeId = database.tradeDao().insert(trade(database.holdingDao().insert(holding(id))))
+            database.transactionDao().insert(
+                transaction(id, amountMinor = 40_000, date = LocalDate.of(2026, 8, 4), tradeId = tradeId),
+            )
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.size == 2 }
+
+                filters.apply(
+                    TransactionFilter(
+                        from = LocalDate.of(2026, 8, 1),
+                        to = LocalDate.of(2026, 8, 31),
+                    ),
+                )
+
+                // Both rows are listed, because the purchase happened; only the 50 € is
+                // spending, which is what the income-and-expenses column for August says too.
+                val narrowed = awaitStateThat { it.isNarrowed && it.matchCount == 2 }
+                assertEquals(Money(5_000, "EUR"), narrowed.matchSummary?.expenses)
                 assertEquals(Money(0, "EUR"), narrowed.matchSummary?.income)
                 cancelAndIgnoreRemainingEvents()
             }

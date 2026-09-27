@@ -2350,6 +2350,24 @@ shows. Two things to keep in mind:
   must not delete any data or turn any feature off.
 - **At least one tab must stay visible**, and hiding a tab is undone the same way it was done.
 
+### What was saved or overspent, and the movements, inside Reports (requested 2026-09-27)
+
+Requested by the owner on 2026-09-27, for the **UI rework to ADR 0003**, not before it.
+
+- **A saved-or-overspent card on Reports.** The figure already exists: the *Net* row under
+  *This month* on the Transactions list (*Balance* in Spanish), and *Net* in the period
+  comparison. Both leave out transfer legs and trade cash. The request is to put it on the Reports
+  page as a card of its own, following the period control. ADR 0003's rule 2 fits: lead with one
+  figure in words, *You saved 312,40 €* or *You overspent 85,10 €*, rather than a signed *Net*.
+  The Spanish label should change as well, because *Balance* reads as an account balance. A
+  savings rate (saved ÷ income, *no income yet* rather than 0 %) was offered alongside it.
+- **The movement list reachable from inside Reports**, as a pushed subpage or a sheet. Which of
+  the two is still open, and the owner will decide it during the rework. The drill-downs from a
+  slice, bar or point already hand the list a `TransactionFilter`, so the list itself does not
+  change, only where it opens.
+- **Neither is in ADR 0003's stills yet.** `10-reports.png` has no saved card, so the ADR should
+  gain one when the rework starts.
+
 ---
 
 ## Next concrete action

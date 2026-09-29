@@ -535,6 +535,10 @@ the rest. The owner asked for the chart to show what was saved, and to choose it
   the 2nd stayed in the month it left, and a charge moved from the 20th to the 27th, looked at
   on the 25th, counted nowhere. `subscriptionTotalsOf` and `budgetProgressOf` take the
   postponements, and D28's last point is updated.
+- **2026-09-29: an edited rule drops the moves it no longer fits.** The review of #102 found a
+  pre-existing gap: after a move, changing a rule's frequency or start date could leave the move
+  pointing at a day the rule no longer has, still steering the generator, the budget and
+  *committed this month*. `updateRule` now checks every move against the saved rule.
 
 **Where the 2026-09-25 session stopped: groups are built.** The owner asked for a way to see
 what an occasion cost — a trip, say — across categories, and then for income to count as fully
@@ -1931,12 +1935,10 @@ parallelism.
   Fixed on 2026-09-27: both now count a moved occurrence in the month of the day it moved to,
   which is the day its movement is dated. That includes one moved in from last month, and one
   moved from earlier this month to a day still ahead, which had counted nowhere.
-- **Editing a rule keeps its postponements, even one that no longer fits the new schedule.**
-  Found in review on 2026-09-27. Move the 30th's rent to the 2nd, then make the rule fortnightly
-  from a date that still lands on the 30th: the move survives, and the generator, budgets and
-  *committed this month* all still treat it as moved. Nothing checks a postponement against the
-  edited rule. The fix is to drop, when the rule is saved, any postponement whose occurrence it no
-  longer has. It has not been seen, and it needs an edit this unusual to reach.
+- **~~Editing a rule keeps its postponements, even one that no longer fits the new schedule.~~**
+  Fixed on 2026-09-29. Saving an edited rule now drops, in the same transaction, any move whose
+  occurrence is no longer one of the rule's days or whose new day would overtake the next
+  occurrence. `stillFits` is the check, and `canPostpone` is built on it.
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —

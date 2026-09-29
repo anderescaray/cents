@@ -13,6 +13,10 @@ interface RulePostponementDao {
     @Query("SELECT * FROM rule_postponements")
     suspend fun all(): List<RulePostponementEntity>
 
+    /** One rule's postponements, to check against the rule once it is edited. */
+    @Query("SELECT * FROM rule_postponements WHERE ruleId = :ruleId")
+    suspend fun forRule(ruleId: Long): List<RulePostponementEntity>
+
     /** Every postponement, for the screens that have to hide or re-date what is waiting. */
     @Query("SELECT * FROM rule_postponements")
     fun observeAll(): Flow<List<RulePostponementEntity>>

@@ -19,6 +19,7 @@ import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
 import io.github.anderescaray.cents.domain.usecase.canPostpone
 import io.github.anderescaray.cents.domain.usecase.dueOccurrences
 import io.github.anderescaray.cents.domain.usecase.occursOn
+import io.github.anderescaray.cents.domain.usecase.stillFits
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -61,9 +62,26 @@ class RoomRecurringRuleRepository
         override suspend fun createRule(rule: RecurringRule): Long =
             ruleDao.insert(rule.toEntity(createdAt = clock.instant()))
 
+        /**
+         * Saves the edit, and drops any postponement the edited rule no longer fits.
+         *
+         * A move is made against the schedule as it was. Change the frequency or the start date
+         * and the moved occurrence may no longer be one of the rule's days, or its new day may
+         * now be past the next occurrence. Kept, it would still steer the generator, the budget
+         * and *committed this month*, for a reason nothing on screen shows. In one transaction
+         * with the edit, so the two are never seen apart.
+         */
         override suspend fun updateRule(rule: RecurringRule) {
             val existing = ruleDao.findById(rule.id) ?: return
-            ruleDao.update(rule.toEntity(createdAt = existing.createdAt))
+            database.withTransaction {
+                ruleDao.update(rule.toEntity(createdAt = existing.createdAt))
+                val saved = ruleDao.findById(rule.id)?.toDomain() ?: return@withTransaction
+                database
+                    .rulePostponementDao()
+                    .forRule(rule.id)
+                    .filterNot { saved.stillFits(it.occurrence, it.postponedTo) }
+                    .forEach { database.rulePostponementDao().delete(rule.id, it.occurrence) }
+            }
         }
 
         override suspend fun setActive(

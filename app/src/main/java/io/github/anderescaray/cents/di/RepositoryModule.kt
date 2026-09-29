@@ -8,6 +8,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomBackupRepository
 import io.github.anderescaray.cents.data.repository.RoomBudgetRepository
+import io.github.anderescaray.cents.data.repository.RoomCaptureRecorder
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomGroupRepository
 import io.github.anderescaray.cents.data.repository.RoomRecurringRuleRepository
@@ -22,6 +23,7 @@ import io.github.anderescaray.cents.data.repository.reports.RoomSpendingByWeekda
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.BackupRepository
 import io.github.anderescaray.cents.domain.repository.BudgetRepository
+import io.github.anderescaray.cents.domain.repository.CaptureRecorder
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.GroupRepository
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
@@ -49,6 +51,9 @@ import javax.inject.Singleton
 abstract class RepositoryModule {
     @Binds
     abstract fun bindAccountRepository(impl: RoomAccountRepository): AccountRepository
+
+    @Binds
+    abstract fun bindCaptureRecorder(impl: RoomCaptureRecorder): CaptureRecorder
 
     @Binds
     abstract fun bindCategoryRepository(impl: RoomCategoryRepository): CategoryRepository

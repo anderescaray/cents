@@ -1827,8 +1827,11 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
 - [x] **Groups** (PRD §4.9, D27, outside the phase order): **#86**, Room v8 and the repository;
       **#87**, the screens.
 - [x] **`feat/uncategorized-inbox`**: **#90**. The *To categorize* row and the inbox screen.
-- [ ] **Notification capture** (PRD §4.6, experimental): payments read from notifications, landing
-      in the inbox. Not started; it waits for the owner to ask.
+- [ ] **`feat/notification-capture`** (PRD §4.6, experimental): payments read from the
+      notifications of the apps the owner picks, landing in the inbox. **Asked for on
+      2026-09-29, and D29 records how it behaves**: editable expense and income words decide the
+      kind, the amount comes from the text, each app is tied to one account, a match is saved at
+      once without a category, and two of the same in the same minute count once. Not started.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.

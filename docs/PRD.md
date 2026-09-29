@@ -214,6 +214,11 @@ itself. It leaves me only what a notification cannot know: what the money was fo
 - **Money out and money in.** A card payment becomes an expense, and a transfer or a Bizum that
   arrives becomes an income. The amount, the date and the time come from the notification, and
   the merchant or the sender becomes the note.
+- **Words decide which.** *Added 2026-09-29 (D29).* Each notification is read for a list of
+  expense words and a list of income words. A match decides the kind, and the amount is the one
+  in the notification. Both lists come with defaults and can be edited in Settings. A
+  notification with neither kind of word, or with no amount, is ignored and nothing from it is
+  kept.
 - **It waits in *To categorize*,** the inbox, with no category, marked as captured and by which
   app. Until it is filed it is still a real movement. It counts in its account's balance and
   shows as *Uncategorized* in reports, like anything else saved without a category.
@@ -223,7 +228,8 @@ itself. It leaves me only what a notification cannot know: what the money was fo
   optional. The app does not pick either one for me.
 - **Nothing is counted twice.** Android reposts and updates notifications, and a payment made with
   the phone can be announced by both Wallet and the bank. One payment is one movement, however
-  many times it is notified. A charge that a subscription already records (§4.4), like the rent
+  many times it is notified. The first rule, set by the owner on 2026-09-29: **two notifications with
+  the same amount and kind in the same minute are one movement**, whichever chosen app sent them. A charge that a subscription already records (§4.4), like the rent
   or Netflix, is the same money too. A captured movement that matches a rule's occurrence (same
   account, same amount, within a few days) is offered as that occurrence rather than added as a
   new movement.

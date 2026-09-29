@@ -148,7 +148,7 @@ class CaptureRecorderTest {
     @Test
     fun `an amount in another currency, or an account that is gone, keeps nothing`() =
         runTest {
-            val dollars = recorder().record(BANK_APP, "Payment of $12.00", AT_10)
+            val dollars = recorder().record(BANK_APP, "Payment of USD 12.00", AT_10)
             database.accountDao().setArchived(cardAccount, archived = true)
             val archived = recorder().record(WALLET_APP, "Pago de 9,99 €", AT_10)
 

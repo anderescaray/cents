@@ -29,6 +29,55 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
+### D29 · How capture from notifications behaves (asked and answered 2026-09-29, not built yet)
+
+**The owner described the feature on 2026-09-29, and answered the three questions it raised the
+same day.** It is PRD §4.6, and the next branch that builds code is `feat/notification-capture`.
+Change any line and that branch changes with it.
+
+What the owner said, in their words turned into rules:
+
+- **Only the apps I pick.** Settings lists the apps on the phone; capture reads the ones chosen
+  and nothing else. *(The owner's answer.)*
+- **Words decide expense or income.** Each app's notification is read for a list of **expense
+  words** and a list of **income words**. A match makes it an expense or an income, and **the
+  amount is the one in the notification**. *(The owner's answer.)*
+- **The words have defaults and can be edited in Settings**, added to, removed, and put back to
+  the defaults. *(The owner's answer.)*
+- **Two of the same in the same minute count once.** Two notifications with the same amount and
+  the same kind in the same minute are one movement. *(The owner's answer.)*
+- **A captured movement is saved at once, without a category**, and waits under *To categorize*.
+  It counts in balances and reports like any movement saved without one. *(Answered 2026-09-29.)*
+- **Each app is tied to one account**, chosen when the app is switched on. *(Answered 2026-09-29.)*
+- **A notification with no expense or income word, or no amount, is ignored**, and nothing
+  from it is kept. So a bank's advert or security notice never becomes a movement.
+  *(Answered 2026-09-29.)*
+
+What the owner did not say, each with the default the branch will build:
+
+- **The default words.** Expense: *pago, compra, cargo, has pagado, retirada, domiciliación,
+  payment, purchase, paid, spent*. Income: *ingreso, recibido, has recibido, abono, te han
+  enviado, nómina, received, deposit*. Matched ignoring case and accents, as whole words or
+  phrases. *Default: these lists.*
+- **When a notification has both kinds of word,** the income word wins. *"Has recibido un pago
+  de Ana"* holds *pago*, and messages about money arriving often mention a payment, while
+  messages about money leaving rarely say *received*. *Default: income wins.*
+- **The amount** is the first amount in the text written with a currency sign or code, or with
+  two decimals (*23,40 €*, *€23.40*, *EUR 23,40*). An amount in a currency other than the
+  account's is ignored, because there is no conversion (D2). *Default: as written.*
+- **Same minute across apps, too.** The same payment announced by Wallet and by the bank in the
+  same minute is one movement. *Default: the same-minute rule applies across every chosen app.*
+- **The note** is the notification's own text, trimmed, so the merchant or sender is in it.
+  Parsing the merchant out is left for later. *Default: the whole text.*
+- **The date and time** are when the notification arrived. *Default: as written.*
+- **A charge a subscription already records** (PRD §4.6, last point) is not matched in the
+  first version. If the rent is both a rule and notified, it is recorded twice, and the extra
+  one is deleted by hand. *Default: matching comes in a later branch.*
+- **Where it lives.** Settings › Capture: the switch, the chosen apps with their accounts, and
+  the two word lists. *Default: as written.*
+
+**Answer:**
+
 ### D28 · How postponing behaves (asked 2026-09-25, built on the defaults)
 
 **Built on 2026-09-25, as #97, on every default below.** Change any line and the next session

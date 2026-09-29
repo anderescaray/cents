@@ -82,13 +82,25 @@ fun RecurringRule.canPostpone(
     occurrence: LocalDate,
     to: LocalDate,
     today: LocalDate,
+): Boolean = active && to > today && stillFits(occurrence, to)
+
+/**
+ * Whether moving [occurrence] to [to] still makes sense for the rule as it is now: one of its
+ * days, not yet written, moved forward, and short of the next one.
+ *
+ * What [canPostpone] asks when a move is made, less the two things only true at that moment.
+ * It is also what a move is checked against when the rule is **edited**: a new frequency or start
+ * date can leave a move pointing at a day the rule no longer has, or past its new next
+ * occurrence, and a move like that is dropped rather than obeyed.
+ */
+fun RecurringRule.stillFits(
+    occurrence: LocalDate,
+    to: LocalDate,
 ): Boolean {
     val following = nextOccurrenceAfter(occurrence)
-    return active &&
-        occursOn(occurrence) &&
+    return occursOn(occurrence) &&
         (lastGenerated == null || occurrence > lastGenerated) &&
         to > occurrence &&
-        to > today &&
         (following == null || to < following)
 }
 

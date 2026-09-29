@@ -156,6 +156,51 @@ class PostponeTest {
         }
 
     @Test
+    fun `an edit that leaves a move past the new next occurrence drops it`() =
+        runTest {
+            val id = rules(on = "2026-09-25").createRule(rent())
+            rules(on = "2026-09-25").generateDue()
+            assertTrue(rules(on = "2026-09-25").postpone(id, OCT_1, OCT_14))
+
+            // Weekly from Thursday 3 September: 1 October is still one of its days, but the next
+            // one is the 8th, and a move to the 14th would overtake it.
+            val saved = requireNotNull(rules(on = "2026-09-25").findById(id))
+            rules(on = "2026-09-25").updateRule(saved.copy(frequency = Frequency.WEEKLY, startDate = SEP_3))
+
+            assertTrue(database.rulePostponementDao().all().isEmpty())
+        }
+
+    @Test
+    fun `an edit that moves the rule off the moved day drops the move`() =
+        runTest {
+            val id = rules(on = "2026-09-25").createRule(rent())
+            rules(on = "2026-09-25").generateDue()
+            assertTrue(rules(on = "2026-09-25").postpone(id, OCT_1, OCT_4))
+
+            // Monthly on the 2nd from now on: 1 October is no longer one of its days.
+            val saved = requireNotNull(rules(on = "2026-09-25").findById(id))
+            rules(on = "2026-09-25").updateRule(saved.copy(startDate = LocalDate.of(2026, 9, 2)))
+
+            assertTrue(database.rulePostponementDao().all().isEmpty())
+        }
+
+    @Test
+    fun `an edit that still fits the move keeps it`() =
+        runTest {
+            val id = rules(on = "2026-09-25").createRule(rent())
+            rules(on = "2026-09-25").generateDue()
+            assertTrue(rules(on = "2026-09-25").postpone(id, OCT_1, OCT_4))
+
+            val saved = requireNotNull(rules(on = "2026-09-25").findById(id))
+            rules(on = "2026-09-25").updateRule(saved.copy(name = "Flat", amount = Money(80_000, "EUR")))
+
+            assertEquals(
+                listOf(OCT_1 to OCT_4),
+                database.rulePostponementDao().all().map { it.occurrence to it.postponedTo },
+            )
+        }
+
+    @Test
     fun `the choices stop short of the next occurrence`() {
         val weekly = rent().copy(frequency = Frequency.WEEKLY, startDate = OCT_1)
 
@@ -201,8 +246,10 @@ class PostponeTest {
 
     private companion object {
         val SEP_1: LocalDate = LocalDate.of(2026, 9, 1)
+        val SEP_3: LocalDate = LocalDate.of(2026, 9, 3)
         val SEP_28: LocalDate = LocalDate.of(2026, 9, 28)
         val OCT_1: LocalDate = LocalDate.of(2026, 10, 1)
         val OCT_4: LocalDate = LocalDate.of(2026, 10, 4)
+        val OCT_14: LocalDate = LocalDate.of(2026, 10, 14)
     }
 }

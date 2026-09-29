@@ -45,7 +45,8 @@ What the owner said, in their words turned into rules:
 - **The words have defaults and can be edited in Settings**, added to, removed, and put back to
   the defaults. *(The owner's answer.)*
 - **Two of the same in the same minute count once.** Two notifications with the same amount and
-  the same kind in the same minute are one movement. *(The owner's answer.)*
+  the same kind in the same minute are one movement. *(The owner's answer.)* Built as "within a
+  minute of each other", so 10:00:59 and 10:01:02 are one payment rather than two clock minutes.
 - **A captured movement is saved at once, without a category**, and waits under *To categorize*.
   It counts in balances and reports like any movement saved without one. *(Answered 2026-09-29.)*
 - **Each app is tied to one account**, chosen when the app is switched on. *(Answered 2026-09-29.)*

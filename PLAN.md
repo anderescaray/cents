@@ -1831,7 +1831,18 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
       notifications of the apps the owner picks, landing in the inbox. **Asked for on
       2026-09-29, and D29 records how it behaves**: editable expense and income words decide the
       kind, the amount comes from the text, each app is tied to one account, a match is saved at
-      once without a category, and two of the same in the same minute count once. Not started.
+      once without a category, and two of the same in the same minute count once. Three parts:
+      - [ ] **Part 1, the logic** (2026-09-29): `CaptureParser` (words and amount, pure Kotlin,
+            its tests run locally with kotlinc too), `RoomCaptureRecorder` (every check D29 lists,
+            then an uncategorized movement; "the same minute" is remembered in memory and only
+            for captured notifications, so a restored, typed or subscription movement of the same
+            amount never swallows a real payment), and the settings in
+            **DataStore rather than Room**. They are settings, not the ledger, so there is no
+            schema change, and a restore that replaces the ledger leaves them alone.
+      - [ ] **Part 2, the listener**: a `NotificationListenerService` that hands every
+            notification's text to the recorder. Only a phone can check it.
+      - [ ] **Part 3, Settings › Capture**: the switch and *Notification access*, the apps with
+            their accounts, and the two word lists with *Restore defaults*.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -1942,6 +1953,12 @@ parallelism.
   Fixed on 2026-09-29. Saving an edited rule now drops, in the same transaction, any move whose
   occurrence is no longer one of the rule's days or whose new day would overtake the next
   occurrence. `stillFits` is the check, and `canPostpone` is built on it.
+- **A capture app is tied to an account by its id, and a restore keeps ids.** Restoring a
+  backup in which that id is a different account would send captured movements there. It needs
+  an old backup and an account deleted and recreated since, so it is written down rather than
+  guarded. Settings › Capture (part 3) shows each app's account by name, which is where it would
+  be seen. A duplicate that arrives across a restart of the app is the one the same-minute memory
+  can miss, because that memory is kept in the process.
 - **No conversion, and that is now the answer rather than the gap.** D12 was answered on
   2026-09-09: **everything stays in euros**, a dollar instrument is entered at what it is worth,
   and there is no currency picker on the holding form. The `currency` column stays on the row —

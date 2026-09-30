@@ -8,6 +8,7 @@ import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.capture.InstalledApp
 import io.github.anderescaray.cents.ui.capture.InstalledApps
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,10 +16,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.Normalizer
 import java.util.Locale
 import javax.inject.Inject
 
@@ -48,21 +49,28 @@ class CaptureAppsViewModel
     ) : ViewModel() {
         private val form = MutableStateFlow(Form())
 
+        /**
+         * The phone's apps, each with its name folded once for searching. Asked of the package
+         * manager once per screen, not on every return to it, and not re-folded on every key.
+         */
+        private val installedApps =
+            flow { emit(installed.launchable().map { Searchable(it, CaptureParser.fold(it.label)) }) }
+                .shareIn(viewModelScope, SharingStarted.Lazily, replay = 1)
+
         val uiState: StateFlow<CaptureAppsUiState> =
             combine(
-                flow { emit(installed.launchable()) },
+                installedApps,
                 settings.observe(),
                 accounts.observeAccounts(),
                 form,
             ) { apps, setup, active, current ->
                 val chosen = setup.sources.map { it.packageName }.toSet()
-                val needle = fold(current.query.trim())
+                val needle = CaptureParser.fold(current.query.trim())
                 CaptureAppsUiState(
                     apps =
-                        apps.filter { app ->
-                            app.packageName !in chosen &&
-                                (needle.isEmpty() || needle in fold(app.label) || needle in app.packageName)
-                        },
+                        apps
+                            .filter { it.app.packageName !in chosen && it.matches(needle) }
+                            .map { it.app },
                     query = current.query,
                     accounts = active,
                     choosing = current.choosing,
@@ -103,15 +111,16 @@ class CaptureAppsViewModel
             val finished: Boolean = false,
         )
 
+        /** *Banco* finds *BANCO* and *Bancó*: an app's name is typed as it is remembered. */
+        private class Searchable(
+            val app: InstalledApp,
+            val foldedLabel: String,
+        ) {
+            fun matches(needle: String): Boolean =
+                needle.isEmpty() || needle in foldedLabel || needle in app.packageName.lowercase(Locale.ROOT)
+        }
+
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
-            private val MARKS = Regex("\\p{Mn}+")
-
-            /** *Banco* finds *BANCO* and *Bancó*: an app's name is typed as it is remembered. */
-            fun fold(text: String): String =
-                Normalizer
-                    .normalize(text, Normalizer.Form.NFD)
-                    .replace(MARKS, "")
-                    .lowercase(Locale.ROOT)
         }
     }

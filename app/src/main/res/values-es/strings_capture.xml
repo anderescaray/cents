@@ -42,4 +42,7 @@
     <string name="capture_words_remove_expense">Una notificación con ella ya no cuenta como gasto.</string>
     <string name="capture_words_remove_income">Una notificación con ella ya no cuenta como ingreso.</string>
     <string name="capture_words_remove_confirm">Quitar</string>
+    <string name="capture_stop_title">¿Dejar de leer %1$s?</string>
+    <string name="capture_stop_message">Sus pagos ya no se registran. Lo que ya registró se queda en la lista.</string>
+    <string name="capture_stop_confirm">Dejar de leer</string>
 </resources>

@@ -42,4 +42,7 @@
     <string name="capture_words_remove_expense">A notification with it no longer counts as an expense.</string>
     <string name="capture_words_remove_income">A notification with it no longer counts as an income.</string>
     <string name="capture_words_remove_confirm">Remove</string>
+    <string name="capture_stop_title">Stop reading %1$s?</string>
+    <string name="capture_stop_message">Its payments are no longer recorded. What it already recorded stays in the list.</string>
+    <string name="capture_stop_confirm">Stop reading</string>
 </resources>

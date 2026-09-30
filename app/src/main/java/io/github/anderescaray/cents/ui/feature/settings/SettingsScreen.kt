@@ -151,7 +151,9 @@ internal fun SettingsContent(
         }
         item { DisclosureSection(R.string.settings_budgets, R.string.settings_budgets_footer, onOpenBudgets) }
         item { DisclosureSection(R.string.settings_groups, R.string.settings_groups_footer, onOpenGroups) }
-        item { DisclosureSection(R.string.settings_capture, R.string.settings_capture_footer, onOpenCapture) }
+        item(
+            key = "capture",
+        ) { DisclosureSection(R.string.settings_capture, R.string.settings_capture_footer, onOpenCapture) }
         item { ResetHomeLayoutSection(onReset = onResetHomeLayout) }
         item { SecuritySection(lock = lock, onLockChanged = onLockChanged) }
         item(key = "data") {

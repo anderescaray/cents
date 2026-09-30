@@ -9,16 +9,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.navigation.Destination
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.Normalizer
-import java.util.Locale
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @Immutable
@@ -37,9 +39,12 @@ data class CaptureWordsUiState(
 
     val canAdd: Boolean get() = draft.isNotBlank() && !draftIsDuplicate
 
-    /** The list is D29's own, so putting the defaults back would change nothing. */
+    /**
+     * The list is D29's own, so putting the defaults back would change nothing. Compared as sets:
+     * storage hands an edited list back sorted, and the same words in another order are the same.
+     */
     val isDefault: Boolean
-        get() = words == defaultsFor(kind)
+        get() = words.toSet() == defaultsFor(kind).toSet()
 }
 
 /**
@@ -55,6 +60,7 @@ class CaptureWordsViewModel
     ) : ViewModel() {
         private val kind = savedStateHandle.toRoute<Destination.CaptureWords>().kind
         private val form = MutableStateFlow(Form())
+        private val editing = Mutex()
 
         val uiState: StateFlow<CaptureWordsUiState> =
             combine(settings.observe(), form) { setup, current ->
@@ -81,7 +87,7 @@ class CaptureWordsViewModel
             if (state.isLoading || !state.canAdd) return
             val word = state.draft.trim()
             form.update { it.copy(draft = "") }
-            viewModelScope.launch { settings.setWords(kind, state.words + word) }
+            edit { words -> if (words.any { sameWord(it, word) }) words else words + word }
         }
 
         fun requestRemove(word: String) {
@@ -94,9 +100,8 @@ class CaptureWordsViewModel
 
         fun confirmRemove() {
             val word = form.value.removing ?: return
-            val words = uiState.value.words
             form.update { it.copy(removing = null) }
-            viewModelScope.launch { settings.setWords(kind, words - word) }
+            edit { words -> words - word }
         }
 
         fun requestReset() {
@@ -109,7 +114,22 @@ class CaptureWordsViewModel
 
         fun confirmReset() {
             form.update { it.copy(confirmingReset = false) }
-            viewModelScope.launch { settings.resetWords(kind) }
+            viewModelScope.launch { editing.withLock { settings.resetWords(kind) } }
+        }
+
+        /**
+         * Changes the stored list rather than the one on screen, one edit at a time. Two taps in
+         * quick succession would otherwise each start from the list before the other, and the
+         * second write would quietly undo the first.
+         */
+        private fun edit(change: (List<String>) -> List<String>) {
+            viewModelScope.launch {
+                editing.withLock {
+                    val setup = settings.observe().first()
+                    val words = if (kind == TransactionKind.EXPENSE) setup.expenseWords else setup.incomeWords
+                    settings.setWords(kind, change(words))
+                }
+            }
         }
 
         private data class Form(
@@ -129,18 +149,8 @@ private fun defaultsFor(kind: TransactionKind): List<String> =
         TransactionKind.INCOME -> CaptureSettings.DEFAULT_INCOME_WORDS
     }
 
-private val MARKS = Regex("\\p{Mn}+")
-private val SPACES = Regex("\\s+")
-
 /** The comparison `CaptureParser` makes: *Nómina* and *nomina* are one word to it, so one here. */
 private fun sameWord(
     a: String,
     b: String,
-): Boolean = foldWord(a) == foldWord(b)
-
-private fun foldWord(word: String): String =
-    Normalizer
-        .normalize(word.trim(), Normalizer.Form.NFD)
-        .replace(MARKS, "")
-        .lowercase(Locale.ROOT)
-        .replace(SPACES, " ")
+): Boolean = CaptureParser.fold(a).trim() == CaptureParser.fold(b).trim()

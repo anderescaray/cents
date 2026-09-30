@@ -112,12 +112,23 @@ class CaptureViewModelsTest {
             assertEquals(listOf(CaptureSource(BANK_APP, "My bank", card)), settings.state.value.sources)
             assertNull(viewModel.uiState.value.editing)
 
+            // Stopping asks first, and cancelling keeps the app.
             viewModel.edit(BANK_APP)
-            viewModel.remove()
-            assertTrue(
-                settings.state.value.sources
-                    .isEmpty(),
+            viewModel.requestStop()
+            assertNull(viewModel.uiState.value.editing)
+            assertEquals(
+                BANK_APP,
+                viewModel.uiState.value.stopping
+                    ?.source
+                    ?.packageName,
             )
+            viewModel.cancelStop()
+            assertEquals(1, settings.state.value.sources.size)
+
+            viewModel.edit(BANK_APP)
+            viewModel.requestStop()
+            viewModel.confirmStop()
+            assertEquals(0, settings.state.value.sources.size)
         }
 
     @Test
@@ -152,11 +163,11 @@ class CaptureViewModelsTest {
             assertEquals(listOf("Banco Santé", "Games"), all.apps.map { it.label })
 
             picker.setQuery("SANTE")
-            assertEquals(
-                listOf("Banco Santé"),
-                picker.uiState.value.apps
-                    .map { it.label },
-            )
+            assertEquals(listOf("Banco Santé"), picker.labels())
+
+            // A package name is searched too, whatever its case.
+            picker.setQuery("Example.GAMES")
+            assertEquals(listOf("Games"), picker.labels())
         }
 
     @Test
@@ -211,6 +222,12 @@ class CaptureViewModelsTest {
             assertFalse("pago" in settings.state.value.expenseWords)
             assertFalse(words.uiState.value.isDefault)
 
+            // The same words back, in another order, are the defaults: nothing left to restore.
+            settings.state.value = settings.state.value.copy(expenseWords = DEFAULT_EXPENSE_SORTED)
+            assertTrue(words.uiState.first { "pago" in it.words }.isDefault)
+
+            words.requestRemove("pago")
+            words.confirmRemove()
             words.requestReset()
             words.confirmReset()
             assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, settings.state.value.expenseWords)
@@ -226,12 +243,14 @@ class CaptureViewModelsTest {
                 installed = {
                     listOf(
                         InstalledApp(BANK_APP, "Banco Santé"),
-                        InstalledApp("com.example.games", "Games"),
+                        InstalledApp("com.Example.games", "Games"),
                         InstalledApp(WALLET_APP, "Wallet"),
                     )
                 },
             ),
         )
+
+    private fun CaptureAppsViewModel.labels() = uiState.value.apps.map { it.label }
 
     private fun words(kind: TransactionKind) =
         viewModels.keep(CaptureWordsViewModel(settings, SavedStateHandle(mapOf("kind" to kind))))
@@ -279,5 +298,6 @@ class CaptureViewModelsTest {
     private companion object {
         const val BANK_APP = "es.example.bank"
         const val WALLET_APP = "com.google.android.apps.walletnfcrel"
+        val DEFAULT_EXPENSE_SORTED = CaptureSettings.DEFAULT_EXPENSE_WORDS.sorted()
     }
 }

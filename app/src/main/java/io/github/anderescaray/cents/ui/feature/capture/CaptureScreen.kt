@@ -6,8 +6,10 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -21,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsActionSheet
+import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -29,6 +32,8 @@ import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.CentsSwitch
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Settings › Capture (PRD §4.6, `DECISIONS.md` D29).
@@ -47,11 +52,16 @@ fun CaptureScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var resumed by remember { mutableIntStateOf(0) }
-    val accessGranted = remember(resumed) { listenerAllowed(context) }
+    // Unknown until asked: a settings read, so off the main thread (rule 4), and neither answer
+    // is shown before it is known.
+    var accessGranted by remember { mutableStateOf<Boolean?>(null) }
 
     LifecycleResumeEffect(Unit) {
         resumed += 1
         onPauseOrDispose {}
+    }
+    LaunchedEffect(resumed) {
+        accessGranted = withContext(Dispatchers.IO) { listenerAllowed(context) }
     }
 
     CaptureContent(
@@ -66,7 +76,9 @@ fun CaptureScreen(
                 onAddApp = onAddApp,
                 onOpenWords = onOpenWords,
                 onMoveTo = viewModel::moveTo,
-                onRemove = viewModel::remove,
+                onStop = viewModel::requestStop,
+                onConfirmStop = viewModel::confirmStop,
+                onCancelStop = viewModel::cancelStop,
                 onCloseEditor = viewModel::closeEditor,
             ),
     )
@@ -81,7 +93,9 @@ internal data class CaptureActions(
     val onAddApp: () -> Unit = {},
     val onOpenWords: (TransactionKind) -> Unit = {},
     val onMoveTo: (Long) -> Unit = {},
-    val onRemove: () -> Unit = {},
+    val onStop: () -> Unit = {},
+    val onConfirmStop: () -> Unit = {},
+    val onCancelStop: () -> Unit = {},
     val onCloseEditor: () -> Unit = {},
 )
 
@@ -89,7 +103,8 @@ internal data class CaptureActions(
 @Composable
 internal fun CaptureContent(
     state: CaptureUiState,
-    accessGranted: Boolean,
+    /** Null until the phone has been asked. */
+    accessGranted: Boolean?,
     actions: CaptureActions,
 ) {
     CentsLargeTitleScaffold(
@@ -105,6 +120,17 @@ internal fun CaptureContent(
     }
 
     state.editing?.let { editing -> EditAppSheet(editing, state, actions) }
+    state.stopping?.let { stopping ->
+        CentsAlert(
+            title = stringResource(R.string.capture_stop_title, stopping.source.label),
+            message = stringResource(R.string.capture_stop_message),
+            confirmLabel = stringResource(R.string.capture_stop_confirm),
+            onConfirm = actions.onConfirmStop,
+            dismissLabel = stringResource(R.string.action_cancel),
+            onDismiss = actions.onCancelStop,
+            destructive = true,
+        )
+    }
 }
 
 private fun LazyListScope.switchSection(
@@ -129,20 +155,27 @@ private fun LazyListScope.switchSection(
  * the setting that records a preference nothing acts on, and the footer says which it is.
  */
 private fun LazyListScope.accessSection(
-    accessGranted: Boolean,
+    accessGranted: Boolean?,
     actions: CaptureActions,
 ) {
     item(key = "access") {
         CentsListSection(
             footer =
-                stringResource(
-                    if (accessGranted) R.string.capture_access_on_footer else R.string.capture_access_off_footer,
-                ),
+                when (accessGranted) {
+                    true -> stringResource(R.string.capture_access_on_footer)
+                    false -> stringResource(R.string.capture_access_off_footer)
+                    null -> null
+                },
         ) {
             CentsListRow(
                 title = stringResource(R.string.capture_access),
-                value = stringResource(if (accessGranted) R.string.capture_access_on else R.string.capture_access_off),
-                valueColor = if (accessGranted) null else CentsTheme.colors.destructive,
+                value =
+                    when (accessGranted) {
+                        true -> stringResource(R.string.capture_access_on)
+                        false -> stringResource(R.string.capture_access_off)
+                        null -> null
+                    },
+                valueColor = if (accessGranted == false) CentsTheme.colors.destructive else null,
                 showChevron = true,
                 showSeparator = false,
                 onClick = actions.onOpenAccess,
@@ -209,12 +242,7 @@ private fun LazyListScope.wordsSection(
     }
 }
 
-/**
- * One chosen app: another account for it, or stop reading it.
- *
- * Stopping needs no confirmation of its own: it deletes nothing, since what the app already
- * recorded stays in the list, and choosing the app again is two taps away.
- */
+/** One chosen app: another account for it, or stop reading it (which asks first). */
 @Composable
 private fun EditAppSheet(
     editing: CaptureSourceRow,
@@ -226,7 +254,7 @@ private fun EditAppSheet(
         state.accounts.map { account ->
             CentsSheetAction(
                 label =
-                    if (account.id == current && editing.accountName != null) {
+                    if (account.id == current) {
                         stringResource(R.string.capture_account_current, account.name)
                     } else {
                         account.name
@@ -241,7 +269,7 @@ private fun EditAppSheet(
             accounts +
                 CentsSheetAction(
                     label = stringResource(R.string.capture_stop_reading),
-                    onClick = actions.onRemove,
+                    onClick = actions.onStop,
                     destructive = true,
                 ),
         cancelLabel = stringResource(R.string.action_cancel),

@@ -39,6 +39,8 @@ data class CaptureUiState(
     val incomeWordCount: Int = 0,
     /** The app whose account is being changed, while that sheet is open. */
     val editing: CaptureSourceRow? = null,
+    /** The app waiting on "stop reading it?", while that alert is open. */
+    val stopping: CaptureSourceRow? = null,
     val isLoading: Boolean = true,
 ) {
     /** An app needs an account to write to, so with none there is nothing to choose one for. */
@@ -60,9 +62,15 @@ class CaptureViewModel
         accounts: AccountRepository,
     ) : ViewModel() {
         private val editingPackage = MutableStateFlow<String?>(null)
+        private val stoppingPackage = MutableStateFlow<String?>(null)
 
         val uiState: StateFlow<CaptureUiState> =
-            combine(settings.observe(), accounts.observeAccounts(), editingPackage) { setup, active, editing ->
+            combine(
+                settings.observe(),
+                accounts.observeAccounts(),
+                editingPackage,
+                stoppingPackage,
+            ) { setup, active, editing, stopping ->
                 val names = active.associate { it.id to it.name }
                 val rows = setup.sources.map { CaptureSourceRow(it, names[it.accountId]) }
                 CaptureUiState(
@@ -72,6 +80,7 @@ class CaptureViewModel
                     expenseWordCount = setup.expenseWords.size,
                     incomeWordCount = setup.incomeWords.size,
                     editing = rows.firstOrNull { it.source.packageName == editing },
+                    stopping = rows.firstOrNull { it.source.packageName == stopping },
                     isLoading = false,
                 )
             }.stateIn(
@@ -99,11 +108,21 @@ class CaptureViewModel
             viewModelScope.launch { settings.putSource(source.copy(accountId = accountId)) }
         }
 
-        /** Stops reading the app being edited. What it already wrote stays in the list. */
-        fun remove() {
-            val source = uiState.value.editing?.source ?: return
+        /** Asks before the app being edited stops being read: the sheet closes, the alert opens. */
+        fun requestStop() {
+            stoppingPackage.value = editingPackage.value ?: return
             editingPackage.value = null
-            viewModelScope.launch { settings.removeSource(source.packageName) }
+        }
+
+        fun cancelStop() {
+            stoppingPackage.value = null
+        }
+
+        /** Stops reading the app. What it already recorded stays in the list. */
+        fun confirmStop() {
+            val packageName = stoppingPackage.value ?: return
+            stoppingPackage.value = null
+            viewModelScope.launch { settings.removeSource(packageName) }
         }
 
         private companion object {

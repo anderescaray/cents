@@ -191,6 +191,20 @@ sealed interface Destination {
         }
     }
 
+    /** Capture from notifications (PRD §4.6, `DECISIONS.md` D29): the switch, the apps and the words. */
+    @Serializable
+    data object Capture : Destination
+
+    /** Choosing one more app for capture to read, and the account it writes to. */
+    @Serializable
+    data object CaptureApps : Destination
+
+    /** The words that make a notification a [kind] of movement. */
+    @Serializable
+    data class CaptureWords(
+        val kind: TransactionKind,
+    ) : Destination
+
     /**
      * The bills waiting for a figure: every variable-amount rule that has fallen due.
      *
@@ -287,6 +301,9 @@ enum class TopLevelTab(
                 Destination.Groups::class,
                 Destination.GroupDetail::class,
                 Destination.GroupEdit::class,
+                Destination.Capture::class,
+                Destination.CaptureApps::class,
+                Destination.CaptureWords::class,
             ),
         labelRes = R.string.tab_settings,
         iconRes = R.drawable.ic_tab_settings,

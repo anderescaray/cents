@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_capture">Capture from notifications</string>
+    <string name="settings_capture_footer">Records the payments your bank\'s app announces, into the account you choose for it.</string>
+    <string name="capture_title">Capture</string>
+    <string name="capture_switch">Read payment notifications</string>
+    <string name="capture_switch_footer">Cents reads the notifications of the apps chosen below and records each payment or income without a category, waiting under To categorize. Nothing leaves the phone.</string>
+    <string name="capture_access">Notification access</string>
+    <string name="capture_access_on">Allowed</string>
+    <string name="capture_access_off">Not allowed</string>
+    <string name="capture_access_on_footer">Android lets Cents read notifications. It can be taken back from the same system screen.</string>
+    <string name="capture_access_off_footer">Android has to let Cents read notifications before anything is recorded. Turn Cents on in that list, then come back.</string>
+    <string name="capture_section_apps">Apps</string>
+    <string name="capture_apps_footer">Each app writes into one account. Tap an app to change its account or to stop reading it.</string>
+    <string name="capture_app_into">Into %1$s</string>
+    <string name="capture_app_no_account">Its account is gone, so nothing is recorded</string>
+    <string name="capture_add_app">Add an app</string>
+    <string name="capture_add_app_needs_account">Create an account first</string>
+    <string name="capture_section_words">Words</string>
+    <string name="capture_words_footer">A notification with an income word is an income, and one with an expense word is an expense. With neither, or with no amount, it is ignored. The same amount twice within a minute is recorded once.</string>
+    <string name="capture_expense_words">Expense words</string>
+    <string name="capture_income_words">Income words</string>
+    <string name="capture_edit_message">Where its payments go.</string>
+    <string name="capture_account_current">%1$s (current)</string>
+    <string name="capture_stop_reading">Stop reading this app</string>
+    <string name="capture_apps_title">Choose an app</string>
+    <string name="capture_apps_search">Search apps</string>
+    <string name="capture_apps_none">No app matches</string>
+    <string name="capture_apps_footer_picker">Only apps with an icon on the home screen are listed. Apps already chosen are not.</string>
+    <string name="capture_choose_account_message">Which account do its payments go into?</string>
+    <string name="capture_words_add_placeholder">A word or a phrase</string>
+    <string name="capture_words_add">Add</string>
+    <string name="capture_words_duplicate">Already in the list</string>
+    <string name="capture_words_list_footer">Tap a word to remove it. Case and accents do not matter, and only whole words match: “cargo” does not match “encargo”.</string>
+    <string name="capture_words_empty_expense">No words, so nothing is recorded as an expense.</string>
+    <string name="capture_words_empty_income">No words, so nothing is recorded as an income.</string>
+    <string name="capture_words_reset">Restore the default words</string>
+    <string name="capture_words_reset_title">Restore the default words?</string>
+    <string name="capture_words_reset_message">This list is replaced by the one Cents came with. Words you added are dropped.</string>
+    <string name="capture_words_reset_confirm">Restore</string>
+    <string name="capture_words_remove_title">Remove “%1$s”?</string>
+    <string name="capture_words_remove_expense">A notification with it no longer counts as an expense.</string>
+    <string name="capture_words_remove_income">A notification with it no longer counts as an income.</string>
+    <string name="capture_words_remove_confirm">Remove</string>
+</resources>

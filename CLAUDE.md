@@ -314,6 +314,10 @@ and no budget: the trip's dinner is still a restaurant expense in its own month.
 **And what was saved in a hurry gets sorted later** (#90): a movement saved without a category
 waits under **To categorize** on the movement list, and one tap on a category chip files it —
 the inbox PRD §4.6 asks for before any notification capture feeds it.
+**And it can fill itself** (#105, #106, and Settings › Capture): the notifications of the apps
+the owner chooses are read, the owner's editable words decide expense or income, the amount is
+the one in the text, and each match lands uncategorized in the app's account, the same payment
+within a minute once (D29). Nothing is read until the owner grants *Notification access*.
 **And a charge or a salary can wait a few days** (#97, **Room v9**, D28): a rule's next
 occurrence, or a variable bill or salary already waiting, is moved 1–14 days, never as far as the
 next one, recorded on the new day and announced that morning, while the rule's own schedule stays

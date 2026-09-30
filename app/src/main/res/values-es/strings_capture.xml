@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_capture">Captura desde notificaciones</string>
+    <string name="settings_capture_footer">Registra los pagos que anuncia la app de tu banco, en la cuenta que elijas para ella.</string>
+    <string name="capture_title">Captura</string>
+    <string name="capture_switch">Leer notificaciones de pagos</string>
+    <string name="capture_switch_footer">Cents lee las notificaciones de las apps elegidas abajo y registra cada pago o ingreso sin categoría, esperando en Por categorizar. Nada sale del móvil.</string>
+    <string name="capture_access">Acceso a notificaciones</string>
+    <string name="capture_access_on">Permitido</string>
+    <string name="capture_access_off">No permitido</string>
+    <string name="capture_access_on_footer">Android deja a Cents leer notificaciones. Se puede retirar desde la misma pantalla del sistema.</string>
+    <string name="capture_access_off_footer">Android tiene que dejar a Cents leer notificaciones antes de que se registre nada. Activa Cents en esa lista y vuelve.</string>
+    <string name="capture_section_apps">Apps</string>
+    <string name="capture_apps_footer">Cada app escribe en una cuenta. Toca una app para cambiar su cuenta o para dejar de leerla.</string>
+    <string name="capture_app_into">En %1$s</string>
+    <string name="capture_app_no_account">Su cuenta ya no existe, así que no se registra nada</string>
+    <string name="capture_add_app">Añadir una app</string>
+    <string name="capture_add_app_needs_account">Crea una cuenta primero</string>
+    <string name="capture_section_words">Palabras</string>
+    <string name="capture_words_footer">Una notificación con una palabra de ingreso es un ingreso, y una con una palabra de gasto es un gasto. Sin ninguna, o sin importe, se ignora. El mismo importe dos veces en un minuto se registra una vez.</string>
+    <string name="capture_expense_words">Palabras de gasto</string>
+    <string name="capture_income_words">Palabras de ingreso</string>
+    <string name="capture_edit_message">Dónde van sus pagos.</string>
+    <string name="capture_account_current">%1$s (actual)</string>
+    <string name="capture_stop_reading">Dejar de leer esta app</string>
+    <string name="capture_apps_title">Elige una app</string>
+    <string name="capture_apps_search">Buscar apps</string>
+    <string name="capture_apps_none">Ninguna app coincide</string>
+    <string name="capture_apps_footer_picker">Solo aparecen las apps con icono en la pantalla de inicio. Las ya elegidas no.</string>
+    <string name="capture_choose_account_message">¿En qué cuenta entran sus pagos?</string>
+    <string name="capture_words_add_placeholder">Una palabra o una frase</string>
+    <string name="capture_words_add">Añadir</string>
+    <string name="capture_words_duplicate">Ya está en la lista</string>
+    <string name="capture_words_list_footer">Toca una palabra para quitarla. Mayúsculas y tildes dan igual, y solo cuentan palabras enteras: «cargo» no coincide con «encargo».</string>
+    <string name="capture_words_empty_expense">Sin palabras, así que nada se registra como gasto.</string>
+    <string name="capture_words_empty_income">Sin palabras, así que nada se registra como ingreso.</string>
+    <string name="capture_words_reset">Restaurar las palabras por defecto</string>
+    <string name="capture_words_reset_title">¿Restaurar las palabras por defecto?</string>
+    <string name="capture_words_reset_message">Esta lista se sustituye por la que trae Cents. Las palabras que añadiste se pierden.</string>
+    <string name="capture_words_reset_confirm">Restaurar</string>
+    <string name="capture_words_remove_title">¿Quitar «%1$s»?</string>
+    <string name="capture_words_remove_expense">Una notificación con ella ya no cuenta como gasto.</string>
+    <string name="capture_words_remove_income">Una notificación con ella ya no cuenta como ingreso.</string>
+    <string name="capture_words_remove_confirm">Quitar</string>
+</resources>

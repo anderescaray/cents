@@ -33,6 +33,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Capture from notifications (PRD 4.6, D29). Android lists it under Notification access,
+          where only the owner can switch it on; until they do, it hears nothing. The permission
+          is the system's to hold, so no other app can bind to it.
+        -->
+        <service
+            android:name=".ui.capture.CaptureListenerService"
+            android:exported="true"
+            android:label="@string/capture_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

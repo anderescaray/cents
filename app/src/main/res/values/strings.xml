@@ -399,4 +399,5 @@
     <string name="reminder_on_the_day">On the day</string>
     <string name="reminder_duplicate">There is already a reminder for that day.</string>
     <string name="color_swatch">Colour %1$d of %2$d</string>
+    <string name="capture_listener_label">Cents: payments from notifications</string>
 </resources>

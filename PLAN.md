@@ -1832,15 +1832,28 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
       2026-09-29, and D29 records how it behaves**: editable expense and income words decide the
       kind, the amount comes from the text, each app is tied to one account, a match is saved at
       once without a category, and two of the same in the same minute count once. Three parts:
-      - [ ] **Part 1, the logic** (2026-09-29): `CaptureParser` (words and amount, pure Kotlin,
+      - [x] **Part 1, the logic** (2026-09-29, #105): `CaptureParser` (words and amount, pure Kotlin,
             its tests run locally with kotlinc too), `RoomCaptureRecorder` (every check D29 lists,
             then an uncategorized movement; "the same minute" is remembered in memory and only
             for captured notifications, so a restored, typed or subscription movement of the same
             amount never swallows a real payment), and the settings in
             **DataStore rather than Room**. They are settings, not the ledger, so there is no
             schema change, and a restore that replaces the ledger leaves them alone.
-      - [ ] **Part 2, the listener**: a `NotificationListenerService` that hands every
-            notification's text to the recorder. Only a phone can check it.
+      - [ ] **Part 2, the listener** (2026-09-29): `ui/capture/CaptureListenerService`, a
+            `NotificationListenerService` that hands the text of a chosen app's notification
+            to the recorder, off the main thread. **It reads nothing from an app nobody
+            chose**: it follows capture's switch and chosen apps from settings and asks
+            `CaptureText.worthReading` before looking at any text. It skips Cents' own
+            reminders, ongoing notifications and group summaries. It reads the expanded body,
+            or a bundled notification's lines, before the title, so a balance in the title is
+            never taken as the payment. A repost with the same key, time and text is dropped
+            (`SeenNotifications`), a dismissed key is forgotten, and it asks to be rebound if the
+            system lets go of it. It never logs a word of a notification. It is declared in the manifest, so
+            Android lists Cents under *Notification access*, but nothing reaches the ledger
+            until part 3 lets the owner switch capture on and choose an app. It was compiled
+            against Robolectric's Android classes and Hilt in the container; only a phone can
+            check that it hears anything. **On the owner's Honor, battery optimisation may
+            have to be turned off for Cents**, or the system can stop the listener.
       - [ ] **Part 3, Settings › Capture**: the switch and *Notification access*, the apps with
             their accounts, and the two word lists with *Restore defaults*.
 

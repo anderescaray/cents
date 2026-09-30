@@ -396,4 +396,5 @@
     <string name="reminder_on_the_day">El mismo día</string>
     <string name="reminder_duplicate">Ya hay un aviso para ese día.</string>
     <string name="color_swatch">Color %1$d de %2$d</string>
+    <string name="capture_listener_label">Cents: pagos desde notificaciones</string>
 </resources>

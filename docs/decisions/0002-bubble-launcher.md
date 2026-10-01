@@ -1,6 +1,8 @@
 # 0002 — The app opens on a canvas of bubbles, not on a tab
 
-- **Status:** accepted
+- **Status:** superseded on 2026-10-01 by [`0003-the-ring.md`](0003-the-ring.md). The canvas, its
+  stored layout and *Reset the bubble layout* were removed in `feat/ui-rework`; the app opens on
+  Home. What follows is kept as the record of what was built and why it was dropped.
 - **Date:** 2026-09-08
 - **Amends:** [`0001-ios-flavored-ui.md`](0001-ios-flavored-ui.md), whose table says the app
   navigates with a bottom tab bar

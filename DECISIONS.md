@@ -40,7 +40,8 @@ What the owner said, in their words turned into rules:
 - **Only the apps I pick.** Settings lists the apps on the phone; capture reads the ones chosen
   and nothing else. *(The owner's answer.)*
 - **Words decide expense or income.** Each app's notification is read for a list of **expense
-  words** and a list of **income words**. A match makes it an expense or an income, and **the
+  words** and a list of **income words**. **Amended 2026-10-01: the lists are per app** — each
+  chosen app has its own two, starting from the shared starting words until edited (D30). A match makes it an expense or an income, and **the
   amount is the one in the notification**. *(The owner's answer.)*
 - **The words have defaults and can be edited in Settings**, added to, removed, and put back to
   the defaults. *(The owner's answer.)*
@@ -188,6 +189,7 @@ choices that are genuinely the owner's, and things going the other way belong in
 
 | # | Question | Answer | Where it lives now |
 |---|---|---|---|
+| D30 | What replaces the bubbles, and how far does the rework go? | **Everything, after the film, and not iOS.** Home is for recording and filing (quick add, *To categorize*, the month with what was left or overspent as its headline); the capsule is Home · Movements · + · Reports · Wallet; budgets move to Reports; Reports' cards can be reordered and hidden; investments open from Wallet › Invested. **Capture's words are per app** (amends D29). Defaults taken without asking: Settings opens from Home's header; the bubble layout is deleted, not kept as an option; the ring is the launcher icon. | 2026-10-01 · `feat/ui-rework`, ADR 0003 (accepted, with amendments) |
 | — | Does the app propose a starting set of categories? | No. It ships with none; every category is one the owner typed. | PRD §4.1, `DefaultDataSeeder` |
 | — | Material or an iOS-flavoured UI? | iOS conventions, Material only as a base. | [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |
 | — | Who decides when the project goes multi-agent? | The owner, deliberately, when Phase 1 exits. | `PLAN.md` Part B §3, D5 below |

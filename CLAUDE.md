@@ -38,7 +38,7 @@ investment portfolio with prices pulled from the internet.
 | Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
 | Networking | OkHttp (**5.3.2**) + kotlinx.serialization | **Google Drive only**, since `feat/backup` (#69): multipart upload, list, download and delete against the Drive REST v3 surface, which is small enough that the Drive Java SDK and its Google HTTP client and Guava stack would be most of the app's size for four calls. Retrofit was planned for market data and never added: D25 closed that door. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
 | Drive authorization | `play-services-auth` (**22.0.0**) | The supported `AuthorizationClient`, for the single `drive.appdata` grant and a short-lived access token per operation. Nothing is stored and no client secret exists: an Android OAuth client is matched by package name and signing certificate (D22, rule 6) |
-| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the home canvas layout, the app lock and capture's settings (which apps, their accounts, the words; D29) |
+| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the app lock, capture's settings (which apps, their accounts, each app's words; D29) and the order of the Reports cards |
 | App lock | `androidx.biometric` (**1.1.0**, the stable line) | The `BiometricPrompt` PRD §4.7 names: a fingerprint or the device PIN, decided by the system, with the app never seeing a credential (rule 6). Pinned to stable rather than the 1.2.0 and 1.4.0 alphas; 1.1.0 is where `setAllowedAuthenticators` arrived, which is what lets the PIN stand in |
 | Background work | WorkManager (**2.11.0**) | **In use since `feat/subscription-reminders`**: one daily job that asks what reminders land today, and since #69 a second, the daily Drive backup, scheduled only while its switch is on. Nothing is scheduled per reminder — a queue of alarms would be a second copy of when the rent is, and the two would drift. Reached without `androidx.hilt:hilt-work`: a plain `CoroutineWorker` asks the Hilt graph through an `@EntryPoint`, which is two fewer artifacts and no `Configuration.Provider` (rule 11) |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
@@ -105,16 +105,15 @@ Retrofit. The `domain` layer imports nothing from Android.
     Never hardcode display text.
 11. **No new libraries without justification.** Every added dependency is recorded in the
     table in section 2.
-12. **The UI looks like iOS, not like Material.** Inset grouped lists, large collapsing
-    titles, a bottom tab bar, iOS-style switches and alerts, horizontal push/pop
-    transitions, the iOS system palette and the Inter typeface. The app opens on a canvas
-    of bubbles in front of that tab bar, which is the one deliberate departure —
-    [`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md)
-    amends the ADR below and is read with it. Material 3 is a base to
-    build on, never a look to ship: no screen is assembled from default Material widgets,
-    and there is no dynamic colour. The full specification, including what stays native
-    Android, is [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md)
-    — read it before writing any composable.
+12. **The UI is the film's: the ring, cards and chips — not iOS, not Material.** White cards
+    with a soft shadow on a pale canvas, one clear number each, the ring of category colours,
+    chips for one-tap choices, one filled button per sheet, a floating tab capsule with the add
+    button in the middle, round icon buttons, Inter. The app opens on **Home** (record, file,
+    the month). Material 3 is a base to build on, never a look to ship: no screen is assembled
+    from default Material widgets, and there is no dynamic colour. The specification is
+    [`docs/decisions/0003-the-ring.md`](docs/decisions/0003-the-ring.md), accepted 2026-10-01
+    with the amendments at its top — read it before writing any composable. ADR 0001 still
+    holds for what stays native Android; ADR 0002 (the bubbles) is superseded.
 
 ## 5. Performance (the "it must feel smooth" goal)
 
@@ -304,8 +303,10 @@ before the save.
 **And a month can have limits** (#80, #81, **Room v7**): Settings › Budgets gives an expense
 category a monthly limit, and measures it against what went out plus what its subscriptions will
 still take before the month ends, counted from day one as PRD §4.4 asks. Amber at 80 %, red above
-100 %, no notification (D26). **The bubbles are on notice**: the owner means to replace them, so no
-time goes into the canvas until they say what with.
+100 %, no notification (D26). **And the bubbles are gone** (`feat/ui-rework`, 2026-10-01, ADR
+0003): the app opens on Home — record a movement in a few taps, file what capture wrote, see the
+month — under a floating capsule of Home · Movements · **+** · Reports · Wallet. Budgets moved to
+Reports, whose cards the owner can reorder and hide.
 **And an occasion has a total** (#86, #87, **Room v8**, D27): Settings › Groups gathers movements
 from any category under one occasion — a trip, a move, a freelance job — and says what it
 **cost** or **earned** in words, with a ring of where it went and the way into its movements. A
@@ -324,7 +325,7 @@ next one, recorded on the new day and announced that morning, while the rule's o
 put. The same day brought the **accessibility pass** (#96): TalkBack roles and headings, 48 dp
 targets, and text that grows with the system font. It also stopped the *Income* and *Expenses*
 filters listing transfer legs (#95).
-873 tests run on the JVM, so CI covers the database and the UI without a device.
+919 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

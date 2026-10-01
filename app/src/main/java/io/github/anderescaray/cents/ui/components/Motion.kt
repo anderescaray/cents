@@ -6,14 +6,17 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.util.rememberReduceMotion
 
@@ -34,15 +37,22 @@ private const val PRESSED_SCALE = 0.97f
 /**
  * A card rising into place the first time a screen draws it, [index] places after the first.
  *
- * Only the first time: `remember` holds the animation, so scrolling a card back into view or a
- * recomposition does not replay it — motion explains a change (ADR 0003, rule 4), and coming
- * back to a card is not one. With animations off it is simply there.
+ * Once per screen, not once per composition: the flag is saved with the screen, so coming back
+ * to it from a form — or scrolling a card back into view — does not replay the entrance. Motion
+ * explains a change (ADR 0003, rule 4), and returning is not one. With animations off it is
+ * simply there.
+ *
+ * The fade multiplies each draw by the alpha rather than drawing into an offscreen layer: a layer
+ * is clipped to the card's bounds, and the card's soft shadow, which spills outside them, would
+ * show hard straight edges for as long as the fade ran.
  */
 @Composable
 fun Modifier.arrive(index: Int = 0): Modifier {
     if (rememberReduceMotion()) return this
-    val progress = remember { Animatable(0f) }
+    var arrived by rememberSaveable { mutableStateOf(false) }
+    val progress = remember { Animatable(if (arrived) 1f else 0f) }
     LaunchedEffect(Unit) {
+        if (arrived) return@LaunchedEffect
         progress.animateTo(
             1f,
             tween(
@@ -51,11 +61,14 @@ fun Modifier.arrive(index: Int = 0): Modifier {
                 easing = EaseOutExpo,
             ),
         )
+        arrived = true
     }
-    val value = progress.value
-    return this
-        .offset(y = ((1f - value) * ARRIVE_RISE_DP).dp)
-        .alpha(value)
+    return graphicsLayer {
+        val value = progress.value
+        alpha = value
+        translationY = (1f - value) * ARRIVE_RISE_DP.dp.toPx()
+        compositingStrategy = CompositingStrategy.ModulateAlpha
+    }
 }
 
 private const val MAX_STAGGERED = 6
@@ -73,14 +86,18 @@ fun rememberPressScale(pressed: Boolean): Float {
 
 /**
  * A fraction from 0 to 1 that runs once when first drawn, for things that draw themselves on: the
- * ring, a budget bar. Already at 1 with animations off.
+ * ring, a budget bar. Already at 1 with animations off, and on every visit after the first.
  */
 @Composable
 fun rememberDrawOn(durationMillis: Int = 900): State<Float> {
     val reduce = rememberReduceMotion()
-    val progress = remember { Animatable(if (reduce) 1f else 0f) }
+    // Saved with the screen, like [arrive]: coming back to it is not a reason to draw it again.
+    var drawn by rememberSaveable { mutableStateOf(reduce) }
+    val progress = remember { Animatable(if (drawn) 1f else 0f) }
     LaunchedEffect(Unit) {
-        if (!reduce) progress.animateTo(1f, tween(durationMillis, easing = EaseOutExpo))
+        if (drawn) return@LaunchedEffect
+        progress.animateTo(1f, tween(durationMillis, easing = EaseOutExpo))
+        drawn = true
     }
     return progress.asState()
 }

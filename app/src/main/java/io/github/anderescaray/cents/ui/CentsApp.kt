@@ -48,6 +48,7 @@ import io.github.anderescaray.cents.ui.feature.recurring.GenerateDueMovements
 import io.github.anderescaray.cents.ui.feature.recurring.PendingChargesScreen
 import io.github.anderescaray.cents.ui.feature.recurring.RuleFormScreen
 import io.github.anderescaray.cents.ui.feature.recurring.SubscriptionsScreen
+import io.github.anderescaray.cents.ui.feature.reports.ReportsCustomizeScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
@@ -178,7 +179,11 @@ private fun CentsNavHost(navController: NavHostController) {
                 // top instead would leave two of it on the stack, one filtered and one not.
                 onOpenMovements = { navController.openMovementsList() },
                 onOpenBudgets = { navController.navigate(Destination.Budgets) { launchSingleTop = true } },
+                onCustomize = { navController.navigate(Destination.ReportsCustomize) { launchSingleTop = true } },
             )
+        }
+        composable<Destination.ReportsCustomize> {
+            ReportsCustomizeScreen(onBack = { navController.popBackStack() })
         }
         composable<Destination.Settings> {
             SettingsScreen(

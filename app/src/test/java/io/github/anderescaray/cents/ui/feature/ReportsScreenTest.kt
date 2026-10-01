@@ -260,11 +260,11 @@ class ReportsScreenTest {
         setContent(fullState())
 
         scrollTo("THIS PERIOD AGAINST THE LAST")
-        // "Expenses" is on screen twice on purpose: once labelling the pair of columns and
-        // once naming the row that says what they add up to. The rows say the change in
-        // words, because two bars of similar height do not tell anyone whether they saved
-        // forty euros or four hundred.
-        composeRule.onAllNodesWithText("Expenses").assertCountEquals(2)
+        // The rows say the change in words, because two bars of similar height do not tell
+        // anyone whether they saved forty euros or four hundred. (This used to count two
+        // "Expenses" on screen; the second was the income-and-expenses legend above, which is
+        // only composed when that card happens to sit next to this one.)
+        composeRule.onNodeWithText("Expenses").assertExists()
         // "Previous period" is on the segmented control and in the legend.
         composeRule.onAllNodesWithText("Previous period").assertCountEquals(2)
         composeRule.onNodeWithText("Movements in the previous period").assertExists()

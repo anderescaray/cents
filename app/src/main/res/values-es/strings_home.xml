@@ -15,8 +15,6 @@
     <string name="home_nothing_spent">Aún no has gastado nada este mes.</string>
     <string name="home_in">Entra</string>
     <string name="home_out">Sale</string>
-    <string name="home_left">Queda</string>
-    <string name="home_overspent">Te pasas</string>
     <string name="reports_budgets_empty">Aún no hay presupuestos</string>
     <string name="reports_budgets_empty_footer">Ponle a una categoría un límite mensual y mira aquí cuánto te falta.</string>
     <string name="form_title_new_expense">Nuevo gasto</string>
@@ -27,6 +25,14 @@
     <string name="form_no_group">Sin grupo</string>
     <string name="subscriptions_every_month">Cada mes</string>
     <string name="transfer_confirm">Transferir</string>
+    <string name="home_left_month">Te queda este mes</string>
+    <string name="home_overspent_month">Te has pasado este mes</string>
+    <string name="reports_customize_title">Personalizar informes</string>
+    <string name="reports_customize_footer">Sube o baja una tarjeta, o desactívala para ocultarla. Las ocultas guardan su sitio para cuando las vuelvas a activar.</string>
+    <string name="reports_customize_reset">Volver al orden original</string>
+    <string name="reports_customize_up">Subir %1$s</string>
+    <string name="reports_customize_down">Bajar %1$s</string>
+    <string name="reports_customize_action">Personalizar</string>
     <plurals name="home_pending_title">
         <item quantity="one">%1$d esperando su importe</item>
         <item quantity="many">%1$d esperando su importe</item>

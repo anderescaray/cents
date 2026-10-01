@@ -92,7 +92,7 @@ fun CentsListRow(
         modifier =
             rowModifier
                 .fillMaxWidth()
-                .background(if (pressed) CentsTheme.colors.rowPressed else Color.Transparent),
+                .background(if (pressed) CentsTheme.colors.rowPressed else CentsTheme.colors.groupedCard),
     ) {
         Row(
             modifier =

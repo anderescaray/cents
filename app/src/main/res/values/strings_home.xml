@@ -16,8 +16,6 @@
     <string name="home_nothing_spent">Nothing spent yet this month.</string>
     <string name="home_in">In</string>
     <string name="home_out">Out</string>
-    <string name="home_left">Left</string>
-    <string name="home_overspent">Overspent</string>
     <string name="reports_budgets_empty">No budgets yet</string>
     <string name="reports_budgets_empty_footer">Give a category a monthly limit and see here how close you are.</string>
     <string name="form_title_new_expense">New expense</string>
@@ -28,6 +26,14 @@
     <string name="form_no_group">No group</string>
     <string name="subscriptions_every_month">Every month</string>
     <string name="transfer_confirm">Transfer</string>
+    <string name="home_left_month">Left this month</string>
+    <string name="home_overspent_month">Overspent this month</string>
+    <string name="reports_customize_title">Customize reports</string>
+    <string name="reports_customize_footer">Move a card up or down, or switch it off to hide it. Hidden cards keep their place for when you switch them back on.</string>
+    <string name="reports_customize_reset">Back to the original order</string>
+    <string name="reports_customize_up">Move %1$s up</string>
+    <string name="reports_customize_down">Move %1$s down</string>
+    <string name="reports_customize_action">Customize</string>
     <plurals name="home_pending_title">
         <item quantity="one">%1$d waiting for an amount</item>
         <item quantity="other">%1$d waiting for an amount</item>

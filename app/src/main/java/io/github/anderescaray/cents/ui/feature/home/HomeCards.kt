@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.feature.home
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,11 +19,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -201,7 +202,7 @@ internal fun MonthCard(
     modifier: Modifier = Modifier,
 ) {
     val spending = state.spending
-    CentsCard(modifier = modifier.padding(horizontal = CentsDimens.screenMargin).animateContentSize()) {
+    CentsCard(modifier = modifier.padding(horizontal = CentsDimens.screenMargin)) {
         Text(
             text = stringResource(R.string.home_this_month),
             style = CentsTheme.typography.title3,
@@ -296,30 +297,53 @@ internal fun CategoryRow(
     }
 }
 
-/** In, out and what was left, in one line of three. */
+/**
+ * What the month comes to, as the headline: *Left this month* in green or *Overspent this month* in
+ * red, large, on a panel tinted the same way — the one number on Home that should catch the eye —
+ * with what came in and what went out beside it, smaller.
+ */
 @Composable
 internal fun MonthTotals(state: HomeUiState) {
     val summary = state.summary ?: return
     val left = state.left ?: return
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS)) {
-        TotalCell(
-            label = stringResource(R.string.home_in),
-            value = MoneyFormatter.format(summary.income),
-            color = CentsTheme.colors.positiveText,
-            modifier = Modifier.weight(1f),
-        )
-        TotalCell(
-            label = stringResource(R.string.home_out),
-            value = MoneyFormatter.format(summary.expenses),
-            color = CentsTheme.colors.label,
-            modifier = Modifier.weight(1f),
-        )
-        TotalCell(
-            label = stringResource(if (left.isNegative) R.string.home_overspent else R.string.home_left),
-            value = MoneyFormatter.format(left.copy(minorUnits = kotlin.math.abs(left.minorUnits))),
-            color = if (left.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
-            modifier = Modifier.weight(1f),
-        )
+    val over = left.isNegative
+    val tone = if (over) CentsTheme.colors.destructive else CentsTheme.colors.positive
+    val toneText = if (over) CentsTheme.colors.destructiveText else CentsTheme.colors.positiveText
+    Column(verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingS)) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(PANEL_RADIUS.dp))
+                    .background(tone.copy(alpha = PANEL_TINT))
+                    .padding(horizontal = CentsDimens.spacingL, vertical = CentsDimens.spacingM),
+        ) {
+            Text(
+                text = stringResource(if (over) R.string.home_overspent_month else R.string.home_left_month),
+                style = CentsTheme.typography.subhead,
+                color = toneText,
+            )
+            AnimatedMoney(
+                money = left.copy(minorUnits = kotlin.math.abs(left.minorUnits)),
+                style = CentsTheme.typography.display,
+                color = toneText,
+                withSign = false,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS)) {
+            TotalCell(
+                label = stringResource(R.string.home_in),
+                value = MoneyFormatter.format(summary.income),
+                color = CentsTheme.colors.positiveText,
+                modifier = Modifier.weight(1f),
+            )
+            TotalCell(
+                label = stringResource(R.string.home_out),
+                value = MoneyFormatter.format(summary.expenses),
+                color = CentsTheme.colors.label,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -330,27 +354,31 @@ internal fun TotalCell(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier =
             modifier
-                .background(
-                    CentsTheme.colors.fill,
-                    shape =
-                        androidx.compose.foundation.shape
-                            .RoundedCornerShape(14.dp),
-                ).padding(horizontal = CentsDimens.spacingM, vertical = CentsDimens.spacingS),
+                .clip(RoundedCornerShape(PANEL_RADIUS.dp))
+                .background(CentsTheme.colors.fill)
+                .padding(horizontal = CentsDimens.spacingM, vertical = CentsDimens.spacingS),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = label, style = CentsTheme.typography.caption1, color = CentsTheme.colors.secondaryLabel)
-        Spacer(Modifier.width(0.dp))
+        Text(
+            text = label,
+            style = CentsTheme.typography.footnote,
+            color = CentsTheme.colors.secondaryLabel,
+            modifier = Modifier.weight(1f),
+        )
         Text(
             text = value,
-            style = CentsTheme.typography.subhead,
+            style = CentsTheme.typography.headline,
             color = color,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }
+
+private const val PANEL_RADIUS = 16
+private const val PANEL_TINT = 0.1f
 
 /** How many categories the month card lists. */
 private const val MONTH_ROWS = 5

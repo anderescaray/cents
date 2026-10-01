@@ -157,6 +157,10 @@ sealed interface Destination {
     @Serializable
     data object Subscriptions : Destination
 
+    /** Arranging the Reports tab: the order of its cards, and which are hidden. */
+    @Serializable
+    data object ReportsCustomize : Destination
+
     /** Every monthly limit, against the month it is in (`DECISIONS.md` D26). */
     @Serializable
     data object Budgets : Destination
@@ -286,7 +290,7 @@ enum class TopLevelTab(
     REPORTS(
         destination = Destination.Reports,
         // Budgets are a report about the month rather than a setting (the owner, 2026-10-01).
-        owns = listOf(Destination.Budgets::class, Destination.BudgetEdit::class),
+        owns = listOf(Destination.Budgets::class, Destination.BudgetEdit::class, Destination.ReportsCustomize::class),
         labelRes = R.string.tab_reports,
         iconRes = R.drawable.ic_tab_reports,
     ),

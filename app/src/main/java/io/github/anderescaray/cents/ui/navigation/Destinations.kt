@@ -202,10 +202,14 @@ sealed interface Destination {
     @Serializable
     data object CaptureApps : Destination
 
-    /** The words that make a notification a [kind] of movement. */
+    /**
+     * The words that make a notification from [packageName] a [kind] of movement. Each app has
+     * its own (the owner, 2026-10-01); null is the starting words a newly chosen app gets.
+     */
     @Serializable
     data class CaptureWords(
         val kind: TransactionKind,
+        val packageName: String? = null,
     ) : Destination
 
     /**

@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
+import io.github.anderescaray.cents.domain.model.AppWords
 import io.github.anderescaray.cents.domain.model.CaptureOutcome
 import io.github.anderescaray.cents.domain.model.CaptureOutcome.IgnoreReason
 import io.github.anderescaray.cents.domain.model.CaptureSettings
@@ -76,6 +77,24 @@ class CaptureRecorderTest {
             assertEquals("EUR", row.currency)
             assertEquals(LocalDate.of(2026, 9, 29), row.date)
             assertEquals("Compra en CAFÉ CENTRAL por 23,40 €", row.note)
+        }
+
+    @Test
+    fun `each app is read with its own words, not another app's`() =
+        runTest {
+            // The bank says "nuevo gasto"; the wallet keeps the starting words.
+            settings.setWords(TransactionKind.EXPENSE, listOf("nuevo gasto"), BANK_APP)
+            val recorder = recorder()
+
+            val bank = recorder.record(BANK_APP, "Nuevo gasto de 12,00 € en Mercadona", AT_10)
+            val bankOldWord = recorder.record(BANK_APP, "Compra de 30,00 €", AT_10.plusSeconds(120))
+            val wallet = recorder.record(WALLET_APP, "Nuevo gasto de 7,00 €", AT_10.plusSeconds(240))
+            val walletOldWord = recorder.record(WALLET_APP, "Compra de 8,00 €", AT_10.plusSeconds(360))
+
+            assertTrue(bank is CaptureOutcome.Recorded)
+            assertEquals(CaptureOutcome.Ignored(IgnoreReason.NO_WORD), bankOldWord)
+            assertEquals(CaptureOutcome.Ignored(IgnoreReason.NO_WORD), wallet)
+            assertTrue(walletOldWord is CaptureOutcome.Recorded)
         }
 
     @Test
@@ -199,21 +218,46 @@ class CaptureRecorderTest {
         override suspend fun setWords(
             kind: TransactionKind,
             words: List<String>,
+            packageName: String?,
         ) {
             value =
-                when (kind) {
-                    TransactionKind.EXPENSE -> value.copy(expenseWords = words)
-                    TransactionKind.INCOME -> value.copy(incomeWords = words)
+                if (packageName != null) {
+                    val own = value.appWords[packageName] ?: AppWords()
+                    val changed =
+                        when (kind) {
+                            TransactionKind.EXPENSE -> own.copy(expense = words)
+                            TransactionKind.INCOME -> own.copy(income = words)
+                        }
+                    value.copy(appWords = value.appWords + (packageName to changed))
+                } else {
+                    when (kind) {
+                        TransactionKind.EXPENSE -> value.copy(expenseWords = words)
+                        TransactionKind.INCOME -> value.copy(incomeWords = words)
+                    }
                 }
         }
 
-        override suspend fun resetWords(kind: TransactionKind) {
+        override suspend fun resetWords(
+            kind: TransactionKind,
+            packageName: String?,
+        ) {
+            if (packageName != null) {
+                val own = value.appWords[packageName] ?: return
+                val cleared =
+                    when (kind) {
+                        TransactionKind.EXPENSE -> own.copy(expense = null)
+                        TransactionKind.INCOME -> own.copy(income = null)
+                    }
+                value = value.copy(appWords = value.appWords + (packageName to cleared))
+                return
+            }
             setWords(
                 kind,
                 when (kind) {
                     TransactionKind.EXPENSE -> CaptureSettings.DEFAULT_EXPENSE_WORDS
                     TransactionKind.INCOME -> CaptureSettings.DEFAULT_INCOME_WORDS
                 },
+                null,
             )
         }
     }

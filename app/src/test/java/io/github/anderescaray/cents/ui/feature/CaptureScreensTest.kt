@@ -1,11 +1,14 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.capture.CaptureActions
@@ -51,28 +54,40 @@ class CaptureScreensTest {
     }
 
     @Test
-    fun `tapping an app opens it, and tapping a list opens that kind's words`() {
-        val opened = mutableListOf<Any>()
+    fun `each app has its own card, and its lists open that app's words`() {
+        val opened = mutableListOf<Any?>()
         composeRule.setContent {
             CentsTheme {
                 CaptureContent(
                     state =
                         CaptureUiState(
-                            sources = listOf(CaptureSourceRow(CaptureSource("es.bank", "My bank", 1), "Bank")),
+                            sources =
+                                listOf(
+                                    CaptureSourceRow(CaptureSource("es.bank", "My bank", 1), "Bank", 10, 8),
+                                    CaptureSourceRow(CaptureSource("com.wallet", "Wallet", 1), "Bank", 3, 2),
+                                ),
                             isLoading = false,
                         ),
                     accessGranted = true,
-                    actions = CaptureActions(onEditApp = { opened += it }, onOpenWords = { opened += it }),
+                    actions =
+                        CaptureActions(
+                            onEditApp = { opened += it },
+                            onOpenWords = { kind, app -> opened.add(listOf(kind, app)) },
+                        ),
                 )
             }
         }
 
-        scrollTo("Into Bank")
-        composeRule.onNodeWithText("My bank").performClick()
-        scrollTo("Income words")
-        composeRule.onNodeWithText("Income words").performClick()
+        scrollTo("MY BANK")
+        composeRule.onAllNodesWithText("Account")[0].performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.onAllNodesWithText("Income words")[0].performSemanticsAction(SemanticsActions.OnClick)
+        scrollTo("WALLET")
+        composeRule.onAllNodesWithText("Expense words")[1].performSemanticsAction(SemanticsActions.OnClick)
 
-        assertEquals(listOf("es.bank", TransactionKind.INCOME), opened)
+        assertEquals(
+            listOf("es.bank", listOf(TransactionKind.INCOME, "es.bank"), listOf(TransactionKind.EXPENSE, "com.wallet")),
+            opened,
+        )
     }
 
     @Test

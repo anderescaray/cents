@@ -11,7 +11,9 @@ internal fun NavGraphBuilder.captureRoutes(navController: NavHostController) {
         CaptureScreen(
             onBack = { navController.popBackStack() },
             onAddApp = { navController.navigate(Destination.CaptureApps) { launchSingleTop = true } },
-            onOpenWords = { kind -> navController.navigate(Destination.CaptureWords(kind)) { launchSingleTop = true } },
+            onOpenWords = { kind, packageName ->
+                navController.navigate(Destination.CaptureWords(kind, packageName)) { launchSingleTop = true }
+            },
         )
     }
     composable<Destination.CaptureApps> {

@@ -11,13 +11,13 @@
     <string name="capture_access_on_footer">Android lets Cents read notifications. It can be taken back from the same system screen.</string>
     <string name="capture_access_off_footer">Android has to let Cents read notifications before anything is recorded. Turn Cents on in that list, then come back.</string>
     <string name="capture_section_apps">Apps</string>
-    <string name="capture_apps_footer">Each app writes into one account. Tap an app to change its account or to stop reading it.</string>
+    <string name="capture_apps_footer">Each app has its own account and its own words. A notification from it with an income word is an income, one with an expense word is an expense; with neither, or with no amount, it is ignored. The same amount twice within a minute is recorded once.</string>
     <string name="capture_app_into">Into %1$s</string>
     <string name="capture_app_no_account">Its account is gone, so nothing is recorded</string>
     <string name="capture_add_app">Add an app</string>
     <string name="capture_add_app_needs_account">Create an account first</string>
     <string name="capture_section_words">Words</string>
-    <string name="capture_words_footer">A notification with an income word is an income, and one with an expense word is an expense. With neither, or with no amount, it is ignored. The same amount twice within a minute is recorded once.</string>
+    <string name="capture_words_footer">A notification with an income word is an income, and one with an expense word is an expense. With neither, or with no amount, it is ignored.</string>
     <string name="capture_expense_words">Expense words</string>
     <string name="capture_income_words">Income words</string>
     <string name="capture_edit_message">Where its payments go.</string>
@@ -45,4 +45,8 @@
     <string name="capture_stop_title">Stop reading %1$s?</string>
     <string name="capture_stop_message">Its payments are no longer recorded. What it already recorded stays in the list.</string>
     <string name="capture_stop_confirm">Stop reading</string>
+    <string name="capture_app_account">Account</string>
+    <string name="capture_expense_words_hint">What the app says when money goes out</string>
+    <string name="capture_income_words_hint">What the app says when money comes in</string>
+    <string name="capture_words_for">From %1$s</string>
 </resources>

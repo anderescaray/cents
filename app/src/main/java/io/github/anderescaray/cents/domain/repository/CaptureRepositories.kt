@@ -21,14 +21,24 @@ interface CaptureSettingsRepository {
 
     suspend fun removeSource(packageName: String)
 
-    /** Replaces one kind's words. An empty list is kept as empty, not read as the defaults. */
+    /**
+     * Replaces one kind's words for [packageName], or the starting words when it is null. An empty
+     * list is kept as empty, not read as the defaults.
+     */
     suspend fun setWords(
         kind: TransactionKind,
         words: List<String>,
+        packageName: String? = null,
     )
 
-    /** Puts one kind's words back to D29's defaults. */
-    suspend fun resetWords(kind: TransactionKind)
+    /**
+     * Puts one kind's words back: an app's to the starting words, the starting words to D29's
+     * defaults.
+     */
+    suspend fun resetWords(
+        kind: TransactionKind,
+        packageName: String? = null,
+    )
 }
 
 /**

@@ -58,7 +58,7 @@
     <string name="settings_section_data">Datos</string>
     <string name="settings_export">Exportar una copia</string>
     <string name="settings_currency">Moneda principal</string>
-    <string name="settings_data_footer">Todo se queda en este dispositivo. No se sube nada a ningún sitio.</string>
+    <string name="settings_data_footer">Todo vive en este dispositivo. La única copia que sale de él es la de Google Drive de abajo, y solo si la activas.</string>
     <string name="settings_categories">Categorías</string>
     <string name="settings_categories_footer">Las categorías son tuyas: Cents no trae ninguna y nunca añade una por su cuenta.</string>
 

@@ -1,6 +1,8 @@
 package io.github.anderescaray.cents.ui.feature.capture
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -18,6 +20,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsDimens
+import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /** One kind's words (`DECISIONS.md` D29), to add to, prune, or put back as they came. */
 @Composable
@@ -69,6 +72,17 @@ internal fun CaptureWordsContent(
         leading = { CentsBackButton(label = stringResource(R.string.capture_title), onClick = actions.onBack) },
     ) {
         if (state.isLoading) return@CentsLargeTitleScaffold
+        // Which app these words belong to: each has its own, so the screen says whose these are.
+        state.appLabel?.let { label ->
+            item(key = "app") {
+                Text(
+                    text = stringResource(R.string.capture_words_for, label),
+                    style = CentsTheme.typography.subhead,
+                    color = CentsTheme.colors.secondaryLabel,
+                    modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+                )
+            }
+        }
         addSection(state, actions)
         wordList(state, actions)
         if (!state.isDefault) {

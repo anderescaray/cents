@@ -89,6 +89,41 @@ class DataStoreCaptureSettingsRepositoryTest {
         }
 
     @Test
+    fun `an app's own words are kept apart from another's, and go when the app goes`() =
+        runTest {
+            val repository = DataStoreCaptureSettingsRepository(store())
+            repository.putSource(CaptureSource("es.bank", "My bank", 1))
+            repository.putSource(CaptureSource("com.wallet", "Wallet", 1))
+
+            repository.setWords(TransactionKind.EXPENSE, listOf("nuevo gasto"), "es.bank")
+
+            val edited = repository.observe().first()
+            assertEquals(listOf("nuevo gasto"), edited.wordsFor("es.bank", TransactionKind.EXPENSE))
+            assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, edited.wordsFor("com.wallet", TransactionKind.EXPENSE))
+            assertEquals(CaptureSettings.DEFAULT_INCOME_WORDS, edited.wordsFor("es.bank", TransactionKind.INCOME))
+
+            repository.removeSource("es.bank")
+            repository.putSource(CaptureSource("es.bank", "My bank", 1))
+
+            assertEquals(
+                CaptureSettings.DEFAULT_EXPENSE_WORDS,
+                repository.observe().first().wordsFor("es.bank", TransactionKind.EXPENSE),
+            )
+        }
+
+    @Test
+    fun `putting an app's words back gives it the starting words again`() =
+        runTest {
+            val repository = DataStoreCaptureSettingsRepository(store())
+            repository.setWords(TransactionKind.INCOME, listOf("bizum recibido"), "es.bank")
+
+            repository.resetWords(TransactionKind.INCOME, "es.bank")
+
+            val settings = repository.observe().first()
+            assertEquals(CaptureSettings.DEFAULT_INCOME_WORDS, settings.wordsFor("es.bank", TransactionKind.INCOME))
+        }
+
+    @Test
     fun `the switch is remembered`() =
         runTest {
             val repository = DataStoreCaptureSettingsRepository(store())

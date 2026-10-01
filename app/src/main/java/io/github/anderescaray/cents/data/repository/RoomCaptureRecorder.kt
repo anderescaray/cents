@@ -72,20 +72,37 @@ class RoomCaptureRecorder
             val source = setup.sourceFor(packageName)?.takeIf { setup.enabled }
             val account = source?.let { accountDao.findById(it.accountId) }?.takeUnless { it.archived }
             return when {
-                !setup.enabled -> Plan.Skip(IgnoreReason.OFF)
-                source == null -> Plan.Skip(IgnoreReason.NOT_CHOSEN)
-                account == null -> Plan.Skip(IgnoreReason.NO_ACCOUNT)
-                else -> read(text, setup, account)
+                !setup.enabled -> {
+                    Plan.Skip(IgnoreReason.OFF)
+                }
+
+                source == null -> {
+                    Plan.Skip(IgnoreReason.NOT_CHOSEN)
+                }
+
+                account == null -> {
+                    Plan.Skip(IgnoreReason.NO_ACCOUNT)
+                }
+
+                else -> {
+                    read(
+                        text,
+                        setup.wordsFor(packageName, TransactionKind.EXPENSE),
+                        setup.wordsFor(packageName, TransactionKind.INCOME),
+                        account,
+                    )
+                }
             }
         }
 
-        /** The words, then the amount, then its currency against the account's. */
+        /** The app's own words, then the amount, then its currency against the account's. */
         private fun read(
             text: String,
-            setup: CaptureSettings,
+            expenseWords: List<String>,
+            incomeWords: List<String>,
             account: AccountEntity,
         ): Plan {
-            val kind = CaptureParser.kindOf(text, setup.expenseWords, setup.incomeWords)
+            val kind = CaptureParser.kindOf(text, expenseWords, incomeWords)
             val amount = kind?.let { CaptureParser.amountIn(text) }
             return when {
                 kind == null -> Plan.Skip(IgnoreReason.NO_WORD)

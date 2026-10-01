@@ -60,7 +60,7 @@
     <string name="settings_section_data">Data</string>
     <string name="settings_export">Export a backup</string>
     <string name="settings_currency">Main currency</string>
-    <string name="settings_data_footer">Everything stays on this device. Nothing is uploaded anywhere.</string>
+    <string name="settings_data_footer">Everything lives on this device. The only copy that leaves it is the Google Drive backup below, and only if you turn it on.</string>
     <string name="settings_categories">Categories</string>
     <string name="settings_categories_footer">The categories are yours: Cents ships with none and never adds any.</string>
 

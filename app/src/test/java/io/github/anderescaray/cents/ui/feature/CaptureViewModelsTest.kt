@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.domain.model.AppWords
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -276,21 +277,46 @@ class CaptureViewModelsTest {
         override suspend fun setWords(
             kind: TransactionKind,
             words: List<String>,
+            packageName: String?,
         ) {
             state.value =
-                when (kind) {
-                    TransactionKind.EXPENSE -> state.value.copy(expenseWords = words)
-                    TransactionKind.INCOME -> state.value.copy(incomeWords = words)
+                if (packageName != null) {
+                    val own = state.value.appWords[packageName] ?: AppWords()
+                    val changed =
+                        when (kind) {
+                            TransactionKind.EXPENSE -> own.copy(expense = words)
+                            TransactionKind.INCOME -> own.copy(income = words)
+                        }
+                    state.value.copy(appWords = state.value.appWords + (packageName to changed))
+                } else {
+                    when (kind) {
+                        TransactionKind.EXPENSE -> state.value.copy(expenseWords = words)
+                        TransactionKind.INCOME -> state.value.copy(incomeWords = words)
+                    }
                 }
         }
 
-        override suspend fun resetWords(kind: TransactionKind) {
+        override suspend fun resetWords(
+            kind: TransactionKind,
+            packageName: String?,
+        ) {
+            if (packageName != null) {
+                val own = state.value.appWords[packageName] ?: return
+                val cleared =
+                    when (kind) {
+                        TransactionKind.EXPENSE -> own.copy(expense = null)
+                        TransactionKind.INCOME -> own.copy(income = null)
+                    }
+                state.value = state.value.copy(appWords = state.value.appWords + (packageName to cleared))
+                return
+            }
             setWords(
                 kind,
                 when (kind) {
                     TransactionKind.EXPENSE -> CaptureSettings.DEFAULT_EXPENSE_WORDS
                     TransactionKind.INCOME -> CaptureSettings.DEFAULT_INCOME_WORDS
                 },
+                null,
             )
         }
     }

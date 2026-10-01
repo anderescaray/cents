@@ -26,7 +26,11 @@ import javax.inject.Inject
 @Immutable
 data class CaptureWordsUiState(
     val kind: TransactionKind,
+    /** The app these words are for, by the name the phone gave it; null for the starting words. */
+    val appLabel: String? = null,
     val words: List<String> = emptyList(),
+    /** What putting the list back restores: the starting words for an app, D29's otherwise. */
+    val resetTo: List<String> = defaultsFor(kind),
     val draft: String = "",
     /** The word waiting on "remove it?", while that alert is open. */
     val removing: String? = null,
@@ -44,7 +48,7 @@ data class CaptureWordsUiState(
      * storage hands an edited list back sorted, and the same words in another order are the same.
      */
     val isDefault: Boolean
-        get() = words.toSet() == defaultsFor(kind).toSet()
+        get() = words.toSet() == resetTo.toSet()
 }
 
 /**
@@ -58,7 +62,9 @@ class CaptureWordsViewModel
         private val settings: CaptureSettingsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val kind = savedStateHandle.toRoute<Destination.CaptureWords>().kind
+        private val route = savedStateHandle.toRoute<Destination.CaptureWords>()
+        private val kind = route.kind
+        private val packageName = route.packageName
         private val form = MutableStateFlow(Form())
         private val editing = Mutex()
 
@@ -66,7 +72,9 @@ class CaptureWordsViewModel
             combine(settings.observe(), form) { setup, current ->
                 CaptureWordsUiState(
                     kind = kind,
-                    words = if (kind == TransactionKind.EXPENSE) setup.expenseWords else setup.incomeWords,
+                    appLabel = packageName?.let { setup.sourceFor(it)?.label ?: it },
+                    words = setup.wordsFor(packageName, kind),
+                    resetTo = if (packageName == null) defaultsFor(kind) else setup.startingWords(kind),
                     draft = current.draft,
                     removing = current.removing,
                     confirmingReset = current.confirmingReset,
@@ -114,7 +122,7 @@ class CaptureWordsViewModel
 
         fun confirmReset() {
             form.update { it.copy(confirmingReset = false) }
-            viewModelScope.launch { editing.withLock { settings.resetWords(kind) } }
+            viewModelScope.launch { editing.withLock { settings.resetWords(kind, packageName) } }
         }
 
         /**
@@ -126,8 +134,7 @@ class CaptureWordsViewModel
             viewModelScope.launch {
                 editing.withLock {
                     val setup = settings.observe().first()
-                    val words = if (kind == TransactionKind.EXPENSE) setup.expenseWords else setup.incomeWords
-                    settings.setWords(kind, change(words))
+                    settings.setWords(kind, change(setup.wordsFor(packageName, kind)), packageName)
                 }
             }
         }

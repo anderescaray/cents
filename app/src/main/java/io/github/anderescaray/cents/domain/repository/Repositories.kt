@@ -110,6 +110,15 @@ interface AccountRepository {
      * rule from the account it records into.
      */
     suspend fun countRules(id: Long): Int
+
+    /**
+     * Transfers between [id] and [otherId]. Reassigning one into the other leaves each with both
+     * legs in the same account: harmless to every balance and report, but worth naming first.
+     */
+    suspend fun countTransfersBetween(
+        id: Long,
+        otherId: Long,
+    ): Int
 }
 
 interface CategoryRepository {

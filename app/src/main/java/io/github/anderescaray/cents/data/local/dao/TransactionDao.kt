@@ -176,6 +176,23 @@ interface TransactionDao {
     suspend fun countTransferLegsOutside(accountId: Long): Int
 
     /**
+     * Transfers between these two accounts. Moving one account's movements into the other
+     * leaves each of them with both legs in one account, so the sheet that offers the move
+     * names them before it runs (`PLAN.md` C4).
+     */
+    @Query(
+        """
+        SELECT COUNT(DISTINCT here.transferId) FROM transactions AS here
+        JOIN transactions AS there ON there.transferId = here.transferId AND there.id <> here.id
+        WHERE here.accountId = :accountId AND there.accountId = :otherId
+        """,
+    )
+    suspend fun countTransfersBetween(
+        accountId: Long,
+        otherId: Long,
+    ): Int
+
+    /**
      * The list, narrowed by whatever the owner asked for.
      *
      * Every parameter is optional, and each clause is written so that an unset one costs

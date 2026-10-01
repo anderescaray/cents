@@ -154,6 +154,20 @@ class RoomTransferRepositoryTest {
         }
 
     @Test
+    fun `moving an account into the other side of its transfers counts those transfers first`() =
+        runTest {
+            world()
+            val cash = database.accountDao().insert(account(name = "Cash"))
+            transfers.saveTransfer(transfer())
+            transfers.saveTransfer(transfer())
+
+            // Two transfers each way round, none with Cash, so only Savings is warned about.
+            assertEquals(2, accounts.countTransfersBetween(checking, savings))
+            assertEquals(2, accounts.countTransfersBetween(savings, checking))
+            assertEquals(0, accounts.countTransfersBetween(checking, cash))
+        }
+
+    @Test
     fun `a transfer that is gone reads as nothing rather than as half of one`() =
         runTest {
             world()

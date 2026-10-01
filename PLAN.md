@@ -1827,7 +1827,7 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
 - [x] **Groups** (PRD §4.9, D27, outside the phase order): **#86**, Room v8 and the repository;
       **#87**, the screens.
 - [x] **`feat/uncategorized-inbox`**: **#90**. The *To categorize* row and the inbox screen.
-- [ ] **`feat/notification-capture`** (PRD §4.6, experimental): payments read from the
+- [x] **`feat/notification-capture`** (PRD §4.6, experimental; #105–#107, done 2026-10-01): payments read from the
       notifications of the apps the owner picks, landing in the inbox. **Asked for on
       2026-09-29, and D29 records how it behaves**: editable expense and income words decide the
       kind, the amount comes from the text, each app is tied to one account, a match is saved at
@@ -1855,7 +1855,7 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
             check that it hears anything. **On the owner's phone, a Pixel, battery optimisation
             may have to be turned off for Cents**, or the system can stop the listener. (The
             Honor is the tablet the app is developed on, not where it will live.)
-      - [ ] **Part 3, Settings › Capture** (2026-09-30): the switch; *Notification access*,
+      - [x] **Part 3, Settings › Capture** (2026-09-30, #107): the switch; *Notification access*,
             asked of the phone each time the screen comes back into view and opening the system
             list; the apps, each with its account by name (or saying its account is gone), with a
             sheet to move it or stop reading it; a picker of the launcher's apps, searchable, then
@@ -1950,12 +1950,13 @@ parallelism.
   (the pair nets to zero) and no report (both legs are still excluded), and the two alternatives
   are worse — clearing the `transferId` would turn it into a real income and a real expense and
   inflate both by the amount, and deleting the pair would destroy history inside an operation
-  whose whole promise is that nothing is lost. The honest fix, if it is ever wanted, is for the
-  reassignment sheet to name those transfers before it runs.
+  whose whole promise is that nothing is lost. **Since 2026-10-01 the reassignment sheet names
+  them before it runs**: a target that shares transfers with the account carries a line saying
+  how many would end up with both sides in it.
 - ~~**A deleted transfer has no undo.**~~ **It has one since #65**: both legs or neither.
   ~~**The undo banner lives only on the Transactions list.**~~ **The account detail shows it too
-  since #71**, which is where a deletion made from there returns. The deletion confirmation still
-  says the undo is "on the list", which is now slightly narrower than the truth.
+  since #71**, which is where a deletion made from there returns. The confirmation now says the
+  undo is on "the screen you go back to", which covers both.
 - ~~**The kind filter still sorts transfer legs by their kind.**~~ **Closed by #95 on
   2026-09-25**: *Income* and *Expenses* now leave out transfer legs and trade cash. What follows
   is the gap as it was. Filtering the list to *Income*
@@ -2485,15 +2486,15 @@ next branch: an *Open* entry there outranks anything planned.
 **What comes next when there is no feedback:**
 - **A wave the owner has to choose.** Everything else left is a later roadmap phase
   (`CLAUDE.md` §9) or deferred work:
-  - **Phase 5**: budgets (#80, #81) and the inbox (#90) are built. What is left is notification
-    capture, experimental, which feeds the inbox.
+  - **Phase 5** is built: budgets (#80, #81), the inbox (#90) and notification capture
+    (#105–#107), which feeds it. Capture waits on Walk 19 on the Pixel.
   - **Phase 6** is the widget, the Baseline Profile with Macrobenchmark, and accessibility. The
     first two add dependencies and run alone.
   - The dashboard of cards is in C7.
   - **What replaces the bubbles** (C7). The owner does not much like the canvas and will say
     what they want instead. Until they do, no time goes into it.
-- Groups (#86, #87) and the inbox (#90) are built. As of 2026-09-25 the owner has not chosen
-  between notification capture, Phase 6 and the bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
+- Groups (#86, #87), the inbox (#90) and capture (#105–#107) are built. As of 2026-10-01 the
+  owner has not chosen between Phase 6, the UI rework of ADR 0003 and the bubble replacement. **Open the next session by asking which one**, unless `FEEDBACK.md` has
   something *Open*.
 
 **A cloud session cannot build locally** while the environment blocks `dl.google.com` (Google

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -244,7 +245,7 @@ internal fun MonthRing(
                     color = slice.colorArgb?.let(::Color) ?: fallback,
                 )
             },
-        modifier = modifier.fillMaxWidth(RING_WIDTH),
+        modifier = modifier.widthIn(max = RING_MAX.dp).fillMaxWidth(),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             AnimatedMoney(money = spending.total, style = CentsTheme.typography.title2)
@@ -353,5 +354,7 @@ internal fun TotalCell(
 
 /** How many categories the month card lists. */
 private const val MONTH_ROWS = 5
-private const val RING_WIDTH = 0.62f
+
+/** On a tablet a fraction of the width is a ring the size of the screen. */
+private const val RING_MAX = 220
 private const val PERCENT = 100

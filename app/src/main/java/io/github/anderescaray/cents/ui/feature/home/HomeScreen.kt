@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.ui.feature.home
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -59,8 +60,14 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.relativeLabel
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
+/** The day under the month: *Wednesday, 1 October*, in the device's language. */
+private const val DAY_PATTERN = "EEEE, d MMMM"
+
+private const val STATUS_SCRIM_ALPHA = 0.94f
 
 /** How many waiting movements Home shows before handing over to the full inbox. */
 private const val INBOX_PREVIEW = 3
@@ -126,11 +133,29 @@ internal fun HomeContent(
     actions: HomeActions,
 ) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    Box(modifier = Modifier.fillMaxSize().background(CentsTheme.colors.groupedBackground)) {
+        HomeList(state = state, inbox = inbox, actions = actions, topInset = topInset)
+        // The status bar is drawn over the app: without a backdrop the title scrolls up under
+        // the clock and the two are read as one.
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(topInset)
+                    .background(CentsTheme.colors.groupedBackground.copy(alpha = STATUS_SCRIM_ALPHA)),
+        )
+    }
+}
+
+@Composable
+private fun HomeList(
+    state: HomeUiState,
+    inbox: InboxUiState,
+    actions: HomeActions,
+    topInset: androidx.compose.ui.unit.Dp,
+) {
     LazyColumn(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(CentsTheme.colors.groupedBackground),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = topInset + CentsDimens.spacingS, bottom = CentsDimens.spacingXl),
         verticalArrangement = Arrangement.spacedBy(CentsDimens.sectionSpacing),
     ) {
@@ -141,7 +166,10 @@ internal fun HomeContent(
                     state.today.month
                         .getDisplayName(TextStyle.FULL_STANDALONE, locale)
                         .replaceFirstChar { it.titlecase(locale) },
-                subtitle = state.today.relativeLabel(state.today),
+                subtitle =
+                    state.today
+                        .format(DateTimeFormatter.ofPattern(DAY_PATTERN, locale))
+                        .replaceFirstChar { it.titlecase(locale) },
             ) {
                 RoundIconButton(
                     iconRes = R.drawable.ic_tab_settings,

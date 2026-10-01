@@ -11,6 +11,19 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      Which apps capture could read (DECISIONS.md D29). Since Android 11 the package manager only
+      answers for what is declared here, and this asks for the launcher's apps — the ones the
+      owner recognises by name — rather than QUERY_ALL_PACKAGES, which Play reserves for apps
+      whose purpose is managing other apps.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".CentsApplication"
         android:allowBackup="true"

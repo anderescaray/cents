@@ -43,6 +43,7 @@ fun SettingsScreen(
     onResetHomeLayout: () -> Unit,
     onOpenBudgets: () -> Unit = {},
     onOpenGroups: () -> Unit = {},
+    onOpenCapture: () -> Unit = {},
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     lockViewModel: AppLockSettingsViewModel = hiltViewModel(),
@@ -58,6 +59,7 @@ fun SettingsScreen(
         onOpenSubscriptions = onOpenSubscriptions,
         onOpenBudgets = onOpenBudgets,
         onOpenGroups = onOpenGroups,
+        onOpenCapture = onOpenCapture,
         onResetHomeLayout = onResetHomeLayout,
         lock = lock,
         onLockChanged = lockViewModel::setEnabled,
@@ -126,6 +128,7 @@ internal fun SettingsContent(
     onOpenSubscriptions: () -> Unit = {},
     onOpenBudgets: () -> Unit = {},
     onOpenGroups: () -> Unit = {},
+    onOpenCapture: () -> Unit = {},
     export: ExportUiState = ExportUiState(),
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
@@ -148,6 +151,9 @@ internal fun SettingsContent(
         }
         item { DisclosureSection(R.string.settings_budgets, R.string.settings_budgets_footer, onOpenBudgets) }
         item { DisclosureSection(R.string.settings_groups, R.string.settings_groups_footer, onOpenGroups) }
+        item(
+            key = "capture",
+        ) { DisclosureSection(R.string.settings_capture, R.string.settings_capture_footer, onOpenCapture) }
         item { ResetHomeLayoutSection(onReset = onResetHomeLayout) }
         item { SecuritySection(lock = lock, onLockChanged = onLockChanged) }
         item(key = "data") {

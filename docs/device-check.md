@@ -1657,3 +1657,50 @@ and the latest one is described again.
 
 > **Wrong looks like** a red column where the figures underneath say *Saved*, or the axis
 > labels overlapping at 24.
+
+## Walk 19 — payments from notifications (#105, #106, and part 3)
+
+**This one is on the Pixel**, the phone the app is for, not the Honor tablet used to develop it:
+it needs a bank's app that sends real notifications. You need at least one account. Open
+**Settings › Capture from notifications**.
+
+### c1 · Notification access
+
+The *Notification access* row reads **Not allowed**, in red. Tap it: Android's list of apps that
+can read notifications opens, with **Cents: payments from notifications** in it. Turn it on,
+accept the warning, and come back: the row now reads **Allowed**, without leaving the screen.
+
+> **Wrong looks like** Cents missing from that list, the row still reading *Not allowed* after
+> coming back, or the tap opening nothing.
+
+### c2 · Choosing the bank's app
+
+Tap **Add an app**: the phone's apps are listed by name, without Cents. Type part of the bank's
+name to narrow them, tap it, and pick the account its payments go into. Back on Capture, the app
+is listed with *Into* and that account's name. Tap it: the sheet offers the other accounts and
+*Stop reading this app*.
+
+> **Wrong looks like** the bank's app missing from the list, or the list empty. Android 11 and
+> later only show Cents the apps its manifest asks about, so an empty list is that block failing.
+
+### c3 · A real payment
+
+Switch **Read payment notifications** on. Pay for something small with the card, or ask for a
+Bizum. When the bank's notification arrives, open the movement list: it is under
+**To categorize**, for the amount in the notification, in the chosen account, with the
+notification's text as its note. File it with one tap on a category.
+
+> **Wrong looks like** nothing arriving, the wrong amount (a balance or a card number taken as
+> the amount), or the payment arriving twice. If nothing arrives, write down the notification's
+> exact text in `FEEDBACK.md`: the words and the amount format are what the parser reads, and
+> the words can be edited under *Expense words* and *Income words*. If it works for a while and
+> then stops, battery optimisation may be stopping the listener: set Cents to *Unrestricted* in
+> the app's battery settings.
+
+### c4 · The words
+
+Open **Expense words**. Add one, for example `bizum enviado`: it joins the list. Add `PAGO`: the
+row says it is already in the list. Tap a word, confirm, and it is gone; *Restore the default
+words* then appears and puts the list back.
+
+> **Wrong looks like** a word added twice, or *Restore* leaving a removed word out.

@@ -30,6 +30,7 @@ import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
 import io.github.anderescaray.cents.ui.feature.budgets.BudgetEditScreen
 import io.github.anderescaray.cents.ui.feature.budgets.BudgetsScreen
+import io.github.anderescaray.cents.ui.feature.capture.captureRoutes
 import io.github.anderescaray.cents.ui.feature.categories.CategoriesScreen
 import io.github.anderescaray.cents.ui.feature.categories.CategoryEditScreen
 import io.github.anderescaray.cents.ui.feature.filters.TransactionFiltersScreen
@@ -194,6 +195,7 @@ private fun CentsNavHost(
         categoryRoutes(navController)
         recurringRoutes(navController)
         groupRoutes(navController)
+        captureRoutes(navController)
         investmentRoutes(navController)
 
         composable<Destination.Reports> {
@@ -210,6 +212,7 @@ private fun CentsNavHost(
                 onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
                 onOpenBudgets = { navController.navigate(Destination.Budgets) },
                 onOpenGroups = { navController.navigate(Destination.Groups) },
+                onOpenCapture = { navController.navigate(Destination.Capture) },
                 onResetHomeLayout = home::resetLayout,
             )
         }

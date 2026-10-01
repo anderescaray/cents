@@ -600,7 +600,7 @@ the Drive backup connected:
   already in `main` as #70. Every merged branch, local and remote, was deleted, and so were the
   second wave's Orca worktrees.
 - **The first local build since the web sessions** passed every gate and regenerated #80's
-  hand-written `7.json` byte for byte. It was installed on the phone, an Honor (`HEY3`), and
+  hand-written `7.json` byte for byte. It was installed on the development tablet, an Honor (`HEY3`), and
   opened on the owner's data, so **`MIGRATION_6_7` has now run on a real phone.**
 - **Drive failed with an authorization error, because there was no Android OAuth client.** The
   setup below says the owner had done it, but only part of it had been done. The owner created
@@ -1839,7 +1839,7 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
             amount never swallows a real payment), and the settings in
             **DataStore rather than Room**. They are settings, not the ledger, so there is no
             schema change, and a restore that replaces the ledger leaves them alone.
-      - [ ] **Part 2, the listener** (2026-09-29): `ui/capture/CaptureListenerService`, a
+      - [x] **Part 2, the listener** (2026-09-29, #106): `ui/capture/CaptureListenerService`, a
             `NotificationListenerService` that hands the text of a chosen app's notification
             to the recorder, off the main thread. **It reads nothing from an app nobody
             chose**: it follows capture's switch and chosen apps from settings and asks
@@ -1852,10 +1852,18 @@ Devin, Cursor and a Claude Code implementer were given three branches through Or
             Android lists Cents under *Notification access*, but nothing reaches the ledger
             until part 3 lets the owner switch capture on and choose an app. It was compiled
             against Robolectric's Android classes and Hilt in the container; only a phone can
-            check that it hears anything. **On the owner's Honor, battery optimisation may
-            have to be turned off for Cents**, or the system can stop the listener.
-      - [ ] **Part 3, Settings › Capture**: the switch and *Notification access*, the apps with
-            their accounts, and the two word lists with *Restore defaults*.
+            check that it hears anything. **On the owner's phone, a Pixel, battery optimisation
+            may have to be turned off for Cents**, or the system can stop the listener. (The
+            Honor is the tablet the app is developed on, not where it will live.)
+      - [ ] **Part 3, Settings › Capture** (2026-09-30): the switch; *Notification access*,
+            asked of the phone each time the screen comes back into view and opening the system
+            list; the apps, each with its account by name (or saying its account is gone), with a
+            sheet to move it or stop reading it; a picker of the launcher's apps, searchable, then
+            the account; and the two word lists, where a word the parser would read as one
+            already there (case and accents aside) is refused, removal asks, and *Restore the
+            default words* appears once the list differs. The manifest's `<queries>` asks for the
+            launcher's apps only, not `QUERY_ALL_PACKAGES`. No schema change. **Walk 19**
+            (`c1`–`c4`) in `docs/device-check.md`, on the Pixel.
 
 **D9 is answered: three agents, on Claude Code's own worktrees** (2026-08-30). The first wave
 ran three at once and all three landed — #26, #27 and #28, with no file touched by two of them.
@@ -2458,6 +2466,8 @@ the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has th
   and the largest font (#96), and **Walk 17** (`p1`–`p3`) is postponing (#97).
 - **Walk 18** (`f1`–`f2`) is the reshaped income-and-expenses chart (#101). **`f1`, tapping a
   column, is the owner's to check first**: it is the one part of that view no test can reach.
+- **Walk 19** (`c1`–`c4`) is capture from notifications, **on the Pixel** with a real bank
+  notification. `c3`, a real payment arriving, is what no test can check.
 - If there is time for only one thing, make it **`n6`–`n9`**. The Drive backup is the one feature
   whose failure is silent until the day it is needed, and `n9` is the restore that #72 made
   possible on a phone with subscriptions.

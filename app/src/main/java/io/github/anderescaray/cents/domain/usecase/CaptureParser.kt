@@ -79,8 +79,11 @@ object CaptureParser {
                     ?: NEVER
             }.containsMatchIn(folded)
 
-    /** Lower case, accents taken off, runs of spaces made one. */
-    private fun fold(text: String): String =
+    /**
+     * Lower case, accents taken off, runs of spaces made one: the form every word is compared in.
+     * Public so the settings that edit the words judge a duplicate exactly the way this reads one.
+     */
+    fun fold(text: String): String =
         Normalizer
             .normalize(text, Normalizer.Form.NFD)
             .replace(MARKS, "")

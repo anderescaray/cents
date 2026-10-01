@@ -1950,12 +1950,13 @@ parallelism.
   (the pair nets to zero) and no report (both legs are still excluded), and the two alternatives
   are worse — clearing the `transferId` would turn it into a real income and a real expense and
   inflate both by the amount, and deleting the pair would destroy history inside an operation
-  whose whole promise is that nothing is lost. The honest fix, if it is ever wanted, is for the
-  reassignment sheet to name those transfers before it runs.
+  whose whole promise is that nothing is lost. **Since 2026-10-01 the reassignment sheet names
+  them before it runs**: a target that shares transfers with the account carries a line saying
+  how many would end up with both sides in it.
 - ~~**A deleted transfer has no undo.**~~ **It has one since #65**: both legs or neither.
   ~~**The undo banner lives only on the Transactions list.**~~ **The account detail shows it too
-  since #71**, which is where a deletion made from there returns. The deletion confirmation still
-  says the undo is "on the list", which is now slightly narrower than the truth.
+  since #71**, which is where a deletion made from there returns. The confirmation now says the
+  undo is on "the screen you go back to", which covers both.
 - ~~**The kind filter still sorts transfer legs by their kind.**~~ **Closed by #95 on
   2026-09-25**: *Income* and *Expenses* now leave out transfer legs and trade cash. What follows
   is the gap as it was. Filtering the list to *Income*

@@ -86,6 +86,12 @@ data class AccountRemovalState(
     val ruleCount: Int = 0,
     /** Accounts the movements could move into: active, not this one, same currency. */
     val reassignTargets: List<Account> = emptyList(),
+    /**
+     * Per target, the transfers it has with this account. Moving into it leaves each of them
+     * with both legs in one account, a row reading *Transfer to Savings* inside Savings, so the
+     * sheet says so under that target rather than letting it be found afterwards.
+     */
+    val transfersWithTarget: Map<Long, Int> = emptyMap(),
 ) {
     /** True while the owner is being asked something about deleting this account. */
     val asking: Boolean get() = step != RemovalStep.NONE
@@ -145,6 +151,10 @@ class AccountRemoval(
             val holdings = repository.countHoldings(id)
             val rules = repository.countRules(id)
             val targets = reassignTargets(id)
+            val transfers =
+                targets
+                    .associate { it.id to repository.countTransfersBetween(id, it.id) }
+                    .filterValues { it > 0 }
             question.value =
                 AccountRemovalState(
                     accountId = id,
@@ -165,6 +175,7 @@ class AccountRemoval(
                     holdingCount = holdings,
                     ruleCount = rules,
                     reassignTargets = targets,
+                    transfersWithTarget = transfers,
                 )
         }
     }

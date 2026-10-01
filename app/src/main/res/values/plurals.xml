@@ -79,4 +79,8 @@
         <item quantity="one">The day after</item>
         <item quantity="other">%1$d days after</item>
     </plurals>
+    <plurals name="account_reassign_transfers">
+        <item quantity="one">A transfer between the two would have both sides here. Balances and reports are unchanged.</item>
+        <item quantity="other">%1$d transfers between the two would have both sides here. Balances and reports are unchanged.</item>
+    </plurals>
 </resources>

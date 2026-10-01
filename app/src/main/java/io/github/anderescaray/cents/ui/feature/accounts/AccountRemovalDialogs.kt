@@ -110,7 +110,17 @@ private fun ReassignTargetSheet(
             ),
         actions =
             state.reassignTargets.map { target ->
-                CentsSheetAction(label = target.name, onClick = { removal.reassignTo(target.id) })
+                val transfers = state.transfersWithTarget[target.id] ?: 0
+                CentsSheetAction(
+                    label = target.name,
+                    onClick = { removal.reassignTo(target.id) },
+                    reason =
+                        if (transfers > 0) {
+                            pluralStringResource(R.plurals.account_reassign_transfers, transfers, transfers)
+                        } else {
+                            null
+                        },
+                )
             },
         cancelLabel = stringResource(R.string.action_cancel),
         onDismiss = removal::cancel,

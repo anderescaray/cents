@@ -4,17 +4,19 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -22,27 +24,23 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.patrykandpatrick.vico.compose.common.Fill
-import com.patrykandpatrick.vico.compose.pie.PieChart
-import com.patrykandpatrick.vico.compose.pie.PieChartHost
-import com.patrykandpatrick.vico.compose.pie.PieSize
-import com.patrykandpatrick.vico.compose.pie.data.PieChartModelProducer
-import com.patrykandpatrick.vico.compose.pie.data.pieSeries
-import com.patrykandpatrick.vico.compose.pie.rememberPieChart
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.reports.SpendingByCategoryRepository
+import io.github.anderescaray.cents.ui.components.AnimatedMoney
+import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.CentsRing
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.RingSlice
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.ReportActions
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
-import io.github.anderescaray.cents.ui.feature.reports.Swatch
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -92,22 +90,22 @@ data class SpendingSection(
         val labels = KINDS.associateWith { stringResource(it.labelRes) }
 
         Column {
-            // Above the card rather than inside it, the way the period control sits above
-            // the whole tab: a segmented control is a question about what follows, and a row
-            // in a grouped list reads as one more piece of the answer.
-            CentsSegmentedControl(
-                options = KINDS,
-                selected = kind,
-                onSelect = { kind = it },
-                label = { labels.getValue(it) },
-                // Tagged because "Income" is also the word the flow chart's legend uses one
-                // section down, and a test asking for it by text would be asking which of
-                // the two the tree happened to compose first.
-                modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).testTag(KIND_CONTROL_TAG),
-            )
-            Spacer(Modifier.height(CentsDimens.spacingM))
-
             CentsListSection(header = stringResource(kind.headerRes)) {
+                // Inside the card it changes (ADR 0003: one subject per card), so the control and
+                // the answer read as one thing.
+                CentsSegmentedControl(
+                    options = KINDS,
+                    selected = kind,
+                    onSelect = { kind = it },
+                    label = { labels.getValue(it) },
+                    // Tagged because "Income" is also the word the flow chart's legend uses one
+                    // section down, and a test asking for it by text would be asking which of
+                    // the two the tree happened to compose first.
+                    modifier =
+                        Modifier
+                            .padding(horizontal = CentsDimens.rowHorizontalPadding, vertical = CentsDimens.spacingS)
+                            .testTag(KIND_CONTROL_TAG),
+                )
                 if (breakdown.isEmpty) {
                     EmptyChart(stringResource(kind.emptyRes))
                 } else {
@@ -118,7 +116,11 @@ data class SpendingSection(
                         // the one income category's colour for the length of the
                         // transition. The two are different answers, not one changing.
                         key(kind) {
-                            SpendingDonut(breakdown) { actions.onDrillDown(breakdown.filterFor(it)) }
+                            SpendingDonut(
+                                breakdown = breakdown,
+                                center = { RingTotal(breakdown, kind) },
+                                onSliceClick = { actions.onDrillDown(breakdown.filterFor(it)) },
+                            )
                         }
                     }
                     CentsListRow(
@@ -178,6 +180,31 @@ class SpendingSectionSource
             )
     }
 
+/** The total in the hole of the ring: what went out, or what came in. */
+@Composable
+private fun RingTotal(
+    breakdown: SpendingBreakdown,
+    kind: TransactionKind,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        AnimatedMoney(money = breakdown.total, style = CentsTheme.typography.title3)
+        Text(
+            text =
+                stringResource(
+                    if (kind ==
+                        TransactionKind.INCOME
+                    ) {
+                        R.string.reports_ring_earned
+                    } else {
+                        R.string.home_spent
+                    },
+                ),
+            style = CentsTheme.typography.footnote,
+            color = CentsTheme.colors.secondaryLabel,
+        )
+    }
+}
+
 /**
  * The legend *is* the list. Each row already has to carry the name, the amount and the
  * share, so putting the swatch on that row means one place to read rather than a key beside
@@ -193,7 +220,7 @@ private fun CategoryRow(
         title = slice.name ?: stringResource(R.string.reports_uncategorized),
         subtitle = stringResource(R.string.reports_share, (slice.share * PERCENT).toInt()),
         value = MoneyFormatter.format(slice.total),
-        leading = { Swatch(slice.colorArgb?.let { Color(it) } ?: CentsTheme.colors.tertiaryLabel) },
+        leading = { CategoryBadge(name = slice.name, colorArgb = slice.colorArgb) },
         showChevron = true,
         showSeparator = !last,
         onClick = onClick,
@@ -201,20 +228,22 @@ private fun CategoryRow(
 }
 
 /**
- * Spending by category, as a ring.
+ * Spending by category, as a ring — the same ring Home draws (ADR 0003), so the month looks the
+ * same wherever it is shown.
  *
- * The slice colours are the owner's own — the colour they gave each category in Settings —
- * rather than a palette the chart library chose, so the donut and the list beneath it agree
- * about what "Groceries" looks like. Only the uncategorized slice has no colour of its own,
- * and it takes the tertiary label grey: it is money without a label, and it should read as
- * absence rather than as one more category.
+ * The slice colours are the owner's own — the colour they gave each category in Settings — so the
+ * ring and the list beneath it agree about what "Groceries" looks like. Only the uncategorized
+ * slice has no colour of its own, and it takes the tertiary label grey: it is money without a
+ * label, and it should read as absence rather than as one more category. [center] goes in the
+ * hole: the total, usually.
  */
 @Composable
 internal fun SpendingDonut(
     breakdown: SpendingBreakdown,
     modifier: Modifier = Modifier,
+    center: @Composable () -> Unit = {},
     onSliceClick: (CategorySpending) -> Unit = {},
-) = SpendingDonut(slices = breakdown.slices, modifier = modifier, onSliceClick = onSliceClick)
+) = SpendingDonut(slices = breakdown.slices, modifier = modifier, center = center, onSliceClick = onSliceClick)
 
 /**
  * The same ring from its slices alone, for a screen whose slices are not a report period's — a
@@ -224,56 +253,39 @@ internal fun SpendingDonut(
 internal fun SpendingDonut(
     slices: List<CategorySpending>,
     modifier: Modifier = Modifier,
+    center: @Composable () -> Unit = {},
     onSliceClick: (CategorySpending) -> Unit = {},
 ) {
-    val fallback = CentsTheme.colors.tertiaryLabel
-    val producer = remember { PieChartModelProducer() }
-
-    // Keyed on the slices, so the model is rebuilt when the totals change and not on every
-    // recomposition. The adding up is already done; re-running the transaction while the
-    // screen scrolls is how a chart starts costing frames.
-    LaunchedEffect(slices) {
-        if (slices.isEmpty()) return@LaunchedEffect
-        producer.runTransaction {
-            pieSeries { series(slices.map { it.total.minorUnits }) }
-        }
-    }
-
     if (slices.isEmpty()) return
-
-    val fills =
+    val fallback = CentsTheme.colors.tertiaryLabel
+    val ring =
         remember(slices, fallback) {
-            slices.map { slice ->
-                PieChart.Slice(fill = Fill(slice.colorArgb?.let { Color(it) } ?: fallback))
+            slices.mapIndexed { index, slice ->
+                RingSlice(
+                    key = slice.categoryId?.toString() ?: "none-$index",
+                    share = slice.share,
+                    color = slice.colorArgb?.let { Color(it) } ?: fallback,
+                )
             }
         }
-
-    PieChartHost(
-        chart =
-            rememberPieChart(
-                sliceProvider = PieChart.SliceProvider.series(fills),
-                spacing = SLICE_SPACING,
-                // A ring rather than a filled circle: the hole is what stops five similar
-                // colours reading as one blob.
-                innerSize = PieSize.Inner.fixed(DONUT_HOLE),
-            ),
-        modelProducer = producer,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .height(DONUT_HEIGHT)
-                .pointerInput(slices) {
-                    // The hole is an absolute size to Vico, so it is measured here in the
-                    // same pixels as the tap rather than assumed to be a fixed fraction of
-                    // a ring whose diameter depends on how wide the screen is.
-                    val holeDiameter = DONUT_HOLE.toPx()
-                    detectTapGestures { tap ->
-                        slices
-                            .sliceAt(tap, size.width.toFloat(), size.height.toFloat(), holeDiameter)
-                            ?.let(onSliceClick)
-                    }
-                },
-    )
+    Box(modifier = modifier.fillMaxWidth().height(DONUT_HEIGHT), contentAlignment = Alignment.Center) {
+        CentsRing(
+            slices = ring,
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .pointerInput(slices) {
+                        // The ring's hole is what its stroke leaves of the diameter, measured in
+                        // the same pixels as the tap.
+                        detectTapGestures { tap ->
+                            val side = minOf(size.width, size.height).toFloat()
+                            slices
+                                .sliceAt(tap, size.width.toFloat(), size.height.toFloat(), side * RING_HOLE)
+                                ?.let(onSliceClick)
+                        }
+                    },
+        ) { center() }
+    }
 }
 
 /**
@@ -330,8 +342,9 @@ internal fun List<CategorySpending>.sliceAt(
 internal const val KIND_CONTROL_TAG = "reportsSpendingKind"
 
 private val DONUT_HEIGHT = 220.dp
-private val DONUT_HOLE = 104.dp
-private val SLICE_SPACING = 2.dp
+
+/** What of the diameter the hole is: [CentsRing]'s stroke is a tenth of it, on each side. */
+private const val RING_HOLE = 0.8f
 
 private const val QUARTER_TURN = 90f
 private const val FULL_TURN = 360f

@@ -33,6 +33,7 @@
     <string name="reports_customize_up">Subir %1$s</string>
     <string name="reports_customize_down">Bajar %1$s</string>
     <string name="reports_customize_action">Personalizar</string>
+    <string name="reports_ring_earned">ingresado</string>
     <plurals name="home_pending_title">
         <item quantity="one">%1$d esperando su importe</item>
         <item quantity="many">%1$d esperando su importe</item>

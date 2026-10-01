@@ -34,6 +34,7 @@
     <string name="reports_customize_up">Move %1$s up</string>
     <string name="reports_customize_down">Move %1$s down</string>
     <string name="reports_customize_action">Customize</string>
+    <string name="reports_ring_earned">earned</string>
     <plurals name="home_pending_title">
         <item quantity="one">%1$d waiting for an amount</item>
         <item quantity="other">%1$d waiting for an amount</item>

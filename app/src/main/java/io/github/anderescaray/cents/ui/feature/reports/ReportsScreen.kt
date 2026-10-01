@@ -127,15 +127,14 @@ fun ReportsScreen(
                 shown.filter { key ->
                     if (key == BUDGETS_KEY) budgets != null && !budgets.isLoading else key in byKey
                 }
-            drawn.forEachIndexed { index, key ->
-                val last = index == drawn.lastIndex
+            drawn.forEach { key ->
+
                 item(key = key) {
                     if (key == BUDGETS_KEY) {
                         budgets?.let { BudgetsCard(it, onOpenBudgets) }
                     } else {
                         byKey.getValue(key).Content(actions)
                     }
-                    if (!last) Spacer(Modifier.height(CentsDimens.sectionSpacing))
                 }
             }
         }
@@ -174,7 +173,6 @@ private fun LazyListScope.periodSection(
             label = { presetLabels.getValue(it) },
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
         )
-        Spacer(Modifier.height(CentsDimens.sectionSpacing))
     }
 
     if (state.preset == PeriodPreset.CUSTOM) {
@@ -183,7 +181,6 @@ private fun LazyListScope.periodSection(
                 RangeRow(R.string.reports_range_from, state.customFrom) { onOpenPicker(RangeBound.FROM) }
                 RangeRow(R.string.reports_range_to, state.customTo, last = true) { onOpenPicker(RangeBound.TO) }
             }
-            Spacer(Modifier.height(CentsDimens.sectionSpacing))
         }
     }
 }
@@ -230,7 +227,6 @@ private fun LazyListScope.accountSection(
                 )
             }
         }
-        Spacer(Modifier.height(CentsDimens.sectionSpacing))
     }
 }
 

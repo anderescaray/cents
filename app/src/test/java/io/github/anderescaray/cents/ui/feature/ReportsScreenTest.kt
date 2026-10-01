@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
@@ -557,7 +559,9 @@ class ReportsScreenTest {
             .onNode(hasTestTag(KIND_CONTROL_TAG))
             .onChildren()
             .filterToOne(hasText(label))
-            .performClick()
+            // The action rather than a tap at its position: scrolled to its heading, the control
+            // can sit under the title bar, where a tap would land on the bar's own button.
+            .performSemanticsAction(SemanticsActions.OnClick)
     }
 
     /** Taps one segment of whichever control carries [tag]. */
@@ -570,7 +574,9 @@ class ReportsScreenTest {
             .onNode(hasTestTag(tag))
             .onChildren()
             .filterToOne(hasText(label))
-            .performClick()
+            // The action rather than a tap at its position: scrolled to its heading, the control
+            // can sit under the title bar, where a tap would land on the bar's own button.
+            .performSemanticsAction(SemanticsActions.OnClick)
     }
 
     /**
@@ -581,7 +587,9 @@ class ReportsScreenTest {
             .onNode(hasTestTag(SEGMENT_CONTROL_TAG))
             .onChildren()
             .filterToOne(hasText(label))
-            .performClick()
+            // The action rather than a tap at its position: scrolled to its heading, the control
+            // can sit under the title bar, where a tap would land on the bar's own button.
+            .performSemanticsAction(SemanticsActions.OnClick)
     }
 
     private fun setContent(

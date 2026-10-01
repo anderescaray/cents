@@ -253,7 +253,12 @@ private fun totalFooter(state: AccountsUiState): String? {
     val total = state.total
     return when {
         state.active.isEmpty() -> null
+
+        // Already the *In accounts* figure above, when there is one: said once, not twice.
+        total != null && state.netWorth != null -> null
+
         total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))
+
         else -> stringResource(R.string.accounts_total_mixed_currencies)
     }
 }

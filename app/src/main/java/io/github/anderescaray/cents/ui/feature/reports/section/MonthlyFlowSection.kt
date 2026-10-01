@@ -120,9 +120,11 @@ data class MonthlyFlowSection(
         val select: (Int) -> Unit = { if (it in buckets.indices) selected = it }
 
         Column {
-            FlowControls(mode = mode, onMode = { mode = it }, shape = flow.shape, onReshape = onReshape)
-            Spacer(Modifier.height(CentsDimens.spacingM))
             CentsListSection(header = stringResource(R.string.reports_flow_header)) {
+                // Inside the card they change, so the controls and the chart read as one thing.
+                Column(Modifier.padding(vertical = CentsDimens.spacingS)) {
+                    FlowControls(mode = mode, onMode = { mode = it }, shape = flow.shape, onReshape = onReshape)
+                }
                 if (flow.isEmpty || bucket == null) {
                     EmptyChart(stringResource(R.string.reports_flow_empty))
                 } else {
@@ -208,7 +210,7 @@ private fun FlowControls(
             FlowBucketSize.QUARTER to stringResource(R.string.reports_flow_size_quarter),
             FlowBucketSize.YEAR to stringResource(R.string.reports_flow_size_year),
         )
-    val margin = Modifier.padding(horizontal = CentsDimens.screenMargin)
+    val margin = Modifier.padding(horizontal = CentsDimens.rowHorizontalPadding)
 
     CentsSegmentedControl(
         options = FlowMode.entries,

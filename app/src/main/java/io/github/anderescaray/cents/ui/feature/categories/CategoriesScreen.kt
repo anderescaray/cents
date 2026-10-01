@@ -45,6 +45,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.accounts.DeletionFailedAlert
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -75,23 +76,12 @@ fun CategoriesScreen(
         },
         trailing = {
             val addLabel = stringResource(R.string.categories_add)
-            Box(
-                modifier =
-                    Modifier
-                        .semantics { contentDescription = addLabel }
-                        .testTag(ADD_CATEGORY_TAG)
-                        .size(CentsDimens.minRowHeight)
-                        .clip(CircleShape)
-                        .tappable(onClick = { onNewCategory(state.kind) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.action_add),
-                    style = CentsTheme.typography.title2,
-                    color = CentsTheme.colors.accentText,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-            }
+            RoundIconButton(
+                iconRes = R.drawable.ic_plus,
+                contentDescription = addLabel,
+                onClick = { onNewCategory(state.kind) },
+                modifier = Modifier.testTag(ADD_CATEGORY_TAG),
+            )
         },
     ) {
         kindSelector(state.kind, viewModel::setKind)

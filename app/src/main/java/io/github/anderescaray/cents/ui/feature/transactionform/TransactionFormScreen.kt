@@ -229,7 +229,7 @@ private fun FormFooter(
 
 /** Cancel on the left, what this is in the middle, and Delete on the right when editing. */
 @Composable
-private fun FormTopBar(
+internal fun FormTopBar(
     title: String,
     onCancel: () -> Unit,
     onDelete: (() -> Unit)?,

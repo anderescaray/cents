@@ -26,6 +26,8 @@
     <string name="form_add_income">Add income</string>
     <string name="form_new_category">New</string>
     <string name="form_no_group">No group</string>
+    <string name="subscriptions_every_month">Every month</string>
+    <string name="transfer_confirm">Transfer</string>
     <plurals name="home_pending_title">
         <item quantity="one">%1$d waiting for an amount</item>
         <item quantity="other">%1$d waiting for an amount</item>

@@ -30,7 +30,9 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSearchField
+import io.github.anderescaray.cents.ui.components.MovementBadge
 import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
@@ -105,20 +107,11 @@ internal fun TransactionsList(
             val addLabel = stringResource(R.string.add_transaction_title)
             // Read aloud as what it does rather than as "plus": the label is on the button, and
             // the glyph inside it is kept out of what TalkBack says.
-            Box(
-                modifier =
-                    Modifier
-                        .semantics { contentDescription = addLabel }
-                        .tappable(onClick = onAddTransaction),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.action_add),
-                    style = CentsTheme.typography.title2,
-                    color = CentsTheme.colors.accentText,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-            }
+            RoundIconButton(
+                iconRes = R.drawable.ic_plus,
+                contentDescription = addLabel,
+                onClick = onAddTransaction,
+            )
         },
     ) {
         searchField(query = state.query, onQueryChange = onQueryChange)
@@ -350,6 +343,7 @@ private fun LazyListScope.day(
                     subtitleMaxLines = NOTE_MAX_LINES,
                     value = MoneyFormatter.formatSigned(transaction.signedAmount),
                     valueColor = details.movementValueColor(),
+                    leading = { details.MovementBadge() },
                     showSeparator = index != day.items.lastIndex,
                     onClick = {
                         details.open(onOpenTransaction, onOpenTransfer, onOpenTrade)

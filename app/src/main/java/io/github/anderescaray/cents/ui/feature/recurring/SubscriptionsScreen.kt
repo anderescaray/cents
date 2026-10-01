@@ -25,10 +25,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsBackButton
+import io.github.anderescaray.cents.ui.components.CentsCard
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -101,23 +103,12 @@ fun SubscriptionsScreen(
 
 @Composable
 private fun AddRuleButton(onClick: () -> Unit) {
-    val label = stringResource(R.string.subscriptions_add)
-    Box(
-        modifier =
-            Modifier
-                .semantics { contentDescription = label }
-                .testTag(ADD_RULE_TAG)
-                .size(CentsDimens.minRowHeight)
-                .clip(CircleShape)
-                .tappable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.action_add),
-            style = CentsTheme.typography.title2,
-            color = CentsTheme.colors.accentText,
-        )
-    }
+    RoundIconButton(
+        iconRes = R.drawable.ic_plus,
+        contentDescription = stringResource(R.string.subscriptions_add),
+        onClick = onClick,
+        modifier = Modifier.testTag(ADD_RULE_TAG),
+    )
 }
 
 private fun LazyListScope.emptyState() {
@@ -141,16 +132,16 @@ private fun LazyListScope.emptyState() {
 private fun LazyListScope.totalHeader(state: SubscriptionsUiState) {
     item(key = "total") {
         val monthly = state.monthlyOutgoing
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = CentsDimens.spacingL),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingXs),
-        ) {
+        CentsCard(modifier = Modifier.padding(horizontal = CentsDimens.screenMargin)) {
+            Text(
+                text = stringResource(R.string.subscriptions_every_month),
+                style = CentsTheme.typography.subhead,
+                color = CentsTheme.colors.secondaryLabel,
+            )
             Text(
                 text = monthly?.let { MoneyFormatter.format(it) } ?: NO_TOTAL,
-                style = CentsTheme.typography.largeTitle,
+                style = CentsTheme.typography.display,
                 color = CentsTheme.colors.label,
-                textAlign = TextAlign.Center,
                 modifier = Modifier.testTag(MONTHLY_TOTAL_TAG),
             )
             Text(
@@ -169,8 +160,6 @@ private fun LazyListScope.totalHeader(state: SubscriptionsUiState) {
                     },
                 style = CentsTheme.typography.footnote,
                 color = CentsTheme.colors.secondaryLabel,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
             )
         }
     }

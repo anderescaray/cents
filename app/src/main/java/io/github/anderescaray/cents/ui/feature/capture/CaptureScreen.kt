@@ -175,7 +175,7 @@ private fun LazyListScope.accessSection(
                         false -> stringResource(R.string.capture_access_off)
                         null -> null
                     },
-                valueColor = if (accessGranted == false) CentsTheme.colors.destructive else null,
+                valueColor = if (accessGranted == false) CentsTheme.colors.destructiveText else null,
                 showChevron = true,
                 showSeparator = false,
                 onClick = actions.onOpenAccess,

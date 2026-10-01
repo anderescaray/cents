@@ -28,6 +28,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.usecase.BudgetProgress
 import io.github.anderescaray.cents.domain.usecase.BudgetStatus
+import io.github.anderescaray.cents.ui.components.BudgetBar
+import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -62,7 +64,7 @@ internal fun BudgetsContent(
     CentsLargeTitleScaffold(
         title = stringResource(R.string.budgets_title),
         bottomPadding = CentsDimens.sectionSpacing,
-        leading = { CentsBackButton(label = stringResource(R.string.tab_settings), onClick = onBack) },
+        leading = { CentsBackButton(label = stringResource(R.string.tab_reports), onClick = onBack) },
         trailing = { if (state.canAdd) AddBudgetButton(onClick = onNewBudget) },
     ) {
         if (state.isLoading) return@CentsLargeTitleScaffold
@@ -113,7 +115,7 @@ private fun LazyListScope.budgetRows(
  * made it up underneath, and a bar that says the same thing at a glance, in the colour of D26.
  */
 @Composable
-private fun BudgetRow(
+internal fun BudgetRow(
     row: BudgetProgress,
     last: Boolean,
     onClick: () -> Unit,
@@ -129,20 +131,25 @@ private fun BudgetRow(
                 } else {
                     stringResource(R.string.budget_row_left, MoneyFormatter.format(row.remaining))
                 },
-            valueColor = if (row.status == BudgetStatus.UNDER) null else tint,
+            valueColor = if (row.status == BudgetStatus.UNDER) CentsTheme.colors.label else tint,
+            leading = { CategoryBadge(name = row.category.name, colorArgb = row.category.colorArgb) },
             showChevron = true,
             showSeparator = false,
             onClick = onClick,
         )
         BudgetBar(
             fraction = row.fraction,
-            tint = tint,
+            color = row.status.fill(),
+            trackColor = CentsTheme.colors.fill,
+            markColor = CentsTheme.colors.tertiaryLabel,
             modifier =
-                Modifier.padding(
-                    start = CentsDimens.rowHorizontalPadding,
-                    end = CentsDimens.rowHorizontalPadding,
-                    bottom = if (last) CentsDimens.spacingM else CentsDimens.spacingL,
-                ),
+                Modifier
+                    .padding(
+                        start = CentsDimens.rowHorizontalPadding,
+                        end = CentsDimens.rowHorizontalPadding,
+                        bottom = if (last) CentsDimens.spacingL else CentsDimens.spacingL,
+                    ).fillMaxWidth()
+                    .height(BAR_HEIGHT.dp),
         )
     }
 }
@@ -171,8 +178,9 @@ private fun BudgetProgress.detail(): String {
     }
 }
 
+/** The bar's fill: blue with room, amber from 80 %, red past the limit (D26). */
 @Composable
-private fun BudgetStatus.tint(): Color =
+private fun BudgetStatus.fill(): Color =
     when (this) {
         BudgetStatus.UNDER -> CentsTheme.colors.accent
         BudgetStatus.NEAR -> CentsTheme.colors.warning
@@ -180,29 +188,12 @@ private fun BudgetStatus.tint(): Color =
     }
 
 @Composable
-private fun BudgetBar(
-    fraction: Float,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .height(BAR_HEIGHT.dp)
-                .clip(RoundedCornerShape(BAR_HEIGHT.dp))
-                .background(CentsTheme.colors.separator),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth(fraction)
-                    .height(BAR_HEIGHT.dp)
-                    .clip(RoundedCornerShape(BAR_HEIGHT.dp))
-                    .background(tint),
-        )
+private fun BudgetStatus.tint(): Color =
+    when (this) {
+        BudgetStatus.UNDER -> CentsTheme.colors.accentText
+        BudgetStatus.NEAR -> CentsTheme.colors.warningText
+        BudgetStatus.OVER -> CentsTheme.colors.destructiveText
     }
-}
 
 @Composable
 private fun AddBudgetButton(onClick: () -> Unit) {
@@ -220,19 +211,19 @@ private fun AddBudgetButton(onClick: () -> Unit) {
         Text(
             text = stringResource(R.string.action_add),
             style = CentsTheme.typography.title2,
-            color = CentsTheme.colors.accent,
+            color = CentsTheme.colors.accentText,
             modifier = Modifier.clearAndSetSemantics {},
         )
     }
 }
 
 /** "September 2026", in the device's language, which is what a section header reads as. */
-private fun monthLabel(month: YearMonth): String =
+internal fun monthLabel(month: YearMonth): String =
     month
         .format(DateTimeFormatter.ofPattern(MONTH_PATTERN, Locale.getDefault()))
         .replaceFirstChar { it.titlecase(Locale.getDefault()) }
 
-private const val BAR_HEIGHT = 4
+private const val BAR_HEIGHT = 10
 private const val MONTH_PATTERN = "LLLL yyyy"
 internal const val ADD_BUDGET_TAG = "addBudget"
 internal const val BUDGET_ROW_TAG = "budgetRow"

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -23,9 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -46,12 +47,9 @@ import io.github.anderescaray.cents.ui.util.AmountEntry
  * grid of the iOS decimal pad — closer to the platform being imitated than the two stretched
  * keys it replaces.
  *
- * **It stands on its own surface, with a hairline above it.** Without that it shared the
- * grouped background with the form it sits under, and its keys are grouped cards like every
- * other card on that ground — so in the account editor there was no line at all between the
- * colour swatches and the top row of keys, and the owner could not see where one ended and
- * the other began. A bar background and a `barSeparator` are what iOS puts under an input
- * accessory, and they are the same two tokens the tab bar uses to sit above content.
+ * **It stands on its own surface.** Its keys are grey slabs on white, the film's keypad, so they
+ * can never be mistaken for the cards of the form above — which is what happened when keys and
+ * colour swatches were the same white on the same grey (FEEDBACK, 2026-09-02).
  *
  * The bottom inset is the keypad's own business rather than each caller's: it is always the
  * thing against the bottom edge when it is on screen, and a caller that padded *outside* it
@@ -65,26 +63,22 @@ fun CentsKeypad(
     modifier: Modifier = Modifier,
     deleteLabel: String = "⌫",
     separatorLabel: String = AmountEntry.separatorFor().toString(),
+    /** False when something sits below the keypad and stands clear of the gesture bar itself. */
+    applyBottomInset: Boolean = true,
 ) {
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .background(CentsTheme.colors.barBackground),
+                .background(CentsTheme.colors.groupedCard),
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(CentsDimens.separatorThickness)
-                    .background(CentsTheme.colors.barSeparator),
-        )
         KeypadKeys(
             onDigit = onDigit,
             onDecimalSeparator = onDecimalSeparator,
             onDelete = onDelete,
             deleteLabel = deleteLabel,
             separatorLabel = separatorLabel,
+            applyBottomInset = applyBottomInset,
         )
     }
 }
@@ -97,19 +91,19 @@ private fun KeypadKeys(
     onDelete: () -> Unit,
     deleteLabel: String,
     separatorLabel: String,
+    applyBottomInset: Boolean,
 ) {
+    val navigationInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val separatorDescription = stringResource(R.string.keypad_decimal_separator)
     val deleteDescription = stringResource(R.string.keypad_delete)
     Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = CentsDimens.spacingS)
+                .padding(horizontal = CentsDimens.screenMargin)
                 .padding(top = CentsDimens.spacingS)
                 .padding(
-                    bottom =
-                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
-                            CentsDimens.spacingS,
+                    bottom = (if (applyBottomInset) navigationInset else 0.dp) + CentsDimens.spacingS,
                 ),
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
     ) {
@@ -160,10 +154,11 @@ private fun KeypadKey(
     Box(
         modifier =
             modifier
-                .heightIn(min = KEY_HEIGHT.dp)
-                .clip(RoundedCornerShape(CentsDimens.groupedCornerRadius))
+                .scale(rememberPressScale(pressed))
+                .heightIn(min = CentsDimens.keyHeight)
+                .clip(RoundedCornerShape(CentsDimens.keyRadius))
                 .background(
-                    if (pressed) CentsTheme.colors.rowPressed else CentsTheme.colors.groupedCard,
+                    if (pressed) CentsTheme.colors.switchTrackOff else CentsTheme.colors.fill,
                 ).clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -173,7 +168,7 @@ private fun KeypadKey(
     ) {
         Text(
             text = label,
-            style = CentsTheme.typography.title2,
+            style = CentsTheme.typography.title2.copy(fontWeight = FontWeight.SemiBold),
             color = CentsTheme.colors.label,
         )
     }
@@ -183,8 +178,6 @@ private const val DELETE_KEY = '⌫'
 
 /** The canonical separator stands for the key; what it *says* is the locale's business. */
 private const val SEPARATOR_KEY = AmountEntry.SEPARATOR
-
-private const val KEY_HEIGHT = 52
 
 private val ROWS =
     listOf(

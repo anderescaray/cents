@@ -18,13 +18,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
- * The iOS segmented control: a rounded grey track with a raised white pill marking the
+ * A segmented control: a fully rounded grey track with a raised white thumb marking the
  * selection. Used for choices with two or three options that are always visible.
  */
 @Composable
@@ -40,15 +40,15 @@ fun <T> CentsSegmentedControl(
             modifier
                 .fillMaxWidth()
                 .heightIn(min = SEGMENT_HEIGHT.dp)
-                .clip(RoundedCornerShape(SEGMENT_RADIUS.dp))
-                .background(CentsTheme.colors.switchTrackOff)
-                .padding(2.dp),
+                .clip(RoundedCornerShape((SEGMENT_RADIUS + 3).dp))
+                .background(CentsTheme.colors.fill)
+                .padding(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         options.forEach { option ->
             val isSelected = option == selected
             val background by animateColorAsState(
-                targetValue = if (isSelected) CentsTheme.colors.groupedCard else CentsTheme.colors.switchTrackOff,
+                targetValue = if (isSelected) CentsTheme.colors.groupedCard else CentsTheme.colors.fill,
                 label = "segmentBackground",
             )
 
@@ -60,11 +60,11 @@ fun <T> CentsSegmentedControl(
                         .heightIn(min = SEGMENT_INNER_HEIGHT.dp)
                         .then(
                             if (isSelected) {
-                                Modifier.shadow(1.dp, RoundedCornerShape((SEGMENT_RADIUS - 2).dp))
+                                Modifier.cardSurface(RoundedCornerShape(SEGMENT_RADIUS.dp))
                             } else {
                                 Modifier
                             },
-                        ).clip(RoundedCornerShape((SEGMENT_RADIUS - 2).dp))
+                        ).clip(RoundedCornerShape(SEGMENT_RADIUS.dp))
                         .background(background)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -76,14 +76,17 @@ fun <T> CentsSegmentedControl(
             ) {
                 Text(
                     text = label(option),
-                    style = CentsTheme.typography.subhead,
-                    color = CentsTheme.colors.label,
+                    style =
+                        CentsTheme.typography.subhead.copy(
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        ),
+                    color = if (isSelected) CentsTheme.colors.label else CentsTheme.colors.secondaryLabel,
                 )
             }
         }
     }
 }
 
-private const val SEGMENT_HEIGHT = 32
-private const val SEGMENT_INNER_HEIGHT = 28
-private const val SEGMENT_RADIUS = 9
+private const val SEGMENT_HEIGHT = 40
+private const val SEGMENT_INNER_HEIGHT = 34
+private const val SEGMENT_RADIUS = 20

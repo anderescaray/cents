@@ -164,7 +164,7 @@ private fun LazyListScope.datesSection(
             CentsListRow(
                 title = stringResource(R.string.group_end),
                 value = state.endDate?.medium() ?: none,
-                valueColor = if (state.datesInverted) CentsTheme.colors.destructive else null,
+                valueColor = if (state.datesInverted) CentsTheme.colors.destructiveText else null,
                 showChevron = true,
                 showSeparator = hasDates,
                 onClick = { viewModel.openPicker(GroupDate.END) },

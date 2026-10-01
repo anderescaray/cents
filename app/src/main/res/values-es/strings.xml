@@ -59,7 +59,6 @@
     <string name="settings_export">Exportar una copia</string>
     <string name="settings_currency">Moneda principal</string>
     <string name="settings_data_footer">Todo se queda en este dispositivo. No se sube nada a ningún sitio.</string>
-    <string name="settings_add_transaction">Añadir movimiento</string>
     <string name="settings_categories">Categorías</string>
     <string name="settings_categories_footer">Las categorías son tuyas: Cents no trae ninguna y nunca añade una por su cuenta.</string>
 
@@ -215,13 +214,6 @@
     <string name="keypad_decimal_separator">Separador decimal</string>
     <string name="keypad_delete">Borrar</string>
     <string name="settings_section_home">Inicio</string>
-    <string name="settings_reset_home">Restablecer las burbujas</string>
-    <string name="settings_reset_home_footer">Devuelve las burbujas al sitio y al tamaño que tienen en una instalación nueva.</string>
-    <string name="tab_bar_hide">Ocultar la barra de pestañas</string>
-    <string name="tab_bar_show">Mostrar la barra de pestañas</string>
-    <string name="settings_reset_home_title">¿Restablecer las burbujas?</string>
-    <string name="settings_reset_home_message">Las burbujas vuelven al sitio que tienen en una instalación nueva. Cómo las habías colocado no se guarda.</string>
-    <string name="settings_reset_home_confirm">Restablecer</string>
 
     <!-- Traspasos -->
     <string name="kind_transfer">Traspaso</string>

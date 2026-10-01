@@ -153,12 +153,12 @@ private fun AlertAction(
             text = label,
             style = CentsTheme.typography.body,
             fontWeight = if (emphasised) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (destructive) CentsTheme.colors.destructive else CentsTheme.colors.accent,
+            color = if (destructive) CentsTheme.colors.destructiveText else CentsTheme.colors.accentText,
             textAlign = TextAlign.Center,
         )
     }
 }
 
 private const val ALERT_WIDTH = 270
-private const val ALERT_RADIUS = 14
+private const val ALERT_RADIUS = 22
 private const val ALERT_TEXT_PADDING = 19

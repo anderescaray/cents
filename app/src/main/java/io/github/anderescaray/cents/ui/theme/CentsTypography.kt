@@ -29,11 +29,14 @@ val InterFamily =
     )
 
 /**
- * Apple's text styles, at their documented sizes and line heights. Screens name the role
- * (`headline`, `footnote`) rather than a size, so scaling the whole app is one edit here.
+ * The type scale of the film (ADR 0003). Screens name the role (`headline`, `footnote`) rather
+ * than a size, so scaling the whole app is one edit here. Running text is Medium rather than
+ * Regular: at 13–16 sp Inter's Regular reads thin beside the bold numbers.
  */
 @Immutable
 data class CentsTypography(
+    /** The one number a card leads with: net worth, what a month cost. */
+    val display: TextStyle,
     val largeTitle: TextStyle,
     val title1: TextStyle,
     val title2: TextStyle,
@@ -45,6 +48,8 @@ data class CentsTypography(
     val footnote: TextStyle,
     val caption1: TextStyle,
     val caption2: TextStyle,
+    /** A small label in capitals, spaced out: *MOST SPENT THIS MONTH*. */
+    val overline: TextStyle,
 )
 
 private fun interStyle(
@@ -58,21 +63,25 @@ private fun interStyle(
     lineHeight = lineHeight.sp,
     fontWeight = weight,
     letterSpacing = tracking.em,
+    // Tabular figures: a total that changes does not jitter, and amounts in a column line up.
+    fontFeatureSettings = "tnum",
 )
 
 val DefaultTypography =
     CentsTypography(
-        largeTitle = interStyle(34, 41, FontWeight.Bold, tracking = -0.012),
-        title1 = interStyle(28, 34, FontWeight.Bold, tracking = -0.010),
-        title2 = interStyle(22, 28, FontWeight.Bold, tracking = -0.008),
-        title3 = interStyle(20, 25, FontWeight.SemiBold, tracking = -0.006),
-        headline = interStyle(17, 22, FontWeight.SemiBold, tracking = -0.004),
-        body = interStyle(17, 22, tracking = -0.004),
-        callout = interStyle(16, 21, tracking = -0.003),
-        subhead = interStyle(15, 20, tracking = -0.002),
-        footnote = interStyle(13, 18),
-        caption1 = interStyle(12, 16),
-        caption2 = interStyle(11, 13),
+        display = interStyle(40, 46, FontWeight.Bold, tracking = -0.03),
+        largeTitle = interStyle(30, 36, FontWeight.Bold, tracking = -0.025),
+        title1 = interStyle(27, 32, FontWeight.Bold, tracking = -0.02),
+        title2 = interStyle(22, 28, FontWeight.Bold, tracking = -0.02),
+        title3 = interStyle(20, 25, FontWeight.Bold, tracking = -0.02),
+        headline = interStyle(17, 22, FontWeight.SemiBold, tracking = -0.01),
+        body = interStyle(16, 21, FontWeight.Medium, tracking = -0.01),
+        callout = interStyle(16, 21, FontWeight.Medium, tracking = -0.01),
+        subhead = interStyle(15, 20, FontWeight.Medium, tracking = -0.01),
+        footnote = interStyle(13, 18, FontWeight.Medium),
+        caption1 = interStyle(12, 16, FontWeight.Medium),
+        caption2 = interStyle(11, 13, FontWeight.Medium),
+        overline = interStyle(12, 16, FontWeight.SemiBold, tracking = 0.08),
     )
 
 val LocalCentsTypography = staticCompositionLocalOf { DefaultTypography }

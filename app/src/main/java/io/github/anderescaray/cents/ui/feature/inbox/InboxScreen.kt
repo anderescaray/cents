@@ -82,7 +82,7 @@ internal fun InboxContent(
                 Text(
                     text = stringResource(R.string.inbox_write_failed),
                     style = CentsTheme.typography.footnote,
-                    color = CentsTheme.colors.destructive,
+                    color = CentsTheme.colors.destructiveText,
                     modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
                 )
             }

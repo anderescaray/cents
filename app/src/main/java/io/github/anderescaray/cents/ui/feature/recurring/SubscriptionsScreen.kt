@@ -115,7 +115,7 @@ private fun AddRuleButton(onClick: () -> Unit) {
         Text(
             text = stringResource(R.string.action_add),
             style = CentsTheme.typography.title2,
-            color = CentsTheme.colors.accent,
+            color = CentsTheme.colors.accentText,
         )
     }
 }
@@ -314,7 +314,7 @@ private fun RuleRow(
             },
         value = MoneyFormatter.format(rule.amount),
         valueColor =
-            if (rule.kind == TransactionKind.INCOME) CentsTheme.colors.positive else CentsTheme.colors.label,
+            if (rule.kind == TransactionKind.INCOME) CentsTheme.colors.positiveText else CentsTheme.colors.label,
         showChevron = true,
         showSeparator = !last,
         onClick = onClick,

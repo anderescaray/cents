@@ -72,7 +72,7 @@ fun CentsActionSheet(
                 Text(
                     text = cancelLabel,
                     style = CentsTheme.typography.headline,
-                    color = CentsTheme.colors.accent,
+                    color = CentsTheme.colors.accentText,
                 )
             }
         }
@@ -95,12 +95,14 @@ private fun SheetHeader(
             color = CentsTheme.colors.label,
             textAlign = TextAlign.Center,
         )
-        Text(
-            text = message,
-            style = CentsTheme.typography.footnote,
-            color = CentsTheme.colors.secondaryLabel,
-            textAlign = TextAlign.Center,
-        )
+        if (message.isNotBlank()) {
+            Text(
+                text = message,
+                style = CentsTheme.typography.footnote,
+                color = CentsTheme.colors.secondaryLabel,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
@@ -109,8 +111,8 @@ private fun SheetAction(action: CentsSheetAction) {
     val color =
         when {
             !action.enabled -> CentsTheme.colors.tertiaryLabel
-            action.destructive -> CentsTheme.colors.destructive
-            else -> CentsTheme.colors.accent
+            action.destructive -> CentsTheme.colors.destructiveText
+            else -> CentsTheme.colors.accentText
         }
 
     Column(
@@ -154,5 +156,5 @@ private fun Separator() {
     )
 }
 
-private const val SHEET_RADIUS = 14
+private const val SHEET_RADIUS = 22
 private const val SHEET_ROW_HEIGHT = 57

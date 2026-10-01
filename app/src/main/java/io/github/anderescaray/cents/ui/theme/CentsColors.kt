@@ -5,11 +5,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * The iOS system palette, transcribed for both appearances.
+ * The palette of the film (docs/decisions/0003-the-ring.md): white cards on a pale cool canvas,
+ * ink rather than black, and signal colours that mean something.
  *
- * These are fixed values, not derived from the wallpaper: dynamic colour is deliberately
- * out (see docs/decisions/0001-ios-flavored-ui.md). Names follow Apple's semantic naming
- * so a screen asks for `groupedBackground`, never for "grey 100".
+ * These are fixed values, not derived from the wallpaper: there is no dynamic colour. Names are
+ * roles, so a screen asks for `groupedBackground`, never for "grey 100". The `…Text` twins are the
+ * signal colours darkened until they pass 4.5:1 as text on the canvas; the plain ones are fills.
  */
 @Immutable
 data class CentsColors(
@@ -19,13 +20,25 @@ data class CentsColors(
     val destructive: Color,
     val positive: Color,
     val warning: Color,
+    /** The accent as text: a link, a text button. */
+    val accentText: Color,
+    /** Money in, written as text. */
+    val positiveText: Color,
+    /** Near a limit, written as text. */
+    val warningText: Color,
+    /** Over a limit, written as text. */
+    val destructiveText: Color,
     val label: Color,
     val secondaryLabel: Color,
     val tertiaryLabel: Color,
-    /** Background behind grouped lists: grey in light, black in dark. */
+    /** Unselected icons in the tab capsule. */
+    val inactiveIcon: Color,
+    /** Background behind the cards: a cool pale grey in light, black in dark. */
     val groupedBackground: Color,
     /** The cards sitting on that background: white in light, near-black in dark. */
     val groupedCard: Color,
+    /** Chips, keypad keys, the segmented track and input fields: a grey that sits inside a card. */
+    val fill: Color,
     /** Pressed state for a tappable row. */
     val rowPressed: Color,
     val separator: Color,
@@ -33,6 +46,10 @@ data class CentsColors(
     val barBackground: Color,
     val barSeparator: Color,
     val switchTrackOff: Color,
+    /** The soft shadow under a card, in light only: dark lifts a card by its lighter fill. */
+    val cardShadow: Color,
+    /** The veil over the screen behind a sheet or an alert. */
+    val scrim: Color,
     val isDark: Boolean,
 )
 
@@ -41,18 +58,26 @@ val LightColors =
         accent = Color(0xFF007AFF),
         onAccent = Color(0xFFFFFFFF),
         destructive = Color(0xFFFF3B30),
-        positive = Color(0xFF34C759),
+        positive = Color(0xFF28B45A),
         warning = Color(0xFFFF9500),
-        label = Color(0xFF000000),
-        secondaryLabel = Color(0x993C3C43),
-        tertiaryLabel = Color(0x4D3C3C43),
-        groupedBackground = Color(0xFFF2F2F7),
+        accentText = Color(0xFF006BE0),
+        positiveText = Color(0xFF1C8040),
+        warningText = Color(0xFFA16000),
+        destructiveText = Color(0xFFD43128),
+        label = Color(0xFF0E1117),
+        secondaryLabel = Color(0xFF6B717D),
+        tertiaryLabel = Color(0xFFA9AFB9),
+        inactiveIcon = Color(0xFF898E96),
+        groupedBackground = Color(0xFFF4F5F9),
         groupedCard = Color(0xFFFFFFFF),
-        rowPressed = Color(0xFFD1D1D6),
-        separator = Color(0x493C3C43),
-        barBackground = Color(0xFAF9F9F9),
-        barSeparator = Color(0x4D3C3C43),
-        switchTrackOff = Color(0xFFE9E9EA),
+        fill = Color(0xFFEEF0F4),
+        rowPressed = Color(0xFFEEF0F4),
+        separator = Color(0x120E1117),
+        barBackground = Color(0xFFF4F5F9),
+        barSeparator = Color(0x120E1117),
+        switchTrackOff = Color(0xFFE3E5EA),
+        cardShadow = Color(0x1A101828),
+        scrim = Color(0x470E1117),
         isDark = false,
     )
 
@@ -63,16 +88,24 @@ val DarkColors =
         destructive = Color(0xFFFF453A),
         positive = Color(0xFF30D158),
         warning = Color(0xFFFF9F0A),
+        accentText = Color(0xFF0A84FF),
+        positiveText = Color(0xFF30D158),
+        warningText = Color(0xFFFF9F0A),
+        destructiveText = Color(0xFFFF453A),
         label = Color(0xFFFFFFFF),
         secondaryLabel = Color(0x99EBEBF5),
         tertiaryLabel = Color(0x4DEBEBF5),
+        inactiveIcon = Color(0x99EBEBF5),
         groupedBackground = Color(0xFF000000),
         groupedCard = Color(0xFF1C1C1E),
+        fill = Color(0xFF2C2C2E),
         rowPressed = Color(0xFF2C2C2E),
-        separator = Color(0xA6545458),
-        barBackground = Color(0xFA1D1D1D),
-        barSeparator = Color(0xA6545458),
+        separator = Color(0x33FFFFFF),
+        barBackground = Color(0xFF000000),
+        barSeparator = Color(0x33FFFFFF),
         switchTrackOff = Color(0xFF39393D),
+        cardShadow = Color(0x00000000),
+        scrim = Color(0x99000000),
         isDark = true,
     )
 

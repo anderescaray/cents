@@ -36,8 +36,8 @@ fun assetClassLabel(assetClass: AssetClass): String = stringResource(assetClass.
 fun profitColor(profit: Money?): Color =
     when {
         profit == null || profit.minorUnits == 0L -> CentsTheme.colors.label
-        profit.minorUnits > 0L -> CentsTheme.colors.positive
-        else -> CentsTheme.colors.destructive
+        profit.minorUnits > 0L -> CentsTheme.colors.positiveText
+        else -> CentsTheme.colors.destructiveText
     }
 
 /**

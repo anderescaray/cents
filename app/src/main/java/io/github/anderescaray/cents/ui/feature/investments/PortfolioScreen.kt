@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.PortfolioTotal
 import io.github.anderescaray.cents.domain.model.Position
+import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
@@ -60,6 +61,7 @@ fun PortfolioScreen(
     onAddHolding: () -> Unit,
     onOpenHolding: (Long) -> Unit,
     onUpdatePrices: () -> Unit,
+    onBack: () -> Unit = {},
     viewModel: PortfolioViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,6 +71,7 @@ fun PortfolioScreen(
         onAddHolding = onAddHolding,
         onOpenHolding = onOpenHolding,
         onUpdatePrices = onUpdatePrices,
+        onBack = onBack,
     )
 }
 
@@ -82,12 +85,16 @@ fun PortfolioScreen(
     onAddHolding: () -> Unit,
     onOpenHolding: (Long) -> Unit,
     onUpdatePrices: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_investments),
         bottomPadding = CentsDimens.sectionSpacing,
-        leading = { if (state.groups.isNotEmpty()) UpdatePricesButton(onUpdatePrices) },
-        trailing = { if (state.hasAccount) AddHoldingButton(onAddHolding) },
+        leading = { CentsBackButton(label = stringResource(R.string.wallet_title), onClick = onBack) },
+        trailing = {
+            if (state.groups.isNotEmpty()) UpdatePricesButton(onUpdatePrices)
+            if (state.hasAccount) AddHoldingButton(onAddHolding)
+        },
     ) {
         if (state.loading) return@CentsLargeTitleScaffold
 
@@ -311,7 +318,7 @@ private fun UpdatePricesButton(onClick: () -> Unit) {
     Text(
         text = stringResource(R.string.prices_action),
         style = CentsTheme.typography.body,
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         // A bare Text is a few points tall; the tap target is a row's height, as on the
         // movements list.
         modifier =
@@ -340,7 +347,7 @@ private fun AddHoldingButton(onClick: () -> Unit) {
         Text(
             text = stringResource(R.string.action_add),
             style = CentsTheme.typography.title2,
-            color = CentsTheme.colors.accent,
+            color = CentsTheme.colors.accentText,
             modifier = Modifier.clearAndSetSemantics {},
         )
     }

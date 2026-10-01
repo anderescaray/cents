@@ -159,7 +159,7 @@ private fun ComparisonDetails(
         amount = comparison.before.net,
     )
     LegendRow(
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         label = stringResource(R.string.reports_comparison_legend_current),
         amount = comparison.current.net,
     )
@@ -261,8 +261,8 @@ private fun ChangeRow(
     val tint =
         when {
             change.isZero -> CentsTheme.colors.secondaryLabel
-            change.isNegative == moreIsBetter -> CentsTheme.colors.destructive
-            else -> CentsTheme.colors.positive
+            change.isNegative == moreIsBetter -> CentsTheme.colors.destructiveText
+            else -> CentsTheme.colors.positiveText
         }
 
     CentsListRow(

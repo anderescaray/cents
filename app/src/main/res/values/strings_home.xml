@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The redesign of 2026-10-01: Home, the tab capsule, What you have. -->
+    <string name="tab_home">Home</string>
+    <string name="tab_wallet">Wallet</string>
+    <string name="wallet_title">What you have</string>
+    <string name="action_add_movement">Add a movement</string>
+    <string name="action_back_to">Back to %1$s</string>
+    <string name="home_add_label">Add: %1$s</string>
+    <string name="home_no_accounts_title">Create your first account</string>
+    <string name="home_no_accounts_message">Movements are recorded in an account: a bank account, a card or cash. Tap to make one.</string>
+    <string name="home_see_all">See all %1$d</string>
+    <string name="home_pending_message">Bills and salaries that fell due and need their figure.</string>
+    <string name="home_this_month">This month</string>
+    <string name="home_spent">spent</string>
+    <string name="home_nothing_spent">Nothing spent yet this month.</string>
+    <string name="home_in">In</string>
+    <string name="home_out">Out</string>
+    <string name="home_left">Left</string>
+    <string name="home_overspent">Overspent</string>
+    <string name="reports_budgets_empty">No budgets yet</string>
+    <string name="reports_budgets_empty_footer">Give a category a monthly limit and see here how close you are.</string>
+    <string name="form_title_new_expense">New expense</string>
+    <string name="form_title_new_income">New income</string>
+    <string name="form_add_expense">Add expense</string>
+    <string name="form_add_income">Add income</string>
+    <string name="form_new_category">New</string>
+    <string name="form_no_group">No group</string>
+    <plurals name="home_pending_title">
+        <item quantity="one">%1$d waiting for an amount</item>
+        <item quantity="other">%1$d waiting for an amount</item>
+    </plurals>
+</resources>

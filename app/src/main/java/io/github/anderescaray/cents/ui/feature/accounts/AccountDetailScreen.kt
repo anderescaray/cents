@@ -95,7 +95,7 @@ internal fun AccountDetailContent(
                     Text(
                         text = stringResource(R.string.action_edit),
                         style = CentsTheme.typography.body,
-                        color = CentsTheme.colors.accent,
+                        color = CentsTheme.colors.accentText,
                         modifier =
                             Modifier
                                 .tappable(onClick = { onEdit(account.account.id) })
@@ -142,7 +142,7 @@ private fun LazyListScope.balanceHeader(account: AccountWithBalance) {
                 style = CentsTheme.typography.largeTitle,
                 color =
                     if (account.balance.isNegative) {
-                        CentsTheme.colors.destructive
+                        CentsTheme.colors.destructiveText
                     } else {
                         CentsTheme.colors.label
                     },
@@ -163,12 +163,12 @@ private fun LazyListScope.monthSummary(summary: PeriodSummary) {
             CentsListRow(
                 title = stringResource(R.string.summary_income),
                 value = MoneyFormatter.format(summary.income),
-                valueColor = CentsTheme.colors.positive,
+                valueColor = CentsTheme.colors.positiveText,
             )
             CentsListRow(
                 title = stringResource(R.string.summary_expenses),
                 value = MoneyFormatter.format(summary.expenses),
-                valueColor = CentsTheme.colors.destructive,
+                valueColor = CentsTheme.colors.destructiveText,
                 showSeparator = false,
             )
         }

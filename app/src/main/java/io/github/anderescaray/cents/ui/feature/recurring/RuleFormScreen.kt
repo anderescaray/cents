@@ -245,7 +245,7 @@ private fun AmountHeader(
         text = AmountEntry.format(state.amountInput, state.currency),
         style = CentsTheme.typography.largeTitle,
         color =
-            if (state.kind == TransactionKind.INCOME) CentsTheme.colors.positive else CentsTheme.colors.label,
+            if (state.kind == TransactionKind.INCOME) CentsTheme.colors.positiveText else CentsTheme.colors.label,
         textAlign = TextAlign.Center,
         modifier =
             Modifier
@@ -261,7 +261,7 @@ private fun WriteFailure() {
     Text(
         text = stringResource(R.string.rule_write_failed),
         style = CentsTheme.typography.footnote,
-        color = CentsTheme.colors.destructive,
+        color = CentsTheme.colors.destructiveText,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().padding(horizontal = CentsDimens.screenMargin),
     )

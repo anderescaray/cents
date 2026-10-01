@@ -83,7 +83,7 @@ internal fun GroupDetailContent(
                 Text(
                     text = stringResource(R.string.action_edit),
                     style = CentsTheme.typography.body,
-                    color = CentsTheme.colors.accent,
+                    color = CentsTheme.colors.accentText,
                     modifier =
                         Modifier
                             .testTag(EDIT_GROUP_TAG)

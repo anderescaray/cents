@@ -115,7 +115,7 @@ internal fun TransactionsList(
                 Text(
                     text = stringResource(R.string.action_add),
                     style = CentsTheme.typography.title2,
-                    color = CentsTheme.colors.accent,
+                    color = CentsTheme.colors.accentText,
                     modifier = Modifier.clearAndSetSemantics {},
                 )
             }
@@ -162,7 +162,7 @@ private fun RowScope.FiltersButton(
                 stringResource(R.string.filters_open_active, count)
             },
         style = CentsTheme.typography.body,
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         // A bare Text is a few points tall. The tap target is the row height, whatever the
         // label happens to measure.
         modifier =
@@ -227,7 +227,7 @@ private fun LazyListScope.matchSummary(
                 value = summary?.let { MoneyFormatter.formatSigned(it.net) },
                 valueColor =
                     if (summary != null && summary.net.isNegative) {
-                        CentsTheme.colors.destructive
+                        CentsTheme.colors.destructiveText
                     } else {
                         CentsTheme.colors.label
                     },
@@ -237,12 +237,12 @@ private fun LazyListScope.matchSummary(
                 CentsListRow(
                     title = stringResource(R.string.summary_income),
                     value = MoneyFormatter.format(summary.income),
-                    valueColor = CentsTheme.colors.positive,
+                    valueColor = CentsTheme.colors.positiveText,
                 )
                 CentsListRow(
                     title = stringResource(R.string.summary_expenses),
                     value = MoneyFormatter.format(summary.expenses),
-                    valueColor = CentsTheme.colors.destructive,
+                    valueColor = CentsTheme.colors.destructiveText,
                     showSeparator = offersWayOut,
                 )
             }
@@ -280,19 +280,19 @@ private fun LazyListScope.monthSummary(summary: PeriodSummary) {
             CentsListRow(
                 title = stringResource(R.string.summary_income),
                 value = MoneyFormatter.format(summary.income),
-                valueColor = CentsTheme.colors.positive,
+                valueColor = CentsTheme.colors.positiveText,
             )
             CentsListRow(
                 title = stringResource(R.string.summary_expenses),
                 value = MoneyFormatter.format(summary.expenses),
-                valueColor = CentsTheme.colors.destructive,
+                valueColor = CentsTheme.colors.destructiveText,
             )
             CentsListRow(
                 title = stringResource(R.string.summary_net),
                 value = MoneyFormatter.formatSigned(summary.net),
                 valueColor =
                     if (summary.net.isNegative) {
-                        CentsTheme.colors.destructive
+                        CentsTheme.colors.destructiveText
                     } else {
                         CentsTheme.colors.label
                     },

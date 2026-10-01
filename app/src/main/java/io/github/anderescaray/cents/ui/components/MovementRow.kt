@@ -82,7 +82,7 @@ private fun TransactionDetails.tradeTitle(): String {
 fun TransactionDetails.movementValueColor(): Color =
     when {
         transaction.movesNoIncomeOrExpense -> CentsTheme.colors.secondaryLabel
-        transaction.kind == TransactionKind.INCOME -> CentsTheme.colors.positive
+        transaction.kind == TransactionKind.INCOME -> CentsTheme.colors.positiveText
         else -> CentsTheme.colors.label
     }
 

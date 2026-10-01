@@ -166,7 +166,7 @@ private fun FormFields(
                 Text(
                     text = stringResource(R.string.transaction_write_failed),
                     style = CentsTheme.typography.footnote,
-                    color = CentsTheme.colors.destructive,
+                    color = CentsTheme.colors.destructiveText,
                     textAlign = TextAlign.Center,
                     modifier =
                         Modifier

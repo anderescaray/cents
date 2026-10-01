@@ -15,10 +15,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.local.preferences.DataStoreAppLockRepository
 import io.github.anderescaray.cents.data.local.preferences.DataStoreCaptureSettingsRepository
-import io.github.anderescaray.cents.data.local.preferences.DataStoreHomeLayoutRepository
 import io.github.anderescaray.cents.domain.repository.AppLockRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
-import io.github.anderescaray.cents.domain.repository.HomeLayoutRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,9 +29,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class PreferencesModule {
-    @Binds
-    abstract fun bindHomeLayoutRepository(impl: DataStoreHomeLayoutRepository): HomeLayoutRepository
-
     @Binds
     abstract fun bindAppLockRepository(impl: DataStoreAppLockRepository): AppLockRepository
 

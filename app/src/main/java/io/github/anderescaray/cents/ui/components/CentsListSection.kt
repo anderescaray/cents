@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -19,11 +17,10 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
- * An inset grouped section: a rounded card of rows floating on the grouped background,
- * with an optional uppercase header above and an explanatory footer below.
+ * A card of rows floating on the canvas, with an optional small heading inside it and an
+ * explanatory footer below it.
  *
- * This is the backbone of iOS layout. Almost every screen in the app is a column of
- * these rather than a flat Material list.
+ * Almost every screen in the app is a column of these rather than a flat list.
  */
 @Composable
 fun CentsListSection(
@@ -33,30 +30,32 @@ fun CentsListSection(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        if (header != null) {
-            Text(
-                text = header.uppercase(),
-                style = CentsTheme.typography.footnote,
-                color = CentsTheme.colors.secondaryLabel,
-                // A heading to TalkBack, so a long screen can be crossed section by section.
-                modifier =
-                    Modifier.semantics { heading() }.padding(
-                        start = CentsDimens.screenMargin + CentsDimens.rowHorizontalPadding,
-                        end = CentsDimens.screenMargin,
-                        bottom = CentsDimens.sectionHeaderSpacing,
-                    ),
-            )
-        }
-
         Column(
             modifier =
                 Modifier
                     .padding(horizontal = CentsDimens.screenMargin)
-                    .clip(RoundedCornerShape(CentsDimens.groupedCornerRadius))
-                    .background(CentsTheme.colors.groupedCard)
-                    .fillMaxWidth(),
-            content = content,
-        )
+                    .fillMaxWidth()
+                    .cardSurface(),
+        ) {
+            if (header != null) {
+                // Inside the card rather than above it (ADR 0003): one subject per card, and the
+                // card says what it is about.
+                Text(
+                    text = header.uppercase(),
+                    style = CentsTheme.typography.overline,
+                    color = CentsTheme.colors.secondaryLabel,
+                    // A heading to TalkBack, so a long screen can be crossed section by section.
+                    modifier =
+                        Modifier.semantics { heading() }.padding(
+                            start = CentsDimens.rowHorizontalPadding,
+                            end = CentsDimens.rowHorizontalPadding,
+                            top = CentsDimens.spacingL,
+                            bottom = CentsDimens.spacingXs,
+                        ),
+                )
+            }
+            content()
+        }
 
         if (footer != null) {
             Text(
@@ -67,14 +66,14 @@ fun CentsListSection(
                     Modifier.padding(
                         start = CentsDimens.screenMargin + CentsDimens.rowHorizontalPadding,
                         end = CentsDimens.screenMargin + CentsDimens.rowHorizontalPadding,
-                        top = CentsDimens.sectionHeaderSpacing,
+                        top = CentsDimens.sectionHeaderSpacing + 2.dp,
                     ),
             )
         }
     }
 }
 
-/** A column of sections with iOS spacing between them. */
+/** A column of sections with the spacing between cards. */
 @Composable
 fun CentsListScreen(
     modifier: Modifier = Modifier,

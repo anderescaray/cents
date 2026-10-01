@@ -25,8 +25,13 @@ class TabOwnershipTest {
     }
 
     @Test
-    fun `the category list belongs to Settings`() {
-        assertEquals(TopLevelTab.SETTINGS, tabOwning(Destination.Categories::class))
+    fun `the category list belongs to Home, where Settings opens from`() {
+        assertEquals(TopLevelTab.HOME, tabOwning(Destination.Categories::class))
+    }
+
+    @Test
+    fun `budgets belong to Reports`() {
+        assertEquals(TopLevelTab.REPORTS, tabOwning(Destination.Budgets::class))
     }
 
     @Test

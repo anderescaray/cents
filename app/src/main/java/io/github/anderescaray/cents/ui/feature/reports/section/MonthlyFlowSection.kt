@@ -257,12 +257,12 @@ private fun BucketDetail(
                 .takeIf { bucket.counted.to < bucket.whole.to },
     )
     LegendRow(
-        color = CentsTheme.colors.positive,
+        color = CentsTheme.colors.positiveText,
         label = stringResource(R.string.reports_flow_legend_income),
         amount = bucket.summary.income,
     )
     LegendRow(
-        color = CentsTheme.colors.destructive,
+        color = CentsTheme.colors.destructiveText,
         label = stringResource(R.string.reports_flow_legend_expenses),
         amount = bucket.summary.expenses,
     )
@@ -271,7 +271,7 @@ private fun BucketDetail(
     AmountRow(
         label = stringResource(if (net.isNegative) R.string.reports_flow_overspent else R.string.reports_flow_saved),
         amount = if (net.isNegative) -net else net,
-        valueColor = if (net.isNegative) CentsTheme.colors.destructive else CentsTheme.colors.positive,
+        valueColor = if (net.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.positiveText,
     )
     // A quiet column has nothing to open.
     if (!bucket.isEmpty) {

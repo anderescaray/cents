@@ -88,7 +88,7 @@ fun CategoriesScreen(
                 Text(
                     text = stringResource(R.string.action_add),
                     style = CentsTheme.typography.title2,
-                    color = CentsTheme.colors.accent,
+                    color = CentsTheme.colors.accentText,
                     modifier = Modifier.clearAndSetSemantics {},
                 )
             }

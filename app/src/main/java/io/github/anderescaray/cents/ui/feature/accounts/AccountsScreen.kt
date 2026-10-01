@@ -2,10 +2,17 @@ package io.github.anderescaray.cents.ui.feature.accounts
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,11 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,56 +32,50 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.NetWorth
+import io.github.anderescaray.cents.ui.components.AnimatedMoney
+import io.github.anderescaray.cents.ui.components.CentsCard
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
-import io.github.anderescaray.cents.ui.components.tappable
+import io.github.anderescaray.cents.ui.components.IconBadge
+import io.github.anderescaray.cents.ui.components.RoundIconButton
+import io.github.anderescaray.cents.ui.components.arrive
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 
 /**
- * Where the money is. Every balance here is computed from the movements that produced it,
- * never stored, so it cannot drift away from the history behind it.
+ * What you have: the net worth, what of it is in accounts and what is invested, then the accounts
+ * themselves. Every balance here is computed from the movements that produced it, never stored,
+ * so it cannot drift away from the history behind it.
  */
 @Composable
 fun AccountsScreen(
     onNewAccount: () -> Unit,
     onOpenAccount: (Long) -> Unit,
+    onOpenInvestments: () -> Unit = {},
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val removal by viewModel.removal.state.collectAsStateWithLifecycle()
 
     CentsLargeTitleScaffold(
-        title = stringResource(R.string.tab_accounts),
+        title = stringResource(R.string.wallet_title),
         bottomPadding = CentsDimens.sectionSpacing,
         trailing = {
-            val addLabel = stringResource(R.string.accounts_add)
-            Box(
-                modifier =
-                    Modifier
-                        .semantics { contentDescription = addLabel }
-                        .testTag(ADD_ACCOUNT_TAG)
-                        .size(CentsDimens.minRowHeight)
-                        .clip(CircleShape)
-                        .tappable(onClick = onNewAccount),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.action_add),
-                    style = CentsTheme.typography.title2,
-                    color = CentsTheme.colors.accent,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-            }
+            RoundIconButton(
+                iconRes = R.drawable.ic_plus,
+                contentDescription = stringResource(R.string.accounts_add),
+                onClick = onNewAccount,
+                modifier = Modifier.testTag(ADD_ACCOUNT_TAG),
+            )
         },
     ) {
         if (state.showEmptyState) {
             emptyState()
         } else {
-            state.netWorth?.let { netWorth -> netWorthSection(netWorth) }
+            state.netWorth?.let { netWorth -> netWorthSection(netWorth, onOpenInvestments) }
             accountSection(
                 key = "active",
                 headerRes = R.string.accounts_section_header,
@@ -115,49 +114,103 @@ fun AccountsScreen(
  * portfolio" half of what was asked for. With holdings but no prices there is nothing to add,
  * so the total stands down rather than reading as zero.
  */
-private fun LazyListScope.netWorthSection(netWorth: NetWorth) {
+private fun LazyListScope.netWorthSection(
+    netWorth: NetWorth,
+    onOpenInvestments: () -> Unit,
+) {
     item(key = "net-worth") {
         val invested = netWorth.invested
         val total = netWorth.total
-        val showInvested = invested == null || invested.minorUnits != 0L || netWorth.hasUnpriced
-        CentsListSection(
-            header = stringResource(R.string.net_worth_header),
-            footer = netWorthFooter(netWorth),
+        Column(
+            modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
+            verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingM),
         ) {
-            CentsListRow(
-                title = stringResource(R.string.net_worth_in_accounts),
-                value = MoneyFormatter.format(netWorth.inAccounts),
-                valueColor =
-                    if (netWorth.inAccounts.isNegative) {
-                        CentsTheme.colors.destructive
-                    } else {
-                        CentsTheme.colors.label
-                    },
-                showSeparator = showInvested,
-            )
-            if (showInvested) {
-                CentsListRow(
-                    title = stringResource(R.string.net_worth_invested),
+            CentsCard {
+                Text(
+                    text = stringResource(R.string.net_worth_total),
+                    style = CentsTheme.typography.subhead,
+                    color = CentsTheme.colors.secondaryLabel,
+                )
+                if (total != null) {
+                    AnimatedMoney(
+                        money = total,
+                        style = CentsTheme.typography.display,
+                        color = if (total.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
+                    )
+                } else {
                     // Nothing priced is not the same as nothing held, and the two must not
                     // render the same way.
-                    value =
-                        invested?.let { MoneyFormatter.format(it) }
-                            ?: stringResource(R.string.investments_no_price),
-                    valueColor =
-                        if (invested == null) CentsTheme.colors.secondaryLabel else CentsTheme.colors.label,
-                    showSeparator = total != null,
-                )
+                    Text(
+                        text = stringResource(R.string.investments_no_price),
+                        style = CentsTheme.typography.title2,
+                        color = CentsTheme.colors.secondaryLabel,
+                    )
+                }
+                netWorthFooter(netWorth)?.let { footer ->
+                    Text(
+                        text = footer,
+                        style = CentsTheme.typography.footnote,
+                        color = CentsTheme.colors.secondaryLabel,
+                    )
+                }
             }
-            if (total != null && showInvested) {
-                CentsListRow(
-                    title = stringResource(R.string.net_worth_total),
-                    value = MoneyFormatter.format(total),
-                    valueColor =
-                        if (total.isNegative) CentsTheme.colors.destructive else CentsTheme.colors.label,
-                    showSeparator = false,
+            Row(horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
+                WorthTile(
+                    iconRes = R.drawable.ic_wallet,
+                    color = CentsTheme.colors.accent,
+                    label = stringResource(R.string.net_worth_in_accounts),
+                    value = MoneyFormatter.format(netWorth.inAccounts),
+                    modifier = Modifier.weight(1f),
+                )
+                WorthTile(
+                    iconRes = R.drawable.ic_trend_up,
+                    color = CentsTheme.colors.positive,
+                    label = stringResource(R.string.net_worth_invested),
+                    value =
+                        invested?.let {
+                            MoneyFormatter.format(
+                                it,
+                            )
+                        } ?: stringResource(R.string.investments_no_price),
+                    onClick = onOpenInvestments,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
+    }
+}
+
+/** One half of the net worth, as a small card: the cash, or what the holdings are worth. */
+@Composable
+private fun WorthTile(
+    iconRes: Int,
+    color: Color,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    CentsCard(modifier = modifier, onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(iconRes = iconRes, color = color)
+            Spacer(Modifier.weight(1f))
+            if (onClick != null) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = CentsTheme.colors.tertiaryLabel,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(CentsDimens.spacingM))
+        Text(text = label, style = CentsTheme.typography.footnote, color = CentsTheme.colors.secondaryLabel)
+        Text(
+            text = value,
+            style = CentsTheme.typography.headline,
+            color = CentsTheme.colors.label,
+            maxLines = 1,
+        )
     }
 }
 
@@ -238,11 +291,11 @@ private fun LazyListScope.accountSection(
                             value = MoneyFormatter.format(item.balance),
                             valueColor =
                                 if (item.balance.isNegative) {
-                                    CentsTheme.colors.destructive
+                                    CentsTheme.colors.destructiveText
                                 } else {
                                     CentsTheme.colors.label
                                 },
-                            leading = { AccountDot(Color(account.colorArgb)) },
+                            leading = { IconBadge(iconRes = R.drawable.ic_wallet, color = Color(account.colorArgb)) },
                             showChevron = true,
                             showSeparator = index != accounts.lastIndex,
                             onClick = { onOpenAccount(account.id) },

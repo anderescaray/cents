@@ -1,5 +1,7 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.filterToOne
@@ -527,6 +529,10 @@ class ReportsScreenTest {
         assertEquals(PeriodPreset.YEAR, chosen)
     }
 
+    // The screen itself, not the row of account chips inside it, which scrolls too.
+    private val screenList =
+        hasScrollToIndexAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
+
     /**
      * The tab is a `LazyColumn`, so anything below the fold is not composed until it is
      * scrolled to — and a tap on a composed-but-offscreen row lands outside the window and
@@ -534,10 +540,10 @@ class ReportsScreenTest {
      *
      * It matches on the scroll-to-index action rather than on "can scroll": the two cartesian
      * charts are scrollable themselves, so the looser matcher now finds three nodes and picks
-     * none. Only the list can be asked for an index.
+     * none. Only the lists can be asked for an index, and of those only the screen scrolls down.
      */
     private fun scrollTo(text: String) {
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text))
+        composeRule.onNode(screenList).performScrollToNode(hasText(text))
     }
 
     /**
@@ -559,7 +565,7 @@ class ReportsScreenTest {
         tag: String,
         label: String,
     ) {
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag(tag))
+        composeRule.onNode(screenList).performScrollToNode(hasTestTag(tag))
         composeRule
             .onNode(hasTestTag(tag))
             .onChildren()

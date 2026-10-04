@@ -7,6 +7,10 @@ so it holds **rules and commands**, not the product description.
 > feasibility analysis). If this file and the PRD disagree about *what* to build, the PRD
 > wins; about *how* to build it, this file wins.
 
+> **Before choosing the next task, read [`docs/next-improvements.md`](docs/next-improvements.md).**
+> It preserves the owner's confirmed requests and clarifications from 2026-10-04, including the
+> pending UI baseline. These are planned improvements, not a claim that they are already built.
+
 ---
 
 ## 1. The project in one sentence

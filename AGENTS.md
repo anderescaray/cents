@@ -15,6 +15,9 @@ and anything else Orca launches. Claude Code loads `CLAUDE.md` by itself; you ha
    widgets.
 3. **The task prompt you were given.** It names your branch and the only folders you may write
    to.
+4. **[`docs/next-improvements.md`](docs/next-improvements.md)** before choosing the next task:
+   the owner's confirmed improvement requests and clarifications. These are planned changes,
+   not completed features; check the baseline and pending-work notes before implementing them.
 
 ## How parallel work runs here
 

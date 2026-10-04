@@ -2326,9 +2326,11 @@ parallelism.
     that collects a Room flow can be running on Room's thread when the test acts. The state the
     action produces may then land a moment after the call returns. On the phone everything runs
     on the main thread, so this is a test hazard, not an app bug.
-  - **The rule.** After an action, wait for the state it should produce with
+  - **The rule.** After an action, wait for the whole state it should produce with
     `uiState.first { … }` (or Turbine's `awaitStateThat`). Never read `uiState.value` on the
-    spot when the view model combines a Room flow.
+    spot when the view model combines a Room flow. A bare `first { }` is unbounded, so a state
+    that never comes fails at `runTest`'s one-minute timeout. Turbine's wait gives up after 3 s,
+    at the line that waited.
   - **Fixed in #111.** `CaptureViewModelsTest` read `value` on the spot. It failed CI three runs
     in a row on 2026-10-04, on #110, a branch that changed only Markdown, while `main` and local
     runs passed.
@@ -2338,6 +2340,16 @@ parallelism.
     other, the flag is left wrong for good, so waiting longer would not help. If it fails again,
     that is the cause, not the branch: re-run the job with `gh run rerun <id> --failed`, and give
     the fix a branch of its own.
+  - **The fix at the root, not yet tried.** #111's review pointed at `createTestDatabase()`
+    (`TestDatabaseFactory.kt`). It leaves Room on its own executors. Pinning the test database's
+    query context to the test thread (`setQueryCoroutineContext`, or direct executors) would
+    close every one of these races at once, the category one included. It touches every Room
+    test, and Robolectric's test thread counts as the main thread, so it needs a branch and a
+    full run of its own.
+  - **Also from that review:** `CaptureViewModel.moveTo` finds the app being edited through the
+    derived `uiState.value`, not through `editingPackage` as `requestStop` does. If the state
+    lags, it returns without saving and says nothing. That cannot happen on the phone, where
+    both run on the main thread, but reading `editingPackage` would make the two consistent.
 
 ## C5. What only the owner can do
 

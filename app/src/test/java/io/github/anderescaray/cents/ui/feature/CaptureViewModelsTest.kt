@@ -100,10 +100,10 @@ class CaptureViewModelsTest {
             val viewModel = capture()
             viewModel.uiState.first { it.accounts.size == 2 }
 
-            // Each step waits for the state it should produce instead of reading `value`. The
-            // accounts come from Room, and under the test's unconfined Main the combine can be
-            // running on Room's thread when an action lands, so the state may follow a moment
-            // later. On CI that moment was lost three runs in a row (2026-10-04).
+            // Each step waits for the whole state it should leave behind instead of reading
+            // `value`. The accounts come from Room, and under the test's unconfined Main the
+            // combine can be running on Room's thread when an action lands, so the state may
+            // follow a moment later. This file failed CI three runs in a row on it (2026-10-04).
             viewModel.edit(BANK_APP)
             assertEquals(
                 BANK_APP,
@@ -116,8 +116,8 @@ class CaptureViewModelsTest {
             viewModel.moveTo(card)
 
             assertEquals(listOf(CaptureSource(BANK_APP, "My bank", card)), settings.state.value.sources)
-            val moved = viewModel.uiState.first { it.sources.single().accountName == "Card" }
-            assertNull(moved.editing)
+            // Saved, and the sheet closed. The wait names both, since either can land first.
+            viewModel.uiState.first { it.editing == null && it.sources.singleOrNull()?.accountName == "Card" }
 
             // Stopping asks first, and cancelling keeps the app.
             viewModel.edit(BANK_APP)
@@ -255,7 +255,12 @@ class CaptureViewModelsTest {
             ),
         )
 
-    /** Types [query] and reads the list it narrows to, once that list has caught up with it. */
+    /**
+     * Types [query] and reads the list it narrows to, once that list has caught up with it.
+     *
+     * Only for a query that differs from the current one: the wait recognises the new list by its
+     * query, so a repeated query cannot tell the new list from the one before it.
+     */
     private suspend fun CaptureAppsViewModel.search(query: String): List<String> {
         setQuery(query)
         return uiState.first { it.query == query }.apps.map { it.label }

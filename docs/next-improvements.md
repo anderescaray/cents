@@ -12,9 +12,9 @@ The implementation sequence below is the proposed split, not permission to start
 
 ## Before resuming implementation
 
-**Status, 2026-10-05:** points 1 and 2 below are settled. #109 is merged, and the capture work is
-#113, with the lock removal split out as #114 (D31). Next in the table below is
-`fix/transaction-entry-ux`, from `main` once #113 and #114 land.
+**Status, 2026-10-05 (night):** points 1 and 2 below are settled. #109, #113 (capture) and #114
+(the lock removed, D31) are merged. Next in the table below is `fix/transaction-entry-ux`, from
+`main`, once the owner's feedback on Walk 21 is dealt with.
 
 1. **Check the actual UI baseline.** At the time this plan was recorded, `main` ended at #108 and
    [UI rework PR #109](https://github.com/anderescaray/cents/pull/109), branch `feat/ui-rework`, was
@@ -248,6 +248,11 @@ First resolve the baseline and pending work described above. Then use one focuse
   that picker gestures, keyboard transitions or system-language behavior were verified on a phone.
 
 ## Requested on 2026-10-05, after this list was written
+
+**Both are built and merged in #113**, with the choices the owner made: the notification is on by
+default, and detection is editable both ways (*Try a notification* and ignore words, whose
+defaults ended as *saldo* and *balance*). The phone check is Walk 21 `q1`–`q6`. What follows is
+the request as it was recorded.
 
 - **A notification each time capture records a movement.** The owner asked whether the app
   announces an automatic expense or income, and wants it to. `main` does not: capture records

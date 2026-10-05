@@ -1741,3 +1741,89 @@ bank notification.
 
 > **Wrong looks like** one app's words changing another's, or a notification matched by words
 > that are only in another app's list.
+
+## Walk 21 — set the balance, the rework's fixes, no lock, capture you can check (2026-10-05)
+
+Installed on the Pixel 11 Pro on 2026-10-05 (`main` at `f08f20a`). The database went to v10 with
+every row kept. Feedback by step number, in `FEEDBACK.md` or in the session.
+
+### a1 · Set an account's balance, keeping the past
+
+An account › **Set current balance** › type what it really holds. The screen shows the balance in
+Cents, the difference and two ways, **neither ticked**. Choose **Keep them as they were** › Save.
+The balance is the one typed, and a **Balance correction** row sits on today's date.
+
+> **Wrong looks like** Save allowed before a way is chosen, or the balance landing anywhere else.
+
+### a2 · Rebasing the opening balance
+
+The same, with **Change the opening balance**: the option says the opening balance goes from what
+to what, and that the balance chart moves by the difference. After saving, the account editor's
+opening balance is the new one.
+
+### a3 · Nothing else moves
+
+After `a1` and `a2`, Reports, Budgets and *Left this month* are what they were: a correction is
+neither an income nor an expense. Wallet's *In accounts* and net worth do change.
+
+### a4 · Removing a correction
+
+Tap the **Balance correction** row: it asks first, names the balance it goes back to, and does.
+
+### v1 · Home's tab goes home
+
+Home › Settings › another tab › **Home**: Settings is still open (the tab keeps its place). Tap
+**Home** again: back to quick add.
+
+### v2 · A long amount fits
+
+A new movement, typing **12345,67**: the figure shrinks to fit rather than losing digits.
+
+### v3 · Wallet
+
+An overdrawn *In accounts* reads in red. If the accounts are in two currencies or all archived, a
+**Investments** row still leads to the portfolio.
+
+### v4 · Reports keeps its arrangement
+
+With a card hidden in Customize, open Reports from cold: the hidden card never flashes in.
+
+### o1 · No lock
+
+Cents opens without asking for a fingerprint, and Settings has no security section (D31).
+
+### q1 · Switching capture on
+
+Settings › Capture: the switch on asks for permission to post notifications (allow it); the
+access row opens Android's *Notification access* (allow Cents); choose the bank's app and account.
+
+### q2 · Try a notification
+
+Capture › **Try a notification**: paste the **title and the text of a real notification from the
+bank**, separately. It says *Would record an expense* with the right amount and account. Then try
+the amount repeated in the title, a masked card (`****7146`), a balance after the payment (*Saldo
+disponible: …*) and a text with `·` before the amount (`Amazon · 23,40 €`).
+
+> **Wrong looks like** a real payment the screen says it would ignore: that is the text to send.
+
+### q3 · A real payment, announced
+
+Pay something with the card. A notification arrives: **Expense added**, the amount and the
+account. Tapping it opens the movement, which waits under *To categorize*.
+
+> **Wrong looks like** no notification, two movements for one payment, or the card's digits as
+> the amount.
+
+### q4 · Ignore words and starting words
+
+Capture › *Reading notifications*: **Ignore words** holds *saldo* and *balance*; the starting
+expense and income words are there and editable. Adding a word and putting the list back work.
+
+### q5 · A deleted capture's notification
+
+Delete a captured movement, then tap its notification if it is still in the shade: the form
+closes instead of opening blank.
+
+### q6 · The notification can be turned off
+
+Capture › *Notify after capture* off: the next capture is recorded silently.

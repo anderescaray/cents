@@ -46,6 +46,11 @@ data class CaptureSettings(
     val incomeWords: List<String> = DEFAULT_INCOME_WORDS,
     /** Each app's own lists, by package name. */
     val appWords: Map<String, AppWords> = emptyMap(),
+    /**
+     * A notification after each movement capture records. On unless turned off: the owner asked
+     * to be told every time (2026-10-05), and a silent write is the one a wrong amount hides in.
+     */
+    val notifyOnCapture: Boolean = true,
 ) {
     fun sourceFor(packageName: String): CaptureSource? = sources.firstOrNull { it.packageName == packageName }
 
@@ -102,6 +107,9 @@ sealed interface CaptureOutcome {
     /** Written down, as the movement with this id. */
     data class Recorded(
         val transactionId: Long,
+        val amount: Money,
+        val kind: TransactionKind,
+        val accountName: String,
     ) : CaptureOutcome
 
     /** The same payment was already written in the same minute, so nothing new was. */

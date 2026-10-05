@@ -3,10 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-      The one permission this app asks for, and only Android 13+ asks at all. It is requested
-      from the subscription editor at the moment a reminder is added — which is the only moment
-      it means anything — rather than on first launch, where it would be a dialog about a feature
-      nobody has used yet.
+      The runtime permission for reminders and optional capture confirmations on Android 13+.
+      It is requested from the subscription editor when a reminder is added, or from Capture
+      when confirmations are enabled, rather than on first launch.
     -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />

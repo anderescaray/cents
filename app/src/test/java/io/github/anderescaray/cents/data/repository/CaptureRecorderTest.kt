@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.domain.model.CaptureOutcome
 import io.github.anderescaray.cents.domain.model.CaptureOutcome.IgnoreReason
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +78,9 @@ class CaptureRecorderTest {
             assertEquals("EUR", row.currency)
             assertEquals(LocalDate.of(2026, 9, 29), row.date)
             assertEquals("Compra en CAFÉ CENTRAL por 23,40 €", row.note)
+            assertEquals(Money(row.amountMinor, row.currency), outcome.amount)
+            assertEquals(row.kind, outcome.kind)
+            assertEquals("Bank", outcome.accountName)
         }
 
     @Test
@@ -176,6 +180,32 @@ class CaptureRecorderTest {
             assertEquals(0, movements())
         }
 
+    @Test
+    fun `ambiguous amounts masked numbers and unmarked decimals write nothing`() =
+        runTest {
+            val recorder = recorder()
+            listOf(
+                "Paid with card ****7146 EUR",
+                "Payment at 10.30 with card ****7146",
+                "Pago de 23,40 €. Saldo disponible: 1.502,10 €",
+                "Ingreso 23,40",
+            ).forEach { text ->
+                assertEquals(CaptureOutcome.Ignored(IgnoreReason.NO_AMOUNT), recorder.record(BANK_APP, text, AT_10))
+            }
+            assertEquals(0, movements())
+        }
+
+    @Test
+    fun `a masked card before the currency never changes the saved amount`() =
+        runTest {
+            val outcome = recorder().record(BANK_APP, "Paid with card ****7146 EUR 23", AT_10)
+
+            val recorded = outcome as CaptureOutcome.Recorded
+            val row = requireNotNull(database.transactionDao().findById(recorded.transactionId))
+            assertEquals(2_300L, row.amountMinor)
+            assertEquals(Money(2_300, "EUR"), recorded.amount)
+        }
+
     private fun recorder() =
         RoomCaptureRecorder(
             settings = settings,
@@ -205,6 +235,10 @@ class CaptureRecorderTest {
 
         override suspend fun setEnabled(enabled: Boolean) {
             value = value.copy(enabled = enabled)
+        }
+
+        override suspend fun setNotifyOnCapture(enabled: Boolean) {
+            value = value.copy(notifyOnCapture = enabled)
         }
 
         override suspend fun putSource(source: CaptureSource) {

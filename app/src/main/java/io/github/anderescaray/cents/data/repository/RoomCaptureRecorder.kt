@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.CaptureOutcome
 import io.github.anderescaray.cents.domain.model.CaptureOutcome.IgnoreReason
 import io.github.anderescaray.cents.domain.model.CaptureSettings
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureRecorder
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
@@ -107,7 +108,7 @@ class RoomCaptureRecorder
             return when {
                 kind == null -> Plan.Skip(IgnoreReason.NO_WORD)
                 amount == null -> Plan.Skip(IgnoreReason.NO_AMOUNT)
-                amount.currency != null && amount.currency != account.currency -> Plan.Skip(IgnoreReason.OTHER_CURRENCY)
+                amount.currency != account.currency -> Plan.Skip(IgnoreReason.OTHER_CURRENCY)
                 else -> Plan.Write(account, kind, amount.minorUnits)
             }
         }
@@ -140,7 +141,12 @@ class RoomCaptureRecorder
                             ),
                         )
                     recent.addLast(seen)
-                    CaptureOutcome.Recorded(id)
+                    CaptureOutcome.Recorded(
+                        transactionId = id,
+                        amount = Money(plan.amountMinor, plan.account.currency),
+                        kind = plan.kind,
+                        accountName = plan.account.name,
+                    )
                 }
             }
 

@@ -36,6 +36,7 @@ data class CaptureSourceRow(
 @Immutable
 data class CaptureUiState(
     val enabled: Boolean = false,
+    val notifyOnCapture: Boolean = false,
     val sources: List<CaptureSourceRow> = emptyList(),
     /** The accounts an app can be tied to: the active ones. */
     val accounts: List<Account> = emptyList(),
@@ -87,6 +88,7 @@ class CaptureViewModel
                     }
                 CaptureUiState(
                     enabled = setup.enabled,
+                    notifyOnCapture = setup.notifyOnCapture,
                     sources = rows,
                     accounts = active,
                     expenseWordCount = setup.expenseWords.size,
@@ -103,6 +105,10 @@ class CaptureViewModel
 
         fun setEnabled(enabled: Boolean) {
             viewModelScope.launch { settings.setEnabled(enabled) }
+        }
+
+        fun setNotifyOnCapture(enabled: Boolean) {
+            viewModelScope.launch { settings.setNotifyOnCapture(enabled) }
         }
 
         fun edit(packageName: String) {

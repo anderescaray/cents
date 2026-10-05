@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.anderescaray.cents.ui.CentsApp
+import io.github.anderescaray.cents.ui.capture.CaptureNotifier
 import io.github.anderescaray.cents.ui.notifications.ReminderNotifier
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.Today
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
      * at all.
      */
     private var openPending by mutableStateOf(false)
+
+    /** The movement a capture notification was tapped for, the same way. */
+    private var openCapturedTransactionId by mutableStateOf<Long?>(null)
 
     @Inject
     lateinit var today: Today
@@ -56,6 +60,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         openPending = intent.wantsPending
+        openCapturedTransactionId = intent.capturedTransactionId
     }
 
     override fun onStart() {
@@ -80,10 +85,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         openPending = intent.wantsPending
+        openCapturedTransactionId = intent.capturedTransactionId
         enableEdgeToEdge()
         setContent {
             CentsTheme {
-                CentsApp(openPending = openPending)
+                CentsApp(
+                    openPending = openPending,
+                    openCapturedTransactionId = openCapturedTransactionId,
+                    onCapturedOpened = {
+                        openCapturedTransactionId = null
+                        // Or a recreated activity would read the old intent and open it again.
+                        intent.removeExtra(CaptureNotifier.EXTRA_OPEN_CAPTURED)
+                    },
+                )
             }
         }
     }
@@ -92,3 +106,7 @@ class MainActivity : ComponentActivity() {
 /** The flag [ReminderNotifier] sets when the notification was asking for a figure. */
 private val Intent.wantsPending: Boolean
     get() = getBooleanExtra(ReminderNotifier.EXTRA_OPEN_PENDING, false)
+
+/** The movement [CaptureNotifier] names when its notification was tapped, if it was one of those. */
+private val Intent.capturedTransactionId: Long?
+    get() = getLongExtra(CaptureNotifier.EXTRA_OPEN_CAPTURED, 0L).takeIf { it > 0L }

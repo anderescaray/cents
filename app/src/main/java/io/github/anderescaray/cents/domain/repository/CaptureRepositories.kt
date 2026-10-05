@@ -16,6 +16,8 @@ interface CaptureSettingsRepository {
 
     suspend fun setEnabled(enabled: Boolean)
 
+    suspend fun setNotifyOnCapture(enabled: Boolean)
+
     /** Adds the app, or changes its account if it was already chosen. */
     suspend fun putSource(source: CaptureSource)
 

@@ -38,38 +38,48 @@ object CaptureParser {
     }
 
     /**
-     * The amount in the text. **One written with a currency wins**: *23,40 €*, *€23.40*,
-     * *EUR 1.234,56*, the first of them if there are several. Only when there is none is a bare
-     * number with two decimals taken, *23,40*. A number alone, *3* or *1234*, is never an amount,
-     * because a bank's text is full of numbers that are not money, and neither is a date or a
-     * time written with dots, *12.03.2026* or *10.30*, when an amount with a currency is there.
+     * The amount in the text must name its currency: *23,40 €*, *€23.40*, or *EUR 1.234,56*.
+     * Masked identifiers are excluded before matching. Multiple numbers with currency markers
+     * are ambiguous, including a payment beside a balance, and nothing is guessed between them.
+     * Two markers around the same number are allowed only when they name the same currency.
+     * Bare decimals, dates and times never become an amount on their own.
      *
      * Read as digits rather than through a `Double`, because money never passes through binary
      * floating point here (`CLAUDE.md` rule 1).
      */
     fun amountIn(text: String): Amount? {
-        val marked =
-            listOfNotNull(
-                PREFIXED.find(text)?.let { Candidate(it.range.first, it.groupValues[2], it.groupValues[1]) },
-                SUFFIXED.find(text)?.let { Candidate(it.range.first, it.groupValues[1], it.groupValues[2]) },
-            ).minByOrNull { it.position }
-        val chosen = marked ?: BARE.find(text)?.let { Candidate(it.range.first, it.value, currency = null) }
-        return chosen?.let { candidate ->
-            toMinorUnits(candidate.number)?.let { minor -> Amount(minor, candidate.currency?.let(::currencyCode)) }
-        }
+        val unmasked = MASKED_NUMBER.replace(text, "|")
+        val candidates =
+            (
+                PREFIXED.findAll(unmasked).map { it.candidate(numberGroup = 2, currencyGroup = 1) } +
+                    SUFFIXED.findAll(unmasked).map { it.candidate(numberGroup = 1, currencyGroup = 2) }
+            ).groupBy { it.range }.values.singleOrNull() ?: return null
+        val candidate = candidates.first()
+        val trailingCurrency = CURRENCY_AFTER_NUMBER.matchAt(unmasked, candidate.range.last + 1)?.groupValues?.get(1)
+        val currencies = candidates.map { it.currency } + listOfNotNull(trailingCurrency)
+        val currency = currencies.map(::currencyCode).distinct().singleOrNull()
+        return if (currency == null) null else toMinorUnits(candidate.number)?.let { Amount(it, currency) }
     }
 
-    /** An amount found in the text, and the currency it named, if it named one. */
+    /** An amount found in the text, and the currency it explicitly named. */
     data class Amount(
         val minorUnits: Long,
-        val currency: String?,
+        val currency: String,
     )
 
     private data class Candidate(
-        val position: Int,
+        val range: IntRange,
         val number: String,
-        val currency: String?,
+        val currency: String,
     )
+
+    private fun MatchResult.candidate(
+        numberGroup: Int,
+        currencyGroup: Int,
+    ): Candidate {
+        val number = requireNotNull(groups[numberGroup])
+        return Candidate(number.range, number.value, groupValues[currencyGroup])
+    }
 
     private fun String.appearsIn(folded: String): Boolean =
         WORD_PATTERNS
@@ -125,17 +135,21 @@ object CaptureParser {
     private const val SUFFIX_CURRENCY = "€|\\$|£|(?i:eur|usd|gbp|euros?)"
 
     /** Never inside a longer number, so the *1234* of a card cannot become the start of an amount. */
-    private const val NOT_AFTER_A_NUMBER = "(?<![\\d.,])"
+    private const val NOT_AFTER_A_NUMBER = "(?<![\\p{L}\\p{N}.,])"
 
     /** Not followed by more digits, or by a separator and a digit, as a date or a time would be. */
     private const val NOT_BEFORE_A_NUMBER = "(?![\\d]|[.,]\\d)"
 
     private val PREFIXED =
-        Regex("(?<![\\p{L}\\p{N}])($PREFIX_CURRENCY)\\s?($NUMBER)$NOT_BEFORE_A_NUMBER")
+        Regex("(?<![\\p{L}\\p{N}])($PREFIX_CURRENCY)\\h*($NUMBER)$NOT_BEFORE_A_NUMBER")
     private val SUFFIXED =
-        Regex("$NOT_AFTER_A_NUMBER($NUMBER)\\s?($SUFFIX_CURRENCY)(?![\\p{L}])")
-    private val BARE =
-        Regex("$NOT_AFTER_A_NUMBER(?:\\d{1,3}(?:[.\\u00A0\\u202F ]\\d{3})+|\\d+)[.,]\\d{2}$NOT_BEFORE_A_NUMBER")
+        Regex("$NOT_AFTER_A_NUMBER($NUMBER)\\h*($SUFFIX_CURRENCY)(?![\\p{L}\\p{N}])")
+    private val CURRENCY_AFTER_NUMBER = Regex("\\h*($SUFFIX_CURRENCY)(?![\\p{L}\\p{N}])")
+    private val MASKED_NUMBER =
+        Regex(
+            "(?:(?<![\\p{L}\\p{N}])[xX]|[*\\u2022\\u25CF\\u00B7\\u2026]|\\.{3,})" +
+                "[\\h*xX\\u2022\\u25CF\\u00B7\\u2026.-]*\\d+(?:[\\h-]+\\d+(?![\\d.,]))*",
+        )
     private val DECIMAL_TAIL = Regex("[.,](\\d{1,2})$")
     private val MARKS = Regex("\\p{Mn}+")
     private val SPACES = Regex("\\s+")

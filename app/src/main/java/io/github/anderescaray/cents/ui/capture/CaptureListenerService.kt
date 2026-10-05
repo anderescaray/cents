@@ -39,6 +39,8 @@ class CaptureListenerService : NotificationListenerService() {
         fun recorder(): CaptureRecorder
 
         fun settings(): CaptureSettingsRepository
+
+        fun captureNotifier(): CaptureNotifier
     }
 
     /** Off the main thread (rule 4), and one failure never stops the next notification. */
@@ -100,17 +102,29 @@ class CaptureListenerService : NotificationListenerService() {
         text: String,
         postedAt: Instant,
     ) {
+        val outcome =
+            try {
+                dependencies.recorder().record(posted.packageName, text, postedAt)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (
+                @Suppress("TooGenericExceptionCaught") failure: Exception,
+            ) {
+                // Forgotten, so the app's next repost of it is tried again rather than taken as seen.
+                seen.forget(posted.key)
+                // Never the text: it is the owner's money, and a log is the one place it must not go.
+                Log.w(TAG, "a notification could not be captured", failure)
+                return
+            }
         try {
-            dependencies.recorder().record(posted.packageName, text, postedAt)
+            val current = setup
+            dependencies.captureNotifier().notify(outcome, enabled = current.enabled && current.notifyOnCapture)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (
             @Suppress("TooGenericExceptionCaught") failure: Exception,
         ) {
-            // Forgotten, so the app's next repost of it is tried again rather than taken as seen.
-            seen.forget(posted.key)
-            // Never the text: it is the owner's money, and a log is the one place it must not go.
-            Log.w(TAG, "a notification could not be captured", failure)
+            Log.w(TAG, "a captured movement could not be announced", failure)
         }
     }
 

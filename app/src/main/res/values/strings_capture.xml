@@ -17,7 +17,7 @@
     <string name="capture_add_app">Add an app</string>
     <string name="capture_add_app_needs_account">Create an account first</string>
     <string name="capture_section_words">Words</string>
-    <string name="capture_words_footer">A notification with an income word is an income, and one with an expense word is an expense. With neither, or with no amount, it is ignored.</string>
+    <string name="capture_words_footer">A notification needs an income or expense word and one amount with a currency, such as € or EUR. Masked numbers and ambiguous amounts are ignored. Captures with the same amount, currency and direction within a minute are counted once.</string>
     <string name="capture_expense_words">Expense words</string>
     <string name="capture_income_words">Income words</string>
     <string name="capture_edit_message">Where its payments go.</string>
@@ -49,4 +49,14 @@
     <string name="capture_expense_words_hint">What the app says when money goes out</string>
     <string name="capture_income_words_hint">What the app says when money comes in</string>
     <string name="capture_words_for">From %1$s</string>
+    <string name="capture_notify">Notify after capture</string>
+    <string name="capture_notify_footer">Show the amount and account after a movement is recorded. Ignored and duplicate notifications stay silent.</string>
+    <string name="capture_notify_blocked">Confirmation notifications are blocked</string>
+    <string name="capture_notify_settings">Allow notifications in Android settings.</string>
+    <string name="capture_notification_channel">Captured movements</string>
+    <string name="capture_notification_channel_description">Confirmations after an income or expense is recorded from a notification.</string>
+    <string name="capture_notification_expense">Expense added</string>
+    <string name="capture_notification_income">Income added</string>
+    <string name="capture_notification_body">%1$s · %2$s</string>
+    <string name="capture_notification_public">A movement was added automatically.</string>
 </resources>

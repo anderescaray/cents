@@ -17,7 +17,7 @@
     <string name="capture_add_app">Añadir una app</string>
     <string name="capture_add_app_needs_account">Crea una cuenta primero</string>
     <string name="capture_section_words">Palabras</string>
-    <string name="capture_words_footer">Una notificación con una palabra de ingreso es un ingreso, y con una de gasto, un gasto. Sin ninguna, o sin importe, se ignora.</string>
+    <string name="capture_words_footer">Una notificación necesita una palabra de ingreso o gasto y un único importe con moneda, como € o EUR. Los números ocultos y los importes ambiguos se ignoran. Las capturas con el mismo importe, moneda y tipo en un minuto se registran una vez.</string>
     <string name="capture_expense_words">Palabras de gasto</string>
     <string name="capture_income_words">Palabras de ingreso</string>
     <string name="capture_edit_message">Dónde van sus pagos.</string>
@@ -49,4 +49,14 @@
     <string name="capture_expense_words_hint">Lo que dice la app cuando sale dinero</string>
     <string name="capture_income_words_hint">Lo que dice la app cuando entra dinero</string>
     <string name="capture_words_for">De %1$s</string>
+    <string name="capture_notify">Notificar movimientos capturados</string>
+    <string name="capture_notify_footer">Muestra el importe y la cuenta después de registrar un movimiento. Las notificaciones ignoradas y duplicadas no generan avisos.</string>
+    <string name="capture_notify_blocked">Los avisos de confirmación están bloqueados</string>
+    <string name="capture_notify_settings">Permite las notificaciones en los ajustes de Android.</string>
+    <string name="capture_notification_channel">Movimientos capturados</string>
+    <string name="capture_notification_channel_description">Confirmaciones después de registrar un ingreso o gasto desde una notificación.</string>
+    <string name="capture_notification_expense">Gasto añadido</string>
+    <string name="capture_notification_income">Ingreso añadido</string>
+    <string name="capture_notification_body">%1$s · %2$s</string>
+    <string name="capture_notification_public">Se ha añadido un movimiento automáticamente.</string>
 </resources>

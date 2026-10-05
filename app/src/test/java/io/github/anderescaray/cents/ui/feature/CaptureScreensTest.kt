@@ -1,16 +1,21 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.feature.capture.CAPTURE_NOTIFY_SWITCH_TAG
 import io.github.anderescaray.cents.ui.feature.capture.CaptureActions
 import io.github.anderescaray.cents.ui.feature.capture.CaptureContent
 import io.github.anderescaray.cents.ui.feature.capture.CaptureSourceRow
@@ -112,6 +117,54 @@ class CaptureScreensTest {
         composeRule.onNodeWithText("Remove").performClick()
 
         assertEquals(1, removed)
+    }
+
+    @Test
+    fun `confirmation notifications can be switched on and off from capture settings`() {
+        val state = mutableStateOf(CaptureUiState(isLoading = false))
+        val changes = mutableListOf<Boolean>()
+        composeRule.setContent {
+            CentsTheme {
+                CaptureContent(
+                    state = state.value,
+                    accessGranted = true,
+                    confirmationsAllowed = true,
+                    actions =
+                        CaptureActions(
+                            onNotifyOnCaptureChanged = {
+                                changes += it
+                                state.value = state.value.copy(notifyOnCapture = it)
+                            },
+                        ),
+                )
+            }
+        }
+
+        scrollTo("Notify after capture")
+        composeRule.onNodeWithTag(CAPTURE_NOTIFY_SWITCH_TAG).assertIsOff().performClick()
+        composeRule.onNodeWithTag(CAPTURE_NOTIFY_SWITCH_TAG).assertIsOn().performClick()
+        composeRule.onNodeWithTag(CAPTURE_NOTIFY_SWITCH_TAG).assertIsOff()
+        assertEquals(listOf(true, false), changes)
+        assertEquals(false, state.value.enabled)
+    }
+
+    @Test
+    fun `blocked confirmations explain why and offer Android notification settings`() {
+        var opened = 0
+        composeRule.setContent {
+            CentsTheme {
+                CaptureContent(
+                    state = CaptureUiState(notifyOnCapture = true, isLoading = false),
+                    accessGranted = true,
+                    confirmationsAllowed = false,
+                    actions = CaptureActions(onOpenNotificationSettings = { opened++ }),
+                )
+            }
+        }
+
+        scrollTo("Confirmation notifications are blocked")
+        composeRule.onNodeWithText("Confirmation notifications are blocked").performClick()
+        assertEquals(1, opened)
     }
 
     /**

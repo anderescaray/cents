@@ -28,11 +28,11 @@ object CaptureText {
     /**
      * The fullest body a notification carries, then its title, as one line.
      *
-     * **The body comes first**, because the amount taken is the first one in the text, and a bank
-     * that titles its notification with the balance would otherwise have the balance recorded as
-     * the payment. The expanded text wins over the short one, which is often cut before the
-     * amount; the lines of a notification that bundles several movements are read when there is
-     * no expanded text. Null when there is nothing to read.
+     * **The body comes first**, so the note leads with the payment rather than the app's title.
+     * The expanded text wins over the short one, which is often cut before the amount; the lines
+     * of a notification that bundles several movements are read when there is no expanded text.
+     * The parser rejects multiple amounts rather than guessing which is the payment, including
+     * a balance in the title. Null when there is nothing to read.
      */
     fun of(
         title: CharSequence?,

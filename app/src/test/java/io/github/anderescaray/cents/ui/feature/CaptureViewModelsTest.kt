@@ -239,6 +239,25 @@ class CaptureViewModelsTest {
             assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, settings.state.value.expenseWords)
         }
 
+    @Test
+    fun `the confirmation switch updates its setting and leaves capture unchanged`() =
+        runTest {
+            val viewModel = capture()
+
+            viewModel.setNotifyOnCapture(true)
+
+            val enabled = viewModel.uiState.first { !it.isLoading && it.notifyOnCapture }
+            assertTrue(settings.state.value.notifyOnCapture)
+            assertFalse(enabled.enabled)
+
+            viewModel.setEnabled(true)
+            viewModel.setNotifyOnCapture(false)
+
+            val disabled = viewModel.uiState.first { !it.isLoading && it.enabled && !it.notifyOnCapture }
+            assertFalse(settings.state.value.notifyOnCapture)
+            assertTrue(disabled.enabled)
+        }
+
     private fun capture() = viewModels.keep(CaptureViewModel(settings, accounts))
 
     private fun picker() =
@@ -277,6 +296,10 @@ class CaptureViewModelsTest {
 
         override suspend fun setEnabled(enabled: Boolean) {
             state.value = state.value.copy(enabled = enabled)
+        }
+
+        override suspend fun setNotifyOnCapture(enabled: Boolean) {
+            state.value = state.value.copy(notifyOnCapture = enabled)
         }
 
         override suspend fun putSource(source: CaptureSource) {

@@ -37,10 +37,10 @@ class SelectedTabTest {
     private var selected: TopLevelTab? = null
 
     @Test
-    fun `the canvas is in no tab, so the bar has nothing to light`() {
+    fun `the app opens on Home, and the capsule lights it`() {
         start()
 
-        assertEquals(null, selected)
+        assertEquals(TopLevelTab.HOME, selected)
     }
 
     @Test
@@ -97,28 +97,38 @@ class SelectedTabTest {
     }
 
     @Test
-    fun `back from a section root returns to the canvas rather than leaving the app`() {
+    fun `back from a tab root returns home rather than leaving the app`() {
         start()
 
         switchTo(TopLevelTab.REPORTS)
         composeRule.runOnIdle { navController.popBackStack() }
         composeRule.waitForIdle()
 
-        // Sections sit on top of the canvas, which is what makes back mean something from a
-        // tab root. Popping to the movements list instead used to end the app after a
-        // drill-down, since that was the floor of the stack.
-        assertEquals(null, selected)
+        // Every tab sits on Home, which is what makes back mean something from a tab root.
+        assertEquals(TopLevelTab.HOME, selected)
     }
 
     @Test
-    fun `the category list belongs to Settings, even reached from a tab away`() {
+    fun `settings and the category list behind it belong to Home, where Settings opens from`() {
         start()
 
-        switchTo(TopLevelTab.SETTINGS)
+        switchTo(TopLevelTab.REPORTS)
+        switchTo(TopLevelTab.HOME)
+        push(Destination.Settings)
         push(Destination.Categories)
         push(Destination.CategoryEdit(categoryId = 3))
 
-        assertEquals(TopLevelTab.SETTINGS, selected)
+        assertEquals(TopLevelTab.HOME, selected)
+    }
+
+    @Test
+    fun `budgets belong to Reports now`() {
+        start()
+
+        switchTo(TopLevelTab.REPORTS)
+        push(Destination.Budgets)
+
+        assertEquals(TopLevelTab.REPORTS, selected)
     }
 
     private fun start() {
@@ -138,6 +148,7 @@ class SelectedTabTest {
                 composable<Destination.Categories> {}
                 composable<Destination.CategoryEdit> {}
                 composable<Destination.TransactionForm> {}
+                composable<Destination.Budgets> {}
             }
         }
         composeRule.waitForIdle()

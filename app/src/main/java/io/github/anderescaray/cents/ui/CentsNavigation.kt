@@ -10,18 +10,21 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
+import io.github.anderescaray.cents.ui.components.EaseOutExpo
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.navigation.SheetForms
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 import io.github.anderescaray.cents.ui.navigation.routes
 
-/** How long a push or pop takes. iOS uses a brisk slide, not a slow fade. */
+/** How long a push or pop takes: a brisk slide, not a slow fade. */
 private const val PUSH_DURATION_MS = 320
 
-/**
- * The section landing on the shape the bubble grew into. Short on purpose: it runs *after* the
- * expansion, and the two together are what has to stay under the half second D8 asked for.
- */
-private const val CANVAS_FADE_MS = 140
+/** How long changing tabs takes: a quick cross-fade, because the capsule already moved. */
+private const val TAB_FADE_MS = 180
+
+/** How long a sheet takes to rise, and to fall away again. */
+private const val SHEET_RISE_MS = 380
+private const val SHEET_FALL_MS = 260
 
 /**
  * The tab a destination belongs to: the tab it *is*, or the tab it was pushed inside.
@@ -49,8 +52,8 @@ internal fun NavDestination.owningTab(): TopLevelTab? =
  * the thing that knows, and it survives a rotation and process death without being saved
  * separately.
  *
- * Null on the home canvas, which is in no tab and shows no bar, and null before the graph is
- * set — the two states where there is honestly no answer rather than a first tab to fall back on.
+ * Null before the graph is set — the one state where there is honestly no answer rather than a
+ * first tab to fall back on.
  */
 internal fun List<NavBackStackEntry>.selectedTab(): TopLevelTab? =
     asReversed().firstNotNullOfOrNull { it.destination.owningTab() }
@@ -92,16 +95,31 @@ internal fun slideDirectionFor(
 /**
  * Tabs switch, they do not stack: one entry per tab, state preserved.
  *
- * They are popped back to the canvas rather than to the movements list, so every section sits
- * directly on [Destination.Home] and back from a section root returns there. Before the canvas
- * existed this popped to the start destination, which *was* the movements list — so back from a
- * drill-down left the app instead of going anywhere.
+ * Every tab sits directly on [Destination.Home], the start destination, so back from a tab's root
+ * returns home and back from home leaves the app.
  */
 internal fun NavHostController.switchToTab(destination: Destination) {
     navigate(destination) {
         popUpTo(Destination.Home) { saveState = true }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+/**
+ * A tap on the capsule. Another tab switches to it, keeping where it was left; **the tab already
+ * open goes back to its first screen**, the way iOS does. Without that, Home could never be got
+ * back to once Settings, which Home owns, was opened from it: the tab restores its stack, and a
+ * second tap did nothing.
+ */
+internal fun NavHostController.selectTab(
+    tab: TopLevelTab,
+    current: TopLevelTab?,
+) {
+    if (tab == current) {
+        popBackStack(tab.destination, inclusive = false)
+    } else {
+        switchToTab(tab.destination)
     }
 }
 
@@ -117,38 +135,71 @@ internal fun NavHostController.openMovementsList() {
 }
 
 /**
- * Whether this transition has the canvas on either side of it.
- *
- * Those do not slide: the bubble has just grown into the screen, and a section sliding in from
- * the right on top of that would be two different motions for one movement. A fade lands the
- * section exactly where the shape already is.
+ * Whether this is a change of tab rather than a push inside one: both ends belong to a tab, and
+ * not the same one. Those cross-fade — the capsule has already shown where you went, and a slide
+ * on top of that would be two motions for one tap.
  */
-internal fun AnimatedContentTransitionScope<NavBackStackEntry>.touchesCanvas(): Boolean =
-    initialState.destination.hasRoute(Destination.Home::class) ||
-        targetState.destination.hasRoute(Destination.Home::class)
+internal fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean {
+    val from = initialState.destination.owningTab()
+    val to = targetState.destination.owningTab()
+    return from != null && to != null && from != to
+}
+
+private fun NavDestination.isSheet(): Boolean = SheetForms.any { hasRoute(it) }
 
 /**
- * What a screen arriving looks like: a fade when the canvas is on either side of it, and the
- * iOS push otherwise. Named rather than written inline four times, because the pop pair differs
- * from the push pair by one word and that is exactly the kind of thing that drifts.
+ * What a screen arriving looks like: a sheet rising for the movement forms, a fade for a change
+ * of tab, and a push otherwise. Named rather than written inline four times, because the pop pair
+ * differs from the push pair by one word and that is exactly the kind of thing that drifts.
  */
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.arriving(
     direction: AnimatedContentTransitionScope.SlideDirection = travelDirection(),
 ): EnterTransition =
-    if (touchesCanvas()) {
-        fadeIn(tween(CANVAS_FADE_MS))
-    } else {
-        slideIntoContainer(direction, animationSpec = tween(PUSH_DURATION_MS))
+    when {
+        targetState.destination.isSheet() && direction != BACKWARDS -> {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.Up,
+                animationSpec = tween(SHEET_RISE_MS, easing = EaseOutExpo),
+            )
+        }
+
+        initialState.destination.isSheet() && direction == BACKWARDS -> {
+            EnterTransition.None
+        }
+
+        isTabSwitch() -> {
+            fadeIn(tween(TAB_FADE_MS))
+        }
+
+        else -> {
+            slideIntoContainer(direction, animationSpec = tween(PUSH_DURATION_MS))
+        }
     }
 
 /** The mirror of [arriving], for the screen being left behind. */
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.leaving(
     direction: AnimatedContentTransitionScope.SlideDirection = travelDirection(),
 ): ExitTransition =
-    if (touchesCanvas()) {
-        fadeOut(tween(CANVAS_FADE_MS))
-    } else {
-        slideOutOfContainer(direction, animationSpec = tween(PUSH_DURATION_MS))
+    when {
+        // The screen under a rising sheet stays where it is, the way a sheet covers it.
+        targetState.destination.isSheet() && direction != BACKWARDS -> {
+            ExitTransition.KeepUntilTransitionsFinished
+        }
+
+        initialState.destination.isSheet() && direction == BACKWARDS -> {
+            slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Down,
+                animationSpec = tween(SHEET_FALL_MS),
+            )
+        }
+
+        isTabSwitch() -> {
+            fadeOut(tween(TAB_FADE_MS))
+        }
+
+        else -> {
+            slideOutOfContainer(direction, animationSpec = tween(PUSH_DURATION_MS))
+        }
     }
 
 /** A pop always travels back, whichever way the push that made it came from. */

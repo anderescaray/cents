@@ -22,6 +22,7 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -98,23 +99,12 @@ private fun LazyListScope.groupRows(
 @Composable
 private fun AddGroupButton(onClick: () -> Unit) {
     val label = stringResource(R.string.groups_add)
-    Box(
-        modifier =
-            Modifier
-                .semantics { contentDescription = label }
-                .testTag(ADD_GROUP_TAG)
-                .size(CentsDimens.minRowHeight)
-                .clip(CircleShape)
-                .tappable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.action_add),
-            style = CentsTheme.typography.title2,
-            color = CentsTheme.colors.accent,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
-    }
+    RoundIconButton(
+        iconRes = R.drawable.ic_plus,
+        contentDescription = label,
+        onClick = onClick,
+        modifier = Modifier.testTag(ADD_GROUP_TAG),
+    )
 }
 
 internal const val ADD_GROUP_TAG = "addGroup"

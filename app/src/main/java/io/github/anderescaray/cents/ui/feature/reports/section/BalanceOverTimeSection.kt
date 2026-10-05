@@ -93,8 +93,8 @@ data class BalanceOverTimeSection(
                     valueColor =
                         when {
                             balance.change.isZero -> null
-                            balance.change.isNegative -> CentsTheme.colors.destructive
-                            else -> CentsTheme.colors.positive
+                            balance.change.isNegative -> CentsTheme.colors.destructiveText
+                            else -> CentsTheme.colors.positiveText
                         },
                     last = true,
                 )

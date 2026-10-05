@@ -148,7 +148,7 @@ internal fun LazyListScope.removalAction(
                             if (state.stopsRatherThanDeletes) R.string.rule_stop else R.string.rule_delete,
                         ),
                     style = CentsTheme.typography.body,
-                    color = CentsTheme.colors.destructive,
+                    color = CentsTheme.colors.destructiveText,
                 )
             }
         }

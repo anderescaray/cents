@@ -164,7 +164,7 @@ private fun TargetHeader(
             color =
                 when {
                     !state.hasTarget -> CentsTheme.colors.secondaryLabel
-                    state.target.isNegative -> CentsTheme.colors.destructive
+                    state.target.isNegative -> CentsTheme.colors.destructiveText
                     else -> CentsTheme.colors.label
                 },
             textAlign = TextAlign.Center,
@@ -182,7 +182,7 @@ private fun TargetHeader(
         Text(
             text = stringResource(if (state.form.negative) R.string.account_owed else R.string.account_held),
             style = CentsTheme.typography.subhead,
-            color = CentsTheme.colors.accent,
+            color = CentsTheme.colors.accentText,
             modifier =
                 Modifier
                     .testTag(BALANCE_SIGN_TAG)
@@ -208,7 +208,7 @@ private fun LazyListScope.comparison(state: AccountBalanceUiState) {
             CentsListRow(
                 title = stringResource(R.string.balance_current),
                 value = MoneyFormatter.format(current),
-                valueColor = if (current.isNegative) CentsTheme.colors.destructive else CentsTheme.colors.label,
+                valueColor = if (current.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
                 showSeparator = difference != null,
             )
             if (difference != null) {
@@ -218,8 +218,8 @@ private fun LazyListScope.comparison(state: AccountBalanceUiState) {
                     valueColor =
                         when {
                             difference.isZero -> CentsTheme.colors.secondaryLabel
-                            difference.isNegative -> CentsTheme.colors.destructive
-                            else -> CentsTheme.colors.positive
+                            difference.isNegative -> CentsTheme.colors.destructiveText
+                            else -> CentsTheme.colors.positiveText
                         },
                     showSeparator = false,
                     modifier = Modifier.testTag(BALANCE_DIFFERENCE_TAG),

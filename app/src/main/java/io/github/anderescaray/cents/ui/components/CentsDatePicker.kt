@@ -205,7 +205,7 @@ private fun DayCell(
                 color =
                     when {
                         selected -> CentsTheme.colors.onAccent
-                        isToday -> CentsTheme.colors.accent
+                        isToday -> CentsTheme.colors.accentText
                         else -> CentsTheme.colors.label
                     },
             )
@@ -236,7 +236,7 @@ internal fun monthCells(
 }
 
 private const val DAYS_PER_WEEK = 7
-private const val CALENDAR_RADIUS = 14
+private const val CALENDAR_RADIUS = 22
 private const val CHEVRON_SIZE = 18
 private const val DAY_SIZE = 36
 private const val MONTH_PATTERN = "LLLL yyyy"

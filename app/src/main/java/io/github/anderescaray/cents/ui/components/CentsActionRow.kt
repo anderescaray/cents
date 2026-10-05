@@ -40,7 +40,7 @@ fun CentsActionRow(
             Text(
                 text = label,
                 style = CentsTheme.typography.body,
-                color = if (destructive) CentsTheme.colors.destructive else CentsTheme.colors.accent,
+                color = if (destructive) CentsTheme.colors.destructiveText else CentsTheme.colors.accentText,
             )
         }
         if (showSeparator) {

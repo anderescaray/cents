@@ -1,5 +1,10 @@
 package io.github.anderescaray.cents.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,22 +12,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsTabBar
-import io.github.anderescaray.cents.ui.components.CentsTabBarShelf
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.feature.accounts.AccountBalanceScreen
@@ -39,8 +39,6 @@ import io.github.anderescaray.cents.ui.feature.groups.GroupDetailScreen
 import io.github.anderescaray.cents.ui.feature.groups.GroupEditScreen
 import io.github.anderescaray.cents.ui.feature.groups.GroupsScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeScreen
-import io.github.anderescaray.cents.ui.feature.home.HomeUiState
-import io.github.anderescaray.cents.ui.feature.home.HomeViewModel
 import io.github.anderescaray.cents.ui.feature.inbox.InboxScreen
 import io.github.anderescaray.cents.ui.feature.investments.HoldingDetailScreen
 import io.github.anderescaray.cents.ui.feature.investments.HoldingEditScreen
@@ -51,12 +49,14 @@ import io.github.anderescaray.cents.ui.feature.recurring.GenerateDueMovements
 import io.github.anderescaray.cents.ui.feature.recurring.PendingChargesScreen
 import io.github.anderescaray.cents.ui.feature.recurring.RuleFormScreen
 import io.github.anderescaray.cents.ui.feature.recurring.SubscriptionsScreen
+import io.github.anderescaray.cents.ui.feature.reports.ReportsCustomizeScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.settings.SettingsScreen
 import io.github.anderescaray.cents.ui.feature.transactionform.TransactionFormScreen
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsScreen
 import io.github.anderescaray.cents.ui.feature.transferform.TransferFormScreen
 import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.navigation.FullScreenForms
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 
 @Composable
@@ -64,13 +64,10 @@ fun CentsApp(
     /** True when a reminder asking for a figure was tapped: go straight to the screen that takes it. */
     openPending: Boolean = false,
     navController: NavHostController = rememberNavController(),
-    home: HomeViewModel = hiltViewModel(),
 ) {
     val backStack by navController.currentBackStack.collectAsState()
     val currentTab = backStack.selectedTab()
-    val homeState by home.state.collectAsStateWithLifecycle()
-
-    RestoreLastSection(state = homeState, currentTab = currentTab, navController = navController, home = home)
+    val onForm = backStack.lastOrNull()?.destination?.let { top -> FullScreenForms.any { top.hasRoute(it) } } == true
 
     // Before anything is drawn from the database: whatever repeats has to be in it first, or
     // the list opens a frame short of the rent.
@@ -89,24 +86,29 @@ fun CentsApp(
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
-            CentsNavHost(navController = navController, home = home, homeState = homeState)
+            CentsNavHost(navController = navController)
         }
 
-        // No bar on the canvas: the bubbles are the way in, and a tab bar under them would be
-        // the same four destinations offered twice.
-        if (currentTab != null) {
-            CentsTabBarShelf(
-                collapsed = homeState.tabBarCollapsed,
-                onCollapsedChange = home::setTabBarCollapsed,
-            ) {
-                CentsTabBar(
-                    items = tabs,
-                    selectedKey = currentTab.name,
-                    onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
-                )
-            }
+        // Not under a form: its keypad or its own button is where the capsule would be.
+        AnimatedVisibility(
+            visible = currentTab != null && !onForm,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            CentsTabBar(
+                items = tabs,
+                selectedKey = currentTab?.name.orEmpty(),
+                onSelect = { key -> navController.selectTab(TopLevelTab.valueOf(key), currentTab) },
+                onAdd = { navController.openNewMovement(TransactionKind.EXPENSE) },
+                addLabel = stringResource(R.string.action_add_movement),
+            )
         }
     }
+}
+
+/** The movement form, adding: from the capsule's button, or one of Home's three. */
+private fun NavHostController.openNewMovement(kind: TransactionKind) {
+    navigate(Destination.TransactionForm(kind = kind)) { launchSingleTop = true }
 }
 
 /**
@@ -128,47 +130,12 @@ private fun OpenPendingFromNotification(
     }
 }
 
-/**
- * Reopening where the app was left, and remembering where it is now — in that order, which is
- * the whole subtlety.
- *
- * The canvas is the start destination, so on a cold start the current tab is null, and writing
- * that down before the stored section has been read would erase it a frame before it was used.
- * So nothing is remembered until the one restore has been attempted, and the flag saying so is
- * saveable: after process death Android restores the back stack itself, and a second restore
- * would push a section on top of one already open.
- */
+/** The navigation stack: pushes slide, tab changes fade, and the movement forms rise. */
 @Composable
-private fun RestoreLastSection(
-    state: HomeUiState,
-    currentTab: TopLevelTab?,
-    navController: NavHostController,
-    home: HomeViewModel,
-) {
-    var restored by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(state.loaded) {
-        if (state.loaded && !restored) {
-            restored = true
-            state.lastSection?.let { navController.switchToTab(it.destination) }
-        }
-    }
-    LaunchedEffect(currentTab, restored) {
-        if (restored) home.rememberSection(currentTab)
-    }
-}
-
-/** The navigation stack, with iOS push and pop transitions. */
-@Composable
-private fun CentsNavHost(
-    navController: NavHostController,
-    home: HomeViewModel,
-    homeState: HomeUiState,
-) {
+private fun CentsNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
         startDestination = Destination.Home,
-        // Horizontal push and pop, the way an iOS navigation stack moves.
         enterTransition = { arriving() },
         exitTransition = { leaving() },
         popEnterTransition = { arriving(BACKWARDS) },
@@ -176,13 +143,20 @@ private fun CentsNavHost(
     ) {
         composable<Destination.Home> {
             HomeScreen(
-                state = homeState,
-                onMove = home::move,
-                onOpenSection = { tab -> navController.switchToTab(tab.destination) },
+                onAdd = { kind -> navController.openNewMovement(kind) },
+                onTransfer = { navController.navigate(Destination.TransferForm()) { launchSingleTop = true } },
+                onOpenSettings = { navController.navigate(Destination.Settings) { launchSingleTop = true } },
+                onOpenInbox = { navController.navigate(Destination.Inbox) { launchSingleTop = true } },
+                onOpenTransaction = { id ->
+                    navController.navigate(Destination.TransactionForm(transactionId = id)) { launchSingleTop = true }
+                },
+                onOpenPending = { navController.navigate(Destination.PendingCharges) { launchSingleTop = true } },
+                onOpenMovements = { navController.openMovementsList() },
+                onCreateAccount = { navController.navigate(Destination.AccountEdit()) { launchSingleTop = true } },
             )
         }
         transactionRoutes(navController)
-        // The uncategorized inbox (PRD §4.6), pushed from the movements list.
+        // The uncategorized inbox (PRD §4.6), pushed from Home or from the movements list.
         composable<Destination.Inbox> {
             InboxScreen(
                 onBack = { navController.popBackStack() },
@@ -205,16 +179,20 @@ private fun CentsNavHost(
                 // the movements tab — with the filter already applied. Pushing the list on
                 // top instead would leave two of it on the stack, one filtered and one not.
                 onOpenMovements = { navController.openMovementsList() },
+                onOpenBudgets = { navController.navigate(Destination.Budgets) { launchSingleTop = true } },
+                onCustomize = { navController.navigate(Destination.ReportsCustomize) { launchSingleTop = true } },
             )
+        }
+        composable<Destination.ReportsCustomize> {
+            ReportsCustomizeScreen(onBack = { navController.popBackStack() })
         }
         composable<Destination.Settings> {
             SettingsScreen(
+                onBack = { navController.popBackStack() },
                 onOpenCategories = { navController.navigate(Destination.Categories) },
                 onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
-                onOpenBudgets = { navController.navigate(Destination.Budgets) },
                 onOpenGroups = { navController.navigate(Destination.Groups) },
                 onOpenCapture = { navController.navigate(Destination.Capture) },
-                onResetHomeLayout = home::resetLayout,
             )
         }
     }
@@ -307,6 +285,7 @@ private inline fun <reified T : Destination> NavHostController.switchForm(destin
 private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
     composable<Destination.Accounts> {
         AccountsScreen(
+            onOpenInvestments = { navController.navigate(Destination.Investments) { launchSingleTop = true } },
             onNewAccount = {
                 navController.navigate(Destination.AccountEdit()) { launchSingleTop = true }
             },
@@ -355,6 +334,7 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
 private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
     composable<Destination.Investments> {
         PortfolioScreen(
+            onBack = { navController.popBackStack() },
             onAddHolding = {
                 navController.navigate(Destination.HoldingEdit()) { launchSingleTop = true }
             },

@@ -11,13 +11,13 @@
     <string name="capture_access_on_footer">Android deja a Cents leer notificaciones. Se puede retirar desde la misma pantalla del sistema.</string>
     <string name="capture_access_off_footer">Android tiene que dejar a Cents leer notificaciones antes de que se registre nada. Activa Cents en esa lista y vuelve.</string>
     <string name="capture_section_apps">Apps</string>
-    <string name="capture_apps_footer">Cada app escribe en una cuenta. Toca una app para cambiar su cuenta o para dejar de leerla.</string>
+    <string name="capture_apps_footer">Cada app tiene su propia cuenta y sus propias palabras. Una notificación suya con una palabra de ingreso es un ingreso, y con una de gasto, un gasto; sin ninguna, o sin importe, se ignora. El mismo importe dos veces en un minuto se anota una vez.</string>
     <string name="capture_app_into">En %1$s</string>
     <string name="capture_app_no_account">Su cuenta ya no existe, así que no se registra nada</string>
     <string name="capture_add_app">Añadir una app</string>
     <string name="capture_add_app_needs_account">Crea una cuenta primero</string>
     <string name="capture_section_words">Palabras</string>
-    <string name="capture_words_footer">Una notificación con una palabra de ingreso es un ingreso, y una con una palabra de gasto es un gasto. Sin ninguna, o sin importe, se ignora. El mismo importe dos veces en un minuto se registra una vez.</string>
+    <string name="capture_words_footer">Una notificación con una palabra de ingreso es un ingreso, y con una de gasto, un gasto. Sin ninguna, o sin importe, se ignora.</string>
     <string name="capture_expense_words">Palabras de gasto</string>
     <string name="capture_income_words">Palabras de ingreso</string>
     <string name="capture_edit_message">Dónde van sus pagos.</string>
@@ -45,4 +45,8 @@
     <string name="capture_stop_title">¿Dejar de leer %1$s?</string>
     <string name="capture_stop_message">Sus pagos ya no se registran. Lo que ya registró se queda en la lista.</string>
     <string name="capture_stop_confirm">Dejar de leer</string>
+    <string name="capture_app_account">Cuenta</string>
+    <string name="capture_expense_words_hint">Lo que dice la app cuando sale dinero</string>
+    <string name="capture_income_words_hint">Lo que dice la app cuando entra dinero</string>
+    <string name="capture_words_for">De %1$s</string>
 </resources>

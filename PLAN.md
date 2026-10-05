@@ -503,6 +503,27 @@ Check the code before trusting a plan that says they are. **On 2026-09-03 the ow
 serial anyway** for the views after that. **On 2026-09-21 D24 turned parallel work back on, this
 time through Orca**, so how it runs now is described in the next paragraph.
 
+**Where the 2026-10-01 session stopped: the rework, and the first walk in weeks.** Local, with the
+tablet and then the Pixel attached.
+- **Walked first:** the Drive backup end to end on the tablet — `n7`, `n8`, `n9` (a real restore
+  with subscriptions), `f1` (tapping a column), budgets `g1`–`g4`. All passed. The owner wants
+  deleting one Drive copy at a time, later (C7).
+- **Then the owner asked for the UI rework** (D30): everything, after the film, not iOS. Built on
+  `feat/ui-rework`, seen on the tablet screen by screen and fixed as it went:
+  - tokens, cards, chips, the ring, money that counts, a floating capsule with **+**;
+  - **Home** for recording and filing, with the month's left/overspent as its headline;
+  - the movement and transfer forms as sheets: amount, category chips, one button;
+  - budgets in Reports; **Reports › Customize** (order and hide, DataStore); Reports' ring is
+    Home's; Wallet is *What you have*, investments behind *Invested*;
+  - the bubbles, their layout store and the reset row deleted; ADR 0002 superseded, 0003 accepted;
+  - **capture's words per app** (amends D29).
+- **Bugs found on the tablet and fixed:** rows let the swipe's red layer through; the card fade
+  and a size animation clipped shadows into hard lines, and the fade replayed on every return.
+- **The Pixel has the build**, fresh: the owner is clearing the tablet's fake Drive copies
+  (Drive › Manage apps › Cents › *Delete hidden app data*) and starting real data there.
+- **Not done:** the PR's `/code-review high` (§7), and Walk 19 (capture with a real bank
+  notification), which is the owner's next step on the Pixel.
+
 **Where the 2026-09-27 session stopped: income and expenses, reshaped.** A cloud session, with
 no Android SDK, so ktlint 1.8.0 and detekt 2.0.0-alpha.6 ran as CLIs and CI is the gate for
 the rest. The owner asked for the chart to show what was saved, and to choose its columns.
@@ -2343,6 +2364,9 @@ lost nor smuggled into a branch that was supposed to be about something else.
 
 ### Bubbles instead of a tab bar
 
+> **2026-10-01: replaced** by Home and the tab capsule (D30, ADR 0003, `feat/ui-rework`). The rest
+> of this entry is history.
+>
 > **2026-09-23: to be replaced.** Having lived with them, the owner does not much like the bubbles
 > and means to change them later. Until then no time goes into the canvas: no fixes, no polish,
 > no walk (`b1`–`b10` are skipped). The replacement is undecided and is the owner's to describe:
@@ -2453,7 +2477,19 @@ Requested by the owner on 2026-09-27, for the **UI rework to ADR 0003**, not bef
 
 ---
 
+
+### Deleting one Drive backup at a time
+
+Asked 2026-10-01 while walking `n8`: from *Restore from Drive*, remove a single copy (swipe, with a
+confirmation). Today only retention prunes, and Drive's *Delete hidden app data* removes them all.
+Not built; the owner said later.
 ## Next concrete action
+
+**2026-10-01: merge `feat/ui-rework` after its `/code-review high`, then Walk 19 on the Pixel**
+— capture from a real bank notification, with the per-app words (Walk 20 `u5`). Requested for
+later: deleting one Drive copy at a time from *Restore from Drive*.
+
+*What follows was written before the rework and is kept for its lists of unwalked steps.*
 
 **Walk the app on the phone, with [`docs/device-check.md`](docs/device-check.md) open.** Still
 the owner's (C5), and still the biggest gap. **As of 2026-09-24 the phone has the current

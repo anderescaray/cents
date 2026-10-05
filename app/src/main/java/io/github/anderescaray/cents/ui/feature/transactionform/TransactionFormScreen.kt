@@ -4,38 +4,55 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
-import io.github.anderescaray.cents.ui.components.AmountKeypadState
+import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsAlert
+import io.github.anderescaray.cents.ui.components.CentsButton
+import io.github.anderescaray.cents.ui.components.CentsChip
 import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
-import io.github.anderescaray.cents.ui.components.CentsListRow
-import io.github.anderescaray.cents.ui.components.CentsListSection
-import io.github.anderescaray.cents.ui.components.CentsModalBar
+import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.components.EntryKindControl
@@ -46,6 +63,15 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.relativeLabel
 
+/** Which picker the form has open over itself, if any. */
+private enum class FormSheet { ACCOUNT, GROUP }
+
+/**
+ * The movement form, shaped like the film's sheet: what kind, how much in large type, the
+ * category as one tap on a chip, then the keypad and one button that says what it will do —
+ * *Add expense*. The account, the date, the group and a note sit as small chips between, already
+ * answered with the usual answer, so the common case is amount, category, done.
+ */
 @Composable
 fun TransactionFormScreen(
     onDone: () -> Unit,
@@ -57,6 +83,7 @@ fun TransactionFormScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val keypad = rememberAmountKeypadState(shownInitially = viewModel.isNewRecord)
     val focusManager = LocalFocusManager.current
+    var sheet by rememberSaveable { mutableStateOf<FormSheet?>(null) }
 
     LaunchedEffect(state.finished) {
         if (state.finished) onDone()
@@ -66,32 +93,22 @@ fun TransactionFormScreen(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(CentsTheme.colors.groupedBackground)
+                .background(CentsTheme.colors.groupedCard)
                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-                // The note field is the app's first text input inside a form that already
-                // has a keypad pinned to the bottom: without this the soft keyboard covers
-                // the field the owner just tapped.
+                // The note field is a text input inside a form that has a keypad pinned to the
+                // bottom: without this the soft keyboard covers the field the owner just tapped.
                 .imePadding(),
     ) {
-        CentsModalBar(
-            title =
-                stringResource(
-                    if (state.isEditing) R.string.edit_transaction_title else R.string.add_transaction_title,
-                ),
-            cancelLabel = stringResource(R.string.action_cancel),
+        FormTopBar(
+            title = stringResource(state.titleRes()),
             onCancel = onDone,
-            confirmLabel = stringResource(R.string.action_save),
-            onConfirm = viewModel::save,
-            confirmEnabled = state.canSave,
+            onDelete = viewModel::requestDeletion.takeIf { state.isEditing },
         )
 
-        FormFields(
+        FormBody(
             state = state,
             viewModel = viewModel,
-            keypad = keypad,
-            // The amount travels with the switch: realising halfway through that this is a
-            // transfer should not cost what has already been typed.
-            onSwitchToTransfer = { onSwitchToTransfer(state.amountInput) },
+            onSwitchToTransfer = onSwitchToTransfer,
             onAmountTapped = {
                 // Clearing focus is what lowers the system keyboard; without it the two
                 // would be stacked on each other.
@@ -99,27 +116,188 @@ fun TransactionFormScreen(
                 keypad.showForAmount()
             },
             onCreateCategory = onCreateCategory,
-            onCreateAccount = onCreateAccount,
+            onAccount = { if (state.accounts.isEmpty()) onCreateAccount() else sheet = FormSheet.ACCOUNT },
+            onGroup = { sheet = FormSheet.GROUP },
+            onNoteFocus = keypad::onTextFieldFocus,
             modifier = Modifier.weight(1f),
         )
 
-        if (keypad.isShown) {
-            CentsKeypad(
-                onDigit = viewModel::appendDigit,
-                onDecimalSeparator = viewModel::appendDecimalSeparator,
-                onDelete = viewModel::deleteDigit,
+        FormFooter(
+            keypadShown = keypad.isShown,
+            confirmLabel = stringResource(state.confirmRes()),
+            canSave = state.canSave,
+            viewModel = viewModel,
+        )
+    }
+
+    FormDialogs(state = state, viewModel = viewModel, sheet = sheet, onCloseSheet = { sheet = null })
+}
+
+/** Everything between the bar and the keypad: kind, amount, category, details and a note. */
+@Composable
+private fun FormBody(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+    onSwitchToTransfer: (String) -> Unit,
+    onAmountTapped: () -> Unit,
+    onCreateCategory: (CategoryKind) -> Unit,
+    onAccount: () -> Unit,
+    onGroup: () -> Unit,
+    onNoteFocus: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
+    ) {
+        EntryKindControl(
+            selected = if (state.kind == TransactionKind.INCOME) EntryKind.INCOME else EntryKind.EXPENSE,
+            includeTransfer = state.canBecomeTransfer,
+            onSelect = { entry ->
+                when (entry) {
+                    EntryKind.EXPENSE -> viewModel.setKind(TransactionKind.EXPENSE)
+
+                    EntryKind.INCOME -> viewModel.setKind(TransactionKind.INCOME)
+
+                    // The third answer is a different screen, because a transfer has two
+                    // accounts and no category. It replaces this one rather than stacking
+                    // on it — see `switchForm` in CentsApp. The amount travels with it.
+                    EntryKind.TRANSFER -> onSwitchToTransfer(state.amountInput)
+                }
+            },
+            modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+        )
+
+        AmountHeader(state = state, onClick = onAmountTapped)
+
+        if (state.writeFailed) {
+            Text(
+                text = stringResource(R.string.transaction_write_failed),
+                style = CentsTheme.typography.footnote,
+                color = CentsTheme.colors.destructiveText,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = CentsDimens.screenMargin),
+            )
+        }
+
+        CategoryChips(state = state, viewModel = viewModel, onCreateCategory = onCreateCategory)
+
+        DetailChips(
+            state = state,
+            onAccount = onAccount,
+            onDate = viewModel::openDatePicker,
+            onGroup = onGroup,
+        )
+
+        NoteField(
+            note = state.note,
+            onNoteChange = viewModel::setNote,
+            onFocus = onNoteFocus,
+        )
+    }
+}
+
+/** The keypad while the amount is being typed, and the one button that says what saving does. */
+@Composable
+private fun FormFooter(
+    keypadShown: Boolean,
+    confirmLabel: String,
+    canSave: Boolean,
+    viewModel: TransactionFormViewModel,
+) {
+    if (keypadShown) {
+        CentsKeypad(
+            onDigit = viewModel::appendDigit,
+            onDecimalSeparator = viewModel::appendDecimalSeparator,
+            onDelete = viewModel::deleteDigit,
+            applyBottomInset = false,
+        )
+    }
+    CentsButton(
+        text = confirmLabel,
+        onClick = viewModel::save,
+        enabled = canSave,
+        modifier =
+            Modifier
+                .padding(horizontal = CentsDimens.screenMargin)
+                .padding(
+                    top = if (keypadShown) CentsDimens.spacingXs else CentsDimens.spacingS,
+                    bottom =
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + CentsDimens.spacingM,
+                ),
+    )
+}
+
+/** Cancel on the left, what this is in the middle, and Delete on the right when editing. */
+@Composable
+internal fun FormTopBar(
+    title: String,
+    onCancel: () -> Unit,
+    onDelete: (() -> Unit)?,
+) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CentsDimens.screenMargin, vertical = CentsDimens.spacingXs),
+    ) {
+        Text(
+            text = stringResource(R.string.action_cancel),
+            style = CentsTheme.typography.callout,
+            color = CentsTheme.colors.accentText,
+            modifier = Modifier.align(Alignment.CenterStart).tappable(onClick = onCancel),
+        )
+        Text(
+            text = title,
+            style = CentsTheme.typography.headline,
+            color = CentsTheme.colors.label,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.Center).semantics { heading() },
+        )
+        if (onDelete != null) {
+            Text(
+                text = stringResource(R.string.action_delete),
+                style = CentsTheme.typography.callout,
+                color = CentsTheme.colors.destructiveText,
+                modifier = Modifier.align(Alignment.CenterEnd).tappable(onClick = onDelete),
             )
         }
     }
-
-    FormDialogs(state = state, viewModel = viewModel)
 }
 
-/** What the form puts on top of itself: the calendar, and the deletion it asks about. */
+/** The amount, as the headline of the sheet. Tapping it asks for the keypad back. */
+@Composable
+private fun AmountHeader(
+    state: TransactionFormUiState,
+    onClick: () -> Unit,
+) {
+    Text(
+        // The entry, not the amount: 25 reads "25 €" and 25, reads "25, €", so the comma key
+        // and the digits behind it are visibly doing something.
+        text = AmountEntry.format(state.amountInput, state.currency),
+        style = CentsTheme.typography.display.copy(fontSize = AMOUNT_SIZE.sp, lineHeight = (AMOUNT_SIZE + 8).sp),
+        color = if (state.kind == TransactionKind.INCOME) CentsTheme.colors.positiveText else CentsTheme.colors.label,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        // Shrinks rather than clips: 12.345,67 € on a narrow phone, or a large system font, must
+        // still show every digit of what is about to be saved.
+        autoSize = TextAutoSize.StepBased(minFontSize = AMOUNT_MIN_SIZE.sp, maxFontSize = AMOUNT_SIZE.sp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .testTag(AMOUNT_HEADER_TAG)
+                .tappable(onClick = onClick)
+                .padding(horizontal = CentsDimens.screenMargin),
+    )
+}
+
+/** What the form puts on top of itself: the calendar, the two pickers, and the deletion. */
 @Composable
 private fun FormDialogs(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
+    sheet: FormSheet?,
+    onCloseSheet: () -> Unit,
 ) {
     if (state.pickingDate) {
         CentsDatePicker(
@@ -128,6 +306,12 @@ private fun FormDialogs(
             onSelect = viewModel::setDate,
             onDismiss = viewModel::dismissDatePicker,
         )
+    }
+
+    when (sheet) {
+        FormSheet.ACCOUNT -> AccountSheet(state, viewModel, onCloseSheet)
+        FormSheet.GROUP -> GroupSheet(state, viewModel, onCloseSheet)
+        null -> Unit
     }
 
     if (state.confirmingDeletion) {
@@ -143,255 +327,23 @@ private fun FormDialogs(
     }
 }
 
-/** Amount, direction, account and category: everything above the keypad. */
-@Composable
-private fun FormFields(
-    state: TransactionFormUiState,
-    viewModel: TransactionFormViewModel,
-    keypad: AmountKeypadState,
-    onSwitchToTransfer: () -> Unit,
-    onAmountTapped: () -> Unit,
-    onCreateCategory: (CategoryKind) -> Unit,
-    onCreateAccount: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
-    ) {
-        item(key = "amount") { AmountHeader(state, onClick = onAmountTapped) }
-
-        if (state.writeFailed) {
-            item(key = "error") {
-                Text(
-                    text = stringResource(R.string.transaction_write_failed),
-                    style = CentsTheme.typography.footnote,
-                    color = CentsTheme.colors.destructive,
-                    textAlign = TextAlign.Center,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CentsDimens.screenMargin),
-                )
-            }
-        }
-
-        item(key = "kind") {
-            EntryKindControl(
-                selected =
-                    if (state.kind == TransactionKind.INCOME) EntryKind.INCOME else EntryKind.EXPENSE,
-                includeTransfer = state.canBecomeTransfer,
-                onSelect = { entry ->
-                    when (entry) {
-                        EntryKind.EXPENSE -> viewModel.setKind(TransactionKind.EXPENSE)
-
-                        EntryKind.INCOME -> viewModel.setKind(TransactionKind.INCOME)
-
-                        // The third answer is a different screen, because a transfer has two
-                        // accounts and no category. It replaces this one rather than stacking
-                        // on it — see `switchForm` in CentsApp.
-                        EntryKind.TRANSFER -> onSwitchToTransfer()
-                    }
-                },
-                modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
-            )
-        }
-
-        accountSection(state = state, viewModel = viewModel, onCreateAccount = onCreateAccount)
-
-        details(state = state, viewModel = viewModel, keypad = keypad)
-
-        categorySection(state = state, viewModel = viewModel, onCreateCategory = onCreateCategory)
-
-        groupSection(state = state, viewModel = viewModel)
-
-        if (state.isEditing) {
-            deleteAction(onDelete = viewModel::requestDeletion)
-        }
+private fun TransactionFormUiState.titleRes(): Int =
+    when {
+        isEditing -> R.string.edit_transaction_title
+        kind == TransactionKind.INCOME -> R.string.form_title_new_income
+        else -> R.string.form_title_new_expense
     }
-}
 
-/** Where the money moved. Without an account there is nowhere to record anything. */
-private fun LazyListScope.accountSection(
-    state: TransactionFormUiState,
-    viewModel: TransactionFormViewModel,
-    onCreateAccount: () -> Unit,
-) {
-    item(key = "account") {
-        if (state.accounts.isEmpty()) {
-            CentsListSection(
-                header = stringResource(R.string.field_account),
-                footer = stringResource(R.string.field_account_empty_footer),
-            ) {
-                CentsListRow(
-                    title = stringResource(R.string.field_account_empty),
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = onCreateAccount,
-                )
-            }
-        } else {
-            PickerSection(
-                header = stringResource(R.string.field_account),
-                options = state.accounts.map { it.id to it.name },
-                selectedId = state.selectedAccountId,
-                onSelect = viewModel::selectAccount,
-            )
-        }
+private fun TransactionFormUiState.confirmRes(): Int =
+    when {
+        isEditing -> R.string.action_save
+        kind == TransactionKind.INCOME -> R.string.form_add_income
+        else -> R.string.form_add_expense
     }
-}
 
-/** When it happened and what it was for: the two fields the keypad cannot type. */
-private fun LazyListScope.details(
-    state: TransactionFormUiState,
-    viewModel: TransactionFormViewModel,
-    keypad: AmountKeypadState,
-) {
-    item(key = "details") {
-        CentsListSection {
-            CentsListRow(
-                title = stringResource(R.string.field_date),
-                value = state.date.relativeLabel(state.today),
-                showChevron = true,
-                onClick = viewModel::openDatePicker,
-            )
-            CentsTextField(
-                value = state.note,
-                onValueChange = viewModel::setNote,
-                placeholder = stringResource(R.string.field_note_placeholder),
-                modifier =
-                    Modifier
-                        .testTag(NOTE_FIELD_TAG)
-                        .onFocusChanged { keypad.onTextFieldFocus(it.isFocused) },
-            )
-        }
-    }
-}
-
-private fun LazyListScope.categorySection(
-    state: TransactionFormUiState,
-    viewModel: TransactionFormViewModel,
-    onCreateCategory: (CategoryKind) -> Unit,
-) {
-    item(key = "category") {
-        if (state.categories.isEmpty()) {
-            // Nothing is seeded, so an empty list is the normal first-run state: the way
-            // out of it is creating a category, not staring at an empty box.
-            CentsListSection(
-                header = stringResource(R.string.field_category),
-                footer = stringResource(R.string.field_category_empty_footer),
-            ) {
-                CentsListRow(
-                    title = stringResource(R.string.field_category_empty),
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = { onCreateCategory(state.kind.toCategoryKind()) },
-                )
-            }
-        } else {
-            PickerSection(
-                header = stringResource(R.string.field_category),
-                footer = stringResource(R.string.field_category_footer),
-                options = state.categories.map { it.id to it.name },
-                selectedId = state.selectedCategoryId,
-                onSelect = { id ->
-                    viewModel.selectCategory(id.takeIf { it != state.selectedCategoryId })
-                },
-            )
-        }
-    }
-}
-
-/**
- * Which occasion it belongs to, if any (PRD §4.9). Absent until a group exists: they are made in
- * Settings › Groups, and an empty picker on every movement would be noise for most of them.
- */
-private fun LazyListScope.groupSection(
-    state: TransactionFormUiState,
-    viewModel: TransactionFormViewModel,
-) {
-    if (state.groups.isEmpty()) return
-    item(key = "group") {
-        PickerSection(
-            header = stringResource(R.string.field_group),
-            footer = stringResource(R.string.field_group_footer),
-            options = state.offeredGroups.map { it.id to it.name },
-            selectedId = state.selectedGroupId,
-            onSelect = viewModel::selectGroup,
-        )
-    }
-}
-
-/** Removing a movement that should never have been recorded. */
-private fun LazyListScope.deleteAction(onDelete: () -> Unit) {
-    item(key = "delete") {
-        CentsListSection {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .background(CentsTheme.colors.groupedCard)
-                        .tappable(onClick = onDelete)
-                        .padding(vertical = CentsDimens.spacingM),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.transaction_delete),
-                    style = CentsTheme.typography.body,
-                    color = CentsTheme.colors.destructive,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AmountHeader(
-    state: TransactionFormUiState,
-    onClick: () -> Unit,
-) {
-    Text(
-        // The entry, not the amount: 25 reads "25 €" and 25, reads "25, €", so the comma key
-        // and the digits behind it are visibly doing something.
-        text = AmountEntry.format(state.amountInput, state.currency),
-        style = CentsTheme.typography.largeTitle,
-        color =
-            if (state.kind == TransactionKind.INCOME) {
-                CentsTheme.colors.positive
-            } else {
-                CentsTheme.colors.label
-            },
-        textAlign = TextAlign.Center,
-        // The amount is how you ask for the keypad back once a text field has taken it away.
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .testTag(AMOUNT_HEADER_TAG)
-                .tappable(onClick = onClick)
-                .padding(vertical = CentsDimens.spacingL),
-    )
-}
-
-/** A grouped section where exactly one row is ticked. */
-@Composable
-private fun PickerSection(
-    header: String,
-    options: List<Pair<Long, String>>,
-    selectedId: Long?,
-    onSelect: (Long) -> Unit,
-    footer: String? = null,
-) {
-    CentsListSection(header = header, footer = footer) {
-        options.forEachIndexed { index, (id, name) ->
-            CentsListRow(
-                title = name,
-                selected = id == selectedId,
-                showSeparator = index != options.lastIndex,
-                onClick = { onSelect(id) },
-            )
-        }
-    }
-}
+private const val AMOUNT_SIZE = 52
+private const val AMOUNT_MIN_SIZE = 20
+private val NOTE_RADIUS = CentsDimens.keyRadius
 
 internal const val NOTE_FIELD_TAG = "transactionNote"
 internal const val AMOUNT_HEADER_TAG = "transactionAmount"

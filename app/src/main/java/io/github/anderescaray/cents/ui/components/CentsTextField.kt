@@ -57,7 +57,7 @@ fun CentsTextField(
             )
         }
 
-    Column(modifier = Modifier.fillMaxWidth().background(CentsTheme.colors.groupedCard)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier =
                 Modifier

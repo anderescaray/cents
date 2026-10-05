@@ -14,19 +14,58 @@ data class CaptureSource(
 )
 
 /**
+ * One app's own words, when the owner has edited them: null for a kind never edited for that app,
+ * which then uses the starting words in [CaptureSettings].
+ */
+data class AppWords(
+    val expense: List<String>? = null,
+    val income: List<String>? = null,
+) {
+    fun of(kind: TransactionKind): List<String>? =
+        when (kind) {
+            TransactionKind.EXPENSE -> expense
+            TransactionKind.INCOME -> income
+        }
+}
+
+/**
  * How capture from notifications behaves (PRD §4.6, D29): whether it is on, which apps it reads,
  * and the words that make a notification an expense or an income.
  *
- * The words are the owner's to edit. A list that was never edited is the default one, and a list
- * emptied on purpose stays empty, which is why "absent" and "empty" are kept apart in storage.
+ * **The words are per app** (the owner, 2026-10-01): each bank writes its own way, so each chosen
+ * app has its own expense list and its own income list. [expenseWords] and [incomeWords] are the
+ * starting words — what an app uses until its own list is edited — and default to D29's lists.
+ *
+ * A list that was never edited is the starting one, and a list emptied on purpose stays empty,
+ * which is why "absent" and "empty" are kept apart in storage.
  */
 data class CaptureSettings(
     val enabled: Boolean = false,
     val sources: List<CaptureSource> = emptyList(),
     val expenseWords: List<String> = DEFAULT_EXPENSE_WORDS,
     val incomeWords: List<String> = DEFAULT_INCOME_WORDS,
+    /** Each app's own lists, by package name. */
+    val appWords: Map<String, AppWords> = emptyMap(),
 ) {
     fun sourceFor(packageName: String): CaptureSource? = sources.firstOrNull { it.packageName == packageName }
+
+    /** The words that make [packageName]'s notification a [kind]: its own, or the starting ones. */
+    fun wordsFor(
+        packageName: String?,
+        kind: TransactionKind,
+    ): List<String> = packageName?.let { appWords[it]?.of(kind) } ?: startingWords(kind)
+
+    /** Whether [packageName]'s [kind] list was edited for it, rather than inherited. */
+    fun hasOwnWords(
+        packageName: String,
+        kind: TransactionKind,
+    ): Boolean = appWords[packageName]?.of(kind) != null
+
+    fun startingWords(kind: TransactionKind): List<String> =
+        when (kind) {
+            TransactionKind.EXPENSE -> expenseWords
+            TransactionKind.INCOME -> incomeWords
+        }
 
     companion object {
         /** D29's defaults, Spanish first because that is how the owner's bank writes. */

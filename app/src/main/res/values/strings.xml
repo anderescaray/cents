@@ -60,8 +60,7 @@
     <string name="settings_section_data">Data</string>
     <string name="settings_export">Export a backup</string>
     <string name="settings_currency">Main currency</string>
-    <string name="settings_data_footer">Everything stays on this device. Nothing is uploaded anywhere.</string>
-    <string name="settings_add_transaction">Add transaction</string>
+    <string name="settings_data_footer">Everything lives on this device. The only copy that leaves it is the Google Drive backup below, and only if you turn it on.</string>
     <string name="settings_categories">Categories</string>
     <string name="settings_categories_footer">The categories are yours: Cents ships with none and never adds any.</string>
 
@@ -218,13 +217,6 @@
     <string name="keypad_decimal_separator">Decimal separator</string>
     <string name="keypad_delete">Delete</string>
     <string name="settings_section_home">Home</string>
-    <string name="settings_reset_home">Reset the bubble layout</string>
-    <string name="settings_reset_home_footer">Puts the bubbles back where a fresh install has them, at their original size.</string>
-    <string name="tab_bar_hide">Hide the tab bar</string>
-    <string name="tab_bar_show">Show the tab bar</string>
-    <string name="settings_reset_home_title">Reset the bubble layout?</string>
-    <string name="settings_reset_home_message">The bubbles go back where a fresh install has them. How you arranged them is not kept.</string>
-    <string name="settings_reset_home_confirm">Reset</string>
 
     <!-- Transfers -->
     <string name="kind_transfer">Transfer</string>

@@ -128,7 +128,7 @@ private fun EditAction(onClick: () -> Unit) {
     Text(
         text = stringResource(R.string.action_edit),
         style = CentsTheme.typography.body,
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         modifier = Modifier.tappable(onClick = onClick).padding(CentsDimens.spacingXs),
     )
 }
@@ -284,7 +284,7 @@ private fun TradeRow(
         subtitleMaxLines = NOTE_MAX_LINES,
         value = if (trade.isCorrection) null else MoneyFormatter.format(trade.net),
         // A sale is money coming back, which is the same green the movement list gives income.
-        valueColor = if (bought) CentsTheme.colors.label else CentsTheme.colors.positive,
+        valueColor = if (bought) CentsTheme.colors.label else CentsTheme.colors.positiveText,
         showChevron = true,
         showSeparator = showSeparator,
         onClick = onClick,

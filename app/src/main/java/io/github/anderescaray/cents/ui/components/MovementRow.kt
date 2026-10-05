@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import io.github.anderescaray.cents.R
@@ -82,7 +83,7 @@ private fun TransactionDetails.tradeTitle(): String {
 fun TransactionDetails.movementValueColor(): Color =
     when {
         transaction.movesNoIncomeOrExpense -> CentsTheme.colors.secondaryLabel
-        transaction.kind == TransactionKind.INCOME -> CentsTheme.colors.positive
+        transaction.kind == TransactionKind.INCOME -> CentsTheme.colors.positiveText
         else -> CentsTheme.colors.label
     }
 
@@ -109,5 +110,27 @@ fun TransactionDetails.open(
         tradeId != null && holdingId != null -> onOpenTrade(holdingId, tradeId)
         transferId != null -> onOpenTransfer(transferId)
         else -> onOpenTransaction(transaction.id)
+    }
+}
+
+/**
+ * The mark at the start of a movement's row: its category's letter in its colour, or — for the
+ * rows that have no category on purpose — what they are instead: two arrows for a transfer leg,
+ * a rising line for the cash of a trade. Uncategorized is a grey question mark, which is what it is.
+ */
+@Composable
+fun TransactionDetails.MovementBadge(modifier: Modifier = Modifier) {
+    when {
+        transaction.isTransferLeg -> {
+            IconBadge(iconRes = R.drawable.ic_transfer, color = CentsTheme.colors.accent, modifier = modifier)
+        }
+
+        transaction.isTradeCash -> {
+            IconBadge(iconRes = R.drawable.ic_trend_up, color = CentsTheme.colors.positive, modifier = modifier)
+        }
+
+        else -> {
+            CategoryBadge(name = categoryName, colorArgb = categoryColorArgb, modifier = modifier)
+        }
     }
 }

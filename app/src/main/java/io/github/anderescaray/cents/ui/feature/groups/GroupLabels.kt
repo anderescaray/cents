@@ -31,9 +31,9 @@ internal fun GroupSummary.netSentence(): String =
 @Composable
 internal fun GroupSummary.netColor(): Color =
     when {
-        net.isNegative -> CentsTheme.colors.destructive
+        net.isNegative -> CentsTheme.colors.destructiveText
         net.isZero -> CentsTheme.colors.secondaryLabel
-        else -> CentsTheme.colors.positive
+        else -> CentsTheme.colors.positiveText
     }
 
 /** "2 Oct 2026 – 6 Oct 2026", or one date when everything happened on one day. */

@@ -145,8 +145,8 @@ data class CategoryTrendSection(
                         valueColor =
                             when {
                                 change.isZero -> null
-                                change.isNegative -> CentsTheme.colors.positive
-                                else -> CentsTheme.colors.destructive
+                                change.isNegative -> CentsTheme.colors.positiveText
+                                else -> CentsTheme.colors.destructiveText
                             },
                         last = true,
                     )

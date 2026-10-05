@@ -32,9 +32,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.PortfolioTotal
 import io.github.anderescaray.cents.domain.model.Position
+import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -60,6 +62,7 @@ fun PortfolioScreen(
     onAddHolding: () -> Unit,
     onOpenHolding: (Long) -> Unit,
     onUpdatePrices: () -> Unit,
+    onBack: () -> Unit = {},
     viewModel: PortfolioViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -69,6 +72,7 @@ fun PortfolioScreen(
         onAddHolding = onAddHolding,
         onOpenHolding = onOpenHolding,
         onUpdatePrices = onUpdatePrices,
+        onBack = onBack,
     )
 }
 
@@ -82,12 +86,16 @@ fun PortfolioScreen(
     onAddHolding: () -> Unit,
     onOpenHolding: (Long) -> Unit,
     onUpdatePrices: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_investments),
         bottomPadding = CentsDimens.sectionSpacing,
-        leading = { if (state.groups.isNotEmpty()) UpdatePricesButton(onUpdatePrices) },
-        trailing = { if (state.hasAccount) AddHoldingButton(onAddHolding) },
+        leading = { CentsBackButton(label = stringResource(R.string.wallet_title), onClick = onBack) },
+        trailing = {
+            if (state.groups.isNotEmpty()) UpdatePricesButton(onUpdatePrices)
+            if (state.hasAccount) AddHoldingButton(onAddHolding)
+        },
     ) {
         if (state.loading) return@CentsLargeTitleScaffold
 
@@ -311,7 +319,7 @@ private fun UpdatePricesButton(onClick: () -> Unit) {
     Text(
         text = stringResource(R.string.prices_action),
         style = CentsTheme.typography.body,
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         // A bare Text is a few points tall; the tap target is a row's height, as on the
         // movements list.
         modifier =
@@ -327,23 +335,12 @@ private fun UpdatePricesButton(onClick: () -> Unit) {
 @Composable
 private fun AddHoldingButton(onClick: () -> Unit) {
     val addLabel = stringResource(R.string.investments_add)
-    Box(
-        modifier =
-            Modifier
-                .semantics { contentDescription = addLabel }
-                .testTag(ADD_HOLDING_TAG)
-                .size(CentsDimens.minRowHeight)
-                .clip(CircleShape)
-                .tappable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.action_add),
-            style = CentsTheme.typography.title2,
-            color = CentsTheme.colors.accent,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
-    }
+    RoundIconButton(
+        iconRes = R.drawable.ic_plus,
+        contentDescription = addLabel,
+        onClick = onClick,
+        modifier = Modifier.testTag(ADD_HOLDING_TAG),
+    )
 }
 
 /** The way to every price at once, beside the way to add a holding. */

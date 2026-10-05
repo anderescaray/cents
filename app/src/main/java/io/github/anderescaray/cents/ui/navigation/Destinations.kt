@@ -14,10 +14,9 @@ import kotlin.reflect.KClass
  */
 sealed interface Destination {
     /**
-     * The canvas of bubbles the app opens on, and the floor of every stack: a section is
-     * pushed on top of it, so back from a section root returns here rather than leaving the
-     * app. It is not a tab and never appears in the bar — see
-     * [`0002-bubble-launcher.md`](../../../../../../../../docs/decisions/0002-bubble-launcher.md).
+     * Home, the screen the app opens on and the floor of every stack: recording a movement and
+     * filing the ones that arrived on their own, then the month at a glance. Back from any other
+     * tab returns here, and back from here leaves the app.
      */
     @Serializable
     data object Home : Destination
@@ -164,6 +163,10 @@ sealed interface Destination {
     @Serializable
     data object Subscriptions : Destination
 
+    /** Arranging the Reports tab: the order of its cards, and which are hidden. */
+    @Serializable
+    data object ReportsCustomize : Destination
+
     /** Every monthly limit, against the month it is in (`DECISIONS.md` D26). */
     @Serializable
     data object Budgets : Destination
@@ -205,10 +208,14 @@ sealed interface Destination {
     @Serializable
     data object CaptureApps : Destination
 
-    /** The words that make a notification a [kind] of movement. */
+    /**
+     * The words that make a notification from [packageName] a [kind] of movement. Each app has
+     * its own (the owner, 2026-10-01); null is the starting words a newly chosen app gets.
+     */
     @Serializable
     data class CaptureWords(
         val kind: TransactionKind,
+        val packageName: String? = null,
     ) : Destination
 
     /**
@@ -243,7 +250,7 @@ sealed interface Destination {
 }
 
 /**
- * A tab in the bottom bar, tying a destination to how it is presented — and to the screens
+ * A tab in the capsule, tying a destination to how it is presented — and to the screens
  * that can only be reached from inside it.
  *
  * [owns] exists because a pushed screen otherwise carries no record of the tab it belongs to,
@@ -264,46 +271,16 @@ enum class TopLevelTab(
     @param:StringRes val labelRes: Int,
     @param:DrawableRes val iconRes: Int,
 ) {
-    TRANSACTIONS(
-        destination = Destination.Transactions,
-        owns = listOf(Destination.TransactionFilters::class, Destination.Inbox::class),
-        labelRes = R.string.tab_transactions,
-        iconRes = R.drawable.ic_tab_transactions,
-    ),
-    ACCOUNTS(
-        destination = Destination.Accounts,
-        owns = listOf(Destination.AccountDetail::class),
-        labelRes = R.string.tab_accounts,
-        iconRes = R.drawable.ic_tab_accounts,
-    ),
-    INVESTMENTS(
-        destination = Destination.Investments,
+    HOME(
+        destination = Destination.Home,
+        // Settings opens from Home's header, so everything behind it is filed under Home.
         owns =
             listOf(
-                Destination.HoldingDetail::class,
-                Destination.HoldingEdit::class,
-                Destination.TradeForm::class,
-                Destination.PriceUpdate::class,
-            ),
-        labelRes = R.string.tab_investments,
-        iconRes = R.drawable.ic_tab_investments,
-    ),
-    REPORTS(
-        destination = Destination.Reports,
-        owns = emptyList(),
-        labelRes = R.string.tab_reports,
-        iconRes = R.drawable.ic_tab_reports,
-    ),
-    SETTINGS(
-        destination = Destination.Settings,
-        owns =
-            listOf(
+                Destination.Settings::class,
                 Destination.Categories::class,
                 Destination.Subscriptions::class,
                 Destination.RuleForm::class,
                 Destination.PendingCharges::class,
-                Destination.Budgets::class,
-                Destination.BudgetEdit::class,
                 Destination.Groups::class,
                 Destination.GroupDetail::class,
                 Destination.GroupEdit::class,
@@ -311,10 +288,66 @@ enum class TopLevelTab(
                 Destination.CaptureApps::class,
                 Destination.CaptureWords::class,
             ),
-        labelRes = R.string.tab_settings,
-        iconRes = R.drawable.ic_tab_settings,
+        labelRes = R.string.tab_home,
+        iconRes = R.drawable.ic_tab_home,
+    ),
+    TRANSACTIONS(
+        destination = Destination.Transactions,
+        owns = listOf(Destination.TransactionFilters::class),
+        labelRes = R.string.tab_transactions,
+        iconRes = R.drawable.ic_tab_transactions,
+    ),
+    REPORTS(
+        destination = Destination.Reports,
+        // Budgets are a report about the month rather than a setting (the owner, 2026-10-01).
+        owns = listOf(Destination.Budgets::class, Destination.BudgetEdit::class, Destination.ReportsCustomize::class),
+        labelRes = R.string.tab_reports,
+        iconRes = R.drawable.ic_tab_reports,
+    ),
+    ACCOUNTS(
+        destination = Destination.Accounts,
+        // What you have: the accounts, and what the investments are worth, in one place (D19).
+        owns =
+            listOf(
+                Destination.AccountDetail::class,
+                Destination.Investments::class,
+                Destination.HoldingDetail::class,
+                Destination.HoldingEdit::class,
+                Destination.TradeForm::class,
+                Destination.PriceUpdate::class,
+            ),
+        labelRes = R.string.tab_wallet,
+        iconRes = R.drawable.ic_wallet,
     ),
 }
+
+/**
+ * Screens that take the whole height to be filled in: no tab capsule under them, because the
+ * keypad or the form's own button sits where it would be, and leaving one is done with Cancel
+ * or back rather than by changing section halfway through.
+ */
+val FullScreenForms: List<KClass<out Destination>> =
+    listOf(
+        Destination.TransactionForm::class,
+        Destination.TransferForm::class,
+        Destination.TransactionFilters::class,
+        Destination.AccountEdit::class,
+        Destination.AccountBalance::class,
+        Destination.CategoryEdit::class,
+        Destination.HoldingEdit::class,
+        Destination.TradeForm::class,
+        Destination.PriceUpdate::class,
+        Destination.RuleForm::class,
+        Destination.PendingCharges::class,
+        Destination.BudgetEdit::class,
+        Destination.GroupEdit::class,
+        Destination.CaptureApps::class,
+        Destination.CaptureWords::class,
+    )
+
+/** The movement forms, which rise from the bottom like a sheet rather than sliding in. */
+val SheetForms: List<KClass<out Destination>> =
+    listOf(Destination.TransactionForm::class, Destination.TransferForm::class)
 
 /**
  * Every route this tab answers for: the tab's own destination, then the screens pushed inside

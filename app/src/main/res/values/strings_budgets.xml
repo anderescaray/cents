@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings_budgets">Budgets</string>
-    <string name="settings_budgets_footer">A monthly limit per expense category, and how close this month is to it.</string>
     <string name="budgets_title">Budgets</string>
     <string name="budgets_add">Add a budget</string>
     <string name="budgets_empty_title">No budgets yet</string>

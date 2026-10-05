@@ -68,7 +68,7 @@ fun CentsSearchField(
                 .fillMaxWidth()
                 .heightIn(min = FIELD_HEIGHT.dp)
                 .clip(RoundedCornerShape(FIELD_RADIUS.dp))
-                .background(CentsTheme.colors.switchTrackOff)
+                .background(CentsTheme.colors.fill)
                 .padding(horizontal = CentsDimens.spacingS),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
@@ -148,7 +148,7 @@ private fun ClearButton(onClick: () -> Unit) {
 }
 
 private const val FIELD_HEIGHT = 36
-private const val FIELD_RADIUS = 10
+private const val FIELD_RADIUS = 14
 private const val GLYPH_SIZE = 18
 private const val SELECTION_ALPHA = 0.3f
 private const val CLEAR_MARK = "✕"

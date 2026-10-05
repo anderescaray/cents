@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -13,11 +14,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -25,6 +28,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.components.CentsButton
+import io.github.anderescaray.cents.ui.components.CentsRing
+import io.github.anderescaray.cents.ui.components.RingSlice
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
@@ -139,6 +144,7 @@ private fun LockScreen(
             verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
         ) {
+            CentsRing(slices = LogoSlices, modifier = Modifier.size(LOGO_SIZE.dp))
             Text(
                 text = stringResource(R.string.app_name),
                 style = CentsTheme.typography.largeTitle,
@@ -160,3 +166,16 @@ private fun LockScreen(
 }
 
 internal const val LOCK_SCREEN_TAG = "appLockScreen"
+
+private const val LOGO_SIZE = 88
+
+/** The app's mark: the ring of category colours, the same one its launcher icon draws. */
+private val LogoSlices =
+    listOf(
+        RingSlice("a", 0.38f, Color(0xFF007AFF)),
+        RingSlice("b", 0.23f, Color(0xFF34C759)),
+        RingSlice("c", 0.14f, Color(0xFFFF9500)),
+        RingSlice("d", 0.11f, Color(0xFFFF2D55)),
+        RingSlice("e", 0.08f, Color(0xFF30B0C7)),
+        RingSlice("f", 0.06f, Color(0xFFAF52DE)),
+    )

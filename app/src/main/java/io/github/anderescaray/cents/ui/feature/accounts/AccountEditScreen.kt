@@ -183,7 +183,7 @@ private fun OpeningBalanceHeader(
             style = CentsTheme.typography.largeTitle,
             color =
                 if (state.openingBalance.isNegative) {
-                    CentsTheme.colors.destructive
+                    CentsTheme.colors.destructiveText
                 } else {
                     CentsTheme.colors.label
                 },
@@ -217,7 +217,7 @@ private fun OpeningBalanceHeader(
                     if (state.openingNegative) R.string.account_owed else R.string.account_held,
                 ),
             style = CentsTheme.typography.subhead,
-            color = CentsTheme.colors.accent,
+            color = CentsTheme.colors.accentText,
             modifier =
                 Modifier
                     .testTag(SIGN_TOGGLE_TAG)

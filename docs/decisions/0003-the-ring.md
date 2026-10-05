@@ -1,8 +1,8 @@
 # 0003 — The ring: the look the UI moves to when it is reworked
 
-- **Status:** proposed. The owner chose this look on 2026-09-26, from the film of the app, and
-  will adopt it when the UI rework starts. Until then nothing here binds a screen: ADRs 0001 and
-  0002 still do, and rule 12 in `CLAUDE.md` still points at them.
+- **Status:** accepted on 2026-10-01, built in `feat/ui-rework`, with the amendments in
+  *Accepted with these changes* below — read those first, they win where they disagree with the
+  rest of this record.
 - **Date:** 2026-09-26
 - **Applies to:** everything under `ui/`, from the day this record is accepted
 - **On acceptance:** supersedes [`0002-bubble-launcher.md`](0002-bubble-launcher.md), because
@@ -12,6 +12,28 @@
 - **Source:** the film of the app, `showreel/` on the branch
   `claude/libreyolo-motion-showreel-e0emos`. Its `ui.js` is the kit these screens were drawn
   with, in HTML, and the pictures below are stills from it. The figures in them are samples.
+
+## Accepted with these changes (2026-10-01)
+
+The owner asked for the rework on 2026-10-01 in these words: change everything, the bubbles go,
+copy the film, a smoother and clearer UX, and **forget the Apple appearance**. What that changed
+against the record below:
+
+- **Not iOS any more.** ADR 0001's "it reads as iOS" is no longer the goal. The film's look is:
+  cards, the ring, chips, one filled button per sheet. The back control is a round button with a
+  chevron, not *‹ Settings*; the tab capsule shows each tab's name under its icon.
+- **Home is not the month.** Home is **for recording and filing**: three big buttons (expense,
+  income, transfer), then the movements waiting under *To categorize* with their category chips,
+  then bills waiting for a figure, then **this month** — what was left or overspent as the
+  headline, in and out, the ring and the top five categories. Settings opens from Home's header.
+- **The capsule holds** Home · Movements · **+** · Reports · Wallet. Wallet is *What you have*:
+  net worth, *In accounts* and *Invested* (which opens the portfolio), then the accounts.
+- **Budgets moved from Settings to Reports**, as a card like the charts.
+- **Reports can be arranged** (Reports › Customize): every card moved up or down or hidden,
+  budgets included, kept in DataStore. Reports draws the same ring as Home.
+- **Capture's words are per app** (D29, amended): each chosen app has its own expense and income
+  lists, starting from the shared starting words until edited.
+- The launcher icon and the lock screen carry the ring.
 
 ## Decision
 

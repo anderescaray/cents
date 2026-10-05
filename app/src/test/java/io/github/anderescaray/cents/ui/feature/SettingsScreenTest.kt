@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.ui.feature
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -14,55 +15,52 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
+/**
+ * Settings after the redesign: one card of what organises the money, budgets no longer in it
+ * (they moved to Reports), the bubble reset gone with the bubbles, and a way back to Home.
+ */
 @RunWith(RobolectricTestRunner::class)
 class SettingsScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun `resetting the bubbles asks first, and cancelling keeps the arrangement`() {
-        var resets = 0
-        setContent { resets++ }
+    fun `each row of the first card opens its own screen`() {
+        val opened = mutableListOf<String>()
+        composeRule.setContent {
+            CentsTheme {
+                SettingsContent(
+                    onOpenCategories = { opened += "categories" },
+                    onOpenSubscriptions = { opened += "subscriptions" },
+                    onOpenGroups = { opened += "groups" },
+                    onOpenCapture = { opened += "capture" },
+                )
+            }
+        }
 
-        openReset()
+        listOf("Categories", "Subscriptions", "Groups").forEach { row ->
+            composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(row))
+            composeRule.onNodeWithText(row).performClick()
+        }
 
-        // Rule 7: an arrangement made by hand can only be rebuilt by hand, and this row sits one
-        // mis-tap away from everything else in Settings.
-        composeRule.onNodeWithText("Reset the bubble layout?").assertExists()
-        composeRule.onNodeWithText("Cancel").performClick()
-        assertEquals(0, resets)
+        assertEquals(listOf("categories", "subscriptions", "groups"), opened)
     }
 
     @Test
-    fun `confirming resets it once`() {
-        var resets = 0
-        setContent { resets++ }
+    fun `budgets and the bubble reset are no longer settings`() {
+        composeRule.setContent { CentsTheme { SettingsContent(onOpenCategories = {}) } }
 
-        openReset()
-        composeRule.onNodeWithText("Reset").performClick()
-
-        assertEquals(1, resets)
-        composeRule.onNodeWithText("Reset the bubble layout?").assertDoesNotExist()
+        composeRule.onNodeWithText("Budgets").assertDoesNotExist()
+        composeRule.onNodeWithText("Reset the bubble layout").assertDoesNotExist()
     }
 
-    /**
-     * Scrolled to rather than assumed on screen: Settings is a lazy list, and a row further down
-     * than the test's window is not composed at all until it is scrolled into view.
-     */
-    private fun openReset() {
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(RESET_ROW))
-        composeRule.onNodeWithText(RESET_ROW).performClick()
-    }
+    @Test
+    fun `back returns home`() {
+        var back = 0
+        composeRule.setContent { CentsTheme { SettingsContent(onOpenCategories = {}, onBack = { back++ }) } }
 
-    private fun setContent(onResetHomeLayout: () -> Unit) {
-        composeRule.setContent {
-            CentsTheme {
-                SettingsContent(onOpenCategories = {}, onResetHomeLayout = onResetHomeLayout)
-            }
-        }
-    }
+        composeRule.onNodeWithContentDescription("Back to Home").performClick()
 
-    private companion object {
-        const val RESET_ROW = "Reset the bubble layout"
+        assertEquals(1, back)
     }
 }

@@ -37,7 +37,7 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 /**
  * One row inside a [CentsListSection].
  *
- * Tappable rows show a chevron and fill with a flat pressed colour — iOS does not ripple.
+ * Tappable rows show a chevron and fill with a flat pressed colour rather than a ripple.
  * The separator is inset to the start of the text, which is what makes a stack of rows
  * read as one grouped card instead of a table.
  */
@@ -117,7 +117,7 @@ fun CentsListRow(
             )
             RowAccessories(
                 value = value ?: CHECK_MARK.takeIf { selected == true },
-                valueColor = valueColor ?: CentsTheme.colors.accent.takeIf { selected == true },
+                valueColor = valueColor ?: CentsTheme.colors.accentText.takeIf { selected == true },
                 valueSpoken = selected == null,
                 trailing = trailing,
                 showChevron = showChevron,
@@ -190,7 +190,7 @@ private fun ColumnScope.RowSeparator() {
     Box(
         modifier =
             Modifier
-                .padding(start = CentsDimens.rowHorizontalPadding)
+                .padding(horizontal = CentsDimens.rowHorizontalPadding)
                 .fillMaxWidth()
                 .height(CentsDimens.separatorThickness)
                 .background(CentsTheme.colors.separator),

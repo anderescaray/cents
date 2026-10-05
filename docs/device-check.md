@@ -1704,3 +1704,37 @@ row says it is already in the list. Tap a word, confirm, and it is gone; *Restor
 words* then appears and puts the list back.
 
 > **Wrong looks like** a word added twice, or *Restore* leaving a removed word out.
+
+## Walk 20 — the rework (`feat/ui-rework`, ADR 0003)
+
+Walked in part on 2026-10-01 on the Honor tablet as it was built: Home, the Wallet fix, Reports
+and Customize were seen and fixed there. **Walk 5 (`b1`–`b10`) is obsolete**: the bubbles are gone.
+
+### u1 · Home records in a few taps
+
+Tap **+** (or *Expense* on Home), type an amount, tap a category chip, **Add expense**. Back on
+Home the month's figures count to their new values and the ring re-balances.
+
+> **Wrong looks like** a save that needs more than those taps, or Home not updating.
+
+### u2 · Filing from Home
+
+A movement under **To categorize** leaves the card when a chip is tapped, and *This month* moves.
+
+### u3 · What the month comes to
+
+*Left this month* in green or *Overspent this month* in red, large. It is income less expenses.
+
+### u4 · Reports, arranged
+
+Reports › the button at the top right: move *Budgets* down, hide a chart, go back. The tab follows,
+and still does after closing the app.
+
+### u5 · Capture, per app (on the Pixel)
+
+Settings › Capture: each chosen app is a card with its account and its own two word lists. Edit
+one app's expense words; the other app's count does not change. Then walk `c1`–`c4` with a real
+bank notification.
+
+> **Wrong looks like** one app's words changing another's, or a notification matched by words
+> that are only in another app's list.

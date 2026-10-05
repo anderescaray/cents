@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
 fun CaptureScreen(
     onBack: () -> Unit,
     onAddApp: () -> Unit,
-    onOpenWords: (TransactionKind) -> Unit,
+    onOpenWords: (TransactionKind, String?) -> Unit,
     viewModel: CaptureViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -91,7 +91,7 @@ internal data class CaptureActions(
     val onOpenAccess: () -> Unit = {},
     val onEditApp: (String) -> Unit = {},
     val onAddApp: () -> Unit = {},
-    val onOpenWords: (TransactionKind) -> Unit = {},
+    val onOpenWords: (TransactionKind, String?) -> Unit = { _, _ -> },
     val onMoveTo: (Long) -> Unit = {},
     val onStop: () -> Unit = {},
     val onConfirmStop: () -> Unit = {},
@@ -116,7 +116,6 @@ internal fun CaptureContent(
         switchSection(state, actions)
         accessSection(accessGranted, actions)
         appsSection(state, actions)
-        wordsSection(state, actions)
     }
 
     state.editing?.let { editing -> EditAppSheet(editing, state, actions) }
@@ -175,7 +174,7 @@ private fun LazyListScope.accessSection(
                         false -> stringResource(R.string.capture_access_off)
                         null -> null
                     },
-                valueColor = if (accessGranted == false) CentsTheme.colors.destructive else null,
+                valueColor = if (accessGranted == false) CentsTheme.colors.destructiveText else null,
                 showChevron = true,
                 showSeparator = false,
                 onClick = actions.onOpenAccess,
@@ -185,26 +184,23 @@ private fun LazyListScope.accessSection(
     }
 }
 
+/**
+ * One card per chosen app: where its movements go, and its own two lists of words — each bank
+ * writes its own way, so what makes a notification an expense is decided app by app. Then the
+ * way to choose one more.
+ */
 private fun LazyListScope.appsSection(
     state: CaptureUiState,
     actions: CaptureActions,
 ) {
-    item(key = "apps") {
+    state.sources.forEach { row ->
+        item(key = "app-${row.source.packageName}") { AppCard(row, actions) }
+    }
+    item(key = "add-app") {
         CentsListSection(
-            header = stringResource(R.string.capture_section_apps),
+            header = if (state.sources.isEmpty()) stringResource(R.string.capture_section_apps) else null,
             footer = stringResource(R.string.capture_apps_footer),
         ) {
-            state.sources.forEach { row ->
-                CentsListRow(
-                    title = row.source.label,
-                    subtitle =
-                        row.accountName?.let { stringResource(R.string.capture_app_into, it) }
-                            ?: stringResource(R.string.capture_app_no_account),
-                    showChevron = true,
-                    onClick = { actions.onEditApp(row.source.packageName) },
-                    modifier = Modifier.testTag(APP_ROW_TAG),
-                )
-            }
             CentsListRow(
                 title = stringResource(R.string.capture_add_app),
                 subtitle = if (state.canAddApp) null else stringResource(R.string.capture_add_app_needs_account),
@@ -216,29 +212,36 @@ private fun LazyListScope.appsSection(
     }
 }
 
-private fun LazyListScope.wordsSection(
-    state: CaptureUiState,
+@Composable
+private fun AppCard(
+    row: CaptureSourceRow,
     actions: CaptureActions,
 ) {
-    item(key = "words") {
-        CentsListSection(
-            header = stringResource(R.string.capture_section_words),
-            footer = stringResource(R.string.capture_words_footer),
-        ) {
-            CentsListRow(
-                title = stringResource(R.string.capture_expense_words),
-                value = state.expenseWordCount.toString(),
-                showChevron = true,
-                onClick = { actions.onOpenWords(TransactionKind.EXPENSE) },
-            )
-            CentsListRow(
-                title = stringResource(R.string.capture_income_words),
-                value = state.incomeWordCount.toString(),
-                showChevron = true,
-                showSeparator = false,
-                onClick = { actions.onOpenWords(TransactionKind.INCOME) },
-            )
-        }
+    val packageName = row.source.packageName
+    CentsListSection(header = row.source.label) {
+        CentsListRow(
+            title = stringResource(R.string.capture_app_account),
+            value = row.accountName ?: stringResource(R.string.capture_app_no_account),
+            valueColor = if (row.accountName == null) CentsTheme.colors.destructiveText else null,
+            showChevron = true,
+            onClick = { actions.onEditApp(packageName) },
+            modifier = Modifier.testTag(APP_ROW_TAG),
+        )
+        CentsListRow(
+            title = stringResource(R.string.capture_expense_words),
+            subtitle = stringResource(R.string.capture_expense_words_hint),
+            value = row.expenseWordCount.toString(),
+            showChevron = true,
+            onClick = { actions.onOpenWords(TransactionKind.EXPENSE, packageName) },
+        )
+        CentsListRow(
+            title = stringResource(R.string.capture_income_words),
+            subtitle = stringResource(R.string.capture_income_words_hint),
+            value = row.incomeWordCount.toString(),
+            showChevron = true,
+            showSeparator = false,
+            onClick = { actions.onOpenWords(TransactionKind.INCOME, packageName) },
+        )
     }
 }
 

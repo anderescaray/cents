@@ -1,9 +1,13 @@
 package io.github.anderescaray.cents.ui.feature.reports
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,12 +20,17 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionFilter
+import io.github.anderescaray.cents.ui.components.CentsChip
 import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
-import io.github.anderescaray.cents.ui.feature.filters.SelectableRow
+import io.github.anderescaray.cents.ui.components.RoundIconButton
+import io.github.anderescaray.cents.ui.feature.budgets.BudgetRow
+import io.github.anderescaray.cents.ui.feature.budgets.BudgetsUiState
+import io.github.anderescaray.cents.ui.feature.budgets.BudgetsViewModel
+import io.github.anderescaray.cents.ui.feature.budgets.monthLabel
 import io.github.anderescaray.cents.ui.feature.filters.displayName
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import java.time.LocalDate
@@ -44,12 +53,24 @@ private enum class RangeBound { FROM, TO }
 @Composable
 fun ReportsScreen(
     onOpenMovements: () -> Unit,
+    onOpenBudgets: () -> Unit = {},
+    onCustomize: () -> Unit = {},
     viewModel: ReportsViewModel = hiltViewModel(),
+    budgetsViewModel: BudgetsViewModel = hiltViewModel(),
+    layoutViewModel: ReportLayoutViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val budgets by budgetsViewModel.uiState.collectAsStateWithLifecycle()
+    val layout by layoutViewModel.uiState.collectAsStateWithLifecycle()
 
     ReportsScreen(
         state = state,
+        budgets = budgets,
+        // No card until the stored arrangement is known: the default one would flash hidden
+        // cards in and reshuffle the rest a frame later.
+        shown = if (layout.loaded) layout.shown else emptyList(),
+        onOpenBudgets = onOpenBudgets,
+        onCustomize = onCustomize,
         onSelectPreset = viewModel::selectPreset,
         onSelectAccount = viewModel::selectAccount,
         onSetRange = viewModel::setCustomRange,
@@ -76,13 +97,24 @@ fun ReportsScreen(
     onSelectAccount: (Long?) -> Unit,
     onSetRange: (LocalDate, LocalDate) -> Unit,
     onDrillDown: (TransactionFilter) -> Unit,
+    budgets: BudgetsUiState? = null,
+    /** The cards to draw, in order; everything, in the default order, unless the owner arranged it. */
+    shown: List<String> = ReportCard.keys,
+    onOpenBudgets: () -> Unit = {},
+    onCustomize: () -> Unit = {},
 ) {
     var openPicker by rememberSaveable { mutableStateOf<RangeBound?>(null) }
     val actions = remember(onDrillDown) { ReportActions(onDrillDown = onDrillDown) }
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_reports),
-        bottomPadding = CentsDimens.tabBarHeight,
+        trailing = {
+            RoundIconButton(
+                iconRes = R.drawable.ic_tab_settings,
+                contentDescription = stringResource(R.string.reports_customize_action),
+                onClick = onCustomize,
+            )
+        },
     ) {
         periodSection(state, onSelectPreset) { openPicker = it }
         accountSection(state, onSelectAccount)
@@ -90,11 +122,20 @@ fun ReportsScreen(
         if (state.hasNoAccounts) {
             item(key = "no-accounts") { NoAccountsSection() }
         } else {
-            state.sections.forEachIndexed { index, section ->
-                item(key = section.key) {
-                    section.Content(actions)
-                    if (index != state.sections.lastIndex) {
-                        Spacer(Modifier.height(CentsDimens.sectionSpacing))
+            // In the owner's order (Reports › Customize). Budgets are about this month, whatever
+            // period the charts are on, and say so in their own heading.
+            val byKey = state.sections.associateBy { it.key }
+            val drawn =
+                shown.filter { key ->
+                    if (key == BUDGETS_KEY) budgets != null && !budgets.isLoading else key in byKey
+                }
+            drawn.forEach { key ->
+
+                item(key = key) {
+                    if (key == BUDGETS_KEY) {
+                        budgets?.let { BudgetsCard(it, onOpenBudgets) }
+                    } else {
+                        byKey.getValue(key).Content(actions)
                     }
                 }
             }
@@ -134,7 +175,6 @@ private fun LazyListScope.periodSection(
             label = { presetLabels.getValue(it) },
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
         )
-        Spacer(Modifier.height(CentsDimens.sectionSpacing))
     }
 
     if (state.preset == PeriodPreset.CUSTOM) {
@@ -143,7 +183,6 @@ private fun LazyListScope.periodSection(
                 RangeRow(R.string.reports_range_from, state.customFrom) { onOpenPicker(RangeBound.FROM) }
                 RangeRow(R.string.reports_range_to, state.customTo, last = true) { onOpenPicker(RangeBound.TO) }
             }
-            Spacer(Modifier.height(CentsDimens.sectionSpacing))
         }
     }
 }
@@ -167,22 +206,55 @@ private fun LazyListScope.accountSection(
     if (!state.canPickAccount) return
 
     item(key = "account") {
-        CentsListSection(header = stringResource(R.string.reports_account_header)) {
-            SelectableRow(
-                title = stringResource(R.string.reports_all_accounts),
-                selected = state.accountId == null,
-                onClick = { onSelectAccount(null) },
-            )
-            state.accounts.forEachIndexed { index, account ->
-                SelectableRow(
-                    title = account.displayName(),
+        // A row of chips rather than a list: the answer is still readable without a tap, and a
+        // picker of four accounts no longer pushes the first chart below the fold.
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = CentsDimens.screenMargin),
+            horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
+        ) {
+            item(key = "all") {
+                CentsChip(
+                    label = stringResource(R.string.reports_all_accounts),
+                    selected = state.accountId == null,
+                    onClick = { onSelectAccount(null) },
+                )
+            }
+            items(state.accounts, key = { it.id }) { account ->
+                CentsChip(
+                    label = account.displayName(),
                     selected = state.accountId == account.id,
-                    last = index == state.accounts.lastIndex,
+                    colorArgb = account.colorArgb,
+                    showBadge = false,
                     onClick = { onSelectAccount(account.id) },
                 )
             }
         }
-        Spacer(Modifier.height(CentsDimens.sectionSpacing))
+    }
+}
+
+/**
+ * Every budget against this month, on the tab that reads the month (the owner, 2026-10-01: budgets
+ * are something to look at, not a setting). Tapping it opens the full list and its editor.
+ */
+@Composable
+private fun BudgetsCard(
+    budgets: BudgetsUiState,
+    onOpenBudgets: () -> Unit,
+) {
+    CentsListSection(header = stringResource(R.string.budgets_title) + " · " + monthLabel(budgets.month)) {
+        if (budgets.rows.isEmpty()) {
+            CentsListRow(
+                title = stringResource(R.string.reports_budgets_empty),
+                subtitle = stringResource(R.string.reports_budgets_empty_footer),
+                showChevron = true,
+                showSeparator = false,
+                onClick = onOpenBudgets,
+            )
+        } else {
+            budgets.rows.forEach { row ->
+                BudgetRow(row = row, onClick = onOpenBudgets)
+            }
+        }
     }
 }
 

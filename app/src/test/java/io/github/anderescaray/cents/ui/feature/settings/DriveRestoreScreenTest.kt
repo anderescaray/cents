@@ -71,7 +71,6 @@ class DriveRestoreScreenTest {
             CentsTheme {
                 SettingsContent(
                     onOpenCategories = {},
-                    onResetHomeLayout = {},
                     drive = driveState,
                     driveActions =
                         DriveBackupActions(

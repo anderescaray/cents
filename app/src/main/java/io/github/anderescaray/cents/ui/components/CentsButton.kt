@@ -16,14 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
- * The prominent action button: a filled, fully rounded capsule in the tint colour.
- * Pressing dims it rather than rippling, as iOS does.
+ * The app's button: a rounded slab, 56 dp tall, that gives under the thumb rather than rippling.
+ * One [ButtonStyle.PRIMARY] per screen at most; everything else is tinted, plain or text.
  */
 @Composable
 fun CentsButton(
@@ -32,24 +33,29 @@ fun CentsButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     destructive: Boolean = false,
+    style: ButtonStyle = if (destructive) ButtonStyle.DESTRUCTIVE else ButtonStyle.PRIMARY,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val background = if (destructive) CentsTheme.colors.destructive else CentsTheme.colors.accent
+    val scale = rememberPressScale(pressed && enabled)
+    val colors = CentsTheme.colors
+    val (background, content) =
+        when (style) {
+            ButtonStyle.PRIMARY -> colors.accent to colors.onAccent
+            ButtonStyle.DESTRUCTIVE -> colors.destructive to colors.onAccent
+            ButtonStyle.TINTED -> colors.accent.copy(alpha = 0.12f) to colors.accentText
+            ButtonStyle.PLAIN -> colors.fill to colors.label
+        }
 
     Box(
         modifier =
             modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = 50.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(
-                    when {
-                        !enabled -> background.copy(alpha = 0.4f)
-                        pressed -> background.copy(alpha = 0.7f)
-                        else -> background
-                    },
-                ).clickable(
+                .scale(scale)
+                .defaultMinSize(minHeight = CentsDimens.primaryButtonHeight)
+                .clip(RoundedCornerShape(CentsDimens.primaryButtonRadius))
+                .background(if (enabled) background else background.copy(alpha = background.alpha * DISABLED_ALPHA))
+                .clickable(
                     interactionSource = interactionSource,
                     indication = null,
                     enabled = enabled,
@@ -61,7 +67,10 @@ fun CentsButton(
         Text(
             text = text,
             style = CentsTheme.typography.headline,
-            color = Color.White,
+            color = if (enabled) content else content.copy(alpha = DISABLED_TEXT_ALPHA),
         )
     }
 }
+
+private const val DISABLED_ALPHA = 0.4f
+private const val DISABLED_TEXT_ALPHA = 0.7f

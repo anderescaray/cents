@@ -30,7 +30,9 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSearchField
+import io.github.anderescaray.cents.ui.components.MovementBadge
 import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
@@ -105,20 +107,11 @@ internal fun TransactionsList(
             val addLabel = stringResource(R.string.add_transaction_title)
             // Read aloud as what it does rather than as "plus": the label is on the button, and
             // the glyph inside it is kept out of what TalkBack says.
-            Box(
-                modifier =
-                    Modifier
-                        .semantics { contentDescription = addLabel }
-                        .tappable(onClick = onAddTransaction),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.action_add),
-                    style = CentsTheme.typography.title2,
-                    color = CentsTheme.colors.accent,
-                    modifier = Modifier.clearAndSetSemantics {},
-                )
-            }
+            RoundIconButton(
+                iconRes = R.drawable.ic_plus,
+                contentDescription = addLabel,
+                onClick = onAddTransaction,
+            )
         },
     ) {
         searchField(query = state.query, onQueryChange = onQueryChange)
@@ -162,7 +155,7 @@ private fun RowScope.FiltersButton(
                 stringResource(R.string.filters_open_active, count)
             },
         style = CentsTheme.typography.body,
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         // A bare Text is a few points tall. The tap target is the row height, whatever the
         // label happens to measure.
         modifier =
@@ -227,7 +220,7 @@ private fun LazyListScope.matchSummary(
                 value = summary?.let { MoneyFormatter.formatSigned(it.net) },
                 valueColor =
                     if (summary != null && summary.net.isNegative) {
-                        CentsTheme.colors.destructive
+                        CentsTheme.colors.destructiveText
                     } else {
                         CentsTheme.colors.label
                     },
@@ -237,12 +230,12 @@ private fun LazyListScope.matchSummary(
                 CentsListRow(
                     title = stringResource(R.string.summary_income),
                     value = MoneyFormatter.format(summary.income),
-                    valueColor = CentsTheme.colors.positive,
+                    valueColor = CentsTheme.colors.positiveText,
                 )
                 CentsListRow(
                     title = stringResource(R.string.summary_expenses),
                     value = MoneyFormatter.format(summary.expenses),
-                    valueColor = CentsTheme.colors.destructive,
+                    valueColor = CentsTheme.colors.destructiveText,
                     showSeparator = offersWayOut,
                 )
             }
@@ -280,19 +273,19 @@ private fun LazyListScope.monthSummary(summary: PeriodSummary) {
             CentsListRow(
                 title = stringResource(R.string.summary_income),
                 value = MoneyFormatter.format(summary.income),
-                valueColor = CentsTheme.colors.positive,
+                valueColor = CentsTheme.colors.positiveText,
             )
             CentsListRow(
                 title = stringResource(R.string.summary_expenses),
                 value = MoneyFormatter.format(summary.expenses),
-                valueColor = CentsTheme.colors.destructive,
+                valueColor = CentsTheme.colors.destructiveText,
             )
             CentsListRow(
                 title = stringResource(R.string.summary_net),
                 value = MoneyFormatter.formatSigned(summary.net),
                 valueColor =
                     if (summary.net.isNegative) {
-                        CentsTheme.colors.destructive
+                        CentsTheme.colors.destructiveText
                     } else {
                         CentsTheme.colors.label
                     },
@@ -350,6 +343,7 @@ private fun LazyListScope.day(
                     subtitleMaxLines = NOTE_MAX_LINES,
                     value = MoneyFormatter.formatSigned(transaction.signedAmount),
                     valueColor = details.movementValueColor(),
+                    leading = { details.MovementBadge() },
                     showSeparator = index != day.items.lastIndex,
                     onClick = {
                         details.open(onOpenTransaction, onOpenTransfer, onOpenTrade)

@@ -14,18 +14,18 @@ import org.junit.Test
  */
 class TabTravelTest {
     @Test
-    fun `Reports back to Accounts arrives from the side it left towards`() {
+    fun `Reports back to the movements arrives from the side it left towards`() {
         assertEquals(
             SlideDirection.End,
-            slideDirectionFor(from = TopLevelTab.REPORTS, to = TopLevelTab.ACCOUNTS),
+            slideDirectionFor(from = TopLevelTab.REPORTS, to = TopLevelTab.TRANSACTIONS),
         )
     }
 
     @Test
-    fun `Settings back to Reports arrives from the same side`() {
+    fun `the wallet back to Reports arrives from the same side`() {
         assertEquals(
             SlideDirection.End,
-            slideDirectionFor(from = TopLevelTab.SETTINGS, to = TopLevelTab.REPORTS),
+            slideDirectionFor(from = TopLevelTab.ACCOUNTS, to = TopLevelTab.REPORTS),
         )
     }
 
@@ -53,13 +53,12 @@ class TabTravelTest {
 
     @Test
     fun `switching into a tab whose stack has a detail screen on top travels backwards`() {
-        // What arrives is an account's detail screen, but the tab you moved to is Accounts, and
-        // that is what the direction is owed to. Before the tab owned its pushed screens there
-        // was nothing to compare here and this slid forward — the last case #31 left open.
-        val arriving = TopLevelTab.entries.first { Destination.AccountDetail::class in it.routes }
+        // What arrives is Settings, pushed inside Home, but the tab you moved to is Home, and
+        // that is what the direction is owed to.
+        val arriving = TopLevelTab.entries.first { Destination.Settings::class in it.routes }
         assertEquals(
             SlideDirection.End,
-            slideDirectionFor(from = TopLevelTab.SETTINGS, to = arriving),
+            slideDirectionFor(from = TopLevelTab.REPORTS, to = arriving),
         )
     }
 

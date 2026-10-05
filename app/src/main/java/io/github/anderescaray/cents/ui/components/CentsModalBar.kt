@@ -39,7 +39,7 @@ fun CentsModalBar(
         Text(
             text = cancelLabel,
             style = CentsTheme.typography.body,
-            color = CentsTheme.colors.accent,
+            color = CentsTheme.colors.accentText,
             modifier = Modifier.tappable(onClick = onCancel),
         )
         Box(modifier = Modifier.weight(1f)) {

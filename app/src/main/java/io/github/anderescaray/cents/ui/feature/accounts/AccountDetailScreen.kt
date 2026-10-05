@@ -30,6 +30,8 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.IconBadge
+import io.github.anderescaray.cents.ui.components.MovementBadge
 import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
 import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
@@ -109,7 +111,7 @@ internal fun AccountDetailContent(
                     Text(
                         text = stringResource(R.string.action_edit),
                         style = CentsTheme.typography.body,
-                        color = CentsTheme.colors.accent,
+                        color = CentsTheme.colors.accentText,
                         modifier =
                             Modifier
                                 .tappable(onClick = { onEdit(account.account.id) })
@@ -195,7 +197,7 @@ private fun LazyListScope.balanceHeader(
                 style = CentsTheme.typography.largeTitle,
                 color =
                     if (account.balance.isNegative) {
-                        CentsTheme.colors.destructive
+                        CentsTheme.colors.destructiveText
                     } else {
                         CentsTheme.colors.label
                     },
@@ -211,7 +213,7 @@ private fun LazyListScope.balanceHeader(
             Text(
                 text = stringResource(R.string.balance_set_action),
                 style = CentsTheme.typography.subhead,
-                color = CentsTheme.colors.accent,
+                color = CentsTheme.colors.accentText,
                 modifier =
                     Modifier
                         .testTag(SET_BALANCE_TAG)
@@ -228,12 +230,12 @@ private fun LazyListScope.monthSummary(summary: PeriodSummary) {
             CentsListRow(
                 title = stringResource(R.string.summary_income),
                 value = MoneyFormatter.format(summary.income),
-                valueColor = CentsTheme.colors.positive,
+                valueColor = CentsTheme.colors.positiveText,
             )
             CentsListRow(
                 title = stringResource(R.string.summary_expenses),
                 value = MoneyFormatter.format(summary.expenses),
-                valueColor = CentsTheme.colors.destructive,
+                valueColor = CentsTheme.colors.destructiveText,
                 showSeparator = false,
             )
         }
@@ -269,6 +271,7 @@ private fun LazyListScope.movementDay(
                     subtitleMaxLines = NOTE_MAX_LINES,
                     value = MoneyFormatter.formatSigned(movement.signedAmount),
                     valueColor = details.movementValueColor(),
+                    leading = { details.MovementBadge() },
                     showSeparator = index != day.items.lastIndex || day.corrections.isNotEmpty(),
                     onClick = {
                         details.open(onOpenTransaction, onOpenTransfer, onOpenTrade)
@@ -281,6 +284,8 @@ private fun LazyListScope.movementDay(
                     title = stringResource(R.string.balance_correction_row),
                     value = MoneyFormatter.formatSigned(correction.amount),
                     valueColor = CentsTheme.colors.secondaryLabel,
+                    // A badge like every movement beside it, so the titles line up.
+                    leading = { IconBadge(iconRes = R.drawable.ic_wallet, color = CentsTheme.colors.secondaryLabel) },
                     showSeparator = index != day.corrections.lastIndex,
                     onClick = { onOpenCorrection(correction) },
                     modifier = Modifier.testTag(CORRECTION_ROW_TAG),

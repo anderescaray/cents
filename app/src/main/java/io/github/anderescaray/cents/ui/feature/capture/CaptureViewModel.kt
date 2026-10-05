@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,9 @@ import javax.inject.Inject
 data class CaptureSourceRow(
     val source: CaptureSource,
     val accountName: String?,
+    /** How many words make this app's notification an expense, and an income. */
+    val expenseWordCount: Int = 0,
+    val incomeWordCount: Int = 0,
 )
 
 @Immutable
@@ -72,7 +76,15 @@ class CaptureViewModel
                 stoppingPackage,
             ) { setup, active, editing, stopping ->
                 val names = active.associate { it.id to it.name }
-                val rows = setup.sources.map { CaptureSourceRow(it, names[it.accountId]) }
+                val rows =
+                    setup.sources.map {
+                        CaptureSourceRow(
+                            source = it,
+                            accountName = names[it.accountId],
+                            expenseWordCount = setup.wordsFor(it.packageName, TransactionKind.EXPENSE).size,
+                            incomeWordCount = setup.wordsFor(it.packageName, TransactionKind.INCOME).size,
+                        )
+                    }
                 CaptureUiState(
                     enabled = setup.enabled,
                     sources = rows,

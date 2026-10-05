@@ -1,5 +1,8 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.filterToOne
@@ -12,6 +15,7 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
@@ -258,11 +262,11 @@ class ReportsScreenTest {
         setContent(fullState())
 
         scrollTo("THIS PERIOD AGAINST THE LAST")
-        // "Expenses" is on screen twice on purpose: once labelling the pair of columns and
-        // once naming the row that says what they add up to. The rows say the change in
-        // words, because two bars of similar height do not tell anyone whether they saved
-        // forty euros or four hundred.
-        composeRule.onAllNodesWithText("Expenses").assertCountEquals(2)
+        // The rows say the change in words, because two bars of similar height do not tell
+        // anyone whether they saved forty euros or four hundred. (This used to count two
+        // "Expenses" on screen; the second was the income-and-expenses legend above, which is
+        // only composed when that card happens to sit next to this one.)
+        composeRule.onNodeWithText("Expenses").assertExists()
         // "Previous period" is on the segmented control and in the legend.
         composeRule.onAllNodesWithText("Previous period").assertCountEquals(2)
         composeRule.onNodeWithText("Movements in the previous period").assertExists()
@@ -527,6 +531,10 @@ class ReportsScreenTest {
         assertEquals(PeriodPreset.YEAR, chosen)
     }
 
+    // The screen itself, not the row of account chips inside it, which scrolls too.
+    private val screenList =
+        hasScrollToIndexAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
+
     /**
      * The tab is a `LazyColumn`, so anything below the fold is not composed until it is
      * scrolled to — and a tap on a composed-but-offscreen row lands outside the window and
@@ -534,10 +542,10 @@ class ReportsScreenTest {
      *
      * It matches on the scroll-to-index action rather than on "can scroll": the two cartesian
      * charts are scrollable themselves, so the looser matcher now finds three nodes and picks
-     * none. Only the list can be asked for an index.
+     * none. Only the lists can be asked for an index, and of those only the screen scrolls down.
      */
     private fun scrollTo(text: String) {
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text))
+        composeRule.onNode(screenList).performScrollToNode(hasText(text))
     }
 
     /**
@@ -551,7 +559,9 @@ class ReportsScreenTest {
             .onNode(hasTestTag(KIND_CONTROL_TAG))
             .onChildren()
             .filterToOne(hasText(label))
-            .performClick()
+            // The action rather than a tap at its position: scrolled to its heading, the control
+            // can sit under the title bar, where a tap would land on the bar's own button.
+            .performSemanticsAction(SemanticsActions.OnClick)
     }
 
     /** Taps one segment of whichever control carries [tag]. */
@@ -559,12 +569,14 @@ class ReportsScreenTest {
         tag: String,
         label: String,
     ) {
-        composeRule.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag(tag))
+        composeRule.onNode(screenList).performScrollToNode(hasTestTag(tag))
         composeRule
             .onNode(hasTestTag(tag))
             .onChildren()
             .filterToOne(hasText(label))
-            .performClick()
+            // The action rather than a tap at its position: scrolled to its heading, the control
+            // can sit under the title bar, where a tap would land on the bar's own button.
+            .performSemanticsAction(SemanticsActions.OnClick)
     }
 
     /**
@@ -575,7 +587,9 @@ class ReportsScreenTest {
             .onNode(hasTestTag(SEGMENT_CONTROL_TAG))
             .onChildren()
             .filterToOne(hasText(label))
-            .performClick()
+            // The action rather than a tap at its position: scrolled to its heading, the control
+            // can sit under the title bar, where a tap would land on the bar's own button.
+            .performSemanticsAction(SemanticsActions.OnClick)
     }
 
     private fun setContent(

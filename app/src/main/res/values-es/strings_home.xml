@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_home">Inicio</string>
+    <string name="tab_wallet">Cartera</string>
+    <string name="wallet_title">Lo que tienes</string>
+    <string name="action_add_movement">Añadir un movimiento</string>
+    <string name="action_back_to">Volver a %1$s</string>
+    <string name="home_add_label">Añadir: %1$s</string>
+    <string name="home_no_accounts_title">Crea tu primera cuenta</string>
+    <string name="home_no_accounts_message">Los movimientos se anotan en una cuenta: un banco, una tarjeta o efectivo. Toca para crear una.</string>
+    <string name="home_see_all">Ver los %1$d</string>
+    <string name="home_pending_message">Recibos y nóminas que han vencido y necesitan su importe.</string>
+    <string name="home_this_month">Este mes</string>
+    <string name="home_spent">gastado</string>
+    <string name="home_nothing_spent">Aún no has gastado nada este mes.</string>
+    <string name="home_in">Entra</string>
+    <string name="home_out">Sale</string>
+    <string name="reports_budgets_empty">Aún no hay presupuestos</string>
+    <string name="reports_budgets_empty_footer">Ponle a una categoría un límite mensual y mira aquí cuánto te falta.</string>
+    <string name="form_title_new_expense">Nuevo gasto</string>
+    <string name="form_title_new_income">Nuevo ingreso</string>
+    <string name="form_add_expense">Añadir gasto</string>
+    <string name="form_add_income">Añadir ingreso</string>
+    <string name="form_new_category">Nueva</string>
+    <string name="form_no_group">Sin grupo</string>
+    <string name="subscriptions_every_month">Cada mes</string>
+    <string name="transfer_confirm">Transferir</string>
+    <string name="home_left_month">Te queda este mes</string>
+    <string name="home_overspent_month">Te has pasado este mes</string>
+    <string name="reports_customize_title">Personalizar informes</string>
+    <string name="reports_customize_footer">Sube o baja una tarjeta, o desactívala para ocultarla. Las ocultas guardan su sitio para cuando las vuelvas a activar.</string>
+    <string name="reports_customize_reset">Volver al orden original</string>
+    <string name="reports_customize_up">Subir %1$s</string>
+    <string name="reports_customize_down">Bajar %1$s</string>
+    <string name="reports_customize_action">Personalizar</string>
+    <string name="reports_ring_earned">ingresado</string>
+    <plurals name="home_pending_title">
+        <item quantity="one">%1$d esperando su importe</item>
+        <item quantity="many">%1$d esperando su importe</item>
+        <item quantity="other">%1$d esperando su importe</item>
+    </plurals>
+</resources>

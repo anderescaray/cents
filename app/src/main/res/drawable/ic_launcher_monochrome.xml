@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ring of category colours (ADR 0003): what the month looks like, as the app icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M60.28,36.07 A19,19 0 0,1 70.85,62.77"
+        android:strokeColor="#000000"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M61.70,71.37 A19,19 0 0,1 47.41,71.82"
+        android:strokeColor="#000000"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M37.73,63.81 A19,19 0 0,1 36.07,60.28"
+        android:strokeColor="#000000"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M36.07,47.72 A19,19 0 0,1 36.18,47.41"
+        android:strokeColor="#000000"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M44.19,37.73 A19,19 0 0,1 44.33,37.64"
+        android:strokeColor="#000000"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M53.24,35.02 A19,19 0 0,1 53.41,35.01"
+        android:strokeColor="#000000"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round" />
+</vector>

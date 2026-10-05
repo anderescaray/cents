@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import io.github.anderescaray.cents.domain.model.AppWords
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -47,6 +48,7 @@ class DataStoreCaptureSettingsRepository
                         expenseWords =
                             preferences[EXPENSE_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_EXPENSE_WORDS,
                         incomeWords = preferences[INCOME_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_INCOME_WORDS,
+                        appWords = appWordsIn(preferences),
                     )
                 }.catch { failure ->
                     if (failure is IOException) emit(CaptureSettings()) else throw failure
@@ -64,14 +66,41 @@ class DataStoreCaptureSettingsRepository
             write { preferences ->
                 preferences[SOURCES] =
                     preferences[SOURCES].orEmpty().filterNot { decode(it)?.packageName == packageName }.toSet()
+                // Its words go with it: choosing the app again starts it from the starting words.
+                TransactionKind.entries.forEach { preferences.remove(keyFor(it, packageName)) }
             }
 
         override suspend fun setWords(
             kind: TransactionKind,
             words: List<String>,
-        ) = write { it[keyFor(kind)] = words.map(String::trim).filter(String::isNotEmpty).toSet() }
+            packageName: String?,
+        ) = write { it[keyFor(kind, packageName)] = words.map(String::trim).filter(String::isNotEmpty).toSet() }
 
-        override suspend fun resetWords(kind: TransactionKind) = write { it.remove(keyFor(kind)) }
+        override suspend fun resetWords(
+            kind: TransactionKind,
+            packageName: String?,
+        ) = write { it.remove(keyFor(kind, packageName)) }
+
+        /** Every app's own lists, read back from the keys that carry its package name. */
+        private fun appWordsIn(preferences: Preferences): Map<String, AppWords> {
+            val lists = mutableMapOf<String, AppWords>()
+            preferences.asMap().forEach { (key, value) ->
+                val name = key.name
+                if (!name.startsWith(APP_PREFIX)) return@forEach
+                val kindAndPackage = name.removePrefix(APP_PREFIX).split(APP_SEPARATOR, limit = 2)
+                val kind =
+                    TransactionKind.entries.firstOrNull { it.name == kindAndPackage.firstOrNull() } ?: return@forEach
+                val packageName = kindAndPackage.getOrNull(1) ?: return@forEach
+                val words = (value as? Set<*>)?.filterIsInstance<String>()?.sorted() ?: return@forEach
+                val current = lists[packageName] ?: AppWords()
+                lists[packageName] =
+                    when (kind) {
+                        TransactionKind.EXPENSE -> current.copy(expense = words)
+                        TransactionKind.INCOME -> current.copy(income = words)
+                    }
+            }
+            return lists
+        }
 
         private suspend fun write(change: (MutablePreferences) -> Unit) {
             try {
@@ -83,11 +112,14 @@ class DataStoreCaptureSettingsRepository
             }
         }
 
-        private fun keyFor(kind: TransactionKind) =
-            when (kind) {
-                TransactionKind.EXPENSE -> EXPENSE_WORDS
-                TransactionKind.INCOME -> INCOME_WORDS
-            }
+        private fun keyFor(
+            kind: TransactionKind,
+            packageName: String? = null,
+        ) = when {
+            packageName != null -> stringSetPreferencesKey("$APP_PREFIX${kind.name}$APP_SEPARATOR$packageName")
+            kind == TransactionKind.EXPENSE -> EXPENSE_WORDS
+            else -> INCOME_WORDS
+        }
 
         /**
          * One app as one string: `package|account|label`. The package name and the id cannot
@@ -112,5 +144,9 @@ class DataStoreCaptureSettingsRepository
             val SOURCES = stringSetPreferencesKey("captureSources")
             val EXPENSE_WORDS = stringSetPreferencesKey("captureExpenseWords")
             val INCOME_WORDS = stringSetPreferencesKey("captureIncomeWords")
+
+            /** `captureWords:EXPENSE:com.bank.app` — a package name cannot hold the colon. */
+            const val APP_PREFIX = "captureWords:"
+            const val APP_SEPARATOR = ":"
         }
     }

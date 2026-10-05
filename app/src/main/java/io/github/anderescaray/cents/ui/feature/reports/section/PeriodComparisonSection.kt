@@ -103,18 +103,6 @@ data class PeriodComparisonSection(
         val labels = SEGMENTS.associateWith { stringResource(it.labelRes) }
 
         Column {
-            CentsSegmentedControl(
-                options = SEGMENTS,
-                selected = segment,
-                onSelect = { segment = it },
-                label = { labels.getValue(it) },
-                modifier =
-                    Modifier
-                        .padding(horizontal = CentsDimens.screenMargin)
-                        .testTag(SEGMENT_CONTROL_TAG),
-            )
-            Spacer(Modifier.height(CentsDimens.spacingM))
-
             CentsListSection(
                 header = stringResource(segment.headerRes),
                 // Said out loud, because the dates on the drill-down row will not be the dates in
@@ -123,6 +111,16 @@ data class PeriodComparisonSection(
                     stringResource(segment.partialRes)
                         .takeIf { comparison.ranges.partial && !comparison.isEmpty },
             ) {
+                CentsSegmentedControl(
+                    options = SEGMENTS,
+                    selected = segment,
+                    onSelect = { segment = it },
+                    label = { labels.getValue(it) },
+                    modifier =
+                        Modifier
+                            .padding(horizontal = CentsDimens.rowHorizontalPadding, vertical = CentsDimens.spacingS)
+                            .testTag(SEGMENT_CONTROL_TAG),
+                )
                 if (comparison.isEmpty) {
                     // Two empty periods are not a chart of two zeroes: there is nothing to
                     // compare, and saying so beats drawing a flat pair of bars.
@@ -159,7 +157,7 @@ private fun ComparisonDetails(
         amount = comparison.before.net,
     )
     LegendRow(
-        color = CentsTheme.colors.accent,
+        color = CentsTheme.colors.accentText,
         label = stringResource(R.string.reports_comparison_legend_current),
         amount = comparison.current.net,
     )
@@ -261,8 +259,8 @@ private fun ChangeRow(
     val tint =
         when {
             change.isZero -> CentsTheme.colors.secondaryLabel
-            change.isNegative == moreIsBetter -> CentsTheme.colors.destructive
-            else -> CentsTheme.colors.positive
+            change.isNegative == moreIsBetter -> CentsTheme.colors.destructiveText
+            else -> CentsTheme.colors.positiveText
         }
 
     CentsListRow(

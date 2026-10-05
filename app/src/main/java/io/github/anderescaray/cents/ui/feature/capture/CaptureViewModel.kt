@@ -36,11 +36,14 @@ data class CaptureSourceRow(
 @Immutable
 data class CaptureUiState(
     val enabled: Boolean = false,
+    val notifyOnCapture: Boolean = false,
     val sources: List<CaptureSourceRow> = emptyList(),
     /** The accounts an app can be tied to: the active ones. */
     val accounts: List<Account> = emptyList(),
     val expenseWordCount: Int = 0,
     val incomeWordCount: Int = 0,
+    /** How many words rule an amount out, for every app. */
+    val ignoreWordCount: Int = 0,
     /** The app whose account is being changed, while that sheet is open. */
     val editing: CaptureSourceRow? = null,
     /** The app waiting on "stop reading it?", while that alert is open. */
@@ -87,9 +90,11 @@ class CaptureViewModel
                     }
                 CaptureUiState(
                     enabled = setup.enabled,
+                    notifyOnCapture = setup.notifyOnCapture,
                     sources = rows,
                     accounts = active,
                     expenseWordCount = setup.expenseWords.size,
+                    ignoreWordCount = setup.ignoreWords.size,
                     incomeWordCount = setup.incomeWords.size,
                     editing = rows.firstOrNull { it.source.packageName == editing },
                     stopping = rows.firstOrNull { it.source.packageName == stopping },
@@ -103,6 +108,10 @@ class CaptureViewModel
 
         fun setEnabled(enabled: Boolean) {
             viewModelScope.launch { settings.setEnabled(enabled) }
+        }
+
+        fun setNotifyOnCapture(enabled: Boolean) {
+            viewModelScope.launch { settings.setNotifyOnCapture(enabled) }
         }
 
         fun edit(packageName: String) {

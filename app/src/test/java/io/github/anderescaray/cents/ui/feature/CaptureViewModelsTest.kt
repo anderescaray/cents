@@ -8,10 +8,14 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.domain.model.AppWords
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.capture.InstalledApp
 import io.github.anderescaray.cents.ui.feature.capture.CaptureAppsViewModel
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryBlocker
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryViewModel
 import io.github.anderescaray.cents.ui.feature.capture.CaptureViewModel
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsViewModel
 import kotlinx.coroutines.Dispatchers
@@ -239,6 +243,25 @@ class CaptureViewModelsTest {
             assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, settings.state.value.expenseWords)
         }
 
+    @Test
+    fun `the confirmation switch updates its setting and leaves capture unchanged`() =
+        runTest {
+            val viewModel = capture()
+
+            viewModel.setNotifyOnCapture(true)
+
+            val enabled = viewModel.uiState.first { !it.isLoading && it.notifyOnCapture }
+            assertTrue(settings.state.value.notifyOnCapture)
+            assertFalse(enabled.enabled)
+
+            viewModel.setEnabled(true)
+            viewModel.setNotifyOnCapture(false)
+
+            val disabled = viewModel.uiState.first { !it.isLoading && it.enabled && !it.notifyOnCapture }
+            assertFalse(settings.state.value.notifyOnCapture)
+            assertTrue(disabled.enabled)
+        }
+
     private fun capture() = viewModels.keep(CaptureViewModel(settings, accounts))
 
     private fun picker() =
@@ -267,8 +290,92 @@ class CaptureViewModelsTest {
         return uiState.first { it.query == query }.apps.map { it.label }
     }
 
+    @Test
+    fun `the ignore words are edited and put back like any other list`() =
+        runTest {
+            val ignore =
+                viewModels.keep(
+                    CaptureWordsViewModel(settings, SavedStateHandle(mapOf("list" to CaptureWordList.IGNORE))),
+                )
+            assertEquals(
+                CaptureSettings.DEFAULT_IGNORE_WORDS,
+                ignore.uiState.first { !it.isLoading }.words,
+            )
+
+            ignore.setDraft("pendiente")
+            ignore.uiState.first { it.draft == "pendiente" }
+            ignore.add()
+            ignore.uiState.first { "pendiente" in it.words }
+            assertTrue("pendiente" in settings.state.value.ignoreWords)
+            // The expense and income words are not touched by it.
+            assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, settings.state.value.expenseWords)
+
+            ignore.requestReset()
+            ignore.uiState.first { it.confirmingReset }
+            ignore.confirmReset()
+            ignore.uiState.first { it.isDefault }
+            assertEquals(CaptureSettings.DEFAULT_IGNORE_WORDS, settings.state.value.ignoreWords)
+        }
+
+    @Test
+    fun `trying a notification reads it with the chosen app's words and checks its account's currency`() =
+        runTest {
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            settings.state.value =
+                CaptureSettings(
+                    enabled = true,
+                    sources = listOf(CaptureSource(BANK_APP, "My bank", savings)),
+                    appWords = mapOf(BANK_APP to AppWords(expense = listOf("cobro"))),
+                )
+            val trying =
+                viewModels.keep(
+                    CaptureTryViewModel(settings, accounts),
+                )
+            trying.uiState.first { !it.isLoading && it.app != null }
+
+            trying.setText("Cobro de 23,40 € en tienda. Saldo 1.000 €")
+            val records = trying.uiState.first { it.reading != null }
+            assertTrue("nothing stands in the way", records.records)
+            assertEquals(
+                CaptureParser.Reading.Movement(
+                    CaptureParser.WordMatch(TransactionKind.EXPENSE, "cobro"),
+                    CaptureParser.Amount(2_340, "EUR"),
+                ),
+                records.reading,
+            )
+            assertEquals("Savings", records.accountName)
+            assertFalse(records.otherCurrency)
+
+            trying.setText("Cobro de 23,40 USD")
+            assertTrue(trying.uiState.first { it.otherCurrency }.otherCurrency)
+        }
+
+    @Test
+    fun `trying a notification reads a title the way capture does, and says what would stop capture`() =
+        runTest {
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            settings.state.value = CaptureSettings(sources = listOf(CaptureSource(BANK_APP, "My bank", savings)))
+            val trying = viewModels.keep(CaptureTryViewModel(settings, accounts))
+            trying.uiState.first { !it.isLoading && it.app != null }
+
+            // The title repeats the body's amount: one payment, as the listener reads it.
+            trying.setTitle("23,40 €")
+            trying.setText("Compra por 23,40 € en Amazon")
+            val reading = trying.uiState.first { it.reading is CaptureParser.Reading.Movement }
+            // But capture is off, so it would not be recorded, and the screen must not say it would.
+            assertEquals(CaptureTryBlocker.OFF, reading.blocker)
+            assertFalse(reading.records)
+
+            settings.state.value = settings.state.value.copy(enabled = true)
+            assertTrue(trying.uiState.first { it.blocker == null }.records)
+
+            // An archived account is one the recorder skips.
+            database.accountDao().setArchived(savings, archived = true)
+            assertEquals(CaptureTryBlocker.NO_ACCOUNT, trying.uiState.first { it.blocker != null }.blocker)
+        }
+
     private fun words(kind: TransactionKind) =
-        viewModels.keep(CaptureWordsViewModel(settings, SavedStateHandle(mapOf("kind" to kind))))
+        viewModels.keep(CaptureWordsViewModel(settings, SavedStateHandle(mapOf("list" to CaptureWordList.of(kind)))))
 
     private class FakeCaptureSettings : CaptureSettingsRepository {
         val state = MutableStateFlow(CaptureSettings())
@@ -277,6 +384,10 @@ class CaptureViewModelsTest {
 
         override suspend fun setEnabled(enabled: Boolean) {
             state.value = state.value.copy(enabled = enabled)
+        }
+
+        override suspend fun setNotifyOnCapture(enabled: Boolean) {
+            state.value = state.value.copy(notifyOnCapture = enabled)
         }
 
         override suspend fun putSource(source: CaptureSource) {
@@ -332,6 +443,14 @@ class CaptureViewModelsTest {
                 },
                 null,
             )
+        }
+
+        override suspend fun setIgnoreWords(words: List<String>) {
+            state.value = state.value.copy(ignoreWords = words)
+        }
+
+        override suspend fun resetIgnoreWords() {
+            state.value = state.value.copy(ignoreWords = CaptureSettings.DEFAULT_IGNORE_WORDS)
         }
     }
 

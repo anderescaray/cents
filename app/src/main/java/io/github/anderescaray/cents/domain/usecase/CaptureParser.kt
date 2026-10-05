@@ -12,7 +12,11 @@ import java.util.concurrent.ConcurrentHashMap
  * Pure text in, answer out, with nothing from Android, so every rule here is a JVM test rather
  * than something only a phone can check. The part that *is* the phone's, which apps notify what,
  * is the one thing this cannot know, and why the owner's words are editable.
+ *
+ * Over detekt's function limit on purpose: every rule of reading lives in this one object, so the
+ * listener and *Try a notification* cannot read a notification two different ways.
  */
+@Suppress("TooManyFunctions")
 object CaptureParser {
     /**
      * Which way the money went, by the words in the text.
@@ -28,48 +32,214 @@ object CaptureParser {
         text: String,
         expenseWords: Collection<String>,
         incomeWords: Collection<String>,
-    ): TransactionKind? {
+    ): TransactionKind? = wordIn(text, expenseWords, incomeWords)?.kind
+
+    /** [kindOf], and which of the owner's words decided it, for a screen that explains it. */
+    fun wordIn(
+        text: String,
+        expenseWords: Collection<String>,
+        incomeWords: Collection<String>,
+    ): WordMatch? {
         val folded = fold(text)
-        return when {
-            incomeWords.any { it.appearsIn(folded) } -> TransactionKind.INCOME
-            expenseWords.any { it.appearsIn(folded) } -> TransactionKind.EXPENSE
-            else -> null
-        }
+        return incomeWords.firstOrNull { it.appearsIn(folded) }?.let { WordMatch(TransactionKind.INCOME, it) }
+            ?: expenseWords.firstOrNull { it.appearsIn(folded) }?.let { WordMatch(TransactionKind.EXPENSE, it) }
     }
 
     /**
-     * The amount in the text. **One written with a currency wins**: *23,40 €*, *€23.40*,
-     * *EUR 1.234,56*, the first of them if there are several. Only when there is none is a bare
-     * number with two decimals taken, *23,40*. A number alone, *3* or *1234*, is never an amount,
-     * because a bank's text is full of numbers that are not money, and neither is a date or a
-     * time written with dots, *12.03.2026* or *10.30*, when an amount with a currency is there.
+     * The amount in the text must name its currency: *23,40 €*, *€23.40*, or *EUR 1.234,56*.
+     * Masked identifiers are excluded before matching. Multiple numbers with currency markers
+     * are ambiguous, including a payment beside a balance, and nothing is guessed between them.
+     * Two markers around the same number are allowed only when they name the same currency.
+     * Bare decimals, dates and times never become an amount on their own.
      *
      * Read as digits rather than through a `Double`, because money never passes through binary
      * floating point here (`CLAUDE.md` rule 1).
      */
-    fun amountIn(text: String): Amount? {
-        val marked =
-            listOfNotNull(
-                PREFIXED.find(text)?.let { Candidate(it.range.first, it.groupValues[2], it.groupValues[1]) },
-                SUFFIXED.find(text)?.let { Candidate(it.range.first, it.groupValues[1], it.groupValues[2]) },
-            ).minByOrNull { it.position }
-        val chosen = marked ?: BARE.find(text)?.let { Candidate(it.range.first, it.value, currency = null) }
-        return chosen?.let { candidate ->
-            toMinorUnits(candidate.number)?.let { minor -> Amount(minor, candidate.currency?.let(::currencyCode)) }
+    fun amountIn(
+        text: String,
+        ignoreWords: Collection<String> = emptyList(),
+    ): Amount? = (readAmount(text, ignoreWords) as? AmountReading.One)?.amount
+
+    /**
+     * [amountIn], saying why when there is no single amount.
+     *
+     * **An amount led in by one of [ignoreWords] is skipped** before anything else is decided:
+     * *Pago de 23,40 €. Saldo disponible: 1.502,10 €* is then one amount, the payment, rather than
+     * two and nothing. "Led in" means among the last few words before the number in the same
+     * sentence, so *saldo* early in a long notification cannot hide the payment after it.
+     */
+    fun readAmount(
+        text: String,
+        ignoreWords: Collection<String> = emptyList(),
+    ): AmountReading {
+        // The body, then the title when a notification has one (see [TITLE_SEPARATOR]).
+        val parts = text.split(TITLE_SEPARATOR)
+        val body = amountsIn(parts.first(), ignoreWords)
+        // **A title that repeats the body's amount repeats the payment**: *23,40 €* over
+        // *Compra por 23,40 € en Amazon* is one payment, not two. A different amount in the title
+        // is still a second amount, and two in the body are still two, so a fee beside a payment,
+        // or two purchases of the same price, are not guessed between.
+        val title = parts.drop(1).flatMap { amountsIn(it, ignoreWords) }.filterNot { it in body }
+        val amounts = body + title
+        return when (amounts.size) {
+            0 -> AmountReading.None
+            1 -> AmountReading.One(amounts.single())
+            else -> AmountReading.Several(amounts)
         }
     }
 
-    /** An amount found in the text, and the currency it named, if it named one. */
+    /**
+     * Each number in [text] that names a currency, in order, as an amount. Left out: numbers led
+     * in by an ignore word, and ones that do not read as money, whose markers disagree or whose
+     * digits are zero or too many: those are not a second amount to be unsure about.
+     */
+    private fun amountsIn(
+        text: String,
+        ignoreWords: Collection<String>,
+    ): List<Amount> {
+        val unmasked = MASKED_NUMBER.replace(text, "|")
+        val numbers =
+            (
+                PREFIXED.findAll(unmasked).map { it.candidate(numberGroup = 2, currencyGroup = 1) } +
+                    SUFFIXED.findAll(unmasked).map { it.candidate(numberGroup = 1, currencyGroup = 2) }
+            ).groupBy { it.range }
+                .values
+                .sortedBy { it.first().range.first }
+        return numbers
+            .filterIndexed { index, markers ->
+                val from =
+                    numbers
+                        .getOrNull(index - 1)
+                        ?.first()
+                        ?.range
+                        ?.last
+                        ?.plus(1) ?: 0
+                !ledInByIgnoreWord(unmasked.substring(from, markers.first().range.first), ignoreWords)
+            }.mapNotNull { amountOf(unmasked, it) }
+    }
+
+    /**
+     * Where a notification's body ends and its title begins, in the text capture reads.
+     *
+     * A control character no app writes, so the parser can tell the two apart: a title often
+     * repeats the body's amount, and only knowing which is which lets that count once. Shown as a
+     * space wherever the text is shown ([readable]).
+     */
+    const val TITLE_SEPARATOR = '\u001F'
+
+    /** The text as a person reads it: body and title separated by a space. */
+    fun readable(text: String): String = text.replace(TITLE_SEPARATOR, ' ')
+
+    /**
+     * The whole reading of one notification, word and amount, the way capture does it.
+     *
+     * The one function both the listener's recorder and the screen that tries a pasted text call,
+     * so what the screen says would happen is what happens. The account's currency is checked
+     * after this, by whoever knows the account.
+     */
+    fun read(
+        text: String,
+        expenseWords: Collection<String>,
+        incomeWords: Collection<String>,
+        ignoreWords: Collection<String>,
+    ): Reading {
+        val word = wordIn(text, expenseWords, incomeWords) ?: return Reading.NoWord
+        return when (val amount = readAmount(text, ignoreWords)) {
+            is AmountReading.One -> Reading.Movement(word, amount.amount)
+            AmountReading.None -> Reading.NoAmount(word)
+            is AmountReading.Several -> Reading.SeveralAmounts(word, amount.amounts)
+        }
+    }
+
+    /** An amount found in the text, and the currency it explicitly named. */
     data class Amount(
         val minorUnits: Long,
-        val currency: String?,
+        val currency: String,
     )
 
-    private data class Candidate(
-        val position: Int,
-        val number: String,
-        val currency: String?,
+    /** The owner's word that decided which way the money went. */
+    data class WordMatch(
+        val kind: TransactionKind,
+        val word: String,
     )
+
+    /** What [readAmount] found. */
+    sealed interface AmountReading {
+        data class One(
+            val amount: Amount,
+        ) : AmountReading
+
+        /** No number in the text names a currency, once masked and skipped ones are set aside. */
+        data object None : AmountReading
+
+        /** More than one does, and nothing is guessed between them. */
+        data class Several(
+            val amounts: List<Amount>,
+        ) : AmountReading
+    }
+
+    /** What [read] found. */
+    sealed interface Reading {
+        /** A movement capture would write, in the account's currency or not. */
+        data class Movement(
+            val word: WordMatch,
+            val amount: Amount,
+        ) : Reading
+
+        /** Neither an expense word nor an income word. */
+        data object NoWord : Reading
+
+        data class NoAmount(
+            val word: WordMatch,
+        ) : Reading
+
+        /** A word, and more than one amount: which is the payment is not guessed. */
+        data class SeveralAmounts(
+            val word: WordMatch,
+            val amounts: List<Amount>,
+        ) : Reading
+    }
+
+    private data class Candidate(
+        val range: IntRange,
+        val number: String,
+        val currency: String,
+    )
+
+    /** One number's markers as one amount, when they agree on a currency and the digits read. */
+    private fun amountOf(
+        text: String,
+        markers: List<Candidate>,
+    ): Amount? {
+        val candidate = markers.first()
+        val trailingCurrency = CURRENCY_AFTER_NUMBER.matchAt(text, candidate.range.last + 1)?.groupValues?.get(1)
+        val currencies = markers.map { it.currency } + listOfNotNull(trailingCurrency)
+        val currency = currencies.mapNotNull(::currencyCode).distinct().singleOrNull() ?: return null
+        return toMinorUnits(candidate.number)?.let { Amount(it, currency) }
+    }
+
+    /** Whether one of [ignoreWords] is among the last words before a number, in its sentence. */
+    private fun ledInByIgnoreWord(
+        leadIn: String,
+        ignoreWords: Collection<String>,
+    ): Boolean {
+        if (ignoreWords.isEmpty()) return false
+        val words =
+            fold(SENTENCE_END.split(leadIn).last())
+                .split(NOT_A_LETTER)
+                .filter(String::isNotEmpty)
+                .takeLast(LEAD_IN_WORDS)
+                .joinToString(" ")
+        return ignoreWords.any { it.appearsIn(words) }
+    }
+
+    private fun MatchResult.candidate(
+        numberGroup: Int,
+        currencyGroup: Int,
+    ): Candidate {
+        val number = requireNotNull(groups[numberGroup])
+        return Candidate(number.range, number.value, groupValues[currencyGroup])
+    }
 
     private fun String.appearsIn(folded: String): Boolean =
         WORD_PATTERNS
@@ -106,7 +276,8 @@ object CaptureParser {
     /**
      * The ISO code a currency sign or word stands for. A bare *$* names no currency, because it
      * is the sign of the peso and of several dollars as well as the US one, and reading it as
-     * USD would turn every amount of a Mexican or Canadian account into a foreign one.
+     * USD would turn every amount of a Mexican or Canadian account into a foreign one. So *$23.40*
+     * alone is not read as money, while *$23.40 USD* is, by its code.
      */
     private fun currencyCode(token: String): String? =
         when (token.lowercase(Locale.ROOT).replace(" ", "")) {
@@ -125,18 +296,44 @@ object CaptureParser {
     private const val SUFFIX_CURRENCY = "€|\\$|£|(?i:eur|usd|gbp|euros?)"
 
     /** Never inside a longer number, so the *1234* of a card cannot become the start of an amount. */
-    private const val NOT_AFTER_A_NUMBER = "(?<![\\d.,])"
+    private const val NOT_AFTER_A_NUMBER = "(?<![\\p{L}\\p{N}.,])"
 
     /** Not followed by more digits, or by a separator and a digit, as a date or a time would be. */
     private const val NOT_BEFORE_A_NUMBER = "(?![\\d]|[.,]\\d)"
 
     private val PREFIXED =
-        Regex("(?<![\\p{L}\\p{N}])($PREFIX_CURRENCY)\\s?($NUMBER)$NOT_BEFORE_A_NUMBER")
+        Regex("(?<![\\p{L}\\p{N}])($PREFIX_CURRENCY)\\h*($NUMBER)$NOT_BEFORE_A_NUMBER")
     private val SUFFIXED =
-        Regex("$NOT_AFTER_A_NUMBER($NUMBER)\\s?($SUFFIX_CURRENCY)(?![\\p{L}])")
-    private val BARE =
-        Regex("$NOT_AFTER_A_NUMBER(?:\\d{1,3}(?:[.\\u00A0\\u202F ]\\d{3})+|\\d+)[.,]\\d{2}$NOT_BEFORE_A_NUMBER")
+        Regex("$NOT_AFTER_A_NUMBER($NUMBER)\\h*($SUFFIX_CURRENCY)(?![\\p{L}\\p{N}])")
+    private val CURRENCY_AFTER_NUMBER = Regex("\\h*($SUFFIX_CURRENCY)(?![\\p{L}\\p{N}])")
+
+    /**
+     * A masked card or account number, so its digits never become an amount.
+     *
+     * Two shapes and no others. Mask characters **against** the digits: *\*1234*, *\*\*\*\*7146*,
+     * *XXXX7146*, *••••7146*, *…7146*, *....7146*. Or a **run** of two or more before a space or a
+     * dash: *\*\*\*\* 7146*, *XXXX-XXXX-7146*. A single separator before a space is not a mask:
+     * *Amazon · 23,40 €*, *AMAZON… 23,40 €*, *Mercadona... 23,40 €*, *Pago a X 8,00 €* and
+     * *2 x 23,40 €* all keep their amount. After the digits only a single space or dash continues
+     * the number (*1234 5678*, *71-46*), so a spaced dash, *\*\*\*\*1234 - 50 €*, ends it.
+     */
+    private val MASKED_NUMBER =
+        Regex(
+            "(?:(?:$MASK_RUN)(?:[\\h-]*(?:$MASK_RUN))*[\\h-]*" +
+                "|(?<![\\p{L}\\p{N}])[xX]+|[*\\u2022\\u25CF\\u00B7\\u2026]+|\\.{3,})" +
+                "(?=\\d)\\d+(?:[\\h-]\\d+(?![\\d.,]))*",
+        )
     private val DECIMAL_TAIL = Regex("[.,](\\d{1,2})$")
+
+    /** Two or more mask characters in a row: what a mask separated from its digits looks like. */
+    private const val MASK_RUN = "(?<![\\p{L}\\p{N}])[xX]{2,}|[*\\u2022\\u25CF]{2,}"
+
+    /** A full stop, question mark or semicolon followed by a space, or a new line. Not *1.502*. */
+    private val SENTENCE_END = Regex("[.!?;]\\s+|\\n")
+    private val NOT_A_LETTER = Regex("[^\\p{L}]+")
+
+    /** *Tu saldo actual es de 1.000 €*: five words reach back to *saldo*. */
+    private const val LEAD_IN_WORDS = 5
     private val MARKS = Regex("\\p{Mn}+")
     private val SPACES = Regex("\\s+")
     private val NEVER = Regex("(?!)")

@@ -47,9 +47,9 @@ class CaptureParserTest {
         assertEquals(CaptureParser.Amount(123_456, "EUR"), CaptureParser.amountIn("EUR 1.234,56"))
         assertEquals(CaptureParser.Amount(123_456, "USD"), CaptureParser.amountIn("USD 1,234.56"))
         // A bare "$" is also the peso and several dollars: it names no currency.
-        assertEquals(CaptureParser.Amount(123_456, null), CaptureParser.amountIn("$1,234.56"))
+        assertNull(CaptureParser.amountIn("$1,234.56"))
         assertEquals(CaptureParser.Amount(1_500, "EUR"), CaptureParser.amountIn("15 euros"))
-        assertEquals(CaptureParser.Amount(2_340, null), CaptureParser.amountIn("importe 23,40"))
+        assertNull(CaptureParser.amountIn("importe 23,40"))
         assertEquals(CaptureParser.Amount(250, "EUR"), CaptureParser.amountIn("2,5 €"))
     }
 
@@ -60,11 +60,10 @@ class CaptureParserTest {
     }
 
     @Test
-    fun `the first amount is the one taken`() {
-        assertEquals(
-            CaptureParser.Amount(2_340, "EUR"),
-            CaptureParser.amountIn("Pago de 23,40 €. Saldo disponible: 1.502,10 €"),
-        )
+    fun `multiple currency marked amounts are ambiguous in either order`() {
+        assertNull(CaptureParser.amountIn("Pago de 23,40 €. Saldo disponible: 1.502,10 €"))
+        assertNull(CaptureParser.amountIn("Saldo disponible: 1.502,10 €. Pago de 23,40 €"))
+        assertNull(CaptureParser.amountIn("Compra 23 €. Otra compra 23 €"))
     }
 
     @Test
@@ -96,6 +95,177 @@ class CaptureParserTest {
         )
     }
 
+    @Test
+    fun `the payment is recognized with currency on either side and a masked card`() {
+        listOf(
+            "23€ paid with the card ****7146",
+            "Paid EUR 23 with card ****7146",
+            "Paid with card ****7146 EUR 23",
+            "Paid with card XXXX7146 EUR 23",
+            "Paid with card ••••7146 EUR 23",
+            "Paid with card …7146 EUR 23",
+            "Paid with card ....7146 EUR 23",
+            "Paid with card ****71 46 EUR 23",
+            "Paid with card ****1234 5678 EUR 23",
+        ).forEach { text ->
+            assertEquals(text, CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn(text))
+        }
+    }
+
+    @Test
+    fun `a masked number is never an amount even when next to a currency`() {
+        listOf(
+            "Paid with card ****7146 EUR",
+            "Payment EUR ****7146",
+            "Payment XXXX 7146€",
+            "Payment ••••7146 EUR",
+            "Payment 23 ****7146 €",
+            "Payment ****71 46 EUR",
+            "Payment ****1234 5678 EUR",
+            "Payment ****71-46 EUR",
+        ).forEach { text -> assertNull(text, CaptureParser.amountIn(text)) }
+    }
+
+    @Test
+    fun `an amount needs a currency and never falls back to a time or bare decimals`() {
+        listOf(
+            "Payment at 10.30 with card ****7146",
+            "Compra el 12.03.2026",
+            "Paid 23.40 with card ****7146",
+            "Ingreso 23,40",
+        ).forEach { text -> assertNull(text, CaptureParser.amountIn(text)) }
+    }
+
+    @Test
+    fun `markers around the same number must agree on its currency`() {
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Paid EUR 23 €"))
+        assertNull(CaptureParser.amountIn("Paid EUR 23 USD"))
+        assertNull(CaptureParser.amountIn("Paid €23 and USD 23"))
+        assertNull(CaptureParser.amountIn("Paid EUR23USD"))
+        assertNull(CaptureParser.amountIn("Paid EUR23£"))
+        assertNull(CaptureParser.amountIn("Paid USD23€"))
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Paid EUR23€"))
+    }
+
+    @Test
+    fun `mask removal never joins card digits to money or mistakes a merchant for a mask`() {
+        assertEquals(CaptureParser.Amount(15_000, "EUR"), CaptureParser.amountIn("Payment card ***146 150,00 €"))
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Netflix 23€ paid"))
+    }
+
+    @Test
+    fun `currency markers accept nonbreaking spaces and grouped thousands`() {
+        assertEquals(CaptureParser.Amount(123_456, "EUR"), CaptureParser.amountIn("EUR\u00a01\u202f234,56"))
+        assertEquals(CaptureParser.Amount(123_456, "EUR"), CaptureParser.amountIn("1 234,56\u00a0EUR"))
+        assertEquals(CaptureParser.Amount(123_456, "EUR"), CaptureParser.amountIn("EUR 1,234.56"))
+    }
+
+    @Test
+    fun `zero malformed and oversized amounts are not recorded`() {
+        assertNull(CaptureParser.amountIn("Paid 0 EUR"))
+        assertNull(CaptureParser.amountIn("Paid EUR 1.23.45"))
+        assertNull(CaptureParser.amountIn("Paid 23€45"))
+        assertNull(CaptureParser.amountIn("Paid 999999999999999999999 EUR"))
+    }
+
+    @Test
+    fun `an ignore word in front of a balance leaves the payment as the one amount`() {
+        listOf(
+            "Pago de 23,40 €. Saldo disponible: 1.502,10 €",
+            "Saldo: 1.502,10 €. Compra de 23,40 €",
+            "Compra con tarjeta ****7146 por 23,40 EUR en AMAZON. Saldo: 1.234,56 EUR",
+            "Has pagado 23,40 € con tu tarjeta. Tu saldo actual es de 1.000 €",
+            "Payment of €23.40. Available balance €1,502.10",
+        ).forEach { text ->
+            assertEquals(text, CaptureParser.Amount(2_340, "EUR"), CaptureParser.amountIn(text, IGNORE))
+        }
+    }
+
+    @Test
+    fun `an ignore word only reaches the amount it leads into, in its own sentence`() {
+        // "Saldo" opens the notification, but the sentence the payment is in does not mention it.
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Saldo bajo. Compra de 23 €", IGNORE))
+        // A balance and nothing else is not a payment, even beside an expense word.
+        assertNull(CaptureParser.amountIn("Tu saldo tras el pago es 1.000 €", IGNORE))
+        // Without the words, two amounts are still two, and nothing is guessed.
+        assertNull(CaptureParser.amountIn("Pago de 23,40 €. Saldo disponible: 1.502,10 €"))
+    }
+
+    @Test
+    fun `reading says why nothing would be recorded`() {
+        val expense = CaptureParser.WordMatch(TransactionKind.EXPENSE, "pago")
+        assertEquals(CaptureParser.Reading.NoWord, read("Nuevas ofertas: hasta 30 € de descuento"))
+        assertEquals(CaptureParser.Reading.NoAmount(expense), read("Pago con tarjeta ****7146"))
+        assertEquals(
+            CaptureParser.Reading.SeveralAmounts(
+                expense,
+                listOf(CaptureParser.Amount(2_340, "EUR"), CaptureParser.Amount(150, "EUR")),
+            ),
+            read("Pago de 23,40 € y comisión de 1,50 €"),
+        )
+        assertEquals(
+            CaptureParser.Reading.Movement(
+                // The first of the owner's words found, in the list's order.
+                CaptureParser.WordMatch(TransactionKind.INCOME, "recibido"),
+                CaptureParser.Amount(12_005, "EUR"),
+            ),
+            read("Has recibido un pago de Ana de 120,05 €"),
+        )
+    }
+
+    @Test
+    fun `two identical amounts in one body are still two purchases, not one`() {
+        // Only a title repeating the body counts once; within the body nothing is merged.
+        assertNull(CaptureParser.amountIn("Compra 23 €. Otra compra 23 €", IGNORE))
+        assertEquals(
+            CaptureParser.Amount(2_300, "EUR"),
+            CaptureParser.amountIn("Compra 23 €${CaptureParser.TITLE_SEPARATOR}23 €", IGNORE),
+        )
+    }
+
+    @Test
+    fun `a separator before an amount is not a mask`() {
+        listOf(
+            "Amazon · 23,40 €",
+            "Compra en AMAZON… 23,40 €",
+            "Pago en Mercadona... 23,40 €",
+            "Compra 1 x 23,40 €",
+        ).forEach { text -> assertEquals(text, CaptureParser.Amount(2_340, "EUR"), CaptureParser.amountIn(text)) }
+        assertEquals(CaptureParser.Amount(800, "EUR"), CaptureParser.amountIn("Pago a X 8,00 €"))
+        // A spaced dash ends a masked number rather than joining the amount to it.
+        assertEquals(CaptureParser.Amount(5_000, "EUR"), CaptureParser.amountIn("Tarjeta ****1234 - 50 €"))
+        // While real masks, spaced or not, still hide their digits.
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Tarjeta **** **** 7146 EUR 23"))
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Tarjeta XXXX-XXXX-7146 EUR 23"))
+    }
+
+    @Test
+    fun `a dollar sign alone names no currency, but a code beside it does`() {
+        assertNull(CaptureParser.amountIn("Compra por $23.40"))
+        assertEquals(CaptureParser.Amount(2_340, "USD"), CaptureParser.amountIn("Paid $23.40 USD"))
+    }
+
+    @Test
+    fun `the default ignore words never skip a payment that says it is available`() {
+        assertEquals(
+            CaptureParser.Amount(150_000, "EUR"),
+            CaptureParser.amountIn("Ya tienes disponible tu nómina de 1.500 €", IGNORE),
+        )
+    }
+
+    @Test
+    fun `an amount that does not read is not a second amount`() {
+        val text = "Compra 23,40 €${CaptureParser.TITLE_SEPARATOR}EUR 23 USD"
+        assertEquals(CaptureParser.Amount(2_340, "EUR"), CaptureParser.amountIn(text, IGNORE))
+    }
+
+    private fun read(text: String) =
+        CaptureParser.read(text, CaptureSettings.DEFAULT_EXPENSE_WORDS, CaptureSettings.DEFAULT_INCOME_WORDS, IGNORE)
+
     private fun kind(text: String) =
         CaptureParser.kindOf(text, CaptureSettings.DEFAULT_EXPENSE_WORDS, CaptureSettings.DEFAULT_INCOME_WORDS)
+
+    private companion object {
+        val IGNORE = CaptureSettings.DEFAULT_IGNORE_WORDS
+    }
 }

@@ -16,6 +16,8 @@ interface CaptureSettingsRepository {
 
     suspend fun setEnabled(enabled: Boolean)
 
+    suspend fun setNotifyOnCapture(enabled: Boolean)
+
     /** Adds the app, or changes its account if it was already chosen. */
     suspend fun putSource(source: CaptureSource)
 
@@ -39,6 +41,12 @@ interface CaptureSettingsRepository {
         kind: TransactionKind,
         packageName: String? = null,
     )
+
+    /** Replaces the words that say an amount is not the payment. Empty stays empty. */
+    suspend fun setIgnoreWords(words: List<String>)
+
+    /** Puts the ignore words back to their defaults. */
+    suspend fun resetIgnoreWords()
 }
 
 /**

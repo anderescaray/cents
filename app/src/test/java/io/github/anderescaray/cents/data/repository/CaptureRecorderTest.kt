@@ -9,8 +9,10 @@ import io.github.anderescaray.cents.domain.model.CaptureOutcome
 import io.github.anderescaray.cents.domain.model.CaptureOutcome.IgnoreReason
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.ui.capture.CaptureText
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -77,6 +79,9 @@ class CaptureRecorderTest {
             assertEquals("EUR", row.currency)
             assertEquals(LocalDate.of(2026, 9, 29), row.date)
             assertEquals("Compra en CAFÉ CENTRAL por 23,40 €", row.note)
+            assertEquals(Money(row.amountMinor, row.currency), outcome.amount)
+            assertEquals(row.kind, outcome.kind)
+            assertEquals("Bank", outcome.accountName)
         }
 
     @Test
@@ -176,6 +181,59 @@ class CaptureRecorderTest {
             assertEquals(0, movements())
         }
 
+    @Test
+    fun `ambiguous amounts masked numbers and unmarked decimals write nothing`() =
+        runTest {
+            val recorder = recorder()
+            listOf(
+                "Paid with card ****7146 EUR",
+                "Payment at 10.30 with card ****7146",
+                "Ingreso 23,40",
+            ).forEach { text ->
+                assertEquals(CaptureOutcome.Ignored(IgnoreReason.NO_AMOUNT), recorder.record(BANK_APP, text, AT_10))
+            }
+            // Two amounts and nothing to say which is the payment: not guessed.
+            assertEquals(
+                CaptureOutcome.Ignored(IgnoreReason.SEVERAL_AMOUNTS),
+                recorder.record(BANK_APP, "Pago de 23,40 € y comisión de 1,50 €", AT_10),
+            )
+            assertEquals(0, movements())
+        }
+
+    @Test
+    fun `a title repeating the amount is the same payment, recorded once with a readable note`() =
+        runTest {
+            val text =
+                requireNotNull(CaptureText.of(title = "23,40 €", text = "Compra por 23,40 € en Amazon", bigText = null))
+
+            val outcome = recorder().record(BANK_APP, text, AT_10)
+
+            assertTrue(outcome is CaptureOutcome.Recorded)
+            assertEquals(Money(2_340, "EUR"), (outcome as CaptureOutcome.Recorded).amount)
+            val note = database.transactionDao().findById(outcome.transactionId)?.note
+            assertEquals("Compra por 23,40 € en Amazon 23,40 €", note)
+        }
+
+    @Test
+    fun `a balance after the payment is skipped by an ignore word, and the payment recorded`() =
+        runTest {
+            val outcome = recorder().record(BANK_APP, "Pago de 23,40 €. Saldo disponible: 1.502,10 €", AT_10)
+
+            assertTrue(outcome is CaptureOutcome.Recorded)
+            assertEquals(Money(2_340, "EUR"), (outcome as CaptureOutcome.Recorded).amount)
+        }
+
+    @Test
+    fun `a masked card before the currency never changes the saved amount`() =
+        runTest {
+            val outcome = recorder().record(BANK_APP, "Paid with card ****7146 EUR 23", AT_10)
+
+            val recorded = outcome as CaptureOutcome.Recorded
+            val row = requireNotNull(database.transactionDao().findById(recorded.transactionId))
+            assertEquals(2_300L, row.amountMinor)
+            assertEquals(Money(2_300, "EUR"), recorded.amount)
+        }
+
     private fun recorder() =
         RoomCaptureRecorder(
             settings = settings,
@@ -205,6 +263,10 @@ class CaptureRecorderTest {
 
         override suspend fun setEnabled(enabled: Boolean) {
             value = value.copy(enabled = enabled)
+        }
+
+        override suspend fun setNotifyOnCapture(enabled: Boolean) {
+            value = value.copy(notifyOnCapture = enabled)
         }
 
         override suspend fun putSource(source: CaptureSource) {
@@ -259,6 +321,14 @@ class CaptureRecorderTest {
                 },
                 null,
             )
+        }
+
+        override suspend fun setIgnoreWords(words: List<String>) {
+            value = value.copy(ignoreWords = words)
+        }
+
+        override suspend fun resetIgnoreWords() {
+            value = value.copy(ignoreWords = CaptureSettings.DEFAULT_IGNORE_WORDS)
         }
     }
 

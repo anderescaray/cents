@@ -46,6 +46,16 @@ data class CaptureSettings(
     val incomeWords: List<String> = DEFAULT_INCOME_WORDS,
     /** Each app's own lists, by package name. */
     val appWords: Map<String, AppWords> = emptyMap(),
+    /**
+     * Words that say the amount after them is not the payment: *saldo*, *disponible*. Shared by
+     * every app, because a balance reads the same whoever announces it.
+     */
+    val ignoreWords: List<String> = DEFAULT_IGNORE_WORDS,
+    /**
+     * A notification after each movement capture records. On unless turned off: the owner asked
+     * to be told every time (2026-10-05), and a silent write is the one a wrong amount hides in.
+     */
+    val notifyOnCapture: Boolean = true,
 ) {
     fun sourceFor(packageName: String): CaptureSource? = sources.firstOrNull { it.packageName == packageName }
 
@@ -83,6 +93,17 @@ data class CaptureSettings(
                 "spent",
             )
 
+        /**
+         * What a bank says before a balance rather than a payment. Only words that never lead into
+         * a payment: *disponible* would skip *Ya tienes disponible tu nómina de 1.500 €*, while
+         * *saldo disponible* and *available balance* are caught by *saldo* and *balance* anyway.
+         */
+        val DEFAULT_IGNORE_WORDS =
+            listOf(
+                "saldo",
+                "balance",
+            )
+
         val DEFAULT_INCOME_WORDS =
             listOf(
                 "ingreso",
@@ -97,11 +118,42 @@ data class CaptureSettings(
     }
 }
 
+/**
+ * The three lists of words capture reads by: what makes a notification an expense, what makes it
+ * an income, and what says the amount after it is not the payment.
+ */
+enum class CaptureWordList {
+    EXPENSE,
+    INCOME,
+    IGNORE,
+    ;
+
+    /** The movement a list's words decide, and null for the ignore words, which decide none. */
+    val kind: TransactionKind?
+        get() =
+            when (this) {
+                EXPENSE -> TransactionKind.EXPENSE
+                INCOME -> TransactionKind.INCOME
+                IGNORE -> null
+            }
+
+    companion object {
+        fun of(kind: TransactionKind): CaptureWordList =
+            when (kind) {
+                TransactionKind.EXPENSE -> EXPENSE
+                TransactionKind.INCOME -> INCOME
+            }
+    }
+}
+
 /** What became of one notification. */
 sealed interface CaptureOutcome {
     /** Written down, as the movement with this id. */
     data class Recorded(
         val transactionId: Long,
+        val amount: Money,
+        val kind: TransactionKind,
+        val accountName: String,
     ) : CaptureOutcome
 
     /** The same payment was already written in the same minute, so nothing new was. */
@@ -127,6 +179,12 @@ sealed interface CaptureOutcome {
 
         /** A word, but no amount in the text. */
         NO_AMOUNT,
+
+        /**
+         * A word, and more than one amount, such as a payment beside a balance. Nothing is guessed;
+         * an ignore word in front of the one that is not the payment settles it.
+         */
+        SEVERAL_AMOUNTS,
 
         /** An amount in another currency than the account's; there is no conversion (D2). */
         OTHER_CURRENCY,

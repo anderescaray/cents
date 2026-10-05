@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.capture.OpenCapturedFromNotification
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.components.EntryKind
@@ -63,6 +64,9 @@ import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 fun CentsApp(
     /** True when a reminder asking for a figure was tapped: go straight to the screen that takes it. */
     openPending: Boolean = false,
+    /** The movement a capture notification was tapped for, opened once and then forgotten. */
+    openCapturedTransactionId: Long? = null,
+    onCapturedOpened: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
     val backStack by navController.currentBackStack.collectAsState()
@@ -74,6 +78,15 @@ fun CentsApp(
     GenerateDueMovements()
 
     OpenPendingFromNotification(openPending, navController)
+    OpenCapturedFromNotification(
+        transactionId = openCapturedTransactionId,
+        // On top of the movements list, so back from the form shows it among the rest.
+        onOpenTransaction = { id ->
+            navController.openMovementsList()
+            navController.navigate(Destination.TransactionForm(transactionId = id)) { launchSingleTop = true }
+        },
+        onOpened = onCapturedOpened,
+    )
 
     val tabs =
         TopLevelTab.entries.map { tab ->

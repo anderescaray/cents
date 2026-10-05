@@ -1,23 +1,36 @@
 package io.github.anderescaray.cents.ui.feature
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
+import io.github.anderescaray.cents.ui.feature.capture.CAPTURE_NOTIFY_SWITCH_TAG
 import io.github.anderescaray.cents.ui.feature.capture.CaptureActions
 import io.github.anderescaray.cents.ui.feature.capture.CaptureContent
 import io.github.anderescaray.cents.ui.feature.capture.CaptureSourceRow
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryContent
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryUiState
 import io.github.anderescaray.cents.ui.feature.capture.CaptureUiState
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsActions
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsContent
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsUiState
+import io.github.anderescaray.cents.ui.feature.capture.IGNORE_WORDS_ROW_TAG
+import io.github.anderescaray.cents.ui.feature.capture.TRY_RESULT_TAG
+import io.github.anderescaray.cents.ui.feature.capture.TRY_ROW_TAG
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -91,6 +104,80 @@ class CaptureScreensTest {
     }
 
     @Test
+    fun `capture settings lead to the ignore words and to trying a notification`() {
+        var ignore = 0
+        var tried = 0
+        composeRule.setContent {
+            CentsTheme {
+                CaptureContent(
+                    state = CaptureUiState(isLoading = false, ignoreWordCount = 4),
+                    accessGranted = true,
+                    actions = CaptureActions(onOpenIgnoreWords = { ignore++ }, onTry = { tried++ }),
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(TRY_ROW_TAG))
+        composeRule.onNodeWithTag(IGNORE_WORDS_ROW_TAG).performClick()
+        composeRule.onNodeWithTag(TRY_ROW_TAG).performClick()
+
+        assertEquals(1, ignore)
+        assertEquals(1, tried)
+    }
+
+    @Test
+    fun `a tried notification with a balance beside the payment says what to do`() {
+        val pago = CaptureParser.WordMatch(TransactionKind.EXPENSE, "pago")
+        composeRule.setContent {
+            CentsTheme {
+                CaptureTryContent(
+                    state =
+                        CaptureTryUiState(
+                            reading =
+                                CaptureParser.Reading.SeveralAmounts(
+                                    pago,
+                                    listOf(CaptureParser.Amount(2_340, "EUR"), CaptureParser.Amount(150, "EUR")),
+                                ),
+                            isLoading = false,
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(TRY_RESULT_TAG))
+        composeRule.onNodeWithText("Ignored: more than one amount").assertExists()
+        composeRule
+            .onNodeWithText("Which one is the payment is not guessed", substring = true)
+            .assertExists()
+    }
+
+    @Test
+    fun `a tried notification that would be recorded names the word and the account`() {
+        composeRule.setContent {
+            CentsTheme {
+                CaptureTryContent(
+                    state =
+                        CaptureTryUiState(
+                            accountName = "Bank",
+                            accountCurrency = "EUR",
+                            reading =
+                                CaptureParser.Reading.Movement(
+                                    CaptureParser.WordMatch(TransactionKind.EXPENSE, "pago"),
+                                    CaptureParser.Amount(2_340, "EUR"),
+                                ),
+                            isLoading = false,
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(TRY_RESULT_TAG))
+        composeRule.onNodeWithText("Would record an expense").assertExists()
+        composeRule.onNodeWithText("pago").assertExists()
+        composeRule.onNodeWithText("Bank").assertExists()
+    }
+
+    @Test
     fun `removing a word asks first`() {
         var removed = 0
         composeRule.setContent {
@@ -98,7 +185,7 @@ class CaptureScreensTest {
                 CaptureWordsContent(
                     state =
                         CaptureWordsUiState(
-                            kind = TransactionKind.EXPENSE,
+                            list = CaptureWordList.EXPENSE,
                             words = listOf("pago"),
                             removing = "pago",
                             isLoading = false,
@@ -112,6 +199,54 @@ class CaptureScreensTest {
         composeRule.onNodeWithText("Remove").performClick()
 
         assertEquals(1, removed)
+    }
+
+    @Test
+    fun `confirmation notifications can be switched on and off from capture settings`() {
+        val state = mutableStateOf(CaptureUiState(isLoading = false))
+        val changes = mutableListOf<Boolean>()
+        composeRule.setContent {
+            CentsTheme {
+                CaptureContent(
+                    state = state.value,
+                    accessGranted = true,
+                    confirmationsAllowed = true,
+                    actions =
+                        CaptureActions(
+                            onNotifyOnCaptureChanged = {
+                                changes += it
+                                state.value = state.value.copy(notifyOnCapture = it)
+                            },
+                        ),
+                )
+            }
+        }
+
+        scrollTo("Notify after capture")
+        composeRule.onNodeWithTag(CAPTURE_NOTIFY_SWITCH_TAG).assertIsOff().performClick()
+        composeRule.onNodeWithTag(CAPTURE_NOTIFY_SWITCH_TAG).assertIsOn().performClick()
+        composeRule.onNodeWithTag(CAPTURE_NOTIFY_SWITCH_TAG).assertIsOff()
+        assertEquals(listOf(true, false), changes)
+        assertEquals(false, state.value.enabled)
+    }
+
+    @Test
+    fun `blocked confirmations explain why and offer Android notification settings`() {
+        var opened = 0
+        composeRule.setContent {
+            CentsTheme {
+                CaptureContent(
+                    state = CaptureUiState(notifyOnCapture = true, isLoading = false),
+                    accessGranted = true,
+                    confirmationsAllowed = false,
+                    actions = CaptureActions(onOpenNotificationSettings = { opened++ }),
+                )
+            }
+        }
+
+        scrollTo("Confirmation notifications are blocked")
+        composeRule.onNodeWithText("Confirmation notifications are blocked").performClick()
+        assertEquals(1, opened)
     }
 
     /**

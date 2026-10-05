@@ -1,9 +1,13 @@
 package io.github.anderescaray.cents.ui.feature.capture
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +26,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.capture.CaptureNotifier
 import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsBackButton
@@ -30,6 +35,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.CentsSwitch
+import io.github.anderescaray.cents.ui.notifications.notificationsAllowed
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +53,8 @@ fun CaptureScreen(
     onBack: () -> Unit,
     onAddApp: () -> Unit,
     onOpenWords: (TransactionKind, String?) -> Unit,
+    onOpenIgnoreWords: () -> Unit = {},
+    onTry: () -> Unit = {},
     viewModel: CaptureViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,6 +63,9 @@ fun CaptureScreen(
     // Unknown until asked: a settings read, so off the main thread (rule 4), and neither answer
     // is shown before it is known.
     var accessGranted by remember { mutableStateOf<Boolean?>(null) }
+    var confirmationsAllowed by remember { mutableStateOf<Boolean?>(null) }
+    val permission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { resumed += 1 }
 
     LifecycleResumeEffect(Unit) {
         resumed += 1
@@ -62,19 +73,38 @@ fun CaptureScreen(
     }
     LaunchedEffect(resumed) {
         accessGranted = withContext(Dispatchers.IO) { listenerAllowed(context) }
+        confirmationsAllowed = withContext(Dispatchers.IO) { CaptureNotifier.allowed(context) }
+    }
+    // Android 13+ shows nothing without the permission. Asked when a switch that needs it is
+    // turned on, which with confirmations on by default is usually capture's own switch.
+    val askForNotifications = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationsAllowed(context)) {
+            permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     CaptureContent(
         state = state,
         accessGranted = accessGranted,
+        confirmationsAllowed = confirmationsAllowed,
         actions =
             CaptureActions(
                 onBack = onBack,
-                onEnabledChanged = viewModel::setEnabled,
+                onEnabledChanged = { enabled ->
+                    viewModel.setEnabled(enabled)
+                    if (enabled && state.notifyOnCapture) askForNotifications()
+                },
+                onNotifyOnCaptureChanged = { enabled ->
+                    viewModel.setNotifyOnCapture(enabled)
+                    if (enabled) askForNotifications()
+                },
+                onOpenNotificationSettings = { openNotificationSettings(context) },
                 onOpenAccess = { openAccessSettings(context) },
                 onEditApp = viewModel::edit,
                 onAddApp = onAddApp,
                 onOpenWords = onOpenWords,
+                onOpenIgnoreWords = onOpenIgnoreWords,
+                onTry = onTry,
                 onMoveTo = viewModel::moveTo,
                 onStop = viewModel::requestStop,
                 onConfirmStop = viewModel::confirmStop,
@@ -88,10 +118,14 @@ fun CaptureScreen(
 internal data class CaptureActions(
     val onBack: () -> Unit = {},
     val onEnabledChanged: (Boolean) -> Unit = {},
+    val onNotifyOnCaptureChanged: (Boolean) -> Unit = {},
+    val onOpenNotificationSettings: () -> Unit = {},
     val onOpenAccess: () -> Unit = {},
     val onEditApp: (String) -> Unit = {},
     val onAddApp: () -> Unit = {},
     val onOpenWords: (TransactionKind, String?) -> Unit = { _, _ -> },
+    val onOpenIgnoreWords: () -> Unit = {},
+    val onTry: () -> Unit = {},
     val onMoveTo: (Long) -> Unit = {},
     val onStop: () -> Unit = {},
     val onConfirmStop: () -> Unit = {},
@@ -106,6 +140,7 @@ internal fun CaptureContent(
     /** Null until the phone has been asked. */
     accessGranted: Boolean?,
     actions: CaptureActions,
+    confirmationsAllowed: Boolean? = null,
 ) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.capture_title),
@@ -115,7 +150,16 @@ internal fun CaptureContent(
         if (state.isLoading) return@CentsLargeTitleScaffold
         switchSection(state, actions)
         accessSection(accessGranted, actions)
+        item(key = "confirmations") {
+            CaptureNotificationsSection(
+                enabled = state.notifyOnCapture,
+                allowed = confirmationsAllowed,
+                onEnabledChanged = actions.onNotifyOnCaptureChanged,
+                onOpenSettings = actions.onOpenNotificationSettings,
+            )
+        }
         appsSection(state, actions)
+        readingSection(state, actions)
     }
 
     state.editing?.let { editing -> EditAppSheet(editing, state, actions) }
@@ -212,6 +256,53 @@ private fun LazyListScope.appsSection(
     }
 }
 
+/**
+ * How every app's notifications are read: the words that rule an amount out, the words a newly
+ * chosen app starts with, and a way to try a notification before a real one arrives.
+ */
+private fun LazyListScope.readingSection(
+    state: CaptureUiState,
+    actions: CaptureActions,
+) {
+    item(key = "reading") {
+        CentsListSection(
+            header = stringResource(R.string.capture_section_reading),
+            footer = stringResource(R.string.capture_words_footer),
+        ) {
+            CentsListRow(
+                title = stringResource(R.string.capture_ignore_words),
+                subtitle = stringResource(R.string.capture_ignore_words_hint),
+                value = state.ignoreWordCount.toString(),
+                showChevron = true,
+                onClick = actions.onOpenIgnoreWords,
+                modifier = Modifier.testTag(IGNORE_WORDS_ROW_TAG),
+            )
+            CentsListRow(
+                title = stringResource(R.string.capture_starting_expense_words),
+                subtitle = stringResource(R.string.capture_starting_words_hint),
+                value = state.expenseWordCount.toString(),
+                showChevron = true,
+                onClick = { actions.onOpenWords(TransactionKind.EXPENSE, null) },
+            )
+            CentsListRow(
+                title = stringResource(R.string.capture_starting_income_words),
+                subtitle = stringResource(R.string.capture_starting_words_hint),
+                value = state.incomeWordCount.toString(),
+                showChevron = true,
+                onClick = { actions.onOpenWords(TransactionKind.INCOME, null) },
+            )
+            CentsListRow(
+                title = stringResource(R.string.capture_try),
+                subtitle = stringResource(R.string.capture_try_hint),
+                showChevron = true,
+                showSeparator = false,
+                onClick = actions.onTry,
+                modifier = Modifier.testTag(TRY_ROW_TAG),
+            )
+        }
+    }
+}
+
 @Composable
 private fun AppCard(
     row: CaptureSourceRow,
@@ -297,5 +388,17 @@ private fun openAccessSettings(context: Context) {
     }
 }
 
+private fun openNotificationSettings(context: Context) {
+    try {
+        context.startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+        )
+    } catch (_: ActivityNotFoundException) {
+        context.startActivity(Intent(Settings.ACTION_SETTINGS))
+    }
+}
+
 internal const val ACCESS_ROW_TAG = "captureAccess"
 internal const val APP_ROW_TAG = "captureApp"
+internal const val IGNORE_WORDS_ROW_TAG = "captureIgnoreWords"
+internal const val TRY_ROW_TAG = "captureTry"

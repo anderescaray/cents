@@ -34,11 +34,13 @@ class DataStoreCaptureSettingsRepositoryTest {
     val folder = TemporaryFolder()
 
     @Test
-    fun `a new install has capture off and the default words`() =
+    fun `a new install has capture off, its notifications on, and the default words`() =
         runTest {
             val settings = DataStoreCaptureSettingsRepository(store()).observe().first()
 
             assertFalse(settings.enabled)
+            // The owner asked to be told about every automatic movement (2026-10-05).
+            assertTrue(settings.notifyOnCapture)
             assertTrue(settings.sources.isEmpty())
             assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, settings.expenseWords)
             assertEquals(CaptureSettings.DEFAULT_INCOME_WORDS, settings.incomeWords)
@@ -124,6 +126,29 @@ class DataStoreCaptureSettingsRepositoryTest {
         }
 
     @Test
+    fun `ignore words start from the defaults, can be emptied, and can be put back`() =
+        runTest {
+            val repository = DataStoreCaptureSettingsRepository(store())
+            assertEquals(CaptureSettings.DEFAULT_IGNORE_WORDS, repository.observe().first().ignoreWords)
+
+            repository.setIgnoreWords(listOf(" saldo ", "", "pendiente"))
+            assertEquals(listOf("pendiente", "saldo"), repository.observe().first().ignoreWords)
+
+            // Emptied on purpose stays empty rather than reading as the defaults.
+            repository.setIgnoreWords(emptyList())
+            assertTrue(
+                repository
+                    .observe()
+                    .first()
+                    .ignoreWords
+                    .isEmpty(),
+            )
+
+            repository.resetIgnoreWords()
+            assertEquals(CaptureSettings.DEFAULT_IGNORE_WORDS, repository.observe().first().ignoreWords)
+        }
+
+    @Test
     fun `the switch is remembered`() =
         runTest {
             val repository = DataStoreCaptureSettingsRepository(store())
@@ -131,6 +156,26 @@ class DataStoreCaptureSettingsRepositoryTest {
             repository.setEnabled(true)
 
             assertTrue(repository.observe().first().enabled)
+        }
+
+    @Test
+    fun `confirmation notifications are remembered independently of capture`() =
+        runTest {
+            val store = store()
+            val repository = DataStoreCaptureSettingsRepository(store)
+
+            repository.setNotifyOnCapture(true)
+
+            val remembered = DataStoreCaptureSettingsRepository(store).observe().first()
+            assertTrue(remembered.notifyOnCapture)
+            assertFalse(remembered.enabled)
+
+            repository.setEnabled(true)
+            repository.setNotifyOnCapture(false)
+
+            val disabled = repository.observe().first()
+            assertFalse(disabled.notifyOnCapture)
+            assertTrue(disabled.enabled)
         }
 
     private fun TestScope.store(): DataStore<Preferences> =

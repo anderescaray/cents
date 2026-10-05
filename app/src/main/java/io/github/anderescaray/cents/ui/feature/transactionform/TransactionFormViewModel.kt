@@ -189,7 +189,13 @@ class TransactionFormViewModel
 
         private suspend fun load() {
             val id = transactionId ?: return
-            val transaction = transactionRepository.findById(id) ?: return
+            val transaction = transactionRepository.findById(id)
+            if (transaction == null) {
+                // Deleted since, most likely from a capture notification still in the shade. A
+                // blank form here would save into nothing and report success, so it closes.
+                form.update { it.copy(finished = true) }
+                return
+            }
             stored = transaction
             form.update { state ->
                 state

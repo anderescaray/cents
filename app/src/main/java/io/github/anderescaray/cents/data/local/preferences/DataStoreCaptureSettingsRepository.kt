@@ -20,17 +20,21 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Capture's settings in DataStore, beside the app lock and the home layout.
+ * Capture's settings in DataStore, beside the home layout.
  *
  * **Not in Room, on purpose.** These are settings, not the ledger: which apps to read and which
  * words to look for. What capture *writes* is an ordinary movement in Room, like any other. So
  * the feature needs no schema change, and a restore of a backup, which replaces the ledger (D21),
  * leaves the way the phone is set up alone.
  *
- * **A store that cannot be read reads as switched off.** Unlike the lock next door, the safe
- * failure here is doing nothing: a capture that stops for a moment loses a movement the owner can
+ * **A store that cannot be read reads as switched off.** The safe failure here is doing
+ * nothing: a capture that stops for a moment loses a movement the owner can
  * type, while one that runs on settings it could not read could write into the wrong account.
+ *
+ * Over detekt's function limit: one function per setting the interface names, and a setting more
+ * is a function more.
  */
+@Suppress("TooManyFunctions")
 @Singleton
 class DataStoreCaptureSettingsRepository
     @Inject
@@ -49,12 +53,16 @@ class DataStoreCaptureSettingsRepository
                             preferences[EXPENSE_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_EXPENSE_WORDS,
                         incomeWords = preferences[INCOME_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_INCOME_WORDS,
                         appWords = appWordsIn(preferences),
+                        ignoreWords = preferences[IGNORE_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_IGNORE_WORDS,
+                        notifyOnCapture = preferences[NOTIFY_ON_CAPTURE] ?: true,
                     )
                 }.catch { failure ->
                     if (failure is IOException) emit(CaptureSettings()) else throw failure
                 }
 
         override suspend fun setEnabled(enabled: Boolean) = write { it[ENABLED] = enabled }
+
+        override suspend fun setNotifyOnCapture(enabled: Boolean) = write { it[NOTIFY_ON_CAPTURE] = enabled }
 
         override suspend fun putSource(source: CaptureSource) =
             write { preferences ->
@@ -81,6 +89,11 @@ class DataStoreCaptureSettingsRepository
             packageName: String?,
         ) = write { it.remove(keyFor(kind, packageName)) }
 
+        override suspend fun setIgnoreWords(words: List<String>) =
+            write { it[IGNORE_WORDS] = words.map(String::trim).filter(String::isNotEmpty).toSet() }
+
+        override suspend fun resetIgnoreWords() = write { it.remove(IGNORE_WORDS) }
+
         /** Every app's own lists, read back from the keys that carry its package name. */
         private fun appWordsIn(preferences: Preferences): Map<String, AppWords> {
             val lists = mutableMapOf<String, AppWords>()
@@ -106,7 +119,7 @@ class DataStoreCaptureSettingsRepository
             try {
                 dataStore.edit(change)
             } catch (failure: IOException) {
-                // Said out loud, like the lock: the owner just changed a setting, and from here
+                // Said out loud: the owner just changed a setting, and from here
                 // they have no way of knowing it did not stick.
                 Log.w(TAG, "a capture setting could not be saved", failure)
             }
@@ -141,9 +154,11 @@ class DataStoreCaptureSettingsRepository
             const val TAG = "Capture"
             const val PARTS = 3
             val ENABLED = booleanPreferencesKey("captureEnabled")
+            val NOTIFY_ON_CAPTURE = booleanPreferencesKey("captureNotifyOnCapture")
             val SOURCES = stringSetPreferencesKey("captureSources")
             val EXPENSE_WORDS = stringSetPreferencesKey("captureExpenseWords")
             val INCOME_WORDS = stringSetPreferencesKey("captureIncomeWords")
+            val IGNORE_WORDS = stringSetPreferencesKey("captureIgnoreWords")
 
             /** `captureWords:EXPENSE:com.bank.app` — a package name cannot hold the colon. */
             const val APP_PREFIX = "captureWords:"

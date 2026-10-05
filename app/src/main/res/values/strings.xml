@@ -55,8 +55,6 @@
     <string name="field_account_empty_footer">A movement has to live in an account, so there is one thing to do first.</string>
 
     <!-- Settings -->
-    <string name="settings_section_security">Security</string>
-    <string name="settings_biometric_lock">Unlock with fingerprint</string>
     <string name="settings_section_data">Data</string>
     <string name="settings_export">Export a backup</string>
     <string name="settings_currency">Main currency</string>
@@ -274,14 +272,6 @@
     <string name="restore_damaged_message">It is a Cents backup, but part of it could not be read, so none of it was used. Nothing has changed.</string>
     <string name="restore_failed_title">That could not be restored</string>
     <string name="restore_failed_message">The file was readable but writing it failed, so nothing was changed. Everything you had is still here.</string>
-
-    <!-- The app lock (PRD 4.7, D16) -->
-    <string name="lock_prompt_title">Unlock Cents</string>
-    <string name="lock_prompt_subtitle">Your finances are behind this.</string>
-    <string name="lock_locked_message">Locked. Unlock with your fingerprint or your device PIN.</string>
-    <string name="lock_unlock">Unlock</string>
-    <string name="settings_biometric_lock_footer">Cents asks who you are when you open it, and again if you have been away for more than half a minute. It uses the fingerprint or PIN your phone already knows — Cents never sees either one.</string>
-    <string name="settings_biometric_unavailable">This phone has no fingerprint or PIN set up, so there is nothing for Cents to ask.</string>
 
     <!-- Every price on one screen (D20: no free provider carries these listings) -->
     <string name="prices_action">Prices</string>

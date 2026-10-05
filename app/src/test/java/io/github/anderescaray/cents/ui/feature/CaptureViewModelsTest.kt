@@ -100,25 +100,32 @@ class CaptureViewModelsTest {
             val viewModel = capture()
             viewModel.uiState.first { it.accounts.size == 2 }
 
+            // Each step waits for the whole state it should leave behind instead of reading
+            // `value`. The accounts come from Room, and under the test's unconfined Main the
+            // combine can be running on Room's thread when an action lands, so the state may
+            // follow a moment later. This file failed CI three runs in a row on it (2026-10-04).
             viewModel.edit(BANK_APP)
             assertEquals(
                 BANK_APP,
-                viewModel.uiState.value.editing
+                viewModel.uiState
+                    .first { it.editing != null }
+                    .editing
                     ?.source
                     ?.packageName,
             )
             viewModel.moveTo(card)
 
             assertEquals(listOf(CaptureSource(BANK_APP, "My bank", card)), settings.state.value.sources)
-            assertNull(viewModel.uiState.value.editing)
+            // Saved, and the sheet closed. The wait names both, since either can land first.
+            viewModel.uiState.first { it.editing == null && it.sources.singleOrNull()?.accountName == "Card" }
 
             // Stopping asks first, and cancelling keeps the app.
             viewModel.edit(BANK_APP)
             viewModel.requestStop()
-            assertNull(viewModel.uiState.value.editing)
+            val asking = viewModel.uiState.first { it.stopping != null && it.editing == null }
             assertEquals(
                 BANK_APP,
-                viewModel.uiState.value.stopping
+                asking.stopping
                     ?.source
                     ?.packageName,
             )
@@ -162,12 +169,10 @@ class CaptureViewModelsTest {
             val all = picker.uiState.first { !it.isLoading }
             assertEquals(listOf("Banco Santé", "Games"), all.apps.map { it.label })
 
-            picker.setQuery("SANTE")
-            assertEquals(listOf("Banco Santé"), picker.labels())
+            assertEquals(listOf("Banco Santé"), picker.search("SANTE"))
 
             // A package name is searched too, whatever its case.
-            picker.setQuery("Example.GAMES")
-            assertEquals(listOf("Games"), picker.labels())
+            assertEquals(listOf("Games"), picker.search("Example.GAMES"))
         }
 
     @Test
@@ -181,11 +186,11 @@ class CaptureViewModelsTest {
                     .first()
 
             picker.choose(banco)
-            assertEquals(banco, picker.uiState.value.choosing)
+            assertEquals(banco, picker.uiState.first { it.choosing != null }.choosing)
             picker.assign(bank)
 
             assertEquals(listOf(CaptureSource(BANK_APP, "Banco Santé", bank)), settings.state.value.sources)
-            assertTrue(picker.uiState.value.finished)
+            assertNull(picker.uiState.first { it.finished }.choosing)
         }
 
     @Test
@@ -250,7 +255,16 @@ class CaptureViewModelsTest {
             ),
         )
 
-    private fun CaptureAppsViewModel.labels() = uiState.value.apps.map { it.label }
+    /**
+     * Types [query] and reads the list it narrows to, once that list has caught up with it.
+     *
+     * Only for a query that differs from the current one: the wait recognises the new list by its
+     * query, so a repeated query cannot tell the new list from the one before it.
+     */
+    private suspend fun CaptureAppsViewModel.search(query: String): List<String> {
+        setQuery(query)
+        return uiState.first { it.query == query }.apps.map { it.label }
+    }
 
     private fun words(kind: TransactionKind) =
         viewModels.keep(CaptureWordsViewModel(settings, SavedStateHandle(mapOf("kind" to kind))))

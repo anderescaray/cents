@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,15 +15,22 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.feature.capture.CAPTURE_NOTIFY_SWITCH_TAG
 import io.github.anderescaray.cents.ui.feature.capture.CaptureActions
 import io.github.anderescaray.cents.ui.feature.capture.CaptureContent
 import io.github.anderescaray.cents.ui.feature.capture.CaptureSourceRow
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryContent
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryUiState
 import io.github.anderescaray.cents.ui.feature.capture.CaptureUiState
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsActions
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsContent
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsUiState
+import io.github.anderescaray.cents.ui.feature.capture.IGNORE_WORDS_ROW_TAG
+import io.github.anderescaray.cents.ui.feature.capture.TRY_RESULT_TAG
+import io.github.anderescaray.cents.ui.feature.capture.TRY_ROW_TAG
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -96,6 +104,82 @@ class CaptureScreensTest {
     }
 
     @Test
+    fun `capture settings lead to the ignore words and to trying a notification`() {
+        var ignore = 0
+        var tried = 0
+        composeRule.setContent {
+            CentsTheme {
+                CaptureContent(
+                    state = CaptureUiState(isLoading = false, ignoreWordCount = 4),
+                    accessGranted = true,
+                    actions = CaptureActions(onOpenIgnoreWords = { ignore++ }, onTry = { tried++ }),
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(TRY_ROW_TAG))
+        composeRule.onNodeWithTag(IGNORE_WORDS_ROW_TAG).performClick()
+        composeRule.onNodeWithTag(TRY_ROW_TAG).performClick()
+
+        assertEquals(1, ignore)
+        assertEquals(1, tried)
+    }
+
+    @Test
+    fun `a tried notification with a balance beside the payment says what to do`() {
+        val pago = CaptureParser.WordMatch(TransactionKind.EXPENSE, "pago")
+        composeRule.setContent {
+            CentsTheme {
+                CaptureTryContent(
+                    state =
+                        CaptureTryUiState(
+                            text = "Pago de 23,40 € y 1,50 €",
+                            reading =
+                                CaptureParser.Reading.SeveralAmounts(
+                                    pago,
+                                    listOf(CaptureParser.Amount(2_340, "EUR"), CaptureParser.Amount(150, "EUR")),
+                                ),
+                            isLoading = false,
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(TRY_RESULT_TAG))
+        composeRule.onNodeWithText("Ignored: more than one amount").assertExists()
+        composeRule
+            .onNodeWithText("Which one is the payment is not guessed", substring = true)
+            .assertExists()
+    }
+
+    @Test
+    fun `a tried notification that would be recorded names the word and the account`() {
+        composeRule.setContent {
+            CentsTheme {
+                CaptureTryContent(
+                    state =
+                        CaptureTryUiState(
+                            text = "Pago de 23,40 €",
+                            accountName = "Bank",
+                            accountCurrency = "EUR",
+                            reading =
+                                CaptureParser.Reading.Movement(
+                                    CaptureParser.WordMatch(TransactionKind.EXPENSE, "pago"),
+                                    CaptureParser.Amount(2_340, "EUR"),
+                                ),
+                            isLoading = false,
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(TRY_RESULT_TAG))
+        composeRule.onNodeWithText("Would record an expense").assertExists()
+        composeRule.onNodeWithText("pago").assertExists()
+        composeRule.onNodeWithText("Bank").assertExists()
+    }
+
+    @Test
     fun `removing a word asks first`() {
         var removed = 0
         composeRule.setContent {
@@ -103,7 +187,7 @@ class CaptureScreensTest {
                 CaptureWordsContent(
                     state =
                         CaptureWordsUiState(
-                            kind = TransactionKind.EXPENSE,
+                            list = CaptureWordList.EXPENSE,
                             words = listOf("pago"),
                             removing = "pago",
                             isLoading = false,

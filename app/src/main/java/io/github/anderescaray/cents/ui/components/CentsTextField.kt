@@ -47,6 +47,8 @@ fun CentsTextField(
     numeric: Boolean = false,
     /** Set when another row follows inside the same section, as [CentsListRow] does. */
     showSeparator: Boolean = false,
+    /** Several lines, for pasted prose rather than a name: a notification, say. */
+    multiline: Boolean = false,
 ) {
     val accent = CentsTheme.colors.accent
     val selectionColors =
@@ -67,7 +69,8 @@ fun CentsTextField(
                         horizontal = CentsDimens.rowHorizontalPadding,
                         vertical = CentsDimens.rowVerticalPadding,
                     ),
-            contentAlignment = Alignment.CenterStart,
+            // Several lines start at the top, where the placeholder's first line has to sit too.
+            contentAlignment = if (multiline) Alignment.TopStart else Alignment.CenterStart,
         ) {
             if (value.isEmpty()) {
                 Text(
@@ -84,6 +87,7 @@ fun CentsTextField(
                     accent = accent,
                     focusRequester = focusRequester,
                     modifier = modifier,
+                    multiline = multiline,
                 )
             }
         }
@@ -109,6 +113,7 @@ private fun Field(
     accent: Color,
     focusRequester: FocusRequester?,
     modifier: Modifier = Modifier,
+    multiline: Boolean = false,
 ) {
     BasicTextField(
         value = value,
@@ -118,7 +123,8 @@ private fun Field(
         onValueChange = { typed ->
             onValueChange(if (numeric) typed.filter { it.isDigit() || it in NUMERIC_SEPARATORS } else typed)
         },
-        singleLine = true,
+        singleLine = !multiline,
+        minLines = if (multiline) MULTILINE_MIN_LINES else 1,
         textStyle = CentsTheme.typography.body.copy(color = CentsTheme.colors.label),
         cursorBrush = SolidColor(accent),
         keyboardOptions =
@@ -126,7 +132,7 @@ private fun Field(
                 capitalization =
                     if (numeric) KeyboardCapitalization.None else KeyboardCapitalization.Sentences,
                 keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text,
-                imeAction = ImeAction.Done,
+                imeAction = if (multiline) ImeAction.Default else ImeAction.Done,
             ),
         // The caller's modifier lands on the field itself, which is the node that carries
         // the text semantics.
@@ -138,6 +144,7 @@ private fun Field(
 }
 
 private const val SELECTION_ALPHA = 0.3f
+private const val MULTILINE_MIN_LINES = 3
 
 /** Both, so a keyboard that offers the "wrong" one for the locale is not a dead key. */
 private const val NUMERIC_SEPARATORS = ".,"

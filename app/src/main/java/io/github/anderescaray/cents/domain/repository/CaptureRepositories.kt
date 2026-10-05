@@ -41,6 +41,12 @@ interface CaptureSettingsRepository {
         kind: TransactionKind,
         packageName: String? = null,
     )
+
+    /** Replaces the words that say an amount is not the payment. Empty stays empty. */
+    suspend fun setIgnoreWords(words: List<String>)
+
+    /** Puts the ignore words back to their defaults. */
+    suspend fun resetIgnoreWords()
 }
 
 /**

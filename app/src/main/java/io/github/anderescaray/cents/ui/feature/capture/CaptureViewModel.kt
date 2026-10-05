@@ -42,6 +42,8 @@ data class CaptureUiState(
     val accounts: List<Account> = emptyList(),
     val expenseWordCount: Int = 0,
     val incomeWordCount: Int = 0,
+    /** How many words rule an amount out, for every app. */
+    val ignoreWordCount: Int = 0,
     /** The app whose account is being changed, while that sheet is open. */
     val editing: CaptureSourceRow? = null,
     /** The app waiting on "stop reading it?", while that alert is open. */
@@ -92,6 +94,7 @@ class CaptureViewModel
                     sources = rows,
                     accounts = active,
                     expenseWordCount = setup.expenseWords.size,
+                    ignoreWordCount = setup.ignoreWords.size,
                     incomeWordCount = setup.incomeWords.size,
                     editing = rows.firstOrNull { it.source.packageName == editing },
                     stopping = rows.firstOrNull { it.source.packageName == stopping },

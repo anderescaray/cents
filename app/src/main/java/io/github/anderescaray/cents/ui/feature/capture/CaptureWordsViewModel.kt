@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.CaptureSettings
-import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.navigation.Destination
@@ -25,12 +25,12 @@ import javax.inject.Inject
 
 @Immutable
 data class CaptureWordsUiState(
-    val kind: TransactionKind,
+    val list: CaptureWordList,
     /** The app these words are for, by the name the phone gave it; null for the starting words. */
     val appLabel: String? = null,
     val words: List<String> = emptyList(),
     /** What putting the list back restores: the starting words for an app, D29's otherwise. */
-    val resetTo: List<String> = defaultsFor(kind),
+    val resetTo: List<String> = defaultsFor(list),
     val draft: String = "",
     /** The word waiting on "remove it?", while that alert is open. */
     val removing: String? = null,
@@ -52,8 +52,8 @@ data class CaptureWordsUiState(
 }
 
 /**
- * One kind's words (`DECISIONS.md` D29): the ones that make a notification an expense, or an
- * income. Adding, removing, and putting D29's list back.
+ * One list of capture's words (`DECISIONS.md` D29): the ones that make a notification an expense,
+ * an income, or say an amount is not the payment. Adding, removing, and putting the list back.
  */
 @HiltViewModel
 class CaptureWordsViewModel
@@ -63,18 +63,20 @@ class CaptureWordsViewModel
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val route = savedStateHandle.toRoute<Destination.CaptureWords>()
-        private val kind = route.kind
-        private val packageName = route.packageName
+        private val list = route.list
+
+        /** Ignore words are shared by every app, so they have no app to belong to. */
+        private val packageName = route.packageName.takeIf { list != CaptureWordList.IGNORE }
         private val form = MutableStateFlow(Form())
         private val editing = Mutex()
 
         val uiState: StateFlow<CaptureWordsUiState> =
             combine(settings.observe(), form) { setup, current ->
                 CaptureWordsUiState(
-                    kind = kind,
+                    list = list,
                     appLabel = packageName?.let { setup.sourceFor(it)?.label ?: it },
-                    words = setup.wordsFor(packageName, kind),
-                    resetTo = if (packageName == null) defaultsFor(kind) else setup.startingWords(kind),
+                    words = setup.wordsOf(list, packageName),
+                    resetTo = list.kind?.takeIf { packageName != null }?.let(setup::startingWords) ?: defaultsFor(list),
                     draft = current.draft,
                     removing = current.removing,
                     confirmingReset = current.confirmingReset,
@@ -83,7 +85,7 @@ class CaptureWordsViewModel
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-                initialValue = CaptureWordsUiState(kind = kind),
+                initialValue = CaptureWordsUiState(list = list),
             )
 
         fun setDraft(draft: String) {
@@ -122,7 +124,12 @@ class CaptureWordsViewModel
 
         fun confirmReset() {
             form.update { it.copy(confirmingReset = false) }
-            viewModelScope.launch { editing.withLock { settings.resetWords(kind, packageName) } }
+            viewModelScope.launch {
+                editing.withLock {
+                    val kind = list.kind
+                    if (kind == null) settings.resetIgnoreWords() else settings.resetWords(kind, packageName)
+                }
+            }
         }
 
         /**
@@ -133,8 +140,9 @@ class CaptureWordsViewModel
         private fun edit(change: (List<String>) -> List<String>) {
             viewModelScope.launch {
                 editing.withLock {
-                    val setup = settings.observe().first()
-                    settings.setWords(kind, change(setup.wordsFor(packageName, kind)), packageName)
+                    val words = change(settings.observe().first().wordsOf(list, packageName))
+                    val kind = list.kind
+                    if (kind == null) settings.setIgnoreWords(words) else settings.setWords(kind, words, packageName)
                 }
             }
         }
@@ -150,11 +158,18 @@ class CaptureWordsViewModel
         }
     }
 
-private fun defaultsFor(kind: TransactionKind): List<String> =
-    when (kind) {
-        TransactionKind.EXPENSE -> CaptureSettings.DEFAULT_EXPENSE_WORDS
-        TransactionKind.INCOME -> CaptureSettings.DEFAULT_INCOME_WORDS
+private fun defaultsFor(list: CaptureWordList): List<String> =
+    when (list) {
+        CaptureWordList.EXPENSE -> CaptureSettings.DEFAULT_EXPENSE_WORDS
+        CaptureWordList.INCOME -> CaptureSettings.DEFAULT_INCOME_WORDS
+        CaptureWordList.IGNORE -> CaptureSettings.DEFAULT_IGNORE_WORDS
     }
+
+/** The words on one list: an app's own, the starting ones, or the shared ignore words. */
+private fun CaptureSettings.wordsOf(
+    list: CaptureWordList,
+    packageName: String?,
+): List<String> = list.kind?.let { wordsFor(packageName, it) } ?: ignoreWords
 
 /** The comparison `CaptureParser` makes: *Nómina* and *nomina* are one word to it, so one here. */
 private fun sameWord(

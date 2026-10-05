@@ -87,31 +87,47 @@ class RoomCaptureRecorder
 
                 else -> {
                     read(
-                        text,
-                        setup.wordsFor(packageName, TransactionKind.EXPENSE),
-                        setup.wordsFor(packageName, TransactionKind.INCOME),
+                        CaptureParser.read(
+                            text,
+                            setup.wordsFor(packageName, TransactionKind.EXPENSE),
+                            setup.wordsFor(packageName, TransactionKind.INCOME),
+                            setup.ignoreWords,
+                        ),
                         account,
                     )
                 }
             }
         }
 
-        /** The app's own words, then the amount, then its currency against the account's. */
+        /**
+         * What the parser read, then its currency against the account's. The reading is
+         * `CaptureParser.read`, the same one Settings › Capture's *Try a notification* shows.
+         */
         private fun read(
-            text: String,
-            expenseWords: List<String>,
-            incomeWords: List<String>,
+            reading: CaptureParser.Reading,
             account: AccountEntity,
-        ): Plan {
-            val kind = CaptureParser.kindOf(text, expenseWords, incomeWords)
-            val amount = kind?.let { CaptureParser.amountIn(text) }
-            return when {
-                kind == null -> Plan.Skip(IgnoreReason.NO_WORD)
-                amount == null -> Plan.Skip(IgnoreReason.NO_AMOUNT)
-                amount.currency != account.currency -> Plan.Skip(IgnoreReason.OTHER_CURRENCY)
-                else -> Plan.Write(account, kind, amount.minorUnits)
+        ): Plan =
+            when (reading) {
+                CaptureParser.Reading.NoWord -> {
+                    Plan.Skip(IgnoreReason.NO_WORD)
+                }
+
+                is CaptureParser.Reading.NoAmount -> {
+                    Plan.Skip(IgnoreReason.NO_AMOUNT)
+                }
+
+                is CaptureParser.Reading.SeveralAmounts -> {
+                    Plan.Skip(IgnoreReason.SEVERAL_AMOUNTS)
+                }
+
+                is CaptureParser.Reading.Movement -> {
+                    if (reading.amount.currency != account.currency) {
+                        Plan.Skip(IgnoreReason.OTHER_CURRENCY)
+                    } else {
+                        Plan.Write(account, reading.word.kind, reading.amount.minorUnits)
+                    }
+                }
             }
-        }
 
         private suspend fun write(
             plan: Plan.Write,

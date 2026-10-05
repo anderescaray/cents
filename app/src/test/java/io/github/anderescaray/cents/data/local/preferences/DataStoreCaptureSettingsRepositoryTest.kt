@@ -126,6 +126,29 @@ class DataStoreCaptureSettingsRepositoryTest {
         }
 
     @Test
+    fun `ignore words start from the defaults, can be emptied, and can be put back`() =
+        runTest {
+            val repository = DataStoreCaptureSettingsRepository(store())
+            assertEquals(CaptureSettings.DEFAULT_IGNORE_WORDS, repository.observe().first().ignoreWords)
+
+            repository.setIgnoreWords(listOf(" saldo ", "", "pendiente"))
+            assertEquals(listOf("pendiente", "saldo"), repository.observe().first().ignoreWords)
+
+            // Emptied on purpose stays empty rather than reading as the defaults.
+            repository.setIgnoreWords(emptyList())
+            assertTrue(
+                repository
+                    .observe()
+                    .first()
+                    .ignoreWords
+                    .isEmpty(),
+            )
+
+            repository.resetIgnoreWords()
+            assertEquals(CaptureSettings.DEFAULT_IGNORE_WORDS, repository.observe().first().ignoreWords)
+        }
+
+    @Test
     fun `the switch is remembered`() =
         runTest {
             val repository = DataStoreCaptureSettingsRepository(store())

@@ -168,6 +168,58 @@ class CaptureParserTest {
         assertNull(CaptureParser.amountIn("Paid 999999999999999999999 EUR"))
     }
 
+    @Test
+    fun `an ignore word in front of a balance leaves the payment as the one amount`() {
+        listOf(
+            "Pago de 23,40 €. Saldo disponible: 1.502,10 €",
+            "Saldo: 1.502,10 €. Compra de 23,40 €",
+            "Compra con tarjeta ****7146 por 23,40 EUR en AMAZON. Saldo: 1.234,56 EUR",
+            "Has pagado 23,40 € con tu tarjeta. Tu saldo actual es de 1.000 €",
+            "Payment of €23.40. Available balance €1,502.10",
+        ).forEach { text ->
+            assertEquals(text, CaptureParser.Amount(2_340, "EUR"), CaptureParser.amountIn(text, IGNORE))
+        }
+    }
+
+    @Test
+    fun `an ignore word only reaches the amount it leads into, in its own sentence`() {
+        // "Saldo" opens the notification, but the sentence the payment is in does not mention it.
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Saldo bajo. Compra de 23 €", IGNORE))
+        // A balance and nothing else is not a payment, even beside an expense word.
+        assertNull(CaptureParser.amountIn("Tu saldo tras el pago es 1.000 €", IGNORE))
+        // Without the words, two amounts are still two, and nothing is guessed.
+        assertNull(CaptureParser.amountIn("Pago de 23,40 €. Saldo disponible: 1.502,10 €"))
+    }
+
+    @Test
+    fun `reading says why nothing would be recorded`() {
+        val expense = CaptureParser.WordMatch(TransactionKind.EXPENSE, "pago")
+        assertEquals(CaptureParser.Reading.NoWord, read("Nuevas ofertas: hasta 30 € de descuento"))
+        assertEquals(CaptureParser.Reading.NoAmount(expense), read("Pago con tarjeta ****7146"))
+        assertEquals(
+            CaptureParser.Reading.SeveralAmounts(
+                expense,
+                listOf(CaptureParser.Amount(2_340, "EUR"), CaptureParser.Amount(150, "EUR")),
+            ),
+            read("Pago de 23,40 € y comisión de 1,50 €"),
+        )
+        assertEquals(
+            CaptureParser.Reading.Movement(
+                // The first of the owner's words found, in the list's order.
+                CaptureParser.WordMatch(TransactionKind.INCOME, "recibido"),
+                CaptureParser.Amount(12_005, "EUR"),
+            ),
+            read("Has recibido un pago de Ana de 120,05 €"),
+        )
+    }
+
+    private fun read(text: String) =
+        CaptureParser.read(text, CaptureSettings.DEFAULT_EXPENSE_WORDS, CaptureSettings.DEFAULT_INCOME_WORDS, IGNORE)
+
     private fun kind(text: String) =
         CaptureParser.kindOf(text, CaptureSettings.DEFAULT_EXPENSE_WORDS, CaptureSettings.DEFAULT_INCOME_WORDS)
+
+    private companion object {
+        val IGNORE = CaptureSettings.DEFAULT_IGNORE_WORDS
+    }
 }

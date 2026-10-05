@@ -8,10 +8,13 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.domain.model.AppWords
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.capture.InstalledApp
 import io.github.anderescaray.cents.ui.feature.capture.CaptureAppsViewModel
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryViewModel
 import io.github.anderescaray.cents.ui.feature.capture.CaptureViewModel
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsViewModel
 import kotlinx.coroutines.Dispatchers
@@ -286,8 +289,66 @@ class CaptureViewModelsTest {
         return uiState.first { it.query == query }.apps.map { it.label }
     }
 
+    @Test
+    fun `the ignore words are edited and put back like any other list`() =
+        runTest {
+            val ignore =
+                viewModels.keep(
+                    CaptureWordsViewModel(settings, SavedStateHandle(mapOf("list" to CaptureWordList.IGNORE))),
+                )
+            assertEquals(
+                CaptureSettings.DEFAULT_IGNORE_WORDS,
+                ignore.uiState.first { !it.isLoading }.words,
+            )
+
+            ignore.setDraft("pendiente")
+            ignore.uiState.first { it.draft == "pendiente" }
+            ignore.add()
+            ignore.uiState.first { "pendiente" in it.words }
+            assertTrue("pendiente" in settings.state.value.ignoreWords)
+            // The expense and income words are not touched by it.
+            assertEquals(CaptureSettings.DEFAULT_EXPENSE_WORDS, settings.state.value.expenseWords)
+
+            ignore.requestReset()
+            ignore.uiState.first { it.confirmingReset }
+            ignore.confirmReset()
+            ignore.uiState.first { it.isDefault }
+            assertEquals(CaptureSettings.DEFAULT_IGNORE_WORDS, settings.state.value.ignoreWords)
+        }
+
+    @Test
+    fun `trying a notification reads it with the chosen app's words and checks its account's currency`() =
+        runTest {
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            settings.state.value =
+                CaptureSettings(
+                    sources = listOf(CaptureSource(BANK_APP, "My bank", savings)),
+                    appWords = mapOf(BANK_APP to AppWords(expense = listOf("cobro"))),
+                )
+            val trying =
+                viewModels.keep(
+                    CaptureTryViewModel(settings, accounts),
+                )
+            trying.uiState.first { !it.isLoading && it.app != null }
+
+            trying.setText("Cobro de 23,40 € en tienda. Saldo 1.000 €")
+            val records = trying.uiState.first { it.reading != null }
+            assertEquals(
+                CaptureParser.Reading.Movement(
+                    CaptureParser.WordMatch(TransactionKind.EXPENSE, "cobro"),
+                    CaptureParser.Amount(2_340, "EUR"),
+                ),
+                records.reading,
+            )
+            assertEquals("Savings", records.accountName)
+            assertFalse(records.otherCurrency)
+
+            trying.setText("Cobro de 23,40 USD")
+            assertTrue(trying.uiState.first { it.text == "Cobro de 23,40 USD" }.otherCurrency)
+        }
+
     private fun words(kind: TransactionKind) =
-        viewModels.keep(CaptureWordsViewModel(settings, SavedStateHandle(mapOf("kind" to kind))))
+        viewModels.keep(CaptureWordsViewModel(settings, SavedStateHandle(mapOf("list" to CaptureWordList.of(kind)))))
 
     private class FakeCaptureSettings : CaptureSettingsRepository {
         val state = MutableStateFlow(CaptureSettings())
@@ -355,6 +416,14 @@ class CaptureViewModelsTest {
                 },
                 null,
             )
+        }
+
+        override suspend fun setIgnoreWords(words: List<String>) {
+            state.value = state.value.copy(ignoreWords = words)
+        }
+
+        override suspend fun resetIgnoreWords() {
+            state.value = state.value.copy(ignoreWords = CaptureSettings.DEFAULT_IGNORE_WORDS)
         }
     }
 

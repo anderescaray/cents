@@ -30,7 +30,11 @@ import javax.inject.Singleton
  * **A store that cannot be read reads as switched off.** The safe failure here is doing
  * nothing: a capture that stops for a moment loses a movement the owner can
  * type, while one that runs on settings it could not read could write into the wrong account.
+ *
+ * Over detekt's function limit: one function per setting the interface names, and a setting more
+ * is a function more.
  */
+@Suppress("TooManyFunctions")
 @Singleton
 class DataStoreCaptureSettingsRepository
     @Inject
@@ -49,6 +53,7 @@ class DataStoreCaptureSettingsRepository
                             preferences[EXPENSE_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_EXPENSE_WORDS,
                         incomeWords = preferences[INCOME_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_INCOME_WORDS,
                         appWords = appWordsIn(preferences),
+                        ignoreWords = preferences[IGNORE_WORDS]?.sorted() ?: CaptureSettings.DEFAULT_IGNORE_WORDS,
                         notifyOnCapture = preferences[NOTIFY_ON_CAPTURE] ?: true,
                     )
                 }.catch { failure ->
@@ -83,6 +88,11 @@ class DataStoreCaptureSettingsRepository
             kind: TransactionKind,
             packageName: String?,
         ) = write { it.remove(keyFor(kind, packageName)) }
+
+        override suspend fun setIgnoreWords(words: List<String>) =
+            write { it[IGNORE_WORDS] = words.map(String::trim).filter(String::isNotEmpty).toSet() }
+
+        override suspend fun resetIgnoreWords() = write { it.remove(IGNORE_WORDS) }
 
         /** Every app's own lists, read back from the keys that carry its package name. */
         private fun appWordsIn(preferences: Preferences): Map<String, AppWords> {
@@ -148,6 +158,7 @@ class DataStoreCaptureSettingsRepository
             val SOURCES = stringSetPreferencesKey("captureSources")
             val EXPENSE_WORDS = stringSetPreferencesKey("captureExpenseWords")
             val INCOME_WORDS = stringSetPreferencesKey("captureIncomeWords")
+            val IGNORE_WORDS = stringSetPreferencesKey("captureIgnoreWords")
 
             /** `captureWords:EXPENSE:com.bank.app` — a package name cannot hold the colon. */
             const val APP_PREFIX = "captureWords:"

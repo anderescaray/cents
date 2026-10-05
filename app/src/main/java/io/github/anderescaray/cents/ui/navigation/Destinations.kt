@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.ui.navigation
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.serialization.Serializable
@@ -209,14 +210,19 @@ sealed interface Destination {
     data object CaptureApps : Destination
 
     /**
-     * The words that make a notification from [packageName] a [kind] of movement. Each app has
-     * its own (the owner, 2026-10-01); null is the starting words a newly chosen app gets.
+     * One [list] of capture's words. Expense and income words are [packageName]'s own (the owner,
+     * 2026-10-01), and null is the starting words a newly chosen app gets; the ignore words are
+     * shared by every app, so [packageName] means nothing for them.
      */
     @Serializable
     data class CaptureWords(
-        val kind: TransactionKind,
+        val list: CaptureWordList,
         val packageName: String? = null,
     ) : Destination
+
+    /** A pasted notification, read the way capture reads one, with nothing saved. */
+    @Serializable
+    data object CaptureTry : Destination
 
     /**
      * The bills waiting for a figure: every variable-amount rule that has fallen due.
@@ -287,6 +293,7 @@ enum class TopLevelTab(
                 Destination.Capture::class,
                 Destination.CaptureApps::class,
                 Destination.CaptureWords::class,
+                Destination.CaptureTry::class,
             ),
         labelRes = R.string.tab_home,
         iconRes = R.drawable.ic_tab_home,
@@ -343,6 +350,7 @@ val FullScreenForms: List<KClass<out Destination>> =
         Destination.GroupEdit::class,
         Destination.CaptureApps::class,
         Destination.CaptureWords::class,
+        Destination.CaptureTry::class,
     )
 
 /** The movement forms, which rise from the bottom like a sheet rather than sliding in. */

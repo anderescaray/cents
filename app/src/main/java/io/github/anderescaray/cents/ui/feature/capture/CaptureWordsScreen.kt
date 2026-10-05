@@ -11,7 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
-import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsBackButton
@@ -65,9 +65,15 @@ internal fun CaptureWordsContent(
     state: CaptureWordsUiState,
     actions: CaptureWordsActions,
 ) {
-    val expense = state.kind == TransactionKind.EXPENSE
     CentsLargeTitleScaffold(
-        title = stringResource(if (expense) R.string.capture_expense_words else R.string.capture_income_words),
+        title =
+            stringResource(
+                when (state.list) {
+                    CaptureWordList.EXPENSE -> R.string.capture_expense_words
+                    CaptureWordList.INCOME -> R.string.capture_income_words
+                    CaptureWordList.IGNORE -> R.string.capture_ignore_words
+                },
+            ),
         bottomPadding = CentsDimens.sectionSpacing,
         leading = { CentsBackButton(label = stringResource(R.string.capture_title), onClick = actions.onBack) },
     ) {
@@ -128,15 +134,21 @@ private fun LazyListScope.wordList(
     actions: CaptureWordsActions,
 ) {
     item(key = "words") {
-        CentsListSection(footer = stringResource(R.string.capture_words_list_footer)) {
+        val footer =
+            if (state.list == CaptureWordList.IGNORE) {
+                stringResource(R.string.capture_ignore_words_footer)
+            } else {
+                stringResource(R.string.capture_words_list_footer)
+            }
+        CentsListSection(footer = footer) {
             if (state.words.isEmpty()) {
                 CentsListRow(
                     title =
                         stringResource(
-                            if (state.kind == TransactionKind.EXPENSE) {
-                                R.string.capture_words_empty_expense
-                            } else {
-                                R.string.capture_words_empty_income
+                            when (state.list) {
+                                CaptureWordList.EXPENSE -> R.string.capture_words_empty_expense
+                                CaptureWordList.INCOME -> R.string.capture_words_empty_income
+                                CaptureWordList.IGNORE -> R.string.capture_words_empty_ignore
                             },
                         ),
                     showSeparator = false,
@@ -164,10 +176,10 @@ private fun WordAlerts(
             title = stringResource(R.string.capture_words_remove_title, word),
             message =
                 stringResource(
-                    if (state.kind == TransactionKind.EXPENSE) {
-                        R.string.capture_words_remove_expense
-                    } else {
-                        R.string.capture_words_remove_income
+                    when (state.list) {
+                        CaptureWordList.EXPENSE -> R.string.capture_words_remove_expense
+                        CaptureWordList.INCOME -> R.string.capture_words_remove_income
+                        CaptureWordList.IGNORE -> R.string.capture_words_remove_ignore
                     },
                 ),
             confirmLabel = stringResource(R.string.capture_words_remove_confirm),

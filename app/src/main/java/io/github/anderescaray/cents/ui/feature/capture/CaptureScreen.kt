@@ -53,6 +53,8 @@ fun CaptureScreen(
     onBack: () -> Unit,
     onAddApp: () -> Unit,
     onOpenWords: (TransactionKind, String?) -> Unit,
+    onOpenIgnoreWords: () -> Unit = {},
+    onTry: () -> Unit = {},
     viewModel: CaptureViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,6 +103,8 @@ fun CaptureScreen(
                 onEditApp = viewModel::edit,
                 onAddApp = onAddApp,
                 onOpenWords = onOpenWords,
+                onOpenIgnoreWords = onOpenIgnoreWords,
+                onTry = onTry,
                 onMoveTo = viewModel::moveTo,
                 onStop = viewModel::requestStop,
                 onConfirmStop = viewModel::confirmStop,
@@ -120,6 +124,8 @@ internal data class CaptureActions(
     val onEditApp: (String) -> Unit = {},
     val onAddApp: () -> Unit = {},
     val onOpenWords: (TransactionKind, String?) -> Unit = { _, _ -> },
+    val onOpenIgnoreWords: () -> Unit = {},
+    val onTry: () -> Unit = {},
     val onMoveTo: (Long) -> Unit = {},
     val onStop: () -> Unit = {},
     val onConfirmStop: () -> Unit = {},
@@ -153,6 +159,7 @@ internal fun CaptureContent(
             )
         }
         appsSection(state, actions)
+        readingSection(state, actions)
     }
 
     state.editing?.let { editing -> EditAppSheet(editing, state, actions) }
@@ -244,6 +251,53 @@ private fun LazyListScope.appsSection(
                 showChevron = state.canAddApp,
                 showSeparator = false,
                 onClick = actions.onAddApp.takeIf { state.canAddApp },
+            )
+        }
+    }
+}
+
+/**
+ * How every app's notifications are read: the words that rule an amount out, the words a newly
+ * chosen app starts with, and a way to try a notification before a real one arrives.
+ */
+private fun LazyListScope.readingSection(
+    state: CaptureUiState,
+    actions: CaptureActions,
+) {
+    item(key = "reading") {
+        CentsListSection(
+            header = stringResource(R.string.capture_section_reading),
+            footer = stringResource(R.string.capture_words_footer),
+        ) {
+            CentsListRow(
+                title = stringResource(R.string.capture_ignore_words),
+                subtitle = stringResource(R.string.capture_ignore_words_hint),
+                value = state.ignoreWordCount.toString(),
+                showChevron = true,
+                onClick = actions.onOpenIgnoreWords,
+                modifier = Modifier.testTag(IGNORE_WORDS_ROW_TAG),
+            )
+            CentsListRow(
+                title = stringResource(R.string.capture_starting_expense_words),
+                subtitle = stringResource(R.string.capture_starting_words_hint),
+                value = state.expenseWordCount.toString(),
+                showChevron = true,
+                onClick = { actions.onOpenWords(TransactionKind.EXPENSE, null) },
+            )
+            CentsListRow(
+                title = stringResource(R.string.capture_starting_income_words),
+                subtitle = stringResource(R.string.capture_starting_words_hint),
+                value = state.incomeWordCount.toString(),
+                showChevron = true,
+                onClick = { actions.onOpenWords(TransactionKind.INCOME, null) },
+            )
+            CentsListRow(
+                title = stringResource(R.string.capture_try),
+                subtitle = stringResource(R.string.capture_try_hint),
+                showChevron = true,
+                showSeparator = false,
+                onClick = actions.onTry,
+                modifier = Modifier.testTag(TRY_ROW_TAG),
             )
         }
     }
@@ -346,3 +400,5 @@ private fun openNotificationSettings(context: Context) {
 
 internal const val ACCESS_ROW_TAG = "captureAccess"
 internal const val APP_ROW_TAG = "captureApp"
+internal const val IGNORE_WORDS_ROW_TAG = "captureIgnoreWords"
+internal const val TRY_ROW_TAG = "captureTry"

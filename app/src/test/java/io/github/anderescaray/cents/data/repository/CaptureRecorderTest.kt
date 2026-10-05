@@ -187,12 +187,25 @@ class CaptureRecorderTest {
             listOf(
                 "Paid with card ****7146 EUR",
                 "Payment at 10.30 with card ****7146",
-                "Pago de 23,40 €. Saldo disponible: 1.502,10 €",
                 "Ingreso 23,40",
             ).forEach { text ->
                 assertEquals(CaptureOutcome.Ignored(IgnoreReason.NO_AMOUNT), recorder.record(BANK_APP, text, AT_10))
             }
+            // Two amounts and nothing to say which is the payment: not guessed.
+            assertEquals(
+                CaptureOutcome.Ignored(IgnoreReason.SEVERAL_AMOUNTS),
+                recorder.record(BANK_APP, "Pago de 23,40 € y comisión de 1,50 €", AT_10),
+            )
             assertEquals(0, movements())
+        }
+
+    @Test
+    fun `a balance after the payment is skipped by an ignore word, and the payment recorded`() =
+        runTest {
+            val outcome = recorder().record(BANK_APP, "Pago de 23,40 €. Saldo disponible: 1.502,10 €", AT_10)
+
+            assertTrue(outcome is CaptureOutcome.Recorded)
+            assertEquals(Money(2_340, "EUR"), (outcome as CaptureOutcome.Recorded).amount)
         }
 
     @Test
@@ -293,6 +306,14 @@ class CaptureRecorderTest {
                 },
                 null,
             )
+        }
+
+        override suspend fun setIgnoreWords(words: List<String>) {
+            value = value.copy(ignoreWords = words)
+        }
+
+        override suspend fun resetIgnoreWords() {
+            value = value.copy(ignoreWords = CaptureSettings.DEFAULT_IGNORE_WORDS)
         }
     }
 

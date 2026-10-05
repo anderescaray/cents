@@ -14,6 +14,7 @@ import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.capture.InstalledApp
 import io.github.anderescaray.cents.ui.feature.capture.CaptureAppsViewModel
+import io.github.anderescaray.cents.ui.feature.capture.CaptureTryBlocker
 import io.github.anderescaray.cents.ui.feature.capture.CaptureTryViewModel
 import io.github.anderescaray.cents.ui.feature.capture.CaptureViewModel
 import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsViewModel
@@ -322,6 +323,7 @@ class CaptureViewModelsTest {
             val savings = database.accountDao().insert(account(name = "Savings"))
             settings.state.value =
                 CaptureSettings(
+                    enabled = true,
                     sources = listOf(CaptureSource(BANK_APP, "My bank", savings)),
                     appWords = mapOf(BANK_APP to AppWords(expense = listOf("cobro"))),
                 )
@@ -333,6 +335,7 @@ class CaptureViewModelsTest {
 
             trying.setText("Cobro de 23,40 € en tienda. Saldo 1.000 €")
             val records = trying.uiState.first { it.reading != null }
+            assertTrue("nothing stands in the way", records.records)
             assertEquals(
                 CaptureParser.Reading.Movement(
                     CaptureParser.WordMatch(TransactionKind.EXPENSE, "cobro"),
@@ -344,7 +347,31 @@ class CaptureViewModelsTest {
             assertFalse(records.otherCurrency)
 
             trying.setText("Cobro de 23,40 USD")
-            assertTrue(trying.uiState.first { it.text == "Cobro de 23,40 USD" }.otherCurrency)
+            assertTrue(trying.uiState.first { it.otherCurrency }.otherCurrency)
+        }
+
+    @Test
+    fun `trying a notification reads a title the way capture does, and says what would stop capture`() =
+        runTest {
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            settings.state.value = CaptureSettings(sources = listOf(CaptureSource(BANK_APP, "My bank", savings)))
+            val trying = viewModels.keep(CaptureTryViewModel(settings, accounts))
+            trying.uiState.first { !it.isLoading && it.app != null }
+
+            // The title repeats the body's amount: one payment, as the listener reads it.
+            trying.setTitle("23,40 €")
+            trying.setText("Compra por 23,40 € en Amazon")
+            val reading = trying.uiState.first { it.reading is CaptureParser.Reading.Movement }
+            // But capture is off, so it would not be recorded, and the screen must not say it would.
+            assertEquals(CaptureTryBlocker.OFF, reading.blocker)
+            assertFalse(reading.records)
+
+            settings.state.value = settings.state.value.copy(enabled = true)
+            assertTrue(trying.uiState.first { it.blocker == null }.records)
+
+            // An archived account is one the recorder skips.
+            database.accountDao().setArchived(savings, archived = true)
+            assertEquals(CaptureTryBlocker.NO_ACCOUNT, trying.uiState.first { it.blocker != null }.blocker)
         }
 
     private fun words(kind: TransactionKind) =

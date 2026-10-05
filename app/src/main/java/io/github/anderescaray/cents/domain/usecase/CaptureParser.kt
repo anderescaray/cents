@@ -79,23 +79,24 @@ object CaptureParser {
         // *Compra por 23,40 € en Amazon* is one payment, not two. A different amount in the title
         // is still a second amount, and two in the body are still two, so a fee beside a payment,
         // or two purchases of the same price, are not guessed between.
-        val title = parts.drop(1).flatMap { amountsIn(it, ignoreWords) }.filterNot { it != null && it in body }
+        val title = parts.drop(1).flatMap { amountsIn(it, ignoreWords) }.filterNot { it in body }
         val amounts = body + title
         return when (amounts.size) {
             0 -> AmountReading.None
-            1 -> amounts.single()?.let { AmountReading.One(it) } ?: AmountReading.None
-            else -> AmountReading.Several(amounts.filterNotNull())
+            1 -> AmountReading.One(amounts.single())
+            else -> AmountReading.Several(amounts)
         }
     }
 
     /**
-     * Each number in [text] that names a currency, in order, as an amount, or null where its
-     * markers disagree or its digits do not read. Numbers led in by an ignore word are left out.
+     * Each number in [text] that names a currency, in order, as an amount. Left out: numbers led
+     * in by an ignore word, and ones that do not read as money, whose markers disagree or whose
+     * digits are zero or too many: those are not a second amount to be unsure about.
      */
     private fun amountsIn(
         text: String,
         ignoreWords: Collection<String>,
-    ): List<Amount?> {
+    ): List<Amount> {
         val unmasked = MASKED_NUMBER.replace(text, "|")
         val numbers =
             (
@@ -114,7 +115,7 @@ object CaptureParser {
                         ?.last
                         ?.plus(1) ?: 0
                 !ledInByIgnoreWord(unmasked.substring(from, markers.first().range.first), ignoreWords)
-            }.map { amountOf(unmasked, it) }
+            }.mapNotNull { amountOf(unmasked, it) }
     }
 
     /**
@@ -213,7 +214,7 @@ object CaptureParser {
         val candidate = markers.first()
         val trailingCurrency = CURRENCY_AFTER_NUMBER.matchAt(text, candidate.range.last + 1)?.groupValues?.get(1)
         val currencies = markers.map { it.currency } + listOfNotNull(trailingCurrency)
-        val currency = currencies.map(::currencyCode).distinct().singleOrNull() ?: return null
+        val currency = currencies.mapNotNull(::currencyCode).distinct().singleOrNull() ?: return null
         return toMinorUnits(candidate.number)?.let { Amount(it, currency) }
     }
 
@@ -275,7 +276,8 @@ object CaptureParser {
     /**
      * The ISO code a currency sign or word stands for. A bare *$* names no currency, because it
      * is the sign of the peso and of several dollars as well as the US one, and reading it as
-     * USD would turn every amount of a Mexican or Canadian account into a foreign one.
+     * USD would turn every amount of a Mexican or Canadian account into a foreign one. So *$23.40*
+     * alone is not read as money, while *$23.40 USD* is, by its code.
      */
     private fun currencyCode(token: String): String? =
         when (token.lowercase(Locale.ROOT).replace(" ", "")) {
@@ -304,12 +306,27 @@ object CaptureParser {
     private val SUFFIXED =
         Regex("$NOT_AFTER_A_NUMBER($NUMBER)\\h*($SUFFIX_CURRENCY)(?![\\p{L}\\p{N}])")
     private val CURRENCY_AFTER_NUMBER = Regex("\\h*($SUFFIX_CURRENCY)(?![\\p{L}\\p{N}])")
+
+    /**
+     * A masked card or account number, so its digits never become an amount.
+     *
+     * Two shapes and no others. Mask characters **against** the digits: *\*1234*, *\*\*\*\*7146*,
+     * *XXXX7146*, *••••7146*, *…7146*, *....7146*. Or a **run** of two or more before a space or a
+     * dash: *\*\*\*\* 7146*, *XXXX-XXXX-7146*. A single separator before a space is not a mask:
+     * *Amazon · 23,40 €*, *AMAZON… 23,40 €*, *Mercadona... 23,40 €*, *Pago a X 8,00 €* and
+     * *2 x 23,40 €* all keep their amount. After the digits only a single space or dash continues
+     * the number (*1234 5678*, *71-46*), so a spaced dash, *\*\*\*\*1234 - 50 €*, ends it.
+     */
     private val MASKED_NUMBER =
         Regex(
-            "(?:(?<![\\p{L}\\p{N}])[xX]|[*\\u2022\\u25CF\\u00B7\\u2026]|\\.{3,})" +
-                "[\\h*xX\\u2022\\u25CF\\u00B7\\u2026.-]*\\d+(?:[\\h-]+\\d+(?![\\d.,]))*",
+            "(?:(?:$MASK_RUN)(?:[\\h-]*(?:$MASK_RUN))*[\\h-]*" +
+                "|(?<![\\p{L}\\p{N}])[xX]+|[*\\u2022\\u25CF\\u00B7\\u2026]+|\\.{3,})" +
+                "(?=\\d)\\d+(?:[\\h-]\\d+(?![\\d.,]))*",
         )
     private val DECIMAL_TAIL = Regex("[.,](\\d{1,2})$")
+
+    /** Two or more mask characters in a row: what a mask separated from its digits looks like. */
+    private const val MASK_RUN = "(?<![\\p{L}\\p{N}])[xX]{2,}|[*\\u2022\\u25CF]{2,}"
 
     /** A full stop, question mark or semicolon followed by a space, or a new line. Not *1.502*. */
     private val SENTENCE_END = Regex("[.!?;]\\s+|\\n")

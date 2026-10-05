@@ -133,7 +133,6 @@ class CaptureScreensTest {
                 CaptureTryContent(
                     state =
                         CaptureTryUiState(
-                            text = "Pago de 23,40 € y 1,50 €",
                             reading =
                                 CaptureParser.Reading.SeveralAmounts(
                                     pago,
@@ -159,7 +158,6 @@ class CaptureScreensTest {
                 CaptureTryContent(
                     state =
                         CaptureTryUiState(
-                            text = "Pago de 23,40 €",
                             accountName = "Bank",
                             accountCurrency = "EUR",
                             reading =

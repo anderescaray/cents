@@ -223,6 +223,42 @@ class CaptureParserTest {
         )
     }
 
+    @Test
+    fun `a separator before an amount is not a mask`() {
+        listOf(
+            "Amazon · 23,40 €",
+            "Compra en AMAZON… 23,40 €",
+            "Pago en Mercadona... 23,40 €",
+            "Compra 1 x 23,40 €",
+        ).forEach { text -> assertEquals(text, CaptureParser.Amount(2_340, "EUR"), CaptureParser.amountIn(text)) }
+        assertEquals(CaptureParser.Amount(800, "EUR"), CaptureParser.amountIn("Pago a X 8,00 €"))
+        // A spaced dash ends a masked number rather than joining the amount to it.
+        assertEquals(CaptureParser.Amount(5_000, "EUR"), CaptureParser.amountIn("Tarjeta ****1234 - 50 €"))
+        // While real masks, spaced or not, still hide their digits.
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Tarjeta **** **** 7146 EUR 23"))
+        assertEquals(CaptureParser.Amount(2_300, "EUR"), CaptureParser.amountIn("Tarjeta XXXX-XXXX-7146 EUR 23"))
+    }
+
+    @Test
+    fun `a dollar sign alone names no currency, but a code beside it does`() {
+        assertNull(CaptureParser.amountIn("Compra por $23.40"))
+        assertEquals(CaptureParser.Amount(2_340, "USD"), CaptureParser.amountIn("Paid $23.40 USD"))
+    }
+
+    @Test
+    fun `the default ignore words never skip a payment that says it is available`() {
+        assertEquals(
+            CaptureParser.Amount(150_000, "EUR"),
+            CaptureParser.amountIn("Ya tienes disponible tu nómina de 1.500 €", IGNORE),
+        )
+    }
+
+    @Test
+    fun `an amount that does not read is not a second amount`() {
+        val text = "Compra 23,40 €${CaptureParser.TITLE_SEPARATOR}EUR 23 USD"
+        assertEquals(CaptureParser.Amount(2_340, "EUR"), CaptureParser.amountIn(text, IGNORE))
+    }
+
     private fun read(text: String) =
         CaptureParser.read(text, CaptureSettings.DEFAULT_EXPENSE_WORDS, CaptureSettings.DEFAULT_INCOME_WORDS, IGNORE)
 

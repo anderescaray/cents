@@ -89,4 +89,11 @@
     <string name="capture_try_no_word_footer">Añade la palabra que usa este banco a las palabras de gasto o de ingreso de la app.</string>
     <string name="capture_try_no_amount_footer">Solo cuenta un importe escrito con su moneda, como 23,40 € o EUR 23. Los números ocultos como ****7146 nunca.</string>
     <string name="capture_try_several_footer">No se adivina cuál es el pago. Añade la palabra que va delante del que no lo es, como “saldo”, a las palabras a ignorar.</string>
+    <string name="capture_try_title_placeholder">Título (opcional)</string>
+    <string name="capture_try_ignored_off">Ignorada: la captura está apagada</string>
+    <string name="capture_try_ignored_no_app">Ignorada: no hay ninguna app elegida</string>
+    <string name="capture_try_ignored_no_account">Ignorada: la cuenta de la app está archivada</string>
+    <string name="capture_try_off_footer">El texto se lee bien. Enciende la captura en Captura para que una notificación así se registre.</string>
+    <string name="capture_try_no_app_footer">El texto se lee bien con las palabras iniciales, pero no se lee nada hasta elegir en Captura la app de la que viene.</string>
+    <string name="capture_try_no_account_footer">El texto se lee bien, pero la cuenta de esta app está archivada o ya no existe. Elige otra en Captura.</string>
 </resources>

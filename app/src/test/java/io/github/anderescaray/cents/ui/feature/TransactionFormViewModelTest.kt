@@ -66,6 +66,15 @@ class TransactionFormViewModelTest {
     }
 
     /** The form as the navigation graph builds it: adding by default, editing with an id. */
+    @Test
+    fun `a movement that no longer exists closes the form rather than opening it blank`() =
+        runTest {
+            // A capture notification still in the shade, tapped after its movement was deleted.
+            val form = formFor(transactionId = 999)
+
+            assertTrue(form.uiState.first { it.finished }.finished)
+        }
+
     private fun formFor(transactionId: Long = Destination.TransactionForm.NEW) =
         viewModels.keep(
             TransactionFormViewModel(

@@ -93,13 +93,15 @@ data class CaptureSettings(
                 "spent",
             )
 
-        /** What a bank says before a balance rather than a payment. */
+        /**
+         * What a bank says before a balance rather than a payment. Only words that never lead into
+         * a payment: *disponible* would skip *Ya tienes disponible tu nómina de 1.500 €*, while
+         * *saldo disponible* and *available balance* are caught by *saldo* and *balance* anyway.
+         */
         val DEFAULT_IGNORE_WORDS =
             listOf(
                 "saldo",
-                "disponible",
                 "balance",
-                "available",
             )
 
         val DEFAULT_INCOME_WORDS =

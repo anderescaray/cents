@@ -85,7 +85,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         openPending = intent.wantsPending
-        openCapturedTransactionId = intent.capturedTransactionId
+        // A recreated activity gets back the intent it was launched with, extra and all, even
+        // after `removeExtra`: reading it again would push that movement over the restored screen.
+        if (savedInstanceState == null) openCapturedTransactionId = intent.capturedTransactionId
         enableEdgeToEdge()
         setContent {
             CentsTheme {

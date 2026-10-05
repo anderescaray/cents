@@ -33,7 +33,7 @@ class CaptureNotifier
             val body =
                 context.getString(
                     R.string.capture_notification_body,
-                    MoneyFormatter.format(amount, withSign = true),
+                    MoneyFormatter.formatSigned(amount),
                     outcome.accountName,
                 )
             val publicVersion =

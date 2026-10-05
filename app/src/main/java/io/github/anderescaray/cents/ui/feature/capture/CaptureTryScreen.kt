@@ -22,8 +22,8 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 
 /**
- * *Try a notification*: paste what a bank sent and see what capture would make of it, before a
- * real one arrives. Nothing is saved.
+ * *Try a notification*: paste what a bank sent, title and text, and see what capture would make of
+ * it before a real one arrives. Nothing is saved.
  */
 @Composable
 fun CaptureTryScreen(
@@ -31,9 +31,12 @@ fun CaptureTryScreen(
     viewModel: CaptureTryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val input by viewModel.input.collectAsStateWithLifecycle()
     CaptureTryContent(
         state = state,
+        input = input,
         onBack = onBack,
+        onTitleChange = viewModel::setTitle,
         onTextChange = viewModel::setText,
         onChoose = viewModel::choose,
     )
@@ -43,7 +46,9 @@ fun CaptureTryScreen(
 @Composable
 internal fun CaptureTryContent(
     state: CaptureTryUiState,
+    input: CaptureTryInput = CaptureTryInput(),
     onBack: () -> Unit = {},
+    onTitleChange: (String) -> Unit = {},
     onTextChange: (String) -> Unit = {},
     onChoose: (String) -> Unit = {},
 ) {
@@ -54,10 +59,19 @@ internal fun CaptureTryContent(
     ) {
         if (state.isLoading) return@CentsLargeTitleScaffold
         appChoice(state, onChoose)
+        // Title and text apart, as the notification has them: a title that repeats the amount is
+        // read as the same payment only when it is known to be the title.
         item(key = "text") {
             CentsListSection(footer = stringResource(R.string.capture_try_text_footer)) {
                 CentsTextField(
-                    value = state.text,
+                    value = input.title,
+                    onValueChange = onTitleChange,
+                    placeholder = stringResource(R.string.capture_try_title_placeholder),
+                    showSeparator = true,
+                    modifier = Modifier.testTag(TRY_TITLE_TAG),
+                )
+                CentsTextField(
+                    value = input.text,
                     onValueChange = onTextChange,
                     placeholder = stringResource(R.string.capture_try_placeholder),
                     multiline = true,
@@ -98,9 +112,10 @@ private fun LazyListScope.result(
     reading: CaptureParser.Reading,
 ) {
     item(key = "result") {
+        val blocker = state.blocker
         val heading =
             when {
-                reading is CaptureParser.Reading.Movement && !state.otherCurrency -> {
+                state.records && reading is CaptureParser.Reading.Movement -> {
                     stringResource(
                         if (reading.word.kind == TransactionKind.EXPENSE) {
                             R.string.capture_try_records_expense
@@ -110,8 +125,13 @@ private fun LazyListScope.result(
                     )
                 }
 
-                reading is CaptureParser.Reading.Movement -> {
+                reading is CaptureParser.Reading.Movement && state.otherCurrency -> {
                     stringResource(R.string.capture_try_ignored_currency)
+                }
+
+                // The text reads fine, but capture would not get as far as reading it.
+                reading is CaptureParser.Reading.Movement && blocker != null -> {
+                    stringResource(blocker.headingRes())
                 }
 
                 reading is CaptureParser.Reading.NoWord -> {
@@ -162,7 +182,7 @@ private fun ResultRows(
 ) {
     val word = reading.word
     val amounts = reading.amounts
-    val records = reading is CaptureParser.Reading.Movement && !state.otherCurrency
+    val records = state.records
     // Signed and coloured only when it would be recorded; otherwise it is just what was found.
     val expense = records && (reading as CaptureParser.Reading.Movement).word.kind == TransactionKind.EXPENSE
     val amountColor =
@@ -216,6 +236,10 @@ private fun footerFor(
             )
         }
 
+        reading is CaptureParser.Reading.Movement && state.blocker != null -> {
+            stringResource(requireNotNull(state.blocker).footerRes())
+        }
+
         reading is CaptureParser.Reading.Movement -> {
             stringResource(R.string.capture_try_records_footer)
         }
@@ -233,5 +257,20 @@ private fun footerFor(
         }
     }
 
+private fun CaptureTryBlocker.headingRes(): Int =
+    when (this) {
+        CaptureTryBlocker.OFF -> R.string.capture_try_ignored_off
+        CaptureTryBlocker.NO_APP -> R.string.capture_try_ignored_no_app
+        CaptureTryBlocker.NO_ACCOUNT -> R.string.capture_try_ignored_no_account
+    }
+
+private fun CaptureTryBlocker.footerRes(): Int =
+    when (this) {
+        CaptureTryBlocker.OFF -> R.string.capture_try_off_footer
+        CaptureTryBlocker.NO_APP -> R.string.capture_try_no_app_footer
+        CaptureTryBlocker.NO_ACCOUNT -> R.string.capture_try_no_account_footer
+    }
+
+internal const val TRY_TITLE_TAG = "captureTryTitle"
 internal const val TRY_FIELD_TAG = "captureTryField"
 internal const val TRY_RESULT_TAG = "captureTryResult"

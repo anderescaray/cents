@@ -89,4 +89,11 @@
     <string name="capture_try_no_word_footer">Add the word this bank uses to the app’s expense or income words.</string>
     <string name="capture_try_no_amount_footer">Only an amount written with its currency counts, such as 23,40 € or EUR 23. Masked numbers like ****7146 never do.</string>
     <string name="capture_try_several_footer">Which one is the payment is not guessed. Add the word in front of the one that is not, such as “saldo”, to the ignore words.</string>
+    <string name="capture_try_title_placeholder">Title (optional)</string>
+    <string name="capture_try_ignored_off">Ignored: capture is off</string>
+    <string name="capture_try_ignored_no_app">Ignored: no app is chosen</string>
+    <string name="capture_try_ignored_no_account">Ignored: the app\'s account is archived</string>
+    <string name="capture_try_off_footer">The text reads fine. Switch capture on in Capture for a notification like this to be recorded.</string>
+    <string name="capture_try_no_app_footer">The text reads fine with the starting words, but nothing is read until the app it comes from is chosen in Capture.</string>
+    <string name="capture_try_no_account_footer">The text reads fine, but this app\'s account is archived or gone. Choose another account for it in Capture.</string>
 </resources>

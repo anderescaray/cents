@@ -109,6 +109,12 @@ sealed interface Destination {
         }
     }
 
+    /** Setting one account's balance to what it really holds (`docs/next-improvements.md` §7). */
+    @Serializable
+    data class AccountBalance(
+        val accountId: Long,
+    ) : Destination
+
     /** One holding: its position, its price and the trades behind it. */
     @Serializable
     data class HoldingDetail(
@@ -326,6 +332,7 @@ val FullScreenForms: List<KClass<out Destination>> =
         Destination.TransferForm::class,
         Destination.TransactionFilters::class,
         Destination.AccountEdit::class,
+        Destination.AccountBalance::class,
         Destination.CategoryEdit::class,
         Destination.HoldingEdit::class,
         Destination.TradeForm::class,

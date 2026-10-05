@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.data.local
 
+import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -162,6 +163,83 @@ class BalanceQueriesTest {
             assertEquals(accountsTabTotal, afterEverything)
             assertTrue(afterEverything > 0)
         }
+
+    @Test
+    fun `a balance correction is a step on its own day, for its own account`() =
+        runTest {
+            val mine = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 10_000))
+            val other = database.accountDao().insert(account(name = "Cash"))
+            val dao = database.transactionDao()
+            dao.insert(transaction(mine, amountMinor = 3_000, date = august(4)))
+            correction(mine, amountMinor = 1_250, date = august(10))
+            correction(other, amountMinor = -400, date = august(10))
+
+            val rows = dao.observeDailyNet(august(1), august(31), mine).first()
+
+            assertEquals(listOf(august(4), august(10)), rows.map { it.date })
+            assertEquals(listOf(-3_000L, 1_250L), rows.map { it.netMinor })
+            // A period whose only change is a correction is not an empty one.
+            assertEquals(listOf(1, 1), rows.map { it.movementCount })
+            assertEquals(
+                listOf(-3_000L, 850L),
+                dao.observeDailyNet(august(1), august(31), null).first().map { it.netMinor },
+            )
+        }
+
+    @Test
+    fun `the balance before a day counts the corrections dated before it, and none after`() =
+        runTest {
+            val accountId = database.accountDao().insert(account(openingBalanceMinor = 10_000))
+            correction(accountId, amountMinor = 1_250, date = august(10))
+
+            val dao = database.transactionDao()
+            assertEquals(10_000L, dao.observeBalanceBefore(august(10), accountId).first())
+            assertEquals(11_250L, dao.observeBalanceBefore(august(11), accountId).first())
+            assertEquals(11_250L, dao.observeBalanceBefore(august(11), null).first())
+        }
+
+    @Test
+    fun `with corrections, the line still ends where the Accounts tab says the money is`() =
+        runTest {
+            val first = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 30_000))
+            val second = database.accountDao().insert(account(name = "Cash", openingBalanceMinor = 2_000))
+            database.transactionDao().insert(transaction(first, amountMinor = 11_000, date = august(3)))
+            database.transactionDao().insert(transaction(second, amountMinor = 500, date = august(3)))
+            database.transactionDao().insert(transaction(second, amountMinor = 500, date = august(4)))
+            correction(first, amountMinor = -2_500, date = august(5))
+            correction(second, amountMinor = 700, date = august(6))
+            correction(second, amountMinor = 300, date = august(6))
+
+            val afterEverything = database.transactionDao().observeBalanceBefore(LocalDate.of(2026, 9, 1), null).first()
+            val balances =
+                database
+                    .accountDao()
+                    .observeBalances()
+                    .first()
+                    .associate { it.accountId to it.balanceMinor }
+
+            // Two movements and two corrections on one account: neither may be counted once per
+            // row of the other, which a second join would do.
+            assertEquals(mapOf(first to 16_500L, second to 2_000L), balances)
+            assertEquals(balances.values.sum(), afterEverything)
+            assertEquals(2_000L, database.accountDao().observeBalance(second).first())
+        }
+
+    private suspend fun correction(
+        accountId: Long,
+        amountMinor: Long,
+        date: LocalDate,
+    ) {
+        database.balanceAdjustmentDao().insert(
+            BalanceAdjustmentEntity(
+                accountId = accountId,
+                amountMinor = amountMinor,
+                currency = "EUR",
+                date = date,
+                createdAt = FIXED_INSTANT,
+            ),
+        )
+    }
 
     private fun august(day: Int) = LocalDate.of(2026, 8, day)
 }

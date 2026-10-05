@@ -25,6 +25,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
 import io.github.anderescaray.cents.ui.components.EntryKind
+import io.github.anderescaray.cents.ui.feature.accounts.AccountBalanceScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountEditScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountsScreen
@@ -316,10 +317,16 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
                     launchSingleTop = true
                 }
             },
+            onSetBalance = { id ->
+                navController.navigate(Destination.AccountBalance(accountId = id)) { launchSingleTop = true }
+            },
         )
     }
     composable<Destination.AccountEdit> {
         AccountEditScreen(onDone = { navController.popBackStack() })
+    }
+    composable<Destination.AccountBalance> {
+        AccountBalanceScreen(onDone = { navController.popBackStack() })
     }
 }
 

@@ -89,7 +89,12 @@ class RoomAccountRepository
         }
 
         override suspend fun deleteAccount(id: Long) {
-            accountDao.deleteById(id)
+            database.withTransaction {
+                // Its balance corrections are part of what it held, like its opening balance, and
+                // go with it; the foreign key would refuse the account while one still points here.
+                database.balanceAdjustmentDao().deleteByAccount(id)
+                accountDao.deleteById(id)
+            }
         }
 
         override suspend fun reassignAndDelete(
@@ -101,6 +106,9 @@ class RoomAccountRepository
             // exactly the state the RESTRICT foreign key exists to make impossible.
             database.withTransaction {
                 transactionDao.reassignAccount(fromId = id, toId = targetId, updatedAt = clock.instant())
+                // Corrections stand for movements that were missed, so they follow the movements
+                // rather than vanishing from every balance with the account.
+                database.balanceAdjustmentDao().reassignAccount(fromId = id, toId = targetId)
                 accountDao.deleteById(id)
             }
         }
@@ -120,6 +128,7 @@ class RoomAccountRepository
                 val transfers = transactionDao.transferIdsInAccount(id)
                 if (transfers.isNotEmpty()) transactionDao.deleteTransfers(transfers)
                 transactionDao.deleteByAccount(id)
+                database.balanceAdjustmentDao().deleteByAccount(id)
                 accountDao.deleteById(id)
             }
         }

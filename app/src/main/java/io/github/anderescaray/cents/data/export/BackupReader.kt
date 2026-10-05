@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.data.export
 
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
@@ -127,6 +128,8 @@ object BackupReader {
             budgets = root.rows("budgets", ::budget),
             groups = root.rows("groups", ::group),
             postponements = root.rows("rulePostponements", ::postponement),
+            // Absent before a balance could be corrected, and read as none.
+            adjustments = root.rows("balanceAdjustments", ::adjustment),
         )
 
     private fun account(row: JsonObject) =
@@ -223,6 +226,14 @@ object BackupReader {
             ruleId = row.requireLong("ruleId"),
             occurrence = row.requireLong("occurrence"),
             postponedTo = row.requireLong("postponedTo"),
+        )
+
+    private fun adjustment(row: JsonObject) =
+        BackupAdjustment(
+            accountId = row.requireLong("accountId"),
+            amountMinor = row.requireLong("amountMinor"),
+            currency = row.requireString("currency"),
+            date = row.requireLong("date"),
         )
 
     private fun budget(row: JsonObject) =

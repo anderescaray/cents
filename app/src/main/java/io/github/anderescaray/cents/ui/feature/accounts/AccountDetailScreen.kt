@@ -10,19 +10,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
+import io.github.anderescaray.cents.domain.model.BalanceAdjustment
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
+import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.MovementBadge
 import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
 import io.github.anderescaray.cents.ui.components.UndoBanner
@@ -39,8 +47,8 @@ import java.time.LocalDate
 
 /**
  * One account: its balance, what it did this month, and every movement behind that number.
- * The balance is the opening amount plus these rows and nothing else, which is why they
- * sit on the same screen.
+ * The balance is the opening amount plus these rows and nothing else — movements, and the
+ * balance corrections dated among them — which is why they sit on the same screen.
  */
 @Composable
 fun AccountDetailScreen(
@@ -49,6 +57,7 @@ fun AccountDetailScreen(
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
+    onSetBalance: (Long) -> Unit = {},
     viewModel: AccountDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -65,6 +74,8 @@ fun AccountDetailScreen(
         onOpenTransfer = onOpenTransfer,
         onOpenTrade = onOpenTrade,
         onUndo = viewModel::undoDeletion,
+        onSetBalance = onSetBalance,
+        onRemoveCorrection = viewModel::removeCorrection,
     )
 }
 
@@ -81,8 +92,12 @@ internal fun AccountDetailContent(
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
     onUndo: () -> Unit,
+    onSetBalance: (Long) -> Unit = {},
+    onRemoveCorrection: (Long) -> Unit = {},
 ) {
     val account = state.account
+    // The correction a tap asked to remove, waiting on the confirmation every removal gets (rule 7).
+    var removing by remember { mutableStateOf<BalanceAdjustment?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CentsLargeTitleScaffold(
@@ -106,7 +121,7 @@ internal fun AccountDetailContent(
             },
         ) {
             if (account != null) {
-                balanceHeader(account)
+                balanceHeader(account, onSetBalance = { onSetBalance(account.account.id) })
                 state.monthSummary?.let { summary -> monthSummary(summary) }
             }
 
@@ -115,7 +130,7 @@ internal fun AccountDetailContent(
             }
 
             state.days.forEach { day ->
-                movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade)
+                movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade) { removing = it }
             }
         }
 
@@ -130,9 +145,48 @@ internal fun AccountDetailContent(
             )
         }
     }
+
+    val correction = removing
+    if (correction != null && account != null) {
+        RemoveCorrectionAlert(
+            balance = account.balance,
+            correction = correction,
+            onConfirm = {
+                onRemoveCorrection(correction.id)
+                removing = null
+            },
+            onDismiss = { removing = null },
+        )
+    }
 }
 
-private fun LazyListScope.balanceHeader(account: AccountWithBalance) {
+/** Says what the balance becomes without the correction, before it goes. */
+@Composable
+private fun RemoveCorrectionAlert(
+    balance: Money,
+    correction: BalanceAdjustment,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    CentsAlert(
+        title = stringResource(R.string.balance_correction_remove_title),
+        message =
+            stringResource(
+                R.string.balance_correction_remove_message,
+                MoneyFormatter.format(balance - correction.amount),
+            ),
+        confirmLabel = stringResource(R.string.balance_correction_remove_confirm),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        dismissLabel = stringResource(R.string.action_cancel),
+        destructive = true,
+    )
+}
+
+private fun LazyListScope.balanceHeader(
+    account: AccountWithBalance,
+    onSetBalance: () -> Unit,
+) {
     item(key = "balance") {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -153,6 +207,18 @@ private fun LazyListScope.balanceHeader(account: AccountWithBalance) {
                 text = stringResource(account.account.type.labelRes()),
                 style = CentsTheme.typography.footnote,
                 color = CentsTheme.colors.secondaryLabel,
+            )
+            // Not the opening balance, which is edited in the account's form: this is what the
+            // account holds today, for when movements were missed.
+            Text(
+                text = stringResource(R.string.balance_set_action),
+                style = CentsTheme.typography.subhead,
+                color = CentsTheme.colors.accentText,
+                modifier =
+                    Modifier
+                        .testTag(SET_BALANCE_TAG)
+                        .tappable(onClick = onSetBalance)
+                        .padding(CentsDimens.spacingXs),
             )
         }
     }
@@ -193,6 +259,7 @@ private fun LazyListScope.movementDay(
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
+    onOpenCorrection: (BalanceAdjustment) -> Unit,
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
@@ -205,12 +272,28 @@ private fun LazyListScope.movementDay(
                     value = MoneyFormatter.formatSigned(movement.signedAmount),
                     valueColor = details.movementValueColor(),
                     leading = { details.MovementBadge() },
-                    showSeparator = index != day.items.lastIndex,
+                    showSeparator = index != day.items.lastIndex || day.corrections.isNotEmpty(),
                     onClick = {
                         details.open(onOpenTransaction, onOpenTransfer, onOpenTrade)
                     },
                 )
             }
+            day.corrections.forEachIndexed { index, correction ->
+                // Grey, like a transfer leg: it moves the balance and is neither earned nor spent.
+                CentsListRow(
+                    title = stringResource(R.string.balance_correction_row),
+                    value = MoneyFormatter.formatSigned(correction.amount),
+                    valueColor = CentsTheme.colors.secondaryLabel,
+                    // A badge like every movement beside it, so the titles line up.
+                    leading = { IconBadge(iconRes = R.drawable.ic_wallet, color = CentsTheme.colors.secondaryLabel) },
+                    showSeparator = index != day.corrections.lastIndex,
+                    onClick = { onOpenCorrection(correction) },
+                    modifier = Modifier.testTag(CORRECTION_ROW_TAG),
+                )
+            }
         }
     }
 }
+
+internal const val SET_BALANCE_TAG = "accountSetBalance"
+internal const val CORRECTION_ROW_TAG = "accountCorrection"

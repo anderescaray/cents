@@ -52,12 +52,15 @@ interface AccountRepository {
     /**
      * Removes the account outright. Only legitimate while [countTransactions] is zero:
      * with movements in it, the two operations below are what "delete" can honestly mean.
+     * Its balance corrections go with it, as its opening balance does.
      */
     suspend fun deleteAccount(id: Long)
 
     /**
      * Moves every movement into [targetId] and then deletes the account, in one database
-     * transaction. Nothing is lost: the history survives under another account.
+     * transaction. Nothing is lost: the history survives under another account. Its balance
+     * corrections move too, since they stand for movements that were never recorded; its opening
+     * balance does not.
      *
      * [targetId] must be an account in the same currency. A movement keeps the currency it
      * was recorded in, and an account's balance is the sum of its movements labelled with
@@ -70,7 +73,8 @@ interface AccountRepository {
     )
 
     /**
-     * Deletes the account **and every movement in it**, in one database transaction.
+     * Deletes the account **and every movement in it**, in one database transaction, with its
+     * balance corrections.
      *
      * This is the one operation in the app that removes recorded history on purpose. It
      * exists because the owner asked for it (`DECISIONS.md` D7): an account added by

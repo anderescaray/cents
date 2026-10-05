@@ -1,0 +1,151 @@
+package io.github.anderescaray.cents.ui.feature.accounts
+
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
+import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.anderescaray.cents.domain.model.AccountWithBalance
+import io.github.anderescaray.cents.domain.model.BalanceChange
+import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.repository.AccountRepository
+import io.github.anderescaray.cents.domain.repository.BalanceRepository
+import io.github.anderescaray.cents.ui.navigation.Destination
+import io.github.anderescaray.cents.ui.util.AmountEntry
+import io.github.anderescaray.cents.ui.util.Today
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import javax.inject.Inject
+
+/** What the owner has typed and chosen so far, before it meets the account. */
+data class BalanceForm(
+    /** Typed in euros, comma and all — the rules are [AmountEntry]'s. */
+    val input: String = AmountEntry.EMPTY,
+    val negative: Boolean = false,
+    /** Null until the owner picks one: there is no default (`docs/next-improvements.md` §7). */
+    val change: BalanceChange? = null,
+    val saving: Boolean = false,
+    val writeFailed: Boolean = false,
+    val finished: Boolean = false,
+)
+
+data class AccountBalanceUiState(
+    /** Null while loading, and once the account is gone. */
+    val account: AccountWithBalance? = null,
+    val form: BalanceForm = BalanceForm(),
+    val today: LocalDate = LocalDate.now(),
+    val isLoading: Boolean = true,
+) {
+    val currency: String get() = account?.account?.currency ?: "EUR"
+
+    /** Nothing typed is not a target of zero: zero is typed as *0*. */
+    val hasTarget: Boolean get() = form.input != AmountEntry.EMPTY
+
+    /** Typed in euros, but a balance is minor units like every amount in the app (rule 1). */
+    val target: Money
+        get() {
+            val magnitude = AmountEntry.toMinorUnits(form.input)
+            return Money(if (form.negative) -magnitude else magnitude, currency)
+        }
+
+    /**
+     * What the account holds now, live: it moves if a payment is captured while this screen is
+     * open, and the difference moves with it.
+     */
+    val current: Money? get() = account?.balance
+
+    /** Target minus what the account holds now; null until a target is typed. */
+    val difference: Money? get() = current?.takeIf { hasTarget }?.let { target - it }
+
+    /** The opening balance a rebase would leave, for the option that says so. */
+    val rebasedOpening: Money?
+        get() = difference?.let { difference -> account?.account?.openingBalance?.plus(difference) }
+
+    val alreadyThere: Boolean get() = difference?.isZero == true
+
+    val canSave: Boolean
+        get() = difference?.isZero == false && form.change != null && !form.saving
+}
+
+/**
+ * Setting one account's balance to what it really holds, when movements were missed.
+ *
+ * The owner says the balance, and picks — every time, with no default — whether the earlier
+ * balances stay as they were or move with it (`BalanceChange`). Neither creates an income or an
+ * expense, so nothing here can change a report, a budget or what was saved.
+ */
+@HiltViewModel
+class AccountBalanceViewModel
+    @Inject
+    constructor(
+        accountRepository: AccountRepository,
+        private val balanceRepository: BalanceRepository,
+        private val today: Today,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        private val accountId: Long = savedStateHandle.toRoute<Destination.AccountBalance>().accountId
+
+        private val form = MutableStateFlow(BalanceForm())
+
+        val uiState: StateFlow<AccountBalanceUiState> =
+            combine(
+                accountRepository.observeAccountWithBalance(accountId),
+                form,
+                today.date,
+            ) { account, form, day ->
+                AccountBalanceUiState(account = account, form = form, today = day, isLoading = false)
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+                initialValue = AccountBalanceUiState(),
+            )
+
+        fun appendDigit(digit: Char) {
+            if (!digit.isDigit()) return
+            edit { it.copy(input = AmountEntry.append(it.input, digit)) }
+        }
+
+        /** The comma key. A second one, or a third digit behind it, simply does not go in. */
+        fun appendDecimalSeparator() = edit { it.copy(input = AmountEntry.append(it.input, AmountEntry.SEPARATOR)) }
+
+        fun deleteDigit() = edit { it.copy(input = AmountEntry.delete(it.input)) }
+
+        /** A card, or an overdraft, can really be in the red. */
+        fun toggleSign() = edit { it.copy(negative = !it.negative) }
+
+        fun choose(change: BalanceChange) = edit { it.copy(change = change) }
+
+        fun save() {
+            val state = uiState.value
+            val change = state.form.change
+            if (!state.canSave || change == null) return
+            form.update { it.copy(saving = true, writeFailed = false) }
+
+            viewModelScope.launch {
+                // The difference shown is only what the screen knew a moment ago. The one written
+                // is measured again inside the write, so the account ends at the typed balance
+                // even if a payment was captured in between.
+                val written =
+                    runCatching {
+                        balanceRepository.setBalance(accountId, state.target, change, on = today.date.value)
+                    }
+                form.update {
+                    it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess)
+                }
+            }
+        }
+
+        private fun edit(change: (BalanceForm) -> BalanceForm) {
+            form.update { change(it).copy(writeFailed = false) }
+        }
+
+        private companion object {
+            const val STOP_TIMEOUT_MS = 5_000L
+        }
+    }

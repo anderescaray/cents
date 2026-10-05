@@ -200,6 +200,17 @@ private fun OpeningBalanceHeader(
             style = CentsTheme.typography.footnote,
             color = CentsTheme.colors.secondaryLabel,
         )
+        if (!state.isNew) {
+            // The two are easy to confuse once an account has history: this one rewrites where
+            // it started, and the account's own screen is where today's balance is set.
+            Text(
+                text = stringResource(R.string.balance_opening_hint),
+                style = CentsTheme.typography.footnote,
+                color = CentsTheme.colors.secondaryLabel,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+            )
+        }
         Text(
             text =
                 stringResource(

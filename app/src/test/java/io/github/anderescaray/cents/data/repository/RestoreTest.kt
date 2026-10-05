@@ -16,6 +16,8 @@ import io.github.anderescaray.cents.data.local.quote
 import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.local.transaction
+import io.github.anderescaray.cents.domain.model.BalanceChange
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -174,6 +176,57 @@ class RestoreTest {
 
             // Lost, it would quietly become a rent written on the 1st after all.
             assertEquals(listOf(moved), database.rulePostponementDao().all())
+        }
+
+    @Test
+    fun `a corrected balance comes back corrected, on the day it was corrected`() =
+        runTest {
+            populateRows()
+            val checking =
+                database
+                    .accountDao()
+                    .observeAll()
+                    .first()
+                    .first { it.name == "Checking" }
+                    .id
+            RoomBalanceRepository(database, clock)
+                .setBalance(
+                    checking,
+                    Money(150_000, "EUR"),
+                    BalanceChange.CORRECT_FROM_TODAY,
+                    LocalDate.of(2026, 10, 5),
+                )
+            val balanceBefore = database.accountDao().balanceOf(checking)
+            val text = BackupWriter.toJson(backups.snapshot())
+
+            wipe()
+            backups.restore(readable(text))
+
+            // Lost, the balance would quietly fall back to what the movements add up to.
+            assertEquals(balanceBefore, database.accountDao().balanceOf(checking))
+            val restored = database.balanceAdjustmentDao().all().single()
+            assertEquals(checking, restored.accountId)
+            assertEquals(LocalDate.of(2026, 10, 5), restored.date)
+        }
+
+    @Test
+    fun `a phone with corrections can be restored from a file written before them`() =
+        runTest {
+            val text = BackupWriter.toJson(populate().copy(adjustments = emptyList()))
+            val checking =
+                database
+                    .accountDao()
+                    .observeAll()
+                    .first()
+                    .first { it.name == "Checking" }
+                    .id
+            RoomBalanceRepository(database, clock)
+                .setBalance(checking, Money(1, "EUR"), BalanceChange.CORRECT_FROM_TODAY, LocalDate.of(2026, 10, 5))
+
+            backups.restore(readable(text))
+
+            // Replaced like everything else (D21), and not refused by the account they pointed at.
+            assertTrue(database.balanceAdjustmentDao().all().isEmpty())
         }
 
     @Test
@@ -338,6 +391,8 @@ class RestoreTest {
         // And before groups: none, and a movement in none.
         assertTrue(backup.groups.isEmpty())
         assertNull(backup.transactions.single().groupId)
+        // And before a balance could be corrected: none, so every balance is what it was.
+        assertTrue(backup.adjustments.isEmpty())
     }
 
     @Test
@@ -405,6 +460,7 @@ class RestoreTest {
     }
 
     private suspend fun wipe() {
+        database.balanceAdjustmentDao().deleteAll()
         database.transactionDao().deleteAll()
         database.groupDao().deleteAll()
         database.budgetDao().deleteAll()

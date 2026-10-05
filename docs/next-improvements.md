@@ -40,7 +40,8 @@ and device checks recorded. Add the implementing PR when updating its status.
 - [ ] 4. Keypad visible only while the amount is active.
 - [ ] 5. Account popup with the last-used account preselected.
 - [ ] 6. Liquid money, investments and total net worth on Home.
-- [ ] 7. Set an account's current balance, choosing the historical effect each time.
+- [ ] 7. Set an account's current balance, choosing the historical effect each time. **Built
+  and merged in #112 (2026-10-05)**; the phone check is still to do, so it stays unticked.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
 
@@ -208,7 +209,7 @@ First resolve the baseline and pending work described above. Then use one focuse
 | 1 | `fix/transaction-entry-ux` | Items 2, 3, 4, 5 and 9: header spacing, popup selectors, keypad focus, last account and broker eligibility. |
 | 2 | `feat/app-language` | Item 1: persistent language selection, compatible locale handling, notifications and currency safeguards. |
 | 3 | `feat/home-net-worth` | Item 6: the reusable Home wealth summary, using Wallet's calculation. |
-| 4 | `feat/account-balance-adjustments` | Item 7: both per-operation modes, account UI, consistent balance queries, migration and backup support. |
+| 4 | `feat/account-balance-adjustments` | Item 7: both per-operation modes, account UI, consistent balance queries, migration and backup support. **Merged as #112, ahead of its turn, at the owner's request.** |
 | 5 | `feat/group-archive` | Item 8: group availability, selectors, historical preservation, migration and backup support. |
 
 - Keep shared-component work coordinated. Do not run two form/picker branches against the same files.
@@ -241,6 +242,23 @@ First resolve the baseline and pending work described above. Then use one focuse
 - Run the project's format, static-analysis, unit-test and debug-build gates, inspect the actual
   test reports, and perform the relevant device checks. A passing JVM suite alone is not a claim
   that picker gestures, keyboard transitions or system-language behavior were verified on a phone.
+
+## Requested on 2026-10-05, after this list was written
+
+- **A notification each time capture records a movement.** The owner asked whether the app
+  announces an automatic expense or income, and wants it to. `main` does not: capture records
+  silently. The uncommitted `fix/capture-safety-and-feedback` work builds it as a *Notify after
+  capture* switch in Settings › Capture: *Expense added*, the signed amount and the account, on
+  its own channel, private on the lock screen, opening the movement when tapped, and silent for
+  ignored or duplicate notifications. **It is off by default there; the owner wants it on.** It
+  ships with that work, after #109.
+- **Amount detection the owner can check and adjust.** On `main`, a masked card number written
+  right before a currency marker (`tarjeta ****7146 €23,00`) is read as the amount, 7.146 €. The
+  same uncommitted work fixes that: masks removed first, a currency required, and two amounts
+  ignored rather than guessed. The owner also asked for detection to be editable. Two shapes were
+  offered, and the choice is not made yet: a *Try a notification* box in Settings › Capture that
+  shows what a pasted text would record and why, and editable *ignore* words (*saldo*,
+  *disponible*) so an amount after one is never taken as the payment.
 
 ## Handoff rule
 

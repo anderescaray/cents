@@ -497,6 +497,15 @@ build: nine requests the owner confirmed on 2026-10-04, and the order to build t
 backlog, and nothing in it is built yet. Take the next branch from it rather than from C3's older
 plans. `FEEDBACK.md` still outranks it.
 
+**2026-10-05: item 7 is merged, ahead of its turn (#112), and #109 has `main` merged in.** The
+owner asked for the balance first. #112 adds Room **v10** (`balance_adjustments`). It was merged
+without the `/code-review high` §7 asks for, so that is owed after the fact. The phone check is
+owed too. #109 conflicted with it on the account screen's rows; `main` was merged into
+`feat/ui-rework` (no force-push), #112's new screens took the rework's colours, badge and
+full-screen list, and the gates are green there (947 tests). The owner also asked for a
+notification on every capture and for editable amount detection: both are recorded in
+`docs/next-improvements.md`, under *Requested on 2026-10-05*.
+
 **Where the 2026-10-04 session stopped: the backlog is written down (#110), and three things come
 before it.** In this order:
 1. **#109, the UI rework (`feat/ui-rework`), is still open** and still owes its

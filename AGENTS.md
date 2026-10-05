@@ -54,3 +54,12 @@ anything a reviewer should look at first. Do not merge it: the owner merges afte
 
 Things no agent does: connect to bank APIs, add analytics or telemetry, invent a price, commit
 `local.properties` or any key, or run `fallbackToDestructiveMigration`.
+
+## Local verification notes
+
+- On Windows, if Spotless fails while reading generated paths under `app/build/spotless-clean`,
+  retry formatting and the verification commands with `--no-parallel --max-workers=1`. This
+  avoids the observed file-access race without changing the quality configuration.
+- Hilt entry points installed in `SingletonComponent` share a generated component. Give getters
+  for different bindings distinct names, such as `captureNotifier()` and `notifier()`; identical
+  method signatures with different return types fail compilation.

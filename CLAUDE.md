@@ -42,8 +42,7 @@ investment portfolio with prices pulled from the internet.
 | Charts | Vico | Compose-native charting library, actively maintained. Cartesian charts *and* a pie/donut chart, so the two Phase 2 charts need no second library |
 | Networking | OkHttp (**5.3.2**) + kotlinx.serialization | **Google Drive only**, since `feat/backup` (#69): multipart upload, list, download and delete against the Drive REST v3 surface, which is small enough that the Drive Java SDK and its Google HTTP client and Guava stack would be most of the app's size for four calls. Retrofit was planned for market data and never added: D25 closed that door. `kotlinx-serialization-json` is also declared directly: the type-safe navigation routes have always used it through navigation-compose, and the export writes a backup file with it — which is exactly the thing not to hand-roll an escaper for |
 | Drive authorization | `play-services-auth` (**22.0.0**) | The supported `AuthorizationClient`, for the single `drive.appdata` grant and a short-lived access token per operation. Nothing is stored and no client secret exists: an Android OAuth client is matched by package name and signing certificate (D22, rule 6) |
-| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for the app lock, capture's settings (which apps, their accounts, each app's words; D29) and the order of the Reports cards |
-| App lock | `androidx.biometric` (**1.1.0**, the stable line) | The `BiometricPrompt` PRD §4.7 names: a fingerprint or the device PIN, decided by the system, with the app never seeing a credential (rule 6). Pinned to stable rather than the 1.2.0 and 1.4.0 alphas; 1.1.0 is where `setAllowedAuthenticators` arrived, which is what lets the PIN stand in |
+| Preferences | DataStore (Preferences) | Modern replacement for SharedPreferences. In use for capture's settings (which apps, their accounts, each app's words; D29) and the order of the Reports cards |
 | Background work | WorkManager (**2.11.0**) | **In use since `feat/subscription-reminders`**: one daily job that asks what reminders land today, and since #69 a second, the daily Drive backup, scheduled only while its switch is on. Nothing is scheduled per reminder — a queue of alarms would be a second copy of when the rent is, and the two would drift. Reached without `androidx.hilt:hilt-work`: a plain `CoroutineWorker` asks the Hilt graph through an `@EntryPoint`, which is two fewer artifacts and no `Configuration.Provider` (rule 11) |
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
@@ -290,11 +289,9 @@ subscriptions. The restore alert ends by saying to export first (#74).
 the sum, so it can be read with the portfolio and without it. It is only a legitimate sum because
 buying spends the account's cash; an unpriced holding is left out of it and counted aloud, the
 same rule the portfolio already applies one screen down.
-**And it can be locked.** Cents asks who you are
-on a cold start and after more than half a minute away — a fingerprint or the device PIN, through
-`BiometricPrompt`, so the app never sees either (D16: no SQLCipher under it). While the lock is
-shut the app is **not composed at all** rather than covered, and nothing is drawn until the
-setting has been read.
+**It is no longer locked** (D31, 2026-10-05, #114). The fingerprint/PIN lock was built and then
+removed at the owner's request, `androidx.biometric` with it: the phone's own encryption and lock
+screen are the protection, which is still why there is no SQLCipher (D16).
 **And prices are typed in one place.** D20 settled
 that no free provider carries this portfolio's listings — and that converting from a US listing
 cannot rescue a UCITS ETF, which has no US listing to convert from — so typing is how prices get

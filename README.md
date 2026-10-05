@@ -13,7 +13,7 @@ folder in the owner's own Google Drive.
 > paragraph below was written, the app has gained transfers, an investment portfolio with closed
 > positions and net worth, recurring subscriptions that record themselves, ask for variable
 > bills, remind you before a charge and say what is still committed this month, JSON/CSV export
-> and restore, a daily automatic backup to the owner's own Google Drive, and a biometric lock.
+> and restore, and a daily automatic backup to the owner's own Google Drive.
 > Budgets, the first piece of Phase 5, landed the same day, and on 2026-09-25 groups: what a
 > trip or a job cost or earned across every category it touched, and an inbox that files what
 > was saved without a category in one tap. The same day, a charge or salary can be postponed a
@@ -119,7 +119,7 @@ parallel work demand it.
 | 0 | Project skeleton, CI, theme, navigation | **Done** |
 | 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
 | 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
-| 3 | Transfers, recurring rules and subscriptions, export/import and automatic backup to Drive, biometric lock | **Built** |
+| 3 | Transfers, recurring rules and subscriptions, export/import and automatic backup to Drive (the biometric lock was built and removed, D31) | **Built** |
 | 4 | Investment portfolio with prices and P&L | **Built** · prices are typed by hand: no free provider carries these European listings, and paying for one was declined |
 | 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | **Begun** · budgets built; the inbox and capture not started |
 | 6 | Widget, animations, Baseline Profile, accessibility | Planned |

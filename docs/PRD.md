@@ -242,7 +242,8 @@ itself. It leaves me only what a notification cannot know: what the money was fo
 
 - Export to CSV and to a full JSON backup (so I am never locked into the app).
 - Import from that backup.
-- App lock using the device fingerprint/PIN (BiometricPrompt).
+- ~~App lock using the device fingerprint/PIN (BiometricPrompt).~~ Built, then removed at the
+  owner's request (D31, 2026-10-05): the phone's own lock screen is the protection.
 - Database encryption with SQLCipher — P2.
 
 ### 4.8 Polish — P2
@@ -446,7 +447,8 @@ The strategy is detailed in [`../CLAUDE.md`](../CLAUDE.md) §7. In short:
       portfolio refreshing itself.
 - [x] ~~Is SQLCipher worth it, given the biometric lock already exists?~~ → **No** (D16). The
       device is already encrypted and no other app can read these files; the biometric lock is
-      the protection that gets built.
+      the protection that gets built. *(The lock itself was removed on 2026-10-05, D31; the
+      device's encryption and lock screen are still why SQLCipher stays out.)*
 - [x] ~~Backup strategy: manual to a file, or automatic to the user's Google Drive?~~ → **Both,
       manual first** (D15): a file the owner owns, then automatic backup as a later branch with
       its own answers about encryption and restores.

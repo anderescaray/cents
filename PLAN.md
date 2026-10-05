@@ -497,6 +497,23 @@ build: nine requests the owner confirmed on 2026-10-04, and the order to build t
 backlog, and nothing in it is built yet. Take the next branch from it rather than from C3's older
 plans. `FEEDBACK.md` still outranks it.
 
+**2026-10-05, evening: #111, #109 and #110 are merged; #113 and #114 are open.**
+- #109 had its `/code-review high`: 10 findings, 8 fixed in it with regression tests, the ninth
+  (starting words unreachable) in #113, the tenth (docs edited on a feature branch) checked
+  harmless. The owner merged it while CI could not run.
+- **CI could not run for about an hour** (from ~19:30): GitHub Actions had an open incident
+  assigning hosted runners ("The job was not acquired by Runner of type hosted"). It was not the
+  account's minutes: about 128 used in October and 919 in September, against GitHub Free's 2 000.
+  Runs cancelled by it, `main`'s for #109 included, have to be re-run once the incident clears.
+- **#113** `feat/capture-safety-and-confirmations`: the uncommitted capture work, rebuilt on #109,
+  plus the owner's two requests (ignore words, *Try a notification*), the notification on by
+  default, and the `****7146 €23` bug fixed. 987 tests locally.
+- **#114** `chore/remove-app-lock`: D31. 937 tests locally. It and #113 touch the same lines of
+  `MainActivity`, so the second to merge is rebased. After #114, `CLAUDE.md`'s dependency table
+  and §8 still describe the lock and need this branch's treatment.
+- The 2026-10-04 local work is also kept as `9de8d5d` on the local, unpushed
+  `fix/capture-safety-and-feedback`. Once #113 and #114 merge, that branch can go.
+
 **2026-10-05: item 7 is merged, ahead of its turn (#112), and #109 has `main` merged in.** The
 owner asked for the balance first. #112 adds Room **v10** (`balance_adjustments`). It was merged
 without the `/code-review high` §7 asks for, so that is owed after the fact. The phone check is

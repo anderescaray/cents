@@ -12,6 +12,10 @@ The implementation sequence below is the proposed split, not permission to start
 
 ## Before resuming implementation
 
+**Status, 2026-10-05:** points 1 and 2 below are settled. #109 is merged, and the capture work is
+#113, with the lock removal split out as #114 (D31). Next in the table below is
+`fix/transaction-entry-ux`, from `main` once #113 and #114 land.
+
 1. **Check the actual UI baseline.** At the time this plan was recorded, `main` ended at #108 and
    [UI rework PR #109](https://github.com/anderescaray/cents/pull/109), branch `feat/ui-rework`, was
    open. That PR introduces the Home/Movements/Reports/Wallet shell, horizontal category chips and

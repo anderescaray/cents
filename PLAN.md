@@ -518,7 +518,8 @@ The owner tests it on 2026-10-06; their feedback is the next work.**
 - **What the owner tests is Walk 21** in `docs/device-check.md` (`a1`–`a4`, `v1`–`v4`, `o1`,
   `q1`–`q6`). Anything it turns up goes in `FEEDBACK.md` and outranks the next branch.
 - **Next branch, after the feedback:** `fix/transaction-entry-ux` (`docs/next-improvements.md`
-  items 2, 3, 4, 5 and 9), from `main`.
+  items 2, 3, 4, 5, 9 and 10), from `main`. **Item 10 was asked for at the end of the session:**
+  a new investment can only be held in a broker account, the mirror of item 9.
 - **Local leftovers:** the branch `fix/capture-safety-and-feedback` (`9de8d5d`) is the
   2026-10-04 work, fully superseded by #113 and #114, and can be deleted.
 

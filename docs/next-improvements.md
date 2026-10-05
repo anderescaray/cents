@@ -48,6 +48,7 @@ and device checks recorded. Add the implementing PR when updating its status.
   and merged in #112 (2026-10-05)**; the phone check is still to do, so it stays unticked.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
+- [ ] 10. Offer only broker accounts when choosing where a new investment is held (2026-10-05).
 
 ## 1. App language
 
@@ -204,13 +205,31 @@ choices for transfers.
 - Do not turn a picker restriction into removal of broker accounts or rejection of internal
   investment cash movements. Audit affected entry points and make the intended scope explicit.
 
+## 10. Investments only in broker accounts
+
+**Request (2026-10-05):** the mirror of item 9. Just as a broker account is not offered for an
+ordinary income or expense, an account that is **not** a broker is not offered for an investment.
+
+- Today the holding form (`HoldingEditViewModel`) lists every account and only *preselects* a
+  broker, so a holding can be put in a current account, and its trades then spend and return that
+  account's cash. A new holding's account choice offers broker accounts only.
+- Trades take their holding's account, so restricting the holding is what restricts the cash.
+  Check the other entry points that create a holding or a trade and apply the same rule.
+- **Existing history is kept.** A holding already in a non-broker account keeps it, is still shown
+  and editable, and its account stays displayed when the form opens; nothing is reassigned
+  silently. The same rule as item 9's broker-linked movements and item 8's archived groups.
+- **No broker account yet:** offer to create one rather than leaving an empty, unusable picker or
+  silently choosing another kind of account.
+- Archived broker accounts are not offered for a new holding, as today.
+- Wallet, net worth, the portfolio and transfers into and out of broker accounts are unchanged.
+
 ## Proposed implementation sequence
 
 First resolve the baseline and pending work described above. Then use one focused PR per branch:
 
 | Order | Proposed branch | Scope |
 |---|---|---|
-| 1 | `fix/transaction-entry-ux` | Items 2, 3, 4, 5 and 9: header spacing, popup selectors, keypad focus, last account and broker eligibility. |
+| 1 | `fix/transaction-entry-ux` | Items 2, 3, 4, 5, 9 and 10: header spacing, popup selectors, keypad focus, last account, and both sides of the broker rule (no broker for an income or expense, only a broker for an investment). |
 | 2 | `feat/app-language` | Item 1: persistent language selection, compatible locale handling, notifications and currency safeguards. |
 | 3 | `feat/home-net-worth` | Item 6: the reusable Home wealth summary, using Wallet's calculation. |
 | 4 | `feat/account-balance-adjustments` | Item 7: both per-operation modes, account UI, consistent balance queries, migration and backup support. **Merged as #112, ahead of its turn, at the owner's request.** |

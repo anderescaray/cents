@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.data.export
 
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
@@ -82,6 +83,7 @@ object BackupWriter {
                     "budgets" to backup.budgets.toArray(::budgetJson),
                     "groups" to backup.groups.toArray(::groupJson),
                     "rulePostponements" to backup.postponements.toArray(::postponementJson),
+                    "balanceAdjustments" to backup.adjustments.toArray(::adjustmentJson),
                 ),
             )
         return PRETTY.encodeToString(JsonElement.serializer(), root)
@@ -181,6 +183,14 @@ object BackupWriter {
             "ruleId" to JsonPrimitive(row.ruleId),
             "occurrence" to JsonPrimitive(row.occurrence),
             "postponedTo" to JsonPrimitive(row.postponedTo),
+        )
+
+    private fun adjustmentJson(row: BackupAdjustment) =
+        mapOf(
+            "accountId" to JsonPrimitive(row.accountId),
+            "amountMinor" to JsonPrimitive(row.amountMinor),
+            "currency" to JsonPrimitive(row.currency),
+            "date" to JsonPrimitive(row.date),
         )
 
     private fun budgetJson(row: BackupBudget) =

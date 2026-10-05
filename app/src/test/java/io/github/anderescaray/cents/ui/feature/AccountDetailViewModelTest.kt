@@ -8,6 +8,7 @@ import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.data.repository.RoomBalanceRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
 import io.github.anderescaray.cents.domain.model.Money
@@ -78,6 +79,7 @@ class AccountDetailViewModelTest {
                         clock,
                     ),
                 transactionRepository = transactions,
+                balanceRepository = RoomBalanceRepository(database, clock),
                 deletedTransactions = deleted,
                 savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
                 today = Today(clock),

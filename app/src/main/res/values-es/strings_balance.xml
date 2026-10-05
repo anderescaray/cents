@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="balance_opening_hint">Lo que tenía antes de su primer movimiento. Para que coincida con lo que tiene hoy, usa Ajustar el saldo actual en la cuenta.</string>
+    <string name="balance_set_action">Ajustar el saldo actual</string>
+    <string name="balance_title">Ajustar saldo</string>
+    <string name="balance_new_label">Lo que tiene la cuenta ahora</string>
+    <string name="balance_current">Saldo en Cents</string>
+    <string name="balance_difference">Diferencia</string>
+    <string name="balance_already_there">Ese ya es el saldo.</string>
+    <string name="balance_mode_header">Saldos anteriores</string>
+    <string name="balance_mode_correct_title">Dejarlos como estaban</string>
+    <string name="balance_mode_correct_detail">Una corrección de %1$s con fecha %2$s. Los saldos anteriores a ese día no cambian.</string>
+    <string name="balance_mode_correct_generic">Una corrección con fecha de hoy. Los saldos anteriores a hoy no cambian.</string>
+    <string name="balance_mode_rebase_title">Cambiar el saldo inicial</string>
+    <string name="balance_mode_rebase_detail">De %1$s a %2$s. Todos los saldos anteriores, y la gráfica del saldo, se mueven %3$s.</string>
+    <string name="balance_mode_rebase_generic">Todos los saldos anteriores, y la gráfica del saldo, se mueven también.</string>
+    <string name="balance_mode_footer">Ninguna de las dos es un ingreso ni un gasto, así que los informes, los presupuestos y lo ahorrado no cambian. No se modifica ni se elimina ningún movimiento.</string>
+    <string name="balance_write_failed">No se ha podido guardar el saldo. Vuelve a intentarlo.</string>
+    <string name="balance_correction_row">Corrección de saldo</string>
+    <string name="balance_correction_remove_title">¿Quitar esta corrección?</string>
+    <string name="balance_correction_remove_message">El saldo vuelve a %1$s. Ningún movimiento cambia.</string>
+    <string name="balance_correction_remove_confirm">Quitar</string>
+</resources>

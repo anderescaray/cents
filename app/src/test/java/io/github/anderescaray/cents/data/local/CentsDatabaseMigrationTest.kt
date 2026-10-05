@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
@@ -22,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 
 /**
@@ -457,6 +459,48 @@ class CentsDatabaseMigrationTest {
                 // configuration, and goes with it.
                 database.recurringRuleDao().delete(database.recurringRuleDao().findById(ruleId)!!)
                 assertTrue(database.rulePostponementDao().all().isEmpty())
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a version 9 database keeps its balances and gains somewhere to correct them`() =
+        runTest {
+            createVersion(9)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                assertEquals("the money written at v9 should survive", 2_550L, moneyIn(database))
+                assertEquals(
+                    "with no corrections the balance is what v9 showed",
+                    10_000L - 2_550L,
+                    database.accountDao().balanceOf(accountId),
+                )
+
+                database.balanceAdjustmentDao().insert(
+                    BalanceAdjustmentEntity(
+                        accountId = accountId,
+                        amountMinor = 1_000,
+                        currency = "EUR",
+                        date = LocalDate.of(2026, 10, 5),
+                        createdAt = Instant.parse("2026-10-05T10:00:00Z"),
+                    ),
+                )
+                assertEquals(10_000L - 2_550L + 1_000L, database.accountDao().balanceOf(accountId))
+
+                // `RESTRICT` arriving through the migration: an account's removal decides what
+                // becomes of its corrections, so the database refuses to decide it alone.
+                assertThrows(SQLiteConstraintException::class.java) {
+                    runBlocking { database.accountDao().deleteById(accountId) }
+                }
             } finally {
                 database.close()
             }

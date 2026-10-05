@@ -551,6 +551,10 @@ interface TransactionDao {
      * **Transfer legs count here**, unlike in every income-and-expense query on this DAO.
      * This is a balance, and the money really moved: leaving the legs out would start the
      * line from a number the Accounts tab disagrees with.
+     *
+     * **So do balance corrections dated before [from]**, for the same reason: the Accounts tab
+     * counts them, and they are kept out of `transactions` precisely so that only balance queries
+     * like this one see them.
      */
     @Query(
         """
@@ -572,6 +576,11 @@ interface TransactionDao {
                    FROM transactions t
                    WHERE t.date < :from
                      AND (:accountId IS NULL OR t.accountId = :accountId)
+               ) + (
+                   SELECT COALESCE(SUM(b.amountMinor), 0)
+                   FROM balance_adjustments b
+                   WHERE b.date < :from
+                     AND (:accountId IS NULL OR b.accountId = :accountId)
                )
         """,
     )
@@ -596,26 +605,33 @@ interface TransactionDao {
      * line is flat through it, which is the truth: the money changed pockets. Narrowed to one
      * account it is a real step up or down, which is also the truth, and dropping it would
      * draw a balance that ends somewhere the account is not.
+     *
+     * **A balance correction is a step on its own day**, counted in [DayNet.movementCount] like a
+     * movement, because a period whose only change was a correction is not an empty one.
      */
     @Query(
         """
-        SELECT t.date AS date,
-               COALESCE(
-                   SUM(
-                       CASE t.kind
-                           WHEN 'INCOME' THEN t.amountMinor
-                           WHEN 'EXPENSE' THEN -t.amountMinor
-                           ELSE 0
-                       END
-                   ),
-                   0
-               ) AS netMinor,
+        SELECT m.date AS date,
+               COALESCE(SUM(m.signedMinor), 0) AS netMinor,
                COUNT(*) AS movementCount
-        FROM transactions t
-        WHERE t.date BETWEEN :from AND :to
-          AND (:accountId IS NULL OR t.accountId = :accountId)
-        GROUP BY t.date
-        ORDER BY t.date
+        FROM (
+            SELECT t.date AS date,
+                   CASE t.kind
+                       WHEN 'INCOME' THEN t.amountMinor
+                       WHEN 'EXPENSE' THEN -t.amountMinor
+                       ELSE 0
+                   END AS signedMinor
+            FROM transactions t
+            WHERE t.date BETWEEN :from AND :to
+              AND (:accountId IS NULL OR t.accountId = :accountId)
+            UNION ALL
+            SELECT b.date AS date, b.amountMinor AS signedMinor
+            FROM balance_adjustments b
+            WHERE b.date BETWEEN :from AND :to
+              AND (:accountId IS NULL OR b.accountId = :accountId)
+        ) m
+        GROUP BY m.date
+        ORDER BY m.date
         """,
     )
     fun observeDailyNet(

@@ -31,6 +31,7 @@ val ALL_MIGRATIONS: Array<Migration>
             MIGRATION_6_7,
             MIGRATION_7_8,
             MIGRATION_8_9,
+            MIGRATION_9_10,
         )
 
 /**
@@ -312,6 +313,36 @@ val MIGRATION_8_9 =
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_rule_postponements_ruleId` ON `rule_postponements` (`ruleId`)",
+            )
+        }
+    }
+
+/**
+ * v9 to v10 — somewhere to correct an account's balance from a day on.
+ *
+ * Purely additive. An install made before corrections existed has none, so every balance it
+ * shows is exactly what it showed before: opening balance plus movements.
+ */
+val MIGRATION_9_10 =
+    object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `balance_adjustments` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`accountId` INTEGER NOT NULL, " +
+                    "`amountMinor` INTEGER NOT NULL, " +
+                    "`currency` TEXT NOT NULL, " +
+                    "`date` INTEGER NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE RESTRICT )",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_balance_adjustments_accountId` " +
+                    "ON `balance_adjustments` (`accountId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_balance_adjustments_date` ON `balance_adjustments` (`date`)",
             )
         }
     }

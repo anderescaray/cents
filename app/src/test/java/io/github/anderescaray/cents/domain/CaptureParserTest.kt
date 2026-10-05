@@ -213,6 +213,16 @@ class CaptureParserTest {
         )
     }
 
+    @Test
+    fun `two identical amounts in one body are still two purchases, not one`() {
+        // Only a title repeating the body counts once; within the body nothing is merged.
+        assertNull(CaptureParser.amountIn("Compra 23 €. Otra compra 23 €", IGNORE))
+        assertEquals(
+            CaptureParser.Amount(2_300, "EUR"),
+            CaptureParser.amountIn("Compra 23 €${CaptureParser.TITLE_SEPARATOR}23 €", IGNORE),
+        )
+    }
+
     private fun read(text: String) =
         CaptureParser.read(text, CaptureSettings.DEFAULT_EXPENSE_WORDS, CaptureSettings.DEFAULT_INCOME_WORDS, IGNORE)
 

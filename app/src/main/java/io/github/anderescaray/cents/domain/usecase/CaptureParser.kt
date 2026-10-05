@@ -72,6 +72,30 @@ object CaptureParser {
         text: String,
         ignoreWords: Collection<String> = emptyList(),
     ): AmountReading {
+        // The body, then the title when a notification has one (see [TITLE_SEPARATOR]).
+        val parts = text.split(TITLE_SEPARATOR)
+        val body = amountsIn(parts.first(), ignoreWords)
+        // **A title that repeats the body's amount repeats the payment**: *23,40 €* over
+        // *Compra por 23,40 € en Amazon* is one payment, not two. A different amount in the title
+        // is still a second amount, and two in the body are still two, so a fee beside a payment,
+        // or two purchases of the same price, are not guessed between.
+        val title = parts.drop(1).flatMap { amountsIn(it, ignoreWords) }.filterNot { it != null && it in body }
+        val amounts = body + title
+        return when (amounts.size) {
+            0 -> AmountReading.None
+            1 -> amounts.single()?.let { AmountReading.One(it) } ?: AmountReading.None
+            else -> AmountReading.Several(amounts.filterNotNull())
+        }
+    }
+
+    /**
+     * Each number in [text] that names a currency, in order, as an amount, or null where its
+     * markers disagree or its digits do not read. Numbers led in by an ignore word are left out.
+     */
+    private fun amountsIn(
+        text: String,
+        ignoreWords: Collection<String>,
+    ): List<Amount?> {
         val unmasked = MASKED_NUMBER.replace(text, "|")
         val numbers =
             (
@@ -80,8 +104,8 @@ object CaptureParser {
             ).groupBy { it.range }
                 .values
                 .sortedBy { it.first().range.first }
-        val kept =
-            numbers.filterIndexed { index, markers ->
+        return numbers
+            .filterIndexed { index, markers ->
                 val from =
                     numbers
                         .getOrNull(index - 1)
@@ -90,13 +114,20 @@ object CaptureParser {
                         ?.last
                         ?.plus(1) ?: 0
                 !ledInByIgnoreWord(unmasked.substring(from, markers.first().range.first), ignoreWords)
-            }
-        return when (kept.size) {
-            0 -> AmountReading.None
-            1 -> amountOf(unmasked, kept.single())?.let { AmountReading.One(it) } ?: AmountReading.None
-            else -> AmountReading.Several(kept.mapNotNull { amountOf(unmasked, it) })
-        }
+            }.map { amountOf(unmasked, it) }
     }
+
+    /**
+     * Where a notification's body ends and its title begins, in the text capture reads.
+     *
+     * A control character no app writes, so the parser can tell the two apart: a title often
+     * repeats the body's amount, and only knowing which is which lets that count once. Shown as a
+     * space wherever the text is shown ([readable]).
+     */
+    const val TITLE_SEPARATOR = '\u001F'
+
+    /** The text as a person reads it: body and title separated by a space. */
+    fun readable(text: String): String = text.replace(TITLE_SEPARATOR, ' ')
 
     /**
      * The whole reading of one notification, word and amount, the way capture does it.

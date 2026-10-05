@@ -151,7 +151,13 @@ class RoomCaptureRecorder
                                 currency = plan.account.currency,
                                 date = postedAt.atZone(clock.zone).toLocalDate(),
                                 // The whole text, so the merchant or the sender is in it (D29).
-                                note = text.trim().replace(WHITESPACE, " ").clippedTo(MAX_NOTE_LENGTH),
+                                note =
+                                    CaptureParser
+                                        .readable(
+                                            text,
+                                        ).trim()
+                                        .replace(WHITESPACE, " ")
+                                        .clippedTo(MAX_NOTE_LENGTH),
                                 createdAt = now,
                                 updatedAt = now,
                             ),

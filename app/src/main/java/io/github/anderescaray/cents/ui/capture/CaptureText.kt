@@ -1,5 +1,7 @@
 package io.github.anderescaray.cents.ui.capture
 
+import io.github.anderescaray.cents.domain.usecase.CaptureParser
+
 /**
  * What of a notification capture reads, whether to read it at all, and what it has already read.
  *
@@ -26,13 +28,16 @@ object CaptureText {
     ): Boolean = enabled && packageName != ownPackage && packageName in chosen && !ongoing && !groupSummary
 
     /**
-     * The fullest body a notification carries, then its title, as one line.
+     * The fullest body a notification carries, then its title, as one text.
      *
      * **The body comes first**, so the note leads with the payment rather than the app's title.
      * The expanded text wins over the short one, which is often cut before the amount; the lines
      * of a notification that bundles several movements are read when there is no expanded text.
-     * The parser rejects multiple amounts rather than guessing which is the payment, including
-     * a balance in the title. Null when there is nothing to read.
+     *
+     * The two are joined by `CaptureParser.TITLE_SEPARATOR` rather than a space, so the parser
+     * knows which is which: a title that repeats the body's amount is the same payment, and any
+     * other second amount, a balance in the title included, is still not guessed at. Null when
+     * there is nothing to read.
      */
     fun of(
         title: CharSequence?,
@@ -46,7 +51,7 @@ object CaptureText {
             .map { it.toString().trim() }
             .filter { it.isNotEmpty() }
             .distinct()
-            .joinToString(" ")
+            .joinToString(CaptureParser.TITLE_SEPARATOR.toString())
             .ifEmpty { null }
     }
 }

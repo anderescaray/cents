@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.ui.capture.CaptureText
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -197,6 +198,20 @@ class CaptureRecorderTest {
                 recorder.record(BANK_APP, "Pago de 23,40 € y comisión de 1,50 €", AT_10),
             )
             assertEquals(0, movements())
+        }
+
+    @Test
+    fun `a title repeating the amount is the same payment, recorded once with a readable note`() =
+        runTest {
+            val text =
+                requireNotNull(CaptureText.of(title = "23,40 €", text = "Compra por 23,40 € en Amazon", bigText = null))
+
+            val outcome = recorder().record(BANK_APP, text, AT_10)
+
+            assertTrue(outcome is CaptureOutcome.Recorded)
+            assertEquals(Money(2_340, "EUR"), (outcome as CaptureOutcome.Recorded).amount)
+            val note = database.transactionDao().findById(outcome.transactionId)?.note
+            assertEquals("Compra por 23,40 € en Amazon 23,40 €", note)
         }
 
     @Test

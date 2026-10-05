@@ -36,21 +36,16 @@ interface AccountDao {
      * A transfer's legs are movements like any other here, and deliberately so: a balance is
      * where the money is, and a transfer moved it. Only the income-and-expense reports leave
      * them out — see `TransactionDao`.
+     *
+     * **Balance corrections count here too**, and only in queries like this one, that compute a
+     * balance. They live in their own table so that nothing reading `transactions` for income or
+     * expenses can count one by mistake (`BalanceAdjustmentEntity`).
      */
     @Query(
         """
         SELECT a.id AS accountId,
                a.currency AS currency,
-               a.openingBalanceMinor + COALESCE(
-                   SUM(
-                       CASE t.kind
-                           WHEN 'INCOME' THEN t.amountMinor
-                           WHEN 'EXPENSE' THEN -t.amountMinor
-                           ELSE 0
-                       END
-                   ),
-                   0
-               ) AS balanceMinor
+               $BALANCE_OF_A AS balanceMinor
         FROM accounts a
         LEFT JOIN transactions t ON t.accountId = a.id
         GROUP BY a.id
@@ -61,22 +56,40 @@ interface AccountDao {
 
     @Query(
         """
-        SELECT a.openingBalanceMinor + COALESCE(
-                   SUM(
-                       CASE t.kind
-                           WHEN 'INCOME' THEN t.amountMinor
-                           WHEN 'EXPENSE' THEN -t.amountMinor
-                           ELSE 0
-                       END
-                   ),
-                   0
-               )
+        SELECT $BALANCE_OF_A
         FROM accounts a
         LEFT JOIN transactions t ON t.accountId = a.id
         WHERE a.id = :accountId
+        GROUP BY a.id
         """,
     )
     fun observeBalance(accountId: Long): Flow<Long?>
+
+    /**
+     * The same balance, read once: what setting the balance measures its difference against,
+     * inside the transaction that writes it, so a movement captured in between cannot be missed.
+     */
+    @Query(
+        """
+        SELECT $BALANCE_OF_A
+        FROM accounts a
+        LEFT JOIN transactions t ON t.accountId = a.id
+        WHERE a.id = :accountId
+        GROUP BY a.id
+        """,
+    )
+    suspend fun balanceOf(accountId: Long): Long?
+
+    /**
+     * Moves the opening balance by [deltaMinor] in SQL, so the read and the write cannot be split
+     * by another write. Every balance this account has ever had moves with it, which is the point
+     * of rebasing rather than correcting from a day on.
+     */
+    @Query("UPDATE accounts SET openingBalanceMinor = openingBalanceMinor + :deltaMinor WHERE id = :id")
+    suspend fun addToOpeningBalance(
+        id: Long,
+        deltaMinor: Long,
+    )
 
     @Query("SELECT COUNT(*) FROM accounts")
     suspend fun countAll(): Int
@@ -130,3 +143,28 @@ interface AccountDao {
         archived: Boolean,
     )
 }
+
+/**
+ * One account's balance, for a query over `accounts a LEFT JOIN transactions t` grouped by
+ * account: its opening balance, plus its movements, plus its balance corrections.
+ *
+ * The corrections are a scalar sub-select rather than a second join, which would repeat every
+ * movement once per correction and multiply the sum.
+ */
+private const val BALANCE_OF_A =
+    """
+    a.openingBalanceMinor + COALESCE(
+        SUM(
+            CASE t.kind
+                WHEN 'INCOME' THEN t.amountMinor
+                WHEN 'EXPENSE' THEN -t.amountMinor
+                ELSE 0
+            END
+        ),
+        0
+    ) + (
+        SELECT COALESCE(SUM(b.amountMinor), 0)
+        FROM balance_adjustments b
+        WHERE b.accountId = a.id
+    )
+    """

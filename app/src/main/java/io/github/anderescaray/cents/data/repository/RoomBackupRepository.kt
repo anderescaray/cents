@@ -2,9 +2,11 @@ package io.github.anderescaray.cents.data.repository
 
 import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
@@ -64,6 +66,7 @@ class RoomBackupRepository
                     budgets = budgets(),
                     groups = groups(),
                     postponements = postponements(),
+                    adjustments = adjustments(),
                 )
             }
 
@@ -146,7 +149,7 @@ class RoomBackupRepository
          * **The order is the foreign keys' order, in both directions.** Movements point at
          * accounts, categories, trades and rules; trades point at holdings; rules point at
          * accounts and categories, reminders and postponements at rules, budgets at categories, and movements at
-         * groups too; so the emptying
+         * groups too; balance corrections point at accounts; so the emptying
          * goes from the leaves inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
          * would turn every restore into a failure, so it is written down rather than discovered.
@@ -156,6 +159,7 @@ class RoomBackupRepository
          */
         override suspend fun restore(backup: Backup) {
             database.withTransaction {
+                database.balanceAdjustmentDao().deleteAll()
                 database.transactionDao().deleteAll()
                 database.groupDao().deleteAll()
                 database.budgetDao().deleteAll()
@@ -171,6 +175,17 @@ class RoomBackupRepository
                 val now = clock.instant()
                 backup.accounts.forEach { database.accountDao().insert(it.toEntity(now)) }
                 backup.categories.forEach { database.categoryDao().insert(it.toEntity(now)) }
+                backup.adjustments.forEach {
+                    database.balanceAdjustmentDao().insert(
+                        BalanceAdjustmentEntity(
+                            accountId = it.accountId,
+                            amountMinor = it.amountMinor,
+                            currency = it.currency,
+                            date = LocalDate.ofEpochDay(it.date),
+                            createdAt = now,
+                        ),
+                    )
+                }
                 backup.rules.forEach { database.recurringRuleDao().insert(it.toEntity(now)) }
                 backup.reminders.forEach { database.ruleReminderDao().insert(it.toEntity()) }
                 backup.postponements.forEach {
@@ -220,6 +235,16 @@ class RoomBackupRepository
                     ruleId = it.ruleId,
                     occurrence = it.occurrence.toEpochDay(),
                     postponedTo = it.postponedTo.toEpochDay(),
+                )
+            }
+
+        private suspend fun adjustments() =
+            database.balanceAdjustmentDao().all().map {
+                BackupAdjustment(
+                    accountId = it.accountId,
+                    amountMinor = it.amountMinor,
+                    currency = it.currency,
+                    date = it.date.toEpochDay(),
                 )
             }
 

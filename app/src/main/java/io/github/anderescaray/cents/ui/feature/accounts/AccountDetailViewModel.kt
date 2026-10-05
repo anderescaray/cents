@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
+import io.github.anderescaray.cents.domain.model.BalanceAdjustment
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.repository.AccountRepository
+import io.github.anderescaray.cents.domain.repository.BalanceRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
@@ -28,10 +30,14 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
-/** One day of movements inside a single account. */
+/**
+ * One day inside a single account: its movements, and any balance corrections dated that day,
+ * which are listed after them because they are not movements (`BalanceAdjustment`).
+ */
 data class AccountDay(
     val date: LocalDate,
     val items: List<TransactionDetails>,
+    val corrections: List<BalanceAdjustment> = emptyList(),
 )
 
 data class AccountDetailUiState(
@@ -66,6 +72,7 @@ class AccountDetailViewModel
     constructor(
         accountRepository: AccountRepository,
         private val transactionRepository: TransactionRepository,
+        private val balanceRepository: BalanceRepository,
         private val deletedTransactions: DeletedTransactionBuffer,
         savedStateHandle: SavedStateHandle,
         today: Today,
@@ -99,22 +106,39 @@ class AccountDetailViewModel
                     }
                 }
 
+        /**
+         * The rows behind the balance, by day: every movement, and every correction. Without the
+         * corrections the number at the top could no longer be traced to the rows below it.
+         */
+        private val days: Flow<List<AccountDay>> =
+            combine(
+                transactionRepository.observeAccountTransactionDetails(accountId),
+                balanceRepository.observeAdjustments(accountId),
+            ) { movements, corrections ->
+                val movementsByDay = movements.groupBy { it.transaction.date }
+                val correctionsByDay = corrections.groupBy { it.date }
+                (movementsByDay.keys + correctionsByDay.keys)
+                    .map { date ->
+                        AccountDay(
+                            date = date,
+                            items = movementsByDay[date].orEmpty(),
+                            corrections = correctionsByDay[date].orEmpty(),
+                        )
+                    }.sortedByDescending { it.date }
+            }
+
         val uiState: StateFlow<AccountDetailUiState> =
             combine(
                 account,
-                transactionRepository.observeAccountTransactionDetails(accountId),
+                days,
                 monthSummary,
                 deletedTransactions.deleted,
                 today.date,
-            ) { account, movements, summary, deleted, day ->
+            ) { account, days, summary, deleted, day ->
                 AccountDetailUiState(
                     account = account,
                     monthSummary = summary,
-                    days =
-                        movements
-                            .groupBy { it.transaction.date }
-                            .map { (date, items) -> AccountDay(date, items) }
-                            .sortedByDescending { it.date },
+                    days = days,
                     today = day,
                     isLoading = false,
                     undoableDeletion = deleted,
@@ -135,6 +159,11 @@ class AccountDetailViewModel
         }
 
         fun dismissUndo() = deletedTransactions.clear()
+
+        /** Asked for behind a confirmation: the balance goes back to what it was without it. */
+        fun removeCorrection(id: Long) {
+            viewModelScope.launch { balanceRepository.deleteAdjustment(id) }
+        }
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L

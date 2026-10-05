@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="balance_opening_hint">What it held before its first movement. To match what it holds today, use Set current balance on the account.</string>
+    <string name="balance_set_action">Set current balance</string>
+    <string name="balance_title">Set balance</string>
+    <string name="balance_new_label">What the account holds now</string>
+    <string name="balance_current">Balance in Cents</string>
+    <string name="balance_difference">Difference</string>
+    <string name="balance_already_there">That is already the balance.</string>
+    <string name="balance_mode_header">Earlier balances</string>
+    <string name="balance_mode_correct_title">Keep them as they were</string>
+    <string name="balance_mode_correct_detail">A correction of %1$s dated %2$s. Balances before that day do not change.</string>
+    <string name="balance_mode_correct_generic">A correction dated today. Balances before today do not change.</string>
+    <string name="balance_mode_rebase_title">Change the opening balance</string>
+    <string name="balance_mode_rebase_detail">From %1$s to %2$s. Every earlier balance, and the balance chart, moves by %3$s.</string>
+    <string name="balance_mode_rebase_generic">Every earlier balance, and the balance chart, moves too.</string>
+    <string name="balance_mode_footer">Neither is an income or an expense, so reports, budgets and what you saved stay the same. No movement is changed or deleted.</string>
+    <string name="balance_write_failed">The balance could not be saved. Try again.</string>
+    <string name="balance_correction_row">Balance correction</string>
+    <string name="balance_correction_remove_title">Remove this correction?</string>
+    <string name="balance_correction_remove_message">The balance goes back to %1$s. No movement changes.</string>
+    <string name="balance_correction_remove_confirm">Remove</string>
+</resources>

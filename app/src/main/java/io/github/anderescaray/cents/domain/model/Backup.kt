@@ -37,13 +37,19 @@ data class Backup(
     val groups: List<BackupGroup> = emptyList(),
     /** Empty in a file written before a charge could be postponed, which a restore reads as none. */
     val postponements: List<BackupPostponement> = emptyList(),
+    /**
+     * Empty in a file written before an account's balance could be corrected, which a restore
+     * reads as none — so every balance comes back as opening balance plus movements, exactly as
+     * that version of the app showed it.
+     */
+    val adjustments: List<BackupAdjustment> = emptyList(),
 ) {
     /** How many rows are in it, for a screen that wants to say what it just wrote. */
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
                 holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size + groups.size +
-                postponements.size
+                postponements.size + adjustments.size
 }
 
 data class BackupAccount(
@@ -157,6 +163,19 @@ data class BackupBudget(
     val categoryId: Long,
     val amountMinor: Long,
     val currency: String,
+)
+
+/**
+ * A correction to one account's balance from [date] on. [amountMinor] is signed, unlike a
+ * movement's, because there is no kind to carry the direction. Nothing points at it, so its id is
+ * not kept.
+ */
+data class BackupAdjustment(
+    val accountId: Long,
+    val amountMinor: Long,
+    val currency: String,
+    /** Epoch day, like every other date in the file. */
+    val date: Long,
 )
 
 /** An occasion that cuts across categories. Movements point at its id, so it keeps one. */

@@ -30,16 +30,13 @@ import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSheetAction
-import io.github.anderescaray.cents.ui.components.CentsSwitch
 import io.github.anderescaray.cents.ui.components.IconBadge
-import io.github.anderescaray.cents.ui.lock.AppLockSettingsUiState
-import io.github.anderescaray.cents.ui.lock.AppLockSettingsViewModel
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
  * Settings, opened from Home's header: what organises the money (categories, subscriptions,
- * groups, capture) in one card, then the lock, and the data — Drive, export and restore.
+ * groups, capture) in one card, then the data — Drive, export and restore.
  */
 @Composable
 fun SettingsScreen(
@@ -50,12 +47,10 @@ fun SettingsScreen(
     onOpenCapture: () -> Unit = {},
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
-    lockViewModel: AppLockSettingsViewModel = hiltViewModel(),
     driveViewModel: DriveBackupViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
     val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
-    val lock by lockViewModel.uiState.collectAsStateWithLifecycle()
     val drive by driveViewModel.uiState.collectAsStateWithLifecycle()
     DriveBackupAuthorization(drive, driveViewModel)
     SettingsContent(
@@ -64,8 +59,6 @@ fun SettingsScreen(
         onBack = onBack,
         onOpenGroups = onOpenGroups,
         onOpenCapture = onOpenCapture,
-        lock = lock,
-        onLockChanged = lockViewModel::setEnabled,
         export = export,
         restore = restore,
         drive = drive,
@@ -135,8 +128,6 @@ internal fun SettingsContent(
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
     restoreActions: RestoreActions = RestoreActions(),
-    lock: AppLockSettingsUiState = AppLockSettingsUiState(),
-    onLockChanged: (Boolean) -> Unit = {},
     drive: DriveBackupUiState = DriveBackupUiState(),
     driveActions: DriveBackupActions = DriveBackupActions(),
 ) {
@@ -176,7 +167,6 @@ internal fun SettingsContent(
                 )
             }
         }
-        item { SecuritySection(lock = lock, onLockChanged = onLockChanged) }
         item(key = "data") {
             DataSection(
                 onExport = exportActions.onStart.takeIf { canStartData },
@@ -211,44 +201,6 @@ private fun DisclosureRow(
         onClick = onClick,
         modifier = modifier,
     )
-}
-
-/**
- * The app lock, and what it can honestly offer on this phone.
- *
- * With no fingerprint and no PIN set up there is nothing for the app to ask, so the switch is
- * shown **off and unusable with a line saying why** rather than hidden. A setting that vanishes
- * for invisible reasons is worse than one that explains itself — the same argument the account
- * deletion sheet makes about an option it cannot offer.
- */
-@Composable
-private fun SecuritySection(
-    lock: AppLockSettingsUiState,
-    onLockChanged: (Boolean) -> Unit,
-) {
-    CentsListSection(
-        header = stringResource(R.string.settings_section_security),
-        footer =
-            stringResource(
-                if (lock.available) {
-                    R.string.settings_biometric_lock_footer
-                } else {
-                    R.string.settings_biometric_unavailable
-                },
-            ),
-    ) {
-        CentsListRow(
-            title = stringResource(R.string.settings_biometric_lock),
-            trailing = {
-                CentsSwitch(
-                    checked = lock.enabled,
-                    onCheckedChange = onLockChanged,
-                    enabled = lock.available,
-                )
-            },
-            showSeparator = false,
-        )
-    }
 }
 
 /**

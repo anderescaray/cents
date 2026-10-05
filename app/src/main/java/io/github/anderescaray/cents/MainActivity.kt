@@ -5,28 +5,22 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.anderescaray.cents.ui.CentsApp
-import io.github.anderescaray.cents.ui.lock.AppLockGate
 import io.github.anderescaray.cents.ui.notifications.ReminderNotifier
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.Today
 import javax.inject.Inject
 
-/**
- * A `FragmentActivity` rather than a plain `ComponentActivity`, and only because of the lock:
- * `BiometricPrompt` puts up a fragment of its own and will take nothing less. It is a superclass
- * of what was here before, so nothing else changes.
- */
 @AndroidEntryPoint
-class MainActivity : FragmentActivity() {
+class MainActivity : ComponentActivity() {
     /**
      * Whether we were opened by a notification asking for an amount.
      *
@@ -89,11 +83,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             CentsTheme {
-                // Outside the app rather than over it: while the lock is shut, nothing of the
-                // app is composed at all.
-                AppLockGate {
-                    CentsApp(openPending = openPending)
-                }
+                CentsApp(openPending = openPending)
             }
         }
     }

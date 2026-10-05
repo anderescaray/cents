@@ -492,6 +492,44 @@ code.** Both are instructions rather than reading material:
 
 See C6.
 
+**Then [`docs/next-improvements.md`](docs/next-improvements.md)**, before choosing what to
+build: nine requests the owner confirmed on 2026-10-04, and the order to build them in. It is a
+backlog, and nothing in it is built yet. Take the next branch from it rather than from C3's older
+plans. `FEEDBACK.md` still outranks it.
+
+**2026-10-05: item 7 is merged, ahead of its turn (#112), and #109 has `main` merged in.** The
+owner asked for the balance first. #112 adds Room **v10** (`balance_adjustments`). It was merged
+without the `/code-review high` §7 asks for, so that is owed after the fact. The phone check is
+owed too. #109 conflicted with it on the account screen's rows; `main` was merged into
+`feat/ui-rework` (no force-push), #112's new screens took the rework's colours, badge and
+full-screen list, and the gates are green there (947 tests). The owner also asked for a
+notification on every capture and for editable amount detection: both are recorded in
+`docs/next-improvements.md`, under *Requested on 2026-10-05*.
+
+**Where the 2026-10-04 session stopped: the backlog is written down (#110), and three things come
+before it.** In this order:
+1. **#109, the UI rework (`feat/ui-rework`), is still open** and still owes its
+   `/code-review high` (§7). The backlog is written against its screens, so it lands first.
+2. **Uncommitted work sits in `C:\dev\cents`**, on `fix/capture-safety-and-feedback` (cut from
+   #108). It holds safer amount parsing in capture, an optional notification for each capture,
+   and the app lock **removed**. It is in no commit and on no remote, so it exists only on that
+   PC: commit it to its branch before anything else happens in that folder.
+   - **It shares 19 files with #109**: the capture settings, screen and view model, `CentsApp`,
+     `SettingsScreen`, both strings files, and `AppLockGate`, which #109 edits and this deletes.
+     Once #109 merges, this has to be rebased by hand.
+   - **Removing the lock goes back on PRD §4.7 and on D16**, which turned SQLCipher down because
+     the lock was the protection being built. `DECISIONS.md` has no entry for it yet. Add one
+     with the owner's answer before it ships.
+   - **Its copies of `docs/next-improvements.md` and of the `CLAUDE.md` link are #110's**, line
+     endings apart: drop them from that work. Its `AGENTS.md` adds two notes beyond #110's lines
+     (Spotless on Windows, Hilt entry-point getter names), and those are worth keeping.
+3. **Then the backlog**, `fix/transaction-entry-ux` first, as its table orders.
+
+#110 changed only Markdown, and its CI still failed three times. The owner read the blocked merge
+as a conflict, and it was not one: a race in `CaptureViewModelsTest`, fixed in #111 (C4).
+**A red check on a PR that touches no code is a test problem, not a conflict.** Read the failing
+test in the CI log before re-running anything.
+
 Then take the first unchecked branch in C3 and work it end to end:
 `branch → implement → tests → gates → PR → wait for CI → hand back`.
 
@@ -2313,6 +2351,35 @@ parallelism.
     across midnight keeps the date it was opened with, which is what someone typing expects.
   - **To walk:** leave Transactions open past midnight. *Today* becomes *Yesterday* within a
     minute, and on the 1st the month summary starts again.
+- **The view-model tests let Room's threads into the view model, and that can race.**
+  - **Why.** `Dispatchers.Main` in the tests is an `UnconfinedTestDispatcher`, so a view model
+    that collects a Room flow can be running on Room's thread when the test acts. The state the
+    action produces may then land a moment after the call returns. On the phone everything runs
+    on the main thread, so this is a test hazard, not an app bug.
+  - **The rule.** After an action, wait for the whole state it should produce with
+    `uiState.first { … }` (or Turbine's `awaitStateThat`). Never read `uiState.value` on the
+    spot when the view model combines a Room flow. A bare `first { }` is unbounded, so a state
+    that never comes fails at `runTest`'s one-minute timeout. Turbine's wait gives up after 3 s,
+    at the line that waited.
+  - **Fixed in #111.** `CaptureViewModelsTest` read `value` on the spot. It failed CI three runs
+    in a row on 2026-10-04, on #110, a branch that changed only Markdown, while `main` and local
+    runs passed.
+  - **Still exposed:** `CategoryEditViewModelTest` › *the same name is free on the other kind*
+    timed out once in those three runs. `setName` there computes `nameTaken` from names that a
+    Room collector writes on another thread. If the keystroke and the first load pass each
+    other, the flag is left wrong for good, so waiting longer would not help. If it fails again,
+    that is the cause, not the branch: re-run the job with `gh run rerun <id> --failed`, and give
+    the fix a branch of its own.
+  - **The fix at the root, not yet tried.** #111's review pointed at `createTestDatabase()`
+    (`TestDatabaseFactory.kt`). It leaves Room on its own executors. Pinning the test database's
+    query context to the test thread (`setQueryCoroutineContext`, or direct executors) would
+    close every one of these races at once, the category one included. It touches every Room
+    test, and Robolectric's test thread counts as the main thread, so it needs a branch and a
+    full run of its own.
+  - **Also from that review:** `CaptureViewModel.moveTo` finds the app being edited through the
+    derived `uiState.value`, not through `editingPackage` as `requestStop` does. If the state
+    lags, it returns without saving and says nothing. That cannot happen on the phone, where
+    both run on the main thread, but reading `editingPackage` would make the two consistent.
 
 ## C5. What only the owner can do
 

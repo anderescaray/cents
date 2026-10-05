@@ -6,23 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +27,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.SpendingBreakdown
@@ -47,22 +38,15 @@ import io.github.anderescaray.cents.ui.components.CentsChip
 import io.github.anderescaray.cents.ui.components.CentsRing
 import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.RingSlice
-import io.github.anderescaray.cents.ui.components.RoundIconButton
-import io.github.anderescaray.cents.ui.components.ScreenHeader
-import io.github.anderescaray.cents.ui.components.arrive
 import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.inbox.InboxItem
-import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
-import io.github.anderescaray.cents.ui.feature.inbox.InboxViewModel
 import io.github.anderescaray.cents.ui.feature.inbox.inboxChipsTag
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.relativeLabel
 import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
 
 // The cards Home is made of: a waiting movement, the bills waiting for a figure, and the month.
 

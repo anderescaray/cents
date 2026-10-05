@@ -66,7 +66,9 @@ fun ReportsScreen(
     ReportsScreen(
         state = state,
         budgets = budgets,
-        shown = layout.shown,
+        // No card until the stored arrangement is known: the default one would flash hidden
+        // cards in and reshuffle the rest a frame later.
+        shown = if (layout.loaded) layout.shown else emptyList(),
         onOpenBudgets = onOpenBudgets,
         onCustomize = onCustomize,
         onSelectPreset = viewModel::selectPreset,
@@ -249,8 +251,8 @@ private fun BudgetsCard(
                 onClick = onOpenBudgets,
             )
         } else {
-            budgets.rows.forEachIndexed { index, row ->
-                BudgetRow(row = row, last = index == budgets.rows.lastIndex, onClick = onOpenBudgets)
+            budgets.rows.forEach { row ->
+                BudgetRow(row = row, onClick = onOpenBudgets)
             }
         }
     }

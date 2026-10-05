@@ -160,7 +160,7 @@ fun AnimatedMoney(
 
     LaunchedEffect(money.minorUnits) {
         if (money.minorUnits == target) return@LaunchedEffect
-        val current = from + ((target - from) * progress.value).roundToLong()
+        val current = between(from, target, progress.value)
         from = current
         target = money.minorUnits
         if (reduce) {
@@ -170,7 +170,7 @@ fun AnimatedMoney(
             progress.animateTo(1f, tween(COUNT_MS, easing = CountEasing))
         }
     }
-    val shown = from + ((target - from) * progress.value).roundToLong()
+    val shown = between(from, target, progress.value)
     val finalText = MoneyFormatter.format(money, withSign = withSign)
     Text(
         text = MoneyFormatter.format(money.copy(minorUnits = shown), withSign = withSign),
@@ -180,3 +180,17 @@ fun AnimatedMoney(
         modifier = modifier.semantics { contentDescription = finalText },
     )
 }
+
+/**
+ * The figure [progress] of the way from [from] to [target], in cents.
+ *
+ * Through a `Double`, whose 53 bits hold any difference in cents exactly, never a `Float`: a Long
+ * times a Float is a Float, and 24 bits turn a change of 20 000 001 cents into 20 000 000. At the
+ * end it is [target] itself, so the figure at rest is the amount and not the arithmetic's version
+ * of it (`CLAUDE.md` rule 1).
+ */
+internal fun between(
+    from: Long,
+    target: Long,
+    progress: Float,
+): Long = if (progress >= 1f) target else from + ((target - from).toDouble() * progress).roundToLong()

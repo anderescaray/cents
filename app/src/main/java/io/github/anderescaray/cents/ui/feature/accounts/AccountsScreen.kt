@@ -96,6 +96,23 @@ fun AccountsScreen(
                 onDeleteAccount = viewModel.removal::request,
             )
         }
+
+        // The Invested tile is the way to the portfolio, and it is not drawn without a net worth
+        // (accounts in two currencies) or without active accounts. The portfolio has no tab of
+        // its own any more, so it gets a row instead of becoming unreachable.
+        if (state.showEmptyState || state.netWorth == null) {
+            item(key = "portfolio") {
+                CentsListSection {
+                    CentsListRow(
+                        title = stringResource(R.string.tab_investments),
+                        showChevron = true,
+                        showSeparator = false,
+                        onClick = onOpenInvestments,
+                        modifier = Modifier.testTag(PORTFOLIO_ROW_TAG),
+                    )
+                }
+            }
+        }
     }
 
     RemovalDialogs(state = removal, removal = viewModel.removal)
@@ -119,7 +136,6 @@ private fun LazyListScope.netWorthSection(
     onOpenInvestments: () -> Unit,
 ) {
     item(key = "net-worth") {
-        val invested = netWorth.invested
         val total = netWorth.total
         Column(
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
@@ -154,29 +170,35 @@ private fun LazyListScope.netWorthSection(
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
-                WorthTile(
-                    iconRes = R.drawable.ic_wallet,
-                    color = CentsTheme.colors.accent,
-                    label = stringResource(R.string.net_worth_in_accounts),
-                    value = MoneyFormatter.format(netWorth.inAccounts),
-                    modifier = Modifier.weight(1f),
-                )
-                WorthTile(
-                    iconRes = R.drawable.ic_trend_up,
-                    color = CentsTheme.colors.positive,
-                    label = stringResource(R.string.net_worth_invested),
-                    value =
-                        invested?.let {
-                            MoneyFormatter.format(
-                                it,
-                            )
-                        } ?: stringResource(R.string.investments_no_price),
-                    onClick = onOpenInvestments,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            WorthTiles(netWorth, onOpenInvestments)
         }
+    }
+}
+
+/** What is in accounts and what is invested, side by side, the second leading to the portfolio. */
+@Composable
+private fun WorthTiles(
+    netWorth: NetWorth,
+    onOpenInvestments: () -> Unit,
+) {
+    val invested = netWorth.invested
+    Row(horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
+        WorthTile(
+            iconRes = R.drawable.ic_wallet,
+            color = CentsTheme.colors.accent,
+            label = stringResource(R.string.net_worth_in_accounts),
+            value = MoneyFormatter.format(netWorth.inAccounts),
+            negative = netWorth.inAccounts.isNegative,
+            modifier = Modifier.weight(1f),
+        )
+        WorthTile(
+            iconRes = R.drawable.ic_trend_up,
+            color = CentsTheme.colors.positive,
+            label = stringResource(R.string.net_worth_invested),
+            value = invested?.let { MoneyFormatter.format(it) } ?: stringResource(R.string.investments_no_price),
+            onClick = onOpenInvestments,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -188,6 +210,8 @@ private fun WorthTile(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+    /** Drawn in the warning colour, as an overdrawn total is everywhere else. */
+    negative: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
     CentsCard(modifier = modifier, onClick = onClick) {
@@ -208,7 +232,7 @@ private fun WorthTile(
         Text(
             text = value,
             style = CentsTheme.typography.headline,
-            color = CentsTheme.colors.label,
+            color = if (negative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
             maxLines = 1,
         )
     }
@@ -336,3 +360,4 @@ internal fun AccountDot(color: Color) {
 
 private const val DOT_SIZE = 12
 internal const val ADD_ACCOUNT_TAG = "addAccount"
+internal const val PORTFOLIO_ROW_TAG = "walletPortfolio"

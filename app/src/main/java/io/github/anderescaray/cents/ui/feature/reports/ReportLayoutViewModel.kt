@@ -16,9 +16,12 @@ import io.github.anderescaray.cents.ui.feature.reports.section.SpendingByWeekday
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingSection
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 /**
@@ -58,6 +61,11 @@ data class ReportCardChoice(
 @Immutable
 data class ReportLayoutUiState(
     val layout: ReportLayout = ReportLayout(),
+    /**
+     * False until the stored arrangement has been read. Drawing the default one meanwhile is what
+     * made hidden cards flash in and the order reshuffle a frame later.
+     */
+    val loaded: Boolean = false,
 ) {
     /** The cards in the owner's order, hidden ones included: what the customise screen lists. */
     val choices: List<ReportCardChoice>
@@ -83,24 +91,34 @@ class ReportLayoutViewModel
         val uiState: StateFlow<ReportLayoutUiState> =
             repository
                 .observe()
-                .map(::ReportLayoutUiState)
+                .map { ReportLayoutUiState(layout = it, loaded = true) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ReportLayoutUiState())
 
         fun move(
             card: ReportCard,
             by: Int,
-        ) = save(uiState.value.layout.move(card.key, by, ReportCard.keys))
+        ) = change { it.move(card.key, by, ReportCard.keys) }
 
         fun setVisible(
             card: ReportCard,
             visible: Boolean,
-        ) = save(uiState.value.layout.withVisible(card.key, visible))
+        ) = change { it.withVisible(card.key, visible) }
 
-        fun reset() = save(ReportLayout())
+        fun reset() = change { ReportLayout() }
 
-        private fun save(layout: ReportLayout) {
-            viewModelScope.launch { repository.save(layout) }
+        /**
+         * Changes the stored arrangement rather than the one on screen, one change at a time. Two
+         * quick taps would otherwise each start from the arrangement before the other, and the
+         * second save would undo the first; a tap before the first read would start from the
+         * default and wipe the saved order.
+         */
+        private fun change(edit: (ReportLayout) -> ReportLayout) {
+            viewModelScope.launch {
+                saving.withLock { repository.save(edit(repository.observe().first())) }
+            }
         }
+
+        private val saving = Mutex()
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L

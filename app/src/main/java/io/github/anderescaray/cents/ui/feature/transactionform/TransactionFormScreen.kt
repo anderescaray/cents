@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -278,6 +279,9 @@ private fun AmountHeader(
         color = if (state.kind == TransactionKind.INCOME) CentsTheme.colors.positiveText else CentsTheme.colors.label,
         textAlign = TextAlign.Center,
         maxLines = 1,
+        // Shrinks rather than clips: 12.345,67 € on a narrow phone, or a large system font, must
+        // still show every digit of what is about to be saved.
+        autoSize = TextAutoSize.StepBased(minFontSize = AMOUNT_MIN_SIZE.sp, maxFontSize = AMOUNT_SIZE.sp),
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -338,6 +342,7 @@ private fun TransactionFormUiState.confirmRes(): Int =
     }
 
 private const val AMOUNT_SIZE = 52
+private const val AMOUNT_MIN_SIZE = 20
 private val NOTE_RADIUS = CentsDimens.keyRadius
 
 internal const val NOTE_FIELD_TAG = "transactionNote"

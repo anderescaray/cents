@@ -98,7 +98,7 @@ fun CentsApp(
             CentsTabBar(
                 items = tabs,
                 selectedKey = currentTab?.name.orEmpty(),
-                onSelect = { key -> navController.switchToTab(TopLevelTab.valueOf(key).destination) },
+                onSelect = { key -> navController.selectTab(TopLevelTab.valueOf(key), currentTab) },
                 onAdd = { navController.openNewMovement(TransactionKind.EXPENSE) },
                 addLabel = stringResource(R.string.action_add_movement),
             )

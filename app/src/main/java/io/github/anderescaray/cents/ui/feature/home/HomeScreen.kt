@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,8 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -36,29 +32,17 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
-import io.github.anderescaray.cents.domain.model.SpendingBreakdown
 import io.github.anderescaray.cents.domain.model.TransactionKind
-import io.github.anderescaray.cents.ui.components.AnimatedMoney
-import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsCard
-import io.github.anderescaray.cents.ui.components.CentsChip
-import io.github.anderescaray.cents.ui.components.CentsRing
 import io.github.anderescaray.cents.ui.components.IconBadge
-import io.github.anderescaray.cents.ui.components.RingSlice
 import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.ScreenHeader
 import io.github.anderescaray.cents.ui.components.arrive
-import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.tappable
-import io.github.anderescaray.cents.ui.feature.inbox.InboxItem
 import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
 import io.github.anderescaray.cents.ui.feature.inbox.InboxViewModel
-import io.github.anderescaray.cents.ui.feature.inbox.inboxChipsTag
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
-import io.github.anderescaray.cents.ui.util.MoneyFormatter
-import io.github.anderescaray.cents.ui.util.relativeLabel
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -338,6 +322,3 @@ private fun LazyListScope.toCategorize(
         )
     }
 }
-
-private const val RING_WIDTH = 0.62f
-private const val PERCENT = 100

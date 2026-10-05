@@ -100,12 +100,8 @@ private fun LazyListScope.budgetRows(
             header = monthLabel(state.month),
             footer = stringResource(R.string.budgets_footer),
         ) {
-            state.rows.forEachIndexed { index, row ->
-                BudgetRow(
-                    row = row,
-                    last = index == state.rows.lastIndex,
-                    onClick = { onEditBudget(row.budget.id) },
-                )
+            state.rows.forEach { row ->
+                BudgetRow(row = row, onClick = { onEditBudget(row.budget.id) })
             }
         }
     }
@@ -118,7 +114,6 @@ private fun LazyListScope.budgetRows(
 @Composable
 internal fun BudgetRow(
     row: BudgetProgress,
-    last: Boolean,
     onClick: () -> Unit,
 ) {
     val tint = row.status.tint()
@@ -148,7 +143,7 @@ internal fun BudgetRow(
                     .padding(
                         start = CentsDimens.rowHorizontalPadding,
                         end = CentsDimens.rowHorizontalPadding,
-                        bottom = if (last) CentsDimens.spacingL else CentsDimens.spacingL,
+                        bottom = CentsDimens.spacingL,
                     ).fillMaxWidth()
                     .height(BAR_HEIGHT.dp),
         )

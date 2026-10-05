@@ -107,6 +107,23 @@ internal fun NavHostController.switchToTab(destination: Destination) {
 }
 
 /**
+ * A tap on the capsule. Another tab switches to it, keeping where it was left; **the tab already
+ * open goes back to its first screen**, the way iOS does. Without that, Home could never be got
+ * back to once Settings, which Home owns, was opened from it: the tab restores its stack, and a
+ * second tap did nothing.
+ */
+internal fun NavHostController.selectTab(
+    tab: TopLevelTab,
+    current: TopLevelTab?,
+) {
+    if (tab == current) {
+        popBackStack(tab.destination, inclusive = false)
+    } else {
+        switchToTab(tab.destination)
+    }
+}
+
+/**
  * A drill-down arrives at the movements list itself, never at whatever was left open on top
  * of it. `switchToTab` restores the tab's saved stack, and that stack can be holding the
  * filters screen — which is precisely where you go to read the filter a previous drill-down

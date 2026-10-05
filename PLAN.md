@@ -497,6 +497,32 @@ build: nine requests the owner confirmed on 2026-10-04, and the order to build t
 backlog, and nothing in it is built yet. Take the next branch from it rather than from C3's older
 plans. `FEEDBACK.md` still outranks it.
 
+**Where the 2026-10-05 session stopped (night): everything is merged and installed on the Pixel.
+The owner tests it on 2026-10-06; their feedback is the next work.**
+- **Merged on 2026-10-05:** #112 (set an account's balance, **Room v10**), #111, #109 (the rework,
+  with its review fixes), #110, #114 (the lock removed, D31), #115, and #113 (capture: the
+  `****7146 €23` bug, the notification after each capture on by default, ignore words, *Try a
+  notification*, the title read apart from the body, and its review fixes). #109, #113 and #114
+  had `/code-review high` before merging; **#112 did not, and still owes it**.
+- **CI:** GitHub Actions had an outage from 19:11 UTC (no runner was assigned), so #109, #113 and
+  #114 were merged on local gates alone (982 tests for #113). Once runners came back, `main` went
+  green at `45882dc` (#114 and #115) and at `f08f20a` (#113), so everything merged today has
+  passed CI after all.
+- **The Pixel 11 Pro** (Android 17) has `main` at `f08f20a`, installed 2026-10-05 23:32 over the
+  2026-10-01 build with the same debug key. The database migrated 9 → 10 with every row kept
+  (4 accounts, 15 categories, 42 movements, 2 groups). A copy of the app's data from just before
+  is at `C:\dev\cents-device-backups\2026-10-05-before-v10\app-data.tar`, outside the repo.
+  **No build older than v10 can be installed on it any more** without uninstalling.
+- **Capture is not switched on on the phone yet**: Cents has no *Notification access* and no
+  notification permission. The owner turns both on from Settings › Capture as part of the walk.
+- **What the owner tests is Walk 21** in `docs/device-check.md` (`a1`–`a4`, `v1`–`v4`, `o1`,
+  `q1`–`q6`). Anything it turns up goes in `FEEDBACK.md` and outranks the next branch.
+- **Next branch, after the feedback:** `fix/transaction-entry-ux` (`docs/next-improvements.md`
+  items 2, 3, 4, 5, 9 and 10), from `main`. **Item 10 was asked for at the end of the session:**
+  a new investment can only be held in a broker account, the mirror of item 9.
+- **Local leftovers:** the branch `fix/capture-safety-and-feedback` (`9de8d5d`) is the
+  2026-10-04 work, fully superseded by #113 and #114, and can be deleted.
+
 **2026-10-05, evening: #111, #109 and #110 are merged; #113 and #114 are open.**
 - #109 had its `/code-review high`: 10 findings, 8 fixed in it with regression tests, the ninth
   (starting words unreachable) in #113, the tenth (docs edited on a feature branch) checked

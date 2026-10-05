@@ -320,13 +320,21 @@ the inbox PRD §4.6 asks for before any notification capture feeds it.
 the owner chooses are read, the owner's editable words decide expense or income, the amount is
 the one in the text, and each match lands uncategorized in the app's account, the same payment
 within a minute once (D29). Nothing is read until the owner grants *Notification access*.
+**And it tells you, and can be checked** (#113): each capture posts a notification (*Expense
+added*, the amount, the account), on by default. A masked card number is never an amount, an
+amount must name its currency, a title repeating the body's amount is one payment, and an amount
+led in by an **ignore word** (*saldo*, *balance*) is skipped. **Try a notification** reads a pasted
+title and text exactly as capture does and says what it would record, or why not.
+**And a balance can be set to what the account really holds** (#112, **Room v10**): either a
+correction dated today, which leaves every earlier balance alone, or a new opening balance,
+which moves them all; chosen every time, and neither is an income or an expense.
 **And a charge or a salary can wait a few days** (#97, **Room v9**, D28): a rule's next
 occurrence, or a variable bill or salary already waiting, is moved 1–14 days, never as far as the
 next one, recorded on the new day and announced that morning, while the rule's own schedule stays
 put. The same day brought the **accessibility pass** (#96): TalkBack roles and headings, 48 dp
 targets, and text that grows with the system font. It also stopped the *Income* and *Expenses*
 filters listing transfer legs (#95).
-919 tests run on the JVM, so CI covers the database and the UI without a device.
+982 tests run on the JVM, so CI covers the database and the UI without a device.
 
 **Two files carry everything that passes between the owner and the agent, and both are read
 at the start of every session, before any code:**

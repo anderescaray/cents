@@ -505,9 +505,9 @@ The owner tests it on 2026-10-06; their feedback is the next work.**
   notification*, the title read apart from the body, and its review fixes). #109, #113 and #114
   had `/code-review high` before merging; **#112 did not, and still owes it**.
 - **CI:** GitHub Actions had an outage from 19:11 UTC (no runner was assigned), so #109, #113 and
-  #114 were merged on local gates alone (982 tests for #113). `main` went green again at `45882dc`
-  (#114 and #115). **First thing next session: check that `main`'s run for `f08f20a` (#113) is
-  green**, and re-run it with `gh run rerun <id>` if it was cancelled.
+  #114 were merged on local gates alone (982 tests for #113). Once runners came back, `main` went
+  green at `45882dc` (#114 and #115) and at `f08f20a` (#113), so everything merged today has
+  passed CI after all.
 - **The Pixel 11 Pro** (Android 17) has `main` at `f08f20a`, installed 2026-10-05 23:32 over the
   2026-10-01 build with the same debug key. The database migrated 9 → 10 with every row kept
   (4 accounts, 15 categories, 42 movements, 2 groups). A copy of the app's data from just before

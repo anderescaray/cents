@@ -1070,6 +1070,9 @@ version, and again change nothing.
 
 ## Walk 9 — the lock (`feat/biometric-lock`)
 
+> **Not to be walked.** The lock was removed at the owner's request on 2026-10-05 (D31, #114).
+> The steps stay below as the record of what was built.
+
 Added 2026-09-17. Short, and the one walk where getting it wrong locks you out of your own app —
 so read `l5` before you start.
 

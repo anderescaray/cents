@@ -497,6 +497,23 @@ build: nine requests the owner confirmed on 2026-10-04, and the order to build t
 backlog, and nothing in it is built yet. Take the next branch from it rather than from C3's older
 plans. `FEEDBACK.md` still outranks it.
 
+**2026-10-05, evening: #111, #109 and #110 are merged; #113 and #114 are open.**
+- #109 had its `/code-review high`: 10 findings, 8 fixed in it with regression tests, the ninth
+  (starting words unreachable) in #113, the tenth (docs edited on a feature branch) checked
+  harmless. The owner merged it while CI could not run.
+- **CI could not run for about an hour** (from ~19:30): GitHub Actions had an open incident
+  assigning hosted runners ("The job was not acquired by Runner of type hosted"). It was not the
+  account's minutes: about 128 used in October and 919 in September, against GitHub Free's 2 000.
+  Runs cancelled by it, `main`'s for #109 included, have to be re-run once the incident clears.
+- **#113** `feat/capture-safety-and-confirmations`: the uncommitted capture work, rebuilt on #109,
+  plus the owner's two requests (ignore words, *Try a notification*), the notification on by
+  default, and the `****7146 €23` bug fixed. 987 tests locally.
+- **#114** `chore/remove-app-lock`: D31. 937 tests locally. It and #113 touch the same lines of
+  `MainActivity`, so the second to merge is rebased. After #114, `CLAUDE.md`'s dependency table
+  and §8 still describe the lock and need this branch's treatment.
+- The 2026-10-04 local work is also kept as `9de8d5d` on the local, unpushed
+  `fix/capture-safety-and-feedback`. Once #113 and #114 merge, that branch can go.
+
 **2026-10-05: item 7 is merged, ahead of its turn (#112), and #109 has `main` merged in.** The
 owner asked for the balance first. #112 adds Room **v10** (`balance_adjustments`). It was merged
 without the `/code-review high` §7 asks for, so that is owed after the fact. The phone check is
@@ -873,7 +890,7 @@ unmerged one.
 | Export | Settings writes the app out to a file the owner keeps: **JSON** carrying every table with the schema version that wrote it, or **CSV** of the movements for a spreadsheet. Through the system picker, so the app asks for no storage permission and nothing leaves the phone. Since #72 the JSON carries the subscriptions and their reminders too |
 | Net worth | The Accounts tab says what the owner has in three numbers — **in accounts**, **invested**, and **net worth** — because D19 asked to read it with the portfolio and without it. They only add up because a purchase spends the account's cash; an unpriced holding is left out and counted aloud |
 | Restore | A backup file read back in, replacing everything (D21), behind a confirmation naming what arrives and what goes. Older files are read, newer ones refused, a damaged one turned away whole — and the round trip is pinned by a test that exports, wipes and restores |
-| App lock | Cents asks who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
+| App lock *(removed 2026-10-05, D31, #114)* | Cents asked who you are on a cold start, and again after more than half a minute away. A fingerprint or the device PIN, through `BiometricPrompt` — the app never sees either. While it is shut the app is **not composed at all**, rather than covered |
 | Prices | Every open holding priced from **one screen** — one date for the lot, a row left empty left alone, and what is already stored shown as the placeholder. Typing is how prices get in, because no free provider carries these listings (D20) |
 | Recurring | Rent, Netflix and the salary record themselves. A rule is a **template**: each launch it writes whatever has fallen due, once, and the movements it makes are ordinary from that moment on. Settings › Subscriptions lists them with **what they come to per month and per year** — the figure the screen exists for — and a cancelled subscription is **stopped**, never erased. Room v5 |
 | Variable bills | A subscription whose amount changes — the electricity — is marked **ask me the amount**, and what the app refuses to guess waits on the Subscriptions screen instead of being invented. Several are answered in one sitting, each recorded **on the day it fell due** rather than the day it was answered; *there was no bill that month* is its own gesture, because it is not a zero |

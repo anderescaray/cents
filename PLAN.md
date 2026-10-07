@@ -497,8 +497,9 @@ build: ten requests the owner confirmed from 2026-10-04 on, and the order to bui
 is merged (#112) and items 2–5, 9 and 10 are in #117; none is ticked until a phone has seen it.
 Take the next branch from it rather than from C3's older plans. `FEEDBACK.md` still outranks it.
 
-**Where the 2026-10-07 session stopped: `fix/transaction-entry-ux` is open as #117, reviewed and
-green, waiting for the owner to merge it.**
+**Where the 2026-10-07 session stopped: `fix/transaction-entry-ux` is #117, reviewed and green,
+and merges before this docs branch. #112 has had its review, and its findings are the next
+branch.**
 - **#117** builds `docs/next-improvements.md` items **2, 3, 4, 5, 9 and 10**:
   - Filters is a round button beside **+** on Movements.
   - The category and the account are chosen from a sheet (`CentsPickerSheet`, new), one row each,
@@ -511,13 +512,27 @@ green, waiting for the owner to merge it.**
 - **Review:** `/code-review high` raised 10 findings and 9 were fixed in the PR. The tenth is a
   question for the owner, **D32**: whether subscriptions and capture should refuse brokers too, and
   how a dividend gets in.
-- **Gates:** 1014 tests locally (982 on `main`). CI passed on the first commit; check the second.
+- **Gates:** 1014 tests locally (982 on `main`). CI passed on both commits.
 - **The owner still owes Walk 21** (the 2026-10-05 build) and now **Walk 22** for #117. The Pixel
   still runs `f08f20a`: #117 was not installed, so Walk 21 is walked on the build it was written for.
-- **#112 still owes its `/code-review high`.**
+- **#112 had its `/code-review high` on 2026-10-07, after its merge.** It raised 9 findings, and none
+  is something Walk 21 would run into. The one that matters is about deleting an account. When its
+  movements are **moved** to another account, its balance corrections go with them, but its opening
+  balance does not. A correction that only fixed the opening then lands in the other account and
+  moves its balance (and net worth) by money it never had. An account deleted **empty** loses its
+  corrections with it, so the two paths disagree. The small ones:
+  - The balance screen falls back to `"EUR"` while it loads (rule 2).
+  - Removing a correction has no undo and no error handling (rule 7).
+  - `runCatching` around the save also catches cancellation.
+  - The removal alert is held in `remember`, so a rotation closes it.
+  - Derived values are computed in composables (§5).
+  - The backup mapper for the table sits outside `BackupMappers.kt`.
+  - A correction is measured against the all-time balance, so a movement dated in the future skews
+    it. That needs a future-dated movement, which is rare.
 - **Next, once #117 merges:** this docs branch's checklist notes become ticks only after Walk 22.
-  The next branch is `feat/app-language` (item 1), then `feat/home-net-worth` (item 6), then
-  `feat/group-archive` (item 8, a Room migration).
+  The next branch is **`fix/balance-adjustments-review`**, with #112's findings. Then come
+  `feat/app-language` (item 1), `feat/home-net-worth` (item 6) and `feat/group-archive` (item 8, a
+  Room migration).
 - **Local leftovers**, not deleted because nobody asked: the branches
   `fix/capture-safety-and-feedback` and `docs/session-2026-10-05` (merged as #116).
 

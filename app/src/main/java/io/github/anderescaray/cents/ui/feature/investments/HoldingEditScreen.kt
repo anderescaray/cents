@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.ui.components.CentsAlert
+import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsTextField
@@ -37,6 +38,7 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 @Composable
 fun HoldingEditScreen(
     onDone: () -> Unit,
+    onCreateBrokerAccount: () -> Unit,
     viewModel: HoldingEditViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,7 +82,7 @@ fun HoldingEditScreen(
         ) {
             item(key = "identity") { IdentitySection(state, viewModel) }
             item(key = "class") { AssetClassSection(state, viewModel) }
-            item(key = "account") { AccountSection(state, viewModel) }
+            item(key = "account") { AccountSection(state, viewModel, onCreateBrokerAccount) }
             item(key = "note") { NoteSection(state, viewModel) }
         }
     }
@@ -133,11 +135,30 @@ private fun AssetClassSection(
     }
 }
 
+/**
+ * Only broker accounts, and an existing holding's own account whatever it is (§10). With no broker
+ * yet, the one row there is makes one, rather than leaving an empty list to save nothing from.
+ */
 @Composable
 private fun AccountSection(
     state: HoldingEditUiState,
     viewModel: HoldingEditViewModel,
+    onCreateBrokerAccount: () -> Unit,
 ) {
+    if (state.needsBrokerAccount) {
+        CentsListSection(
+            header = stringResource(R.string.holding_field_account),
+            footer = stringResource(R.string.holding_account_none_footer),
+        ) {
+            CentsListRow(
+                title = stringResource(R.string.holding_account_new_broker),
+                showChevron = true,
+                showSeparator = false,
+                onClick = onCreateBrokerAccount,
+            )
+        }
+        return
+    }
     CentsListSection(
         header = stringResource(R.string.holding_field_account),
         footer = stringResource(R.string.holding_field_account_footer),

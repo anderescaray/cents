@@ -59,13 +59,32 @@ class AccountEditViewModelTest {
         }
     }
 
-    private fun editorFor(accountId: Long = Destination.AccountEdit.NEW) =
-        viewModels.keep(
-            AccountEditViewModel(
-                accountRepository = accounts,
-                savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
-            ),
-        )
+    private fun editorFor(
+        accountId: Long = Destination.AccountEdit.NEW,
+        type: AccountType? = null,
+    ) = viewModels.keep(
+        AccountEditViewModel(
+            accountRepository = accounts,
+            savedStateHandle =
+                SavedStateHandle(
+                    buildMap {
+                        put("accountId", accountId)
+                        if (type != null) put("type", type)
+                    },
+                ),
+        ),
+    )
+
+    @Test
+    fun `an account made from a holding with nowhere to go starts as a broker`() =
+        runTest {
+            val editor = editorFor(type = AccountType.BROKER)
+
+            editor.uiState.test {
+                assertEquals(AccountType.BROKER, awaitItem().type)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     @Test
     fun `a new account is stored with the opening balance typed in euros`() =

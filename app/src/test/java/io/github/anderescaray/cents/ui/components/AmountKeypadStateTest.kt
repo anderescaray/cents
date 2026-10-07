@@ -53,6 +53,17 @@ class AmountKeypadStateTest {
     }
 
     @Test
+    fun `anything else answered on the form puts it away, and the amount brings it back`() {
+        val state = AmountKeypadState(shown = true)
+
+        state.hide()
+        assertFalse(state.isShown)
+
+        state.showForAmount()
+        assertTrue(state.isShown)
+    }
+
+    @Test
     fun `it survives being saved and restored`() {
         val state = AmountKeypadState(shown = false)
         state.showForAmount()

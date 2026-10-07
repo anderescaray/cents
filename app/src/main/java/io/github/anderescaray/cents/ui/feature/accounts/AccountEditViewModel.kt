@@ -69,11 +69,9 @@ class AccountEditViewModel
         private val accountRepository: AccountRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val accountId: Long? =
-            savedStateHandle
-                .toRoute<Destination.AccountEdit>()
-                .accountId
-                .takeIf { it != Destination.AccountEdit.NEW }
+        private val route = savedStateHandle.toRoute<Destination.AccountEdit>()
+
+        private val accountId: Long? = route.accountId.takeIf { it != Destination.AccountEdit.NEW }
 
         // The currency is known without asking the database — it is the device's — so it is
         // set here rather than in load(). Reaching it through a suspending load left a
@@ -84,7 +82,7 @@ class AccountEditViewModel
                 // What the device says money is called here. An existing account keeps whatever it was
                 // created with, so an install that predates D2 holding a second currency is left as
                 // it is rather than silently restated: the amounts in it are real.
-                AccountEditUiState(isNew = accountId == null, currency = deviceCurrency()),
+                AccountEditUiState(isNew = accountId == null, type = route.type, currency = deviceCurrency()),
             )
 
         val uiState: StateFlow<AccountEditUiState> = form.asStateFlow()

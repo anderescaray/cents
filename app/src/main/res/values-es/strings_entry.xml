@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El selector que se abre sobre un formulario: una lista larga, elegida con un toque -->
+    <string name="picker_search">Buscar</string>
+    <string name="picker_no_matches">Nada coincide con «%1$s»</string>
+
+    <!-- Los selectores de categoría y cuenta del formulario de movimientos -->
+    <string name="form_category_none">Ninguna</string>
+    <string name="form_category_clear">Sin categoría</string>
+    <string name="form_category_new">Nueva categoría</string>
+    <string name="form_account_new">Nueva cuenta</string>
+    <string name="form_account_none_offered">Crea una cuenta</string>
+    <string name="form_account_brokers_footer">Las cuentas de bróker no aparecen aquí: el dinero entra y sale de ellas con una transferencia.</string>
+
+    <!-- El formulario de una posición, donde solo se ofrece una cuenta de bróker -->
+    <string name="holding_account_new_broker">Nueva cuenta de bróker</string>
+    <string name="holding_account_none_footer">Una posición vive en una cuenta de bróker y aún no hay ninguna. Crea una y pasa dinero a ella con una transferencia.</string>
+</resources>

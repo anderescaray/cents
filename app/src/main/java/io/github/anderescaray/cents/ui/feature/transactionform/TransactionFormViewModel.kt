@@ -12,8 +12,11 @@ import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.holdsInvestments
+import io.github.anderescaray.cents.domain.model.takesIncomeAndExpenses
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
+import io.github.anderescaray.cents.domain.repository.EntryDefaultsRepository
 import io.github.anderescaray.cents.domain.repository.GroupRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
@@ -39,7 +42,16 @@ import javax.inject.Inject
 data class TransactionFormUiState(
     val kind: TransactionKind = TransactionKind.EXPENSE,
     val amountInput: String = AmountEntry.EMPTY,
+    /**
+     * The accounts the picker offers: every one that can take an income or an expense — not a
+     * broker, not archived — plus the one an existing movement is already in, whatever it is, so
+     * that opening it to fix the note does not move it (`docs/next-improvements.md` §9).
+     */
     val accounts: List<Account> = emptyList(),
+    /** Whether any account exists at all. None means the first one is still to be made. */
+    val hasAccounts: Boolean = false,
+    /** Brokers exist and are not offered, so the picker says where they went. */
+    val brokersLeftOut: Boolean = false,
     val categories: List<Category> = emptyList(),
     val selectedAccountId: Long? = null,
     val selectedCategoryId: Long? = null,
@@ -105,6 +117,7 @@ class TransactionFormViewModel
     constructor(
         private val transactionRepository: TransactionRepository,
         private val deletedTransactions: DeletedTransactionBuffer,
+        private val entryDefaults: EntryDefaultsRepository,
         accountRepository: AccountRepository,
         categoryRepository: CategoryRepository,
         groupRepository: GroupRepository,
@@ -148,6 +161,22 @@ class TransactionFormViewModel
         /** Every category, so switching kind can re-filter without another query. */
         private var allCategories: List<Category> = emptyList()
 
+        /** Every account, archived and brokers included; the state's `accounts` is what is offered. */
+        private var allAccounts: List<Account> = emptyList()
+
+        /** Until the accounts have arrived, a missing one means "not yet" rather than "gone". */
+        private var accountsLoaded = false
+
+        /** The account the last new movement went in (§5): where a new one starts, if it still can. */
+        private var rememberedAccountId: Long? = null
+
+        /**
+         * The accounts and categories there were when the owner left to make a new one, so that the
+         * one made is chosen on the way back rather than left for them to find and pick.
+         */
+        private var accountsBeforeMaking: Set<Long>? = null
+        private var categoriesBeforeMaking: Set<Long>? = null
+
         /** Until the categories have actually arrived, an empty list means "not yet". */
         private var categoriesLoaded = false
 
@@ -160,14 +189,39 @@ class TransactionFormViewModel
         init {
             viewModelScope.launch { load() }
             viewModelScope.launch {
+                // Archived accounts too: an old movement's account has to be nameable. Waiting for
+                // the remembered account with the others means the first default is already the
+                // right one, rather than the first account replaced a moment later.
                 combine(
-                    accountRepository.observeAccounts(),
+                    accountRepository.observeAccounts(includeArchived = true),
                     categoryRepository.observeAllCategories(),
-                ) { accounts, categories -> accounts to categories }
-                    .collect { (accounts, categories) ->
+                    entryDefaults.observeLastAccountId(),
+                ) { accounts, categories, remembered -> Triple(accounts, categories, remembered) }
+                    .collect { (accounts, categories, remembered) ->
+                        // Worked out before the update, which may run its block more than once.
+                        val madeAccount =
+                            accountsBeforeMaking?.let { before ->
+                                accounts.firstOrNull { it.id !in before && it.takesIncomeAndExpenses }
+                            }
+                        val madeCategory =
+                            categoriesBeforeMaking?.let { before -> categories.firstOrNull { it.id !in before } }
+                        if (madeAccount != null) accountsBeforeMaking = null
+                        if (madeCategory != null) categoriesBeforeMaking = null
+                        allAccounts = accounts
+                        accountsLoaded = true
+                        rememberedAccountId = remembered
                         allCategories = categories
                         categoriesLoaded = true
-                        form.update { it.withOptions(accounts, categories) }
+                        form.update { state ->
+                            state
+                                .copy(
+                                    selectedAccountId = madeAccount?.id ?: state.selectedAccountId,
+                                    currency = madeAccount?.currency ?: state.currency,
+                                    selectedCategoryId =
+                                        madeCategory?.takeIf { it.kind == state.kind.toCategoryKind() }?.id
+                                            ?: state.selectedCategoryId,
+                                ).withOptions()
+                        }
                     }
             }
             viewModelScope.launch {
@@ -212,7 +266,7 @@ class TransactionFormViewModel
                             transaction.groupId?.takeIf { id ->
                                 !groupsLoaded || state.groups.any { it.id == id }
                             },
-                    ).withOptions(state.accounts, allCategories)
+                    ).withOptions()
                     .withOfferedGroups()
             }
         }
@@ -222,24 +276,28 @@ class TransactionFormViewModel
          *
          * The category this movement already carries stays on the list even once archived:
          * archiving keeps a category off *new* movements, and silently dropping it here
-         * would uncategorize an old one on the next save.
+         * would uncategorize an old one on the next save. Its account stays the same way.
          */
-        private fun TransactionFormUiState.withOptions(
-            accounts: List<Account>,
-            categories: List<Category>,
-        ): TransactionFormUiState {
+        private fun TransactionFormUiState.withOptions(): TransactionFormUiState {
             val offered =
-                categories.filter { category ->
+                allCategories.filter { category ->
                     category.kind == kind.toCategoryKind() &&
                         (!category.archived || category.id == selectedCategoryId)
                 }
-            // A movement with no account chosen yet takes the first one, and its currency
-            // with it; an existing movement keeps the currency it was recorded in.
-            val defaulted = if (selectedAccountId == null) accounts.firstOrNull() else null
+            val ownAccountId = stored?.accountId
+            val offeredAccounts = allAccounts.filter { it.takesIncomeAndExpenses || it.id == ownAccountId }
+            // A choice that can no longer be offered — archived, deleted or made a broker while
+            // the form was open — is let go, but only once the real list is known.
+            val kept = selectedAccountId?.takeIf { id -> !accountsLoaded || offeredAccounts.any { it.id == id } }
+            // A movement with no account chosen yet takes the default, and its currency with it;
+            // an existing movement keeps the currency it was recorded in.
+            val defaulted = if (kept == null) defaultAccount() else null
             return copy(
-                accounts = accounts,
+                accounts = offeredAccounts,
+                hasAccounts = allAccounts.isNotEmpty(),
+                brokersLeftOut = allAccounts.any { it.holdsInvestments && it.id != ownAccountId },
                 categories = offered,
-                selectedAccountId = selectedAccountId ?: defaulted?.id,
+                selectedAccountId = kept ?: defaulted?.id,
                 currency = defaulted?.currency ?: currency,
                 // Only prune a selection once the real set is known: the form and the
                 // category list load independently, and whichever arrives second must not
@@ -247,6 +305,16 @@ class TransactionFormViewModel
                 selectedCategoryId =
                     selectedCategoryId?.takeIf { id -> !categoriesLoaded || offered.any { it.id == id } },
             )
+        }
+
+        /**
+         * Where a new movement starts: the account the last one went in, if it can still take one,
+         * and otherwise the first that can. Never a broker, and never nothing when there is a
+         * choice — with none, the picker offers to make one instead (§5, §9).
+         */
+        private fun defaultAccount(): Account? {
+            val eligible = allAccounts.filter { it.takesIncomeAndExpenses }
+            return eligible.firstOrNull { it.id == rememberedAccountId } ?: eligible.firstOrNull()
         }
 
         fun appendDigit(digit: Char) {
@@ -266,8 +334,18 @@ class TransactionFormViewModel
         fun setKind(kind: TransactionKind) {
             // The chosen category belongs to the other kind now, so it is cleared.
             form.update {
-                it.copy(kind = kind, selectedCategoryId = null).withOptions(it.accounts, allCategories)
+                it.copy(kind = kind, selectedCategoryId = null).withOptions()
             }
+        }
+
+        /** The owner is off to make an account; the one they make is chosen when they come back. */
+        fun makingAccount() {
+            accountsBeforeMaking = allAccounts.map { it.id }.toSet()
+        }
+
+        /** The same for a category, chosen if it is of the kind this movement still is. */
+        fun makingCategory() {
+            categoriesBeforeMaking = allCategories.map { it.id }.toSet()
         }
 
         fun selectAccount(id: Long) =
@@ -277,7 +355,11 @@ class TransactionFormViewModel
                 state.copy(selectedAccountId = id, currency = account?.currency ?: state.currency)
             }
 
-        fun selectCategory(id: Long?) = form.update { it.copy(selectedCategoryId = id) }
+        /** Choosing the category already chosen keeps it; leaving one out is [clearCategory]. */
+        fun selectCategory(id: Long) = form.update { it.copy(selectedCategoryId = id) }
+
+        /** Saved without a category, to be filed later under *To categorize*. */
+        fun clearCategory() = form.update { it.copy(selectedCategoryId = null) }
 
         /** Tapping the group already chosen takes the movement back out of it. */
         fun selectGroup(id: Long) =
@@ -321,6 +403,11 @@ class TransactionFormViewModel
                             transactionRepository.updateTransaction(movement)
                         }
                     }
+                // Only a new one moves the default: correcting an old movement is not choosing
+                // where the next goes. Handed off rather than awaited, so the form closes at once.
+                if (written.isSuccess && transactionId == null) {
+                    entryDefaults.rememberLastAccount(movement.accountId)
+                }
                 // A write that fails leaves the form open and says so, rather than taking
                 // the app down or leaving Save greyed out with nothing explaining why.
                 form.update {

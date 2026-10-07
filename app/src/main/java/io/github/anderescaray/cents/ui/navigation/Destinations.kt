@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.ui.navigation
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -100,10 +101,15 @@ sealed interface Destination {
         val accountId: Long,
     ) : Destination
 
-    /** [accountId] is [AccountEdit.NEW] when the screen is creating one. */
+    /**
+     * [accountId] is [AccountEdit.NEW] when the screen is creating one, and a new one starts as
+     * [type] — a broker, when it is made from a holding that has nowhere else to go. An existing
+     * account ignores it and keeps its own.
+     */
     @Serializable
     data class AccountEdit(
         val accountId: Long = NEW,
+        val type: AccountType = AccountType.BANK,
     ) : Destination {
         companion object {
             const val NEW = 0L

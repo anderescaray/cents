@@ -50,6 +50,7 @@ class TransactionFormViewModelTest {
     private lateinit var viewModel: TransactionFormViewModel
     private lateinit var transactions: RoomTransactionRepository
     private lateinit var deleted: DeletedTransactionBuffer
+    private val entryDefaults = FakeEntryDefaults()
 
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
 
@@ -80,6 +81,7 @@ class TransactionFormViewModelTest {
             TransactionFormViewModel(
                 transactionRepository = transactions,
                 deletedTransactions = deleted,
+                entryDefaults = entryDefaults,
                 accountRepository =
                     RoomAccountRepository(
                         database.accountDao(),

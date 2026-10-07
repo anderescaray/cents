@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The picker that opens over a form: a long list, chosen from with one tap -->
+    <string name="picker_search">Search</string>
+    <string name="picker_no_matches">Nothing matches “%1$s”</string>
+
+    <!-- The movement form's category and account pickers -->
+    <string name="form_category_none">None</string>
+    <string name="form_category_clear">No category</string>
+    <string name="form_category_new">New category</string>
+    <string name="form_account_new">New account</string>
+    <string name="form_account_none_offered">Create an account</string>
+    <string name="form_account_brokers_footer">Broker accounts are not offered here: money goes in and out of them as a transfer.</string>
+
+    <!-- The holding form, where only a broker account is offered -->
+    <string name="holding_account_new_broker">New broker account</string>
+    <string name="holding_account_none_footer">A holding lives in a broker account, and there is none yet. Make one, then move money into it with a transfer.</string>
+</resources>

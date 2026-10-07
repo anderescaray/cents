@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.capture.OpenCapturedFromNotification
 import io.github.anderescaray.cents.ui.components.CentsTabBar
@@ -384,7 +385,13 @@ private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
         )
     }
     composable<Destination.HoldingEdit> {
-        HoldingEditScreen(onDone = { navController.popBackStack() })
+        HoldingEditScreen(
+            onDone = { navController.popBackStack() },
+            // A new holding can only live in a broker (§10), so the account it makes is one.
+            onCreateBrokerAccount = {
+                navController.navigate(Destination.AccountEdit(type = AccountType.BROKER)) { launchSingleTop = true }
+            },
+        )
     }
     composable<Destination.TradeForm> {
         TradeFormScreen(onDone = { navController.popBackStack() })

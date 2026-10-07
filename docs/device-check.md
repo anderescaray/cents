@@ -12,22 +12,12 @@ is a document and not a test.
 in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *"05: the third
 decimal went in anyway"* is a complete entry.
 
-**When to run it.** After any run of branches built without a device attached, and before
-closing a phase. First run: 2026-08-21, closing Phase 1, after four branches had been built
-blind — `feat/account-deletion`, `chore/single-currency`, `feat/swipe-to-delete` and
-`feat/transaction-filters`. Second run: 2026-09-08, closing Phase 2, after all six PRD §4.3
-views, the account picker and the direction toggle were built — and extended on 2026-09-09 to
-cover the two things that landed after that text was written: the year-on-year segment (#42),
-and the canvas of bubbles the app now opens on (#41), which changes the first thing this walk
-sees. Extended again on 2026-09-09 with **Walk 6**, for the investments section (#44) — built
-the same day, on a phone nobody has held it on either — on 2026-09-16 with **Walk 7**, for
-transfers and for the cash a purchase spends, and on 2026-09-17 with **Walk 8**, for getting the
-data out, **Walk 9** for the lock and **Walk 10** for the subscriptions that record themselves, and on
-2026-09-23 with **Walk 11**, for the second wave and the automatic backup to Drive, then
-**Walk 12** for budgets, and on 2026-09-25 with **Walk 13**, for groups, **Walk 14** for the uncategorized inbox, **Walk 15** for the Income and Expenses filters, **Walk 16** for TalkBack and the largest font, and **Walk 17** for postponing a charge or a salary.
-Those last ones are the features whose failure is invisible on the screen that records them: a transfer can move both balances correctly and still leak into
-every chart, and a purchase can look perfectly recorded while the account it was paid from never
-notices.
+**When to run it.** After any branch that changes what the owner sees or touches, and before
+closing a phase. **Walks 21 and 22 are current.** Walks 1 to 20 were written before the rework
+of 2026-10-01 (ADR 0003), so some of their steps describe screens that no longer exist, such as
+the bubble canvas in step 01. Rewriting them as one checklist by feature, for the current app,
+is the branch `docs/refresh-prd-and-device-check` in [`PLAN.md`](../PLAN.md) §3. There is no
+Walk 5 or Walk 9: they covered the bubbles and the lock, which were removed.
 
 ```bash
 adb devices                  # the phone is there and authorised
@@ -511,130 +501,6 @@ Then check the two things the arithmetic can get wrong:
 
 ---
 
-## Walk 5 — the canvas of bubbles (`feat/bubble-launcher`)
-
-> **Skip this walk (2026-09-23).** The owner is replacing the bubbles (`PLAN.md` C7), so nothing
-> here is worth a phone's time until the replacement exists.
-
-Added 2026-09-08 with #41, and **none of it has been on a phone**: it is the app's front door,
-it is built out of drag and pinch gestures, and a gesture is the thing this repo's tests can
-least honestly claim to have checked. [`ADR 0002`](decisions/0002-bubble-launcher.md) is what it
-is supposed to do; below is how to tell whether it does.
-
-### b1 · Four bubbles, named, drifting gently
-
-The app opens on the canvas: **Transactions**, **Accounts**, **Investments**, **Reports**,
-**Settings** — five since the portfolio arrived — staggered rather than in a grid, each drifting
-with a small continuous motion. No tab bar under them.
-
-> **Wrong looks like** bubbles that visibly jump into place a moment after the screen appears
-> (they are drawn only once the stored layout has been read, exactly so that cannot happen), a
-> bubble under the status bar clock, or two of them overlapping before anybody has dragged one.
-> The five are slightly smaller than the four used to be — that is deliberate, and it is what
-> keeps them clear of each other when the phone is turned on its side (b4).
-
-### b2 · A bubble stays where you put it
-
-Drag each bubble somewhere deliberate — one hard against a corner, one to the bottom edge.
-Then swipe the app away from recents and reopen it. Every bubble is where you left it.
-
-Try to drag one off the screen: it must stop at the edge with the whole circle still visible,
-and the one at the bottom must not hand your drag to the system gesture bar.
-
-> **Wrong looks like** a bubble half off the screen, a bubble that springs back after you lift
-> your finger, or an arrangement that resets on restart. **Bubbles are allowed to overlap** once
-> you have dragged them — that is deliberate, not a bug (C4).
-
-### b3 · Pinch resizes, with a floor and a ceiling
-
-Pinch a bubble larger and smaller. It has both a smallest size — never below a comfortable tap
-target — and a largest, a little under two thirds of the screen's shorter side. Both limits
-should feel like limits, not like the gesture breaking.
-
-> **Wrong looks like** a bubble you can shrink to a dot you can no longer hit, or grow until it
-> covers the others. If one ever does become unusable, Settings → **Reset the bubble layout**
-> (b8) is the way out, and reaching for it counts as a finding worth writing down.
-
-### b4 · Turning the phone keeps a bubble the size it was in your hand
-
-Arrange the bubbles, then rotate the phone to landscape and back. A bubble must be about the
-same physical size in both, and still whole and on screen — its size is measured against the
-screen's **shorter** side for exactly this reason.
-
-> **Wrong looks like** a bubble taller than the landscape screen, one cropped by an edge, or an
-> arrangement that comes back rearranged after rotating twice.
-
-### b5 · The tap is one motion, and it is quick
-
-Tap a bubble. It grows into the section — one continuous shape, no sideways slide — and the
-section fades in over it, all comfortably inside half a second.
-
-Now tap one bubble and immediately tap a *different* one. You must land in the section you
-tapped first; the second tap must not move the growing shape to another bubble.
-
-> **Wrong looks like** a cross-fade instead of a growing shape, a horizontal slide arguing with
-> the expansion, a stutter partway through, or landing in a section you did not tap.
-
-### b6 · Inside a section the tab bar is back, and the grabber puts it away
-
-Inside any section the bottom tab bar is showing, and it moves you between sections without
-going back to the canvas. Tap the small **grabber** above it: the bar collapses and the grabber
-stays. Tap it again to bring the bar back.
-
-Leave it collapsed, close the app from recents, and reopen: it must still be collapsed.
-
-> **Wrong looks like** the bar hidden with no grabber left to bring it back, the grabber missing
-> its spoken label, or the collapsed state forgotten on restart.
-
-### b7 · Back means the canvas, whether or not the bar is showing
-
-From a section root — the movements list, the accounts list — press back. You return to the
-canvas, and this must be true both with the tab bar showing and with it collapsed.
-
-Then the case that used to be broken: from **Reports**, tap a ring slice to drill into
-Transactions, and press back. You must end up in the app, not out of it.
-
-> **Wrong looks like** back leaving the app from a section root, back doing two different things
-> depending on whether the bar is collapsed, or back from a drill-down closing the app.
-
-### b8 · Resetting the layout asks first, and rescues the canvas
-
-Settings → Home → **Reset the bubble layout**. It must ask before doing anything (rule 7), and
-confirming puts all four bubbles back where a fresh install has them, at their original size.
-
-> **Wrong looks like** it resetting on the first tap with no question — an arrangement made by
-> hand can only be rebuilt by hand — or the reset leaving one bubble where it was.
-
-### b9 · With animations off, nothing drifts and nothing grows
-
-A device setting, so it is the owner's (C5). Turn the system animations off — Settings →
-Accessibility → **Remove animations**, or Developer options with all three animation scales at
-off — then open Cents.
-
-The bubbles must sit still, and tapping one must open its section **immediately** rather than
-growing into it.
-
-> **Wrong looks like** the drift still running, or the expansion still animating. The rule is
-> that an invisible animation is still one the device asked not to run.
->
-> **Known and not a bug:** the setting is read when the canvas is drawn, not watched. Changing
-> it while Cents is already open leaves the drift running until the next launch (C4).
-
-### b10 · TalkBack can reach every section
-
-Also a device setting, so also the owner's. Turn TalkBack on and swipe through the canvas. Each
-bubble is announced by its section name, in tab order — Transactions, Accounts, Investments,
-Reports, Settings — and double-tapping opens it. The section name must be read **once**, not twice.
-
-> **Wrong looks like** a bubble announced as an unlabelled button, an order that follows where
-> the bubbles happen to sit rather than the tab order, or the name read twice because the icon
-> is described separately.
->
-> **Known and not a bug:** there is no gesture-free way to *move* a bubble. TalkBack can open
-> them; dragging is a drag. Reset (b8) is the escape hatch (C4).
-
----
-
 ## Walk 6 — the investments section (`feat/investments-portfolio`)
 
 Added 2026-09-09 with #44, and **none of it has been on a phone**. It is the newest section and
@@ -1067,99 +933,6 @@ version, and again change nothing.
 
 > **Wrong looks like** any of those files being partly accepted. A restore that half works is the
 > one outcome worse than a restore that fails.
-
-## Walk 9 — the lock (`feat/biometric-lock`)
-
-> **Not to be walked.** The lock was removed at the owner's request on 2026-10-05 (D31, #114).
-> The steps stay below as the record of what was built.
-
-Added 2026-09-17. Short, and the one walk where getting it wrong locks you out of your own app —
-so read `l5` before you start.
-
-### l1 · The switch explains itself
-
-**Settings → Unlock with fingerprint.** Underneath it, a line says what turning it on means: Cents
-asks when you open it and again after more than half a minute away, using the fingerprint or PIN
-your phone already knows.
-
-If your phone had no fingerprint and no PIN, the switch would be off and untappable with a
-different line saying why. You cannot test that without removing your own PIN — don't.
-
-### l2 · Turning it on does not shut you out on the spot
-
-Turn it on. **Nothing happens.** You are already here, and being asked for a fingerprint the
-instant the switch moves would read as the app not believing you.
-
-### l3 · It asks on a cold start
-
-Close Cents properly (swipe it out of recents) and open it again. You get the prompt, over a
-screen showing nothing but the app's name.
-
-> **Wrong looks like** any of your accounts, balances or movements being visible behind or around
-> the prompt, even for a frame.
-
-### l4 · A glance away costs nothing; a real absence costs a fingerprint
-
-Switch to another app for **five seconds** and come back: no prompt. Switch away for **a minute**
-and come back: prompt.
-
-> **Wrong looks like** being asked every single time you switch apps. That is the behaviour that
-> makes people turn the lock off, and a lock that is off protects nothing.
-
-### l5 · Dismissing the prompt does not trap you
-
-At the prompt, press back or cancel. You should land on the lock screen with an **Unlock** button
-— not on the prompt again, and not in a loop you cannot escape. Tap **Unlock** and it asks again.
-
-From that lock screen you must always be able to leave with the home button.
-
-> **Wrong looks like** the prompt reappearing the instant you dismiss it. That is the loop that
-> makes the app impossible to leave, and it is the failure this step exists for.
-
-### l6 · Turning it off, from inside
-
-Unlock, go to Settings, turn the switch off. Close the app and open it again: no prompt.
-
-> **Wrong looks like** still being asked. If you are ever locked out with the switch stuck on,
-> the way back is Android's app settings → clear storage, which also clears your data — so
-> **export first** (`x2`) before you go near this step.
-
-### i14 · Every price in one sitting
-
-Open **Investments**. Top left, **Prices**.
-
-Every holding you still own is listed, each showing what the app believes it is worth and when.
-Type new prices for **some** of them — leave at least one blank on purpose — and check the line
-underneath counts only the ones you changed.
-
-Set **Prices as of** to the day you actually read them, which on a weekend is Friday, not today.
-
-Save. Back on the portfolio, the ones you typed have moved and **the ones you left blank are
-exactly as they were**, to the cent, with their old dates intact.
-
-> **Wrong looks like** a blank row being saved as zero, a price you did not touch changing its
-> date, or the whole list refusing to save because one field is empty.
-### i15 · Buying 500 € of something
-
-Open a holding, add a trade, and switch the second control from **Units** to **Amount**.
-
-Type the price your broker showed and **500** as the amount. The footer says how many units that
-comes to — check it against what your broker said you got.
-
-Save, then open the trade again: it holds those units at that price. Multiply them back and you
-should be looking at 500,00 €, not 499,99 €.
-
-Now switch the control back to **Units** without saving: the number of units should already be
-filled in, not blank.
-
-> **Wrong looks like** the fields emptying when you switch, units that do not match your broker's,
-> or a cost basis a cent off what you actually put in.
-
-> **Note:** on a **correction** the control is not there at all. A correction says what you hold,
-> and holding is counted in units — "how much of it do you own, in euros" is not a question with
-> an answer.
-
----
 
 ## Walk 10 — what repeats (`feat/recurring-rules`)
 
@@ -1711,7 +1484,7 @@ words* then appears and puts the list back.
 ## Walk 20 — the rework (`feat/ui-rework`, ADR 0003)
 
 Walked in part on 2026-10-01 on the Honor tablet as it was built: Home, the Wallet fix, Reports
-and Customize were seen and fixed there. **Walk 5 (`b1`–`b10`) is obsolete**: the bubbles are gone.
+and Customize were seen and fixed there.
 
 ### u1 · Home records in a few taps
 

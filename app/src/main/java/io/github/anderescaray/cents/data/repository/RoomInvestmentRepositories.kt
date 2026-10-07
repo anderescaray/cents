@@ -84,7 +84,7 @@ class RoomHoldingRepository
  * movement in the holding's account, which says the money left. They are separate facts rather
  * than one fact stored twice — the trade knows about units and the movement knows about a
  * balance — and keeping them together is what makes an investments account's balance read as
- * **the cash still in it** rather than as everything ever put there (D11, `PLAN.md` C3).
+ * **the cash still in it** rather than as everything ever put there (D11).
  *
  * Every write here is one `withTransaction`, for the reason `RoomTransferRepository` gives about
  * its two legs: nothing enforces the pairing but this class, so a trade recorded without its

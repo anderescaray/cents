@@ -178,7 +178,7 @@ interface TransactionDao {
     /**
      * Transfers between these two accounts. Moving one account's movements into the other
      * leaves each of them with both legs in one account, so the sheet that offers the move
-     * names them before it runs (`PLAN.md` C4).
+     * names them before it runs (`docs/known-limitations.md`).
      */
     @Query(
         """
@@ -403,7 +403,7 @@ interface TransactionDao {
      * report queries fall back to the index on `date` and test the account row by row. It is
      * bounded by the length of the period rather than by anything the owner does, and no
      * device walk has ever noticed it. If one does, the fix is a second `@Query` per report,
-     * not a new index — recorded in `PLAN.md` C4 rather than half-done here.
+     * not a new index — recorded in `docs/known-limitations.md` rather than half-done here.
      */
     @Query(
         """
@@ -766,7 +766,7 @@ interface TransactionDao {
      * nets to zero, it is still out of every report, and the alternatives are worse — undoing
      * the `transferId` would turn it into a real income and a real expense and inflate both,
      * and deleting it would destroy history inside an operation whose whole promise is that
-     * nothing is lost. `PLAN.md` C4 records it.
+     * nothing is lost. `docs/known-limitations.md` records it.
      */
     @Query("UPDATE transactions SET accountId = :toId, updatedAt = :updatedAt WHERE accountId = :fromId")
     suspend fun reassignAccount(

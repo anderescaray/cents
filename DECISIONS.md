@@ -29,7 +29,9 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
-### D32 · Where a broker account can take an income or an expense (asked 2026-10-07)
+### Waiting for an answer
+
+#### D32 · Where a broker account can take an income or an expense (asked 2026-10-07)
 
 Item 9 of `docs/next-improvements.md` is built in #117 for the **movement form**. There, a broker
 account is not offered for a new income or expense, and it is not the default. A movement already
@@ -50,11 +52,15 @@ a choice about what the app should be:
 
 **Answer:**
 
-### D29 · How capture from notifications behaves (asked and answered 2026-09-29, not built yet)
+### Built on the defaults: answer only to change one
+
+Each of these was built as written. A line the owner changes is an instruction, like any answer.
+
+#### D29 · How capture from notifications behaves (asked and answered 2026-09-29, built in #105–#107)
 
 **The owner described the feature on 2026-09-29, and answered the three questions it raised the
-same day.** It is PRD §4.6, and the next branch that builds code is `feat/notification-capture`.
-Change any line and that branch changes with it.
+same day.** It is PRD §4.6, built in #105–#107, with the words made per app by D30 and the
+amount rules tightened in #113. Change any line and the next session changes the app.
 
 What the owner said, in their words turned into rules:
 
@@ -101,7 +107,7 @@ What the owner did not say, each with the default the branch will build:
 
 **Answer:**
 
-### D28 · How postponing behaves (asked 2026-09-25, built on the defaults)
+#### D28 · How postponing behaves (asked 2026-09-25, built on the defaults)
 
 **Built on 2026-09-25, as #97, on every default below.** Change any line and the next session
 changes the app.
@@ -132,14 +138,14 @@ expenses.
 
 **Answer:**
 
-### D27 · How groups behave (asked 2026-09-25, built on the defaults)
+#### D27 · How groups behave (asked 2026-09-25, built on the defaults)
 
 **Built on 2026-09-25, as #86 and #87, on every default below.** Change any line and the next
 session changes the app.
 
 The owner asked on 2026-09-25 for a way to see what an occasion cost — a trip, say — across
-several categories (PRD §4.9), and then that incomes can be grouped as well. Nothing is built yet. These are the choices it needs, **each with
-the default that will be built** unless a line changes.
+several categories (PRD §4.9), and then that incomes can be grouped as well. These are the
+choices it needed, **each with the default that was built** unless a line changes.
 
 - **What it is called.** *Groups* in English and *Grupos* in Spanish. *Events* or *Trips* are the
   alternatives. *Default: Groups.*
@@ -169,7 +175,7 @@ the default that will be built** unless a line changes.
 
 **Answer:**
 
-### D26 · How budgets behave (asked 2026-09-23, built on the defaults)
+#### D26 · How budgets behave (asked 2026-09-23, built on the defaults)
 
 The owner chose budgets (PRD §4.4) as the next work on 2026-09-23. The PRD fixes two things: a
 monthly limit per category, and that known recurring charges count from day one. What follows is
@@ -194,12 +200,8 @@ session changes the app.
 
 **Answer:**
 
-No door is waiting on the owner either. **D22**'s backup to Drive was built once the owner had
-created the OAuth client, and merged as #69 on 2026-09-23. The other door D20 left open, paying
-for a price provider, was closed on 2026-09-21 (D25).
-
 New questions get added here as they come up, each with a default so that an unanswered one
-never stops the work — see [`PLAN.md` C6](PLAN.md#c6-questions-waiting-on-the-owner). An empty
+never stops the work — see [`PLAN.md` §5](PLAN.md#5-how-work-passes-between-owner-and-agent). An empty
 inbox is the normal state, not a sign the agent stopped asking: what goes here is only the
 choices that are genuinely the owner's, and things going the other way belong in
 [`FEEDBACK.md`](FEEDBACK.md).
@@ -207,6 +209,11 @@ choices that are genuinely the owner's, and things going the other way belong in
 ---
 
 ## Answered
+
+The last column names where each answer was built. Mentions of `PLAN.md` C3, C4, C7 or Part B
+point at that file as it was before 2026-10-07, when it was cut to the present; git history has
+those versions. Limitations that are still true are now in
+[`docs/known-limitations.md`](docs/known-limitations.md).
 
 | # | Question | Answer | Where it lives now |
 |---|---|---|---|

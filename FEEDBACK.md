@@ -24,19 +24,16 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-**Nothing is waiting here right now.** Everything from the 2026-09-17 walk was built the same
-day and is in *Fixed* below.
+**Nothing is waiting here right now.** Everything reported so far is in *Fixed* below.
 
 An empty *Open* is the normal state between walks, not a sign the channel went quiet — it
 fills up again the next time the app is used on a phone. The walk itself is
 [`docs/device-check.md`](docs/device-check.md).
 
-**Most of that walk is still unwalked.** It covers the whole Reports tab (`r1`–`r19`), the
-canvas of bubbles the app opens on (`b1`–`b10`), the investments section (`i1`–`i15`),
-transfers (`t1`–`t10`), the export (`x1`–`x8`), the lock (`l1`–`l6`) and the subscriptions
-(`s1`–`s11`). Only part of the last of those has been on a phone — everything else is verified
-by JVM tests and by nothing else. Whatever it turns up lands here, and it becomes the next
-branch.
+**Two walks are waiting (2026-10-07).** **Walk 21** is for the build on the Pixel (`f08f20a`):
+setting a balance, the rework's fixes, no lock, and capture switched on and checked. **Walk 22**
+is for #117, the movement form's pickers and keypad, which is not installed yet. Whatever they
+turn up lands here, and it becomes the next branch.
 
 ---
 

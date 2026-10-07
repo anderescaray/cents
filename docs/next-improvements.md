@@ -12,9 +12,10 @@ The implementation sequence below is the proposed split, not permission to start
 
 ## Before resuming implementation
 
-**Status, 2026-10-05 (night):** points 1 and 2 below are settled. #109, #113 (capture) and #114
-(the lock removed, D31) are merged. Next in the table below is `fix/transaction-entry-ux`, from
-`main`, once the owner's feedback on Walk 21 is dealt with.
+**Status, 2026-10-07:** points 1 and 2 below are settled. #109, #113 (capture) and #114
+(the lock removed, D31) are merged. `fix/transaction-entry-ux` is #117 with items 2, 3, 4, 5, 9
+and 10; its phone check is Walk 22. Next is `fix/balance-adjustments-review` (#112's review), then
+`feat/app-language` from the table.
 
 1. **Check the actual UI baseline.** At the time this plan was recorded, `main` ended at #108 and
    [UI rework PR #109](https://github.com/anderescaray/cents/pull/109), branch `feat/ui-rework`, was
@@ -39,16 +40,23 @@ Only mark an item complete after it is implemented, reviewed and merged, with th
 and device checks recorded. Add the implementing PR when updating its status.
 
 - [ ] 1. English/Spanish language selection in Settings.
-- [ ] 2. Proper separation between the Transactions title and Filters.
-- [ ] 3. Category selection through a large popup, not a horizontal strip.
-- [ ] 4. Keypad visible only while the amount is active.
-- [ ] 5. Account popup with the last-used account preselected.
+- [ ] 2. Proper separation between the Transactions title and Filters. **Built in #117**;
+  phone check in Walk 22.
+- [ ] 3. Category selection through a large popup, not a horizontal strip. **Built in #117**;
+  phone check in Walk 22.
+- [ ] 4. Keypad visible only while the amount is active. **Built in #117**; phone check in Walk 22.
+- [ ] 5. Account popup with the last-used account preselected. **Built in #117**; phone check in
+  Walk 22.
 - [ ] 6. Liquid money, investments and total net worth on Home.
 - [ ] 7. Set an account's current balance, choosing the historical effect each time. **Built
-  and merged in #112 (2026-10-05)**; the phone check is still to do, so it stays unticked.
+  and merged in #112 (2026-10-05)**; the phone check is still to do, so it stays unticked. Its
+  review (2026-10-07) left follow-ups for `fix/balance-adjustments-review` (`PLAN.md` Part C).
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
+  **Built in #117** for the movement form; phone check in Walk 22. Subscriptions and capture are
+  left as they were and asked about in `DECISIONS.md` D32.
 - [ ] 10. Offer only broker accounts when choosing where a new investment is held (2026-10-05).
+  **Built in #117**; phone check in Walk 22.
 
 ## 1. App language
 
@@ -229,7 +237,7 @@ First resolve the baseline and pending work described above. Then use one focuse
 
 | Order | Proposed branch | Scope |
 |---|---|---|
-| 1 | `fix/transaction-entry-ux` | Items 2, 3, 4, 5, 9 and 10: header spacing, popup selectors, keypad focus, last account, and both sides of the broker rule (no broker for an income or expense, only a broker for an investment). |
+| 1 | `fix/transaction-entry-ux` | Items 2, 3, 4, 5, 9 and 10: header spacing, popup selectors, keypad focus, last account, and both sides of the broker rule (no broker for an income or expense, only a broker for an investment). **#117.** |
 | 2 | `feat/app-language` | Item 1: persistent language selection, compatible locale handling, notifications and currency safeguards. |
 | 3 | `feat/home-net-worth` | Item 6: the reusable Home wealth summary, using Wallet's calculation. |
 | 4 | `feat/account-balance-adjustments` | Item 7: both per-operation modes, account UI, consistent balance queries, migration and backup support. **Merged as #112, ahead of its turn, at the owner's request.** |

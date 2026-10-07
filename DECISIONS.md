@@ -29,6 +29,27 @@ one from turning into a general notes file that nobody trusts.
 
 ## Open
 
+### D32 · Where a broker account can take an income or an expense (asked 2026-10-07)
+
+Item 9 of `docs/next-improvements.md` is built in #117 for the **movement form**. There, a broker
+account is not offered for a new income or expense, and it is not the default. A movement already
+in a broker keeps it. Three other places were deliberately left as they were, because each one is
+a choice about what the app should be:
+
+- **Subscriptions.** A rule (rent, Netflix) still offers every account, brokers included.
+  *Default: the same rule as the movement form.* A new subscription is not offered a broker, and
+  an existing one keeps its account. A subscription writes ordinary incomes and expenses, just
+  later.
+- **Capture.** Each app chosen in Settings › Capture is tied to any account, brokers included.
+  *Default: unchanged.* A broker that issues a card (Trade Republic, for one) sends real payments
+  from its cash, and capturing them into the broker is right.
+- **A dividend or interest paid into a broker** can no longer be recorded from the movement form.
+  *Default: recorded with* Set current balance *on the account (#112), so it is neither an income
+  nor an expense.* The alternative is to let a broker take an **income** but not an expense, so
+  dividends count in Reports as money earned.
+
+**Answer:**
+
 ### D29 · How capture from notifications behaves (asked and answered 2026-09-29, not built yet)
 
 **The owner described the feature on 2026-09-29, and answered the three questions it raised the

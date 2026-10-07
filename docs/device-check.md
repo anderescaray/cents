@@ -1827,3 +1827,63 @@ closes instead of opening blank.
 ### q6 · The notification can be turned off
 
 Capture › *Notify after capture* off: the next capture is recorded silently.
+
+## Walk 22 — choosing from a list, the keypad that steps aside, brokers apart (#117)
+
+For `fix/transaction-entry-ux` (#117), which is **not installed yet**: walk it once the owner
+merges it and it is on the phone. Items 2, 3, 4, 5, 9 and 10 of `docs/next-improvements.md`.
+Walk it in **Spanish and English** and once with a **large system font**; the Honor tablet too,
+if it is at hand.
+
+### m1 · Filters beside +
+
+Movements: the round **filter** button sits on the right, next to **+**, and the title has the
+left to itself. Scroll until the title collapses into the bar: the two still do not touch. Turn on
+a filter: the glyph goes blue and a small **count** sits on its corner.
+
+> **Wrong looks like** the title and a button overlapping, or a count that covers the glyph.
+
+### m2 · The category from a list
+
+New expense: one **Category** row says *None*. Tap it: a sheet rises from the bottom with every
+expense category, one under the other. Choosing one closes the sheet and the row names it. Open
+it again: that one is ticked; **No category** and **New category** are rows at the foot.
+
+> **Wrong looks like** income categories in an expense's list, or a sheet that needs a second tap
+> to close.
+
+### m3 · A long list is searched
+
+With more than seven categories, the sheet has a search field: *cafe* finds *Café*. Drag the
+grabber down, or tap above the sheet: it closes and the category stays as it was.
+
+### m4 · The keypad steps aside
+
+A new movement opens with the keypad. Type an amount, then tap the **Category** row: the keypad
+goes **and** the sheet opens, in one tap. Close it, tap the **date**: the calendar opens and the
+keypad is gone. Tap the amount: the keypad is back and the figure is the one typed. Tap the note:
+the keyboard comes up alone. Tap the form's empty space: both go.
+
+> **Wrong looks like** a tap that only closes the keypad and has to be repeated, or the keypad
+> and the keyboard on screen together.
+
+### m5 · The last account
+
+Add an expense in an account other than the first. Open a new one: it starts on that account.
+Archive that account and open a new one: it starts on another, never on nothing.
+
+### m6 · A new account or category, chosen
+
+From the account sheet, **New account** › make one › back: the form is on the new account. The
+same from the category sheet with **New category**.
+
+### m7 · No broker for an expense
+
+With a broker account, the account sheet does not list it, and its foot says why. A movement that
+was already in the broker opens showing it.
+
+### m8 · Only a broker for an investment
+
+Wallet › Invested › add a holding: only broker accounts are listed. With no broker (archive it to
+try), the section is one row, **New broker account**, and the account editor opens already set to
+*Broker*; back on the holding, the new broker is chosen.

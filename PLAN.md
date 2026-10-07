@@ -493,9 +493,33 @@ code.** Both are instructions rather than reading material:
 See C6.
 
 **Then [`docs/next-improvements.md`](docs/next-improvements.md)**, before choosing what to
-build: nine requests the owner confirmed on 2026-10-04, and the order to build them in. It is a
-backlog, and nothing in it is built yet. Take the next branch from it rather than from C3's older
-plans. `FEEDBACK.md` still outranks it.
+build: ten requests the owner confirmed from 2026-10-04 on, and the order to build them in. Item 7
+is merged (#112) and items 2–5, 9 and 10 are in #117; none is ticked until a phone has seen it.
+Take the next branch from it rather than from C3's older plans. `FEEDBACK.md` still outranks it.
+
+**Where the 2026-10-07 session stopped: `fix/transaction-entry-ux` is open as #117, reviewed and
+green, waiting for the owner to merge it.**
+- **#117** builds `docs/next-improvements.md` items **2, 3, 4, 5, 9 and 10**:
+  - Filters is a round button beside **+** on Movements.
+  - The category and the account are chosen from a sheet (`CentsPickerSheet`, new), one row each,
+    instead of a strip of chips.
+  - The keypad goes away on any other answer, in the same tap.
+  - The last account is remembered in DataStore (`EntryDefaultsRepository`, new).
+  - Brokers are left out of the income/expense form; a new holding is offered only brokers, with
+    *New broker account* when there is none.
+  - No schema change and no new dependency.
+- **Review:** `/code-review high` raised 10 findings and 9 were fixed in the PR. The tenth is a
+  question for the owner, **D32**: whether subscriptions and capture should refuse brokers too, and
+  how a dividend gets in.
+- **Gates:** 1014 tests locally (982 on `main`). CI passed on the first commit; check the second.
+- **The owner still owes Walk 21** (the 2026-10-05 build) and now **Walk 22** for #117. The Pixel
+  still runs `f08f20a`: #117 was not installed, so Walk 21 is walked on the build it was written for.
+- **#112 still owes its `/code-review high`.**
+- **Next, once #117 merges:** this docs branch's checklist notes become ticks only after Walk 22.
+  The next branch is `feat/app-language` (item 1), then `feat/home-net-worth` (item 6), then
+  `feat/group-archive` (item 8, a Room migration).
+- **Local leftovers**, not deleted because nobody asked: the branches
+  `fix/capture-safety-and-feedback` and `docs/session-2026-10-05` (merged as #116).
 
 **Where the 2026-10-05 session stopped (night): everything is merged and installed on the Pixel.
 The owner tests it on 2026-10-06; their feedback is the next work.**

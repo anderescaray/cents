@@ -52,12 +52,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.searchKey
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.rememberReduceMotion
 import kotlinx.coroutines.launch
-import java.text.Normalizer
-import java.util.Locale
 
 /** One thing a [CentsPickerSheet] offers. */
 @Immutable
@@ -226,7 +225,9 @@ private fun SheetChoices(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val searchable = choices.size > SEARCH_FROM
-    val shown = remember(choices, query) { choices.matching(query) }
+    // A field that is not on screen does not filter: a list that shrank under the threshold while
+    // something was typed would otherwise stay narrowed with nothing left to clear it from.
+    val shown = remember(choices, query, searchable) { if (searchable) choices.matching(query) else choices }
 
     if (searchable) {
         CentsSearchField(
@@ -246,7 +247,7 @@ private fun SheetChoices(
                 showSeparator = index != shown.lastIndex || actions.isNotEmpty(),
             )
         }
-        if (shown.isEmpty() && query.isNotBlank()) {
+        if (shown.isEmpty() && searchable && query.isNotBlank()) {
             item(key = "noMatches") {
                 Text(
                     text = stringResource(R.string.picker_no_matches, query.trim()),
@@ -296,21 +297,13 @@ private fun ChoiceBadge(choice: PickerChoice) {
 }
 
 /**
- * The choices whose name holds [query], compared the way the movement search compares: case and
- * accents set aside, so *cafe* finds *Café*.
+ * The choices whose name holds [query], compared the way the movement search compares
+ * ([searchKey]): case and accents set aside, so *cafe* finds *Café*.
  */
 internal fun List<PickerChoice>.matching(query: String): List<PickerChoice> {
-    val wanted = query.folded()
-    return if (wanted.isEmpty()) this else filter { it.label.folded().contains(wanted) }
+    val wanted = query.searchKey()
+    return if (wanted.isEmpty()) this else filter { it.label.searchKey().contains(wanted) }
 }
-
-private fun String.folded(): String =
-    Normalizer
-        .normalize(trim(), Normalizer.Form.NFD)
-        .replace(COMBINING_MARKS, "")
-        .lowercase(Locale.ROOT)
-
-private val COMBINING_MARKS = Regex("\\p{Mn}+")
 
 /** More choices than fit on a phone without scrolling is when a search field earns its place. */
 private const val SEARCH_FROM = 7

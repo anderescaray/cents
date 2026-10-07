@@ -388,7 +388,9 @@ private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
         HoldingEditScreen(
             onDone = { navController.popBackStack() },
             // A new holding can only live in a broker (§10), so the account it makes is one.
-            onCreateBrokerAccount = { navController.navigate(Destination.AccountEdit(type = AccountType.BROKER)) },
+            onCreateBrokerAccount = {
+                navController.navigate(Destination.AccountEdit(type = AccountType.BROKER)) { launchSingleTop = true }
+            },
         )
     }
     composable<Destination.TradeForm> {

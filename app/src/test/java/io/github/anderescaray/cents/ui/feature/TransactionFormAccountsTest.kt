@@ -11,6 +11,7 @@ import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomGroupRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.domain.model.AccountType
+import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -274,6 +275,43 @@ class TransactionFormAccountsTest {
             }
 
             assertEquals(broker, transactions.findById(id)?.accountId)
+        }
+
+    @Test
+    fun `an account made from the picker is the one chosen on the way back`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.selectedAccountId == checking }
+                viewModel.makingAccount()
+                val cash = database.accountDao().insert(account(name = "Cash"))
+
+                assertEquals(cash, awaitStateThat { it.accounts.size == 2 }.selectedAccountId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a category made from the picker is chosen, if it is of this movement's kind`() =
+        runTest {
+            database.accountDao().insert(account())
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() }
+                viewModel.makingCategory()
+                val coffee = database.categoryDao().insert(category(name = "Coffee"))
+                assertEquals(coffee, awaitStateThat { it.categories.isNotEmpty() }.selectedCategoryId)
+
+                // One made for the other side is not forced onto an expense. The state does not
+                // change for it, so a second expense category made afterwards, without the picker,
+                // is what shows the database has been heard from since.
+                viewModel.makingCategory()
+                database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
+                database.categoryDao().insert(category(name = "Tea"))
+                assertEquals(coffee, awaitStateThat { it.categories.size == 2 }.selectedCategoryId)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     @Test

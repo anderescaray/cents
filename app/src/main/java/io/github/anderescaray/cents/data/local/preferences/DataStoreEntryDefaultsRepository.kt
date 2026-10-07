@@ -6,11 +6,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
+import io.github.anderescaray.cents.di.ApplicationScope
 import io.github.anderescaray.cents.domain.repository.EntryDefaultsRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,6 +30,7 @@ class DataStoreEntryDefaultsRepository
     @Inject
     constructor(
         private val dataStore: DataStore<Preferences>,
+        @param:ApplicationScope private val scope: CoroutineScope,
     ) : EntryDefaultsRepository {
         override fun observeLastAccountId(): Flow<Long?> =
             dataStore.data
@@ -34,11 +38,15 @@ class DataStoreEntryDefaultsRepository
                 .map { it[LAST_ACCOUNT] }
                 .distinctUntilChanged()
 
-        override suspend fun rememberLastAccount(accountId: Long) {
-            try {
-                dataStore.edit { it[LAST_ACCOUNT] = accountId }
-            } catch (failure: IOException) {
-                Log.w(TAG, "the last account could not be remembered", failure)
+        // The app's scope rather than the form's: the form closes the moment its movement is saved,
+        // and a write tied to it would be cancelled with it.
+        override fun rememberLastAccount(accountId: Long) {
+            scope.launch {
+                try {
+                    dataStore.edit { it[LAST_ACCOUNT] = accountId }
+                } catch (failure: IOException) {
+                    Log.w(TAG, "the last account could not be remembered", failure)
+                }
             }
         }
 

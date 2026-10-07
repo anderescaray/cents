@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -39,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.components.AmountKeypadState
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsButton
 import io.github.anderescaray.cents.ui.components.CentsDatePicker
@@ -108,19 +110,7 @@ fun TransactionFormScreen(
                 focusManager.clearFocus()
                 keypad.showForAmount()
             },
-            choices =
-                FormChoices(
-                    // Done with the digits, and with the note's keyboard too: the two never stand
-                    // together.
-                    putKeypadAway = {
-                        focusManager.clearFocus()
-                        keypad.hide()
-                    },
-                    openSheet = { sheet = it },
-                    // With no account at all there is nothing to list: straight to making the first.
-                    onAccount = { if (state.hasAccounts) sheet = FormSheet.ACCOUNT else onCreateAccount() },
-                    onDate = viewModel::openDatePicker,
-                ),
+            choices = formChoices(state, viewModel, keypad, focusManager, { sheet = it }, onCreateAccount),
             onNoteFocus = keypad::onTextFieldFocus,
             modifier = Modifier.weight(1f),
         )
@@ -142,6 +132,34 @@ fun TransactionFormScreen(
         onCreateAccount = onCreateAccount,
     )
 }
+
+/** The form's choices, wired to the keypad, the note's focus and the sheet that is open. */
+private fun formChoices(
+    state: TransactionFormUiState,
+    viewModel: TransactionFormViewModel,
+    keypad: AmountKeypadState,
+    focusManager: FocusManager,
+    openSheet: (FormSheet) -> Unit,
+    onCreateAccount: () -> Unit,
+) = FormChoices(
+    // Done with the digits, and with the note's keyboard too: the two never stand together.
+    putKeypadAway = {
+        focusManager.clearFocus()
+        keypad.hide()
+    },
+    openSheet = openSheet,
+    onAccount = {
+        if (state.hasAccounts) {
+            openSheet(FormSheet.ACCOUNT)
+        } else {
+            // With no account at all there is nothing to list: straight to making the first, which
+            // is then the one chosen on the way back.
+            viewModel.makingAccount()
+            onCreateAccount()
+        }
+    },
+    onDate = viewModel::openDatePicker,
+)
 
 /**
  * What each answer on the form opens. Every one of them puts the keypad away **in the same tap**

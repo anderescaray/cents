@@ -186,12 +186,15 @@ class TransactionFormScreenTest {
         composeRule.onNodeWithTag(CATEGORY_ROW_TAG).performClick()
         composeRule.onNodeWithText("No category").assertDoesNotExist()
         composeRule.onNodeWithText("Groceries").performClick()
+        composeRule.onNodeWithTag(CATEGORY_ROW_TAG).assertTextContains("Groceries")
         assertEquals(groceries, form.uiState.value.selectedCategoryId)
 
         composeRule.onNodeWithTag(CATEGORY_ROW_TAG).performClick()
         composeRule.onNodeWithText("No category").performClick()
 
         assertEquals(null, form.uiState.value.selectedCategoryId)
+        // Said, rather than left blank: an empty value reads as a glitch, and TalkBack hears nothing.
+        composeRule.onNodeWithTag(CATEGORY_ROW_TAG).assertTextContains("None")
     }
 
     @Test

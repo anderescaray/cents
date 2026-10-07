@@ -12,7 +12,7 @@ class FakeEntryDefaults(
 
     override fun observeLastAccountId(): Flow<Long?> = lastAccountId
 
-    override suspend fun rememberLastAccount(accountId: Long) {
+    override fun rememberLastAccount(accountId: Long) {
         lastAccountId.value = accountId
     }
 }

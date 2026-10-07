@@ -69,7 +69,8 @@ internal fun ChoiceRows(
         val category = state.categories.firstOrNull { it.id == state.selectedCategoryId }
         ChoiceRow(
             label = stringResource(R.string.field_category),
-            value = category?.name,
+            value = category?.name ?: stringResource(R.string.form_category_none),
+            valueIsNone = category == null,
             leading = { CategoryBadge(name = category?.name, colorArgb = category?.colorArgb, size = CHOICE_BADGE) },
             onClick = onCategory,
             modifier = Modifier.testTag(CATEGORY_ROW_TAG),
@@ -106,11 +107,12 @@ internal fun ChoiceRows(
 @Composable
 private fun ChoiceRow(
     label: String,
-    value: String?,
+    value: String,
     leading: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     valueIsPrompt: Boolean = false,
+    valueIsNone: Boolean = false,
 ) {
     Row(
         modifier =
@@ -132,9 +134,14 @@ private fun ChoiceRow(
             maxLines = 1,
         )
         Text(
-            text = value.orEmpty(),
+            text = value,
             style = CentsTheme.typography.headline,
-            color = if (valueIsPrompt) CentsTheme.colors.accentText else CentsTheme.colors.label,
+            color =
+                when {
+                    valueIsPrompt -> CentsTheme.colors.accentText
+                    valueIsNone -> CentsTheme.colors.secondaryLabel
+                    else -> CentsTheme.colors.label
+                },
             textAlign = TextAlign.End,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -250,6 +257,7 @@ internal fun CategorySheet(
                 add(
                     PickerAction(label = newLabel, iconRes = R.drawable.ic_plus) {
                         onCloseSheet()
+                        viewModel.makingCategory()
                         onCreateCategory(state.kind.toCategoryKind())
                     },
                 )
@@ -294,6 +302,8 @@ internal fun AccountSheet(
             listOf(
                 PickerAction(label = newLabel, iconRes = R.drawable.ic_plus) {
                     onCloseSheet()
+                    // Chosen on the way back, as a category made from its sheet is.
+                    viewModel.makingAccount()
                     onCreateAccount()
                 },
             ),

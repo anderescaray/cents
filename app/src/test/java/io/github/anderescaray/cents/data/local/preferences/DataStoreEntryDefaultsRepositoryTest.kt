@@ -28,17 +28,19 @@ class DataStoreEntryDefaultsRepositoryTest {
     @Test
     fun `nothing is remembered before the first movement`() =
         runTest {
-            assertNull(DataStoreEntryDefaultsRepository(store(file())).observeLastAccountId().first())
+            assertNull(DataStoreEntryDefaultsRepository(store(file()), backgroundScope).observeLastAccountId().first())
         }
 
     @Test
     fun `the newest account remembered is the one read back`() =
         runTest {
-            val file = file()
-            val repository = DataStoreEntryDefaultsRepository(store(file))
+            val repository = DataStoreEntryDefaultsRepository(store(file()), backgroundScope)
+
+            // Handed off and returned from at once; the write lands in its own time.
             repository.rememberLastAccount(3)
             repository.rememberLastAccount(7)
-            assertEquals(7L, repository.observeLastAccountId().first())
+
+            assertEquals(7L, repository.observeLastAccountId().first { it == 7L })
         }
 
     private fun file(): File = File(folder.newFolder(), "cents.preferences_pb")

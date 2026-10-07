@@ -19,6 +19,7 @@ import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.Transfer
+import io.github.anderescaray.cents.domain.model.searchKey
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.TransactionRepository
@@ -26,11 +27,9 @@ import io.github.anderescaray.cents.domain.repository.TransferRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import java.text.Normalizer
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -439,22 +438,6 @@ class RoomTransferRepository
                 updatedAt = createdAt,
             )
     }
-
-/**
- * Text as search compares it: accents stripped, case folded, surrounding space dropped.
- *
- * The owner writes in Spanish, where "cafe" and "Café" are the same word typed two ways, and where
- * "Ñ" is a capital SQLite's `LIKE` does not know is one. Decomposing (NFD) and dropping the marks
- * is what makes both sides meet; ñ decomposes to n plus a tilde, so "nora" finds "Ñora" too — the
- * cost of one rule for every accent, and a search that finds too much is the lesser failure.
- */
-internal fun String.searchKey(): String =
-    Normalizer
-        .normalize(trim(), Normalizer.Form.NFD)
-        .replace(COMBINING_MARKS, "")
-        .lowercase(Locale.ROOT)
-
-private val COMBINING_MARKS = Regex("\\p{Mn}+")
 
 /** The free-text match: the note, the category, the account and the group, as the list shows them. */
 private fun TransactionWithNames.matches(wanted: String): Boolean =

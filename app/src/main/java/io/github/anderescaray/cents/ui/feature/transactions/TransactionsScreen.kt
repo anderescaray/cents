@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -164,22 +165,30 @@ private fun FiltersButton(
             modifier = Modifier.testTag(FILTERS_BUTTON_TAG),
         )
         if (count > 0) {
-            Text(
-                text = count.toString(),
-                style = CentsTheme.typography.caption1,
-                color = CentsTheme.colors.onAccent,
-                textAlign = TextAlign.Center,
+            // Sized in dp, not sp: the count is in the button's description for anyone who needs it
+            // larger, and a badge that grows with the font ends up covering the glyph it marks.
+            val badgeText = with(LocalDensity.current) { BADGE_TEXT.toSp() }
+            Box(
                 modifier =
                     Modifier
                         .align(Alignment.TopEnd)
+                        .defaultMinSize(minWidth = FILTER_BADGE, minHeight = FILTER_BADGE)
                         .clip(CircleShape)
                         .background(CentsTheme.colors.accent)
-                        .defaultMinSize(minWidth = FILTER_BADGE)
                         .padding(horizontal = CentsDimens.spacingXs)
                         .testTag(FILTERS_COUNT_TAG)
                         // Already in the button's own description.
                         .clearAndSetSemantics {},
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = count.toString(),
+                    style = CentsTheme.typography.caption1.copy(fontSize = badgeText, lineHeight = badgeText),
+                    color = CentsTheme.colors.onAccent,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -381,6 +390,7 @@ private fun TransactionDetails.subtitle(): String {
 }
 
 private val FILTER_BADGE = 18.dp
+private val BADGE_TEXT = 11.dp
 
 internal const val FILTERS_BUTTON_TAG = "openFilters"
 internal const val FILTERS_COUNT_TAG = "filtersCount"

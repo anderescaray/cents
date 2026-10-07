@@ -14,6 +14,9 @@ interface EntryDefaultsRepository {
     /** The account of the last new income or expense recorded by hand, or null before the first. */
     fun observeLastAccountId(): Flow<Long?>
 
-    /** Called after a new income or expense is saved. Never throws: losing it costs one tap. */
-    suspend fun rememberLastAccount(accountId: Long)
+    /**
+     * Called after a new income or expense is saved. Written in the background and returns at once,
+     * so the form closes without waiting on a file; never throws, since losing it costs one tap.
+     */
+    fun rememberLastAccount(accountId: Long)
 }

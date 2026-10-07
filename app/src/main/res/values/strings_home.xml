@@ -22,7 +22,6 @@
     <string name="form_title_new_income">New income</string>
     <string name="form_add_expense">Add expense</string>
     <string name="form_add_income">Add income</string>
-    <string name="form_new_category">New</string>
     <string name="form_no_group">No group</string>
     <string name="subscriptions_every_month">Every month</string>
     <string name="transfer_confirm">Transfer</string>

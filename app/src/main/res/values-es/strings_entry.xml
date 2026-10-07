@@ -5,6 +5,7 @@
     <string name="picker_no_matches">Nada coincide con «%1$s»</string>
 
     <!-- Los selectores de categoría y cuenta del formulario de movimientos -->
+    <string name="form_category_none">Ninguna</string>
     <string name="form_category_clear">Sin categoría</string>
     <string name="form_category_new">Nueva categoría</string>
     <string name="form_account_new">Nueva cuenta</string>

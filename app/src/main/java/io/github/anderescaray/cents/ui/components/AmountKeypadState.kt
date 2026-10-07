@@ -42,6 +42,14 @@ class AmountKeypadState internal constructor(
         isShown = true
     }
 
+    /**
+     * Anything else answered on the form — a picker, a chip, a tap on its empty space — is the
+     * owner done with the digits for now. What was typed stays; tapping the amount brings it back.
+     */
+    fun hide() {
+        isShown = false
+    }
+
     internal companion object {
         val Saver: Saver<AmountKeypadState, Boolean> =
             Saver(save = { it.isShown }, restore = { AmountKeypadState(it) })

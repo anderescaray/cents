@@ -1,13 +1,10 @@
 package io.github.anderescaray.cents.ui.feature.transactionform
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,10 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -27,33 +21,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.TransactionKind
-import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsButton
-import io.github.anderescaray.cents.ui.components.CentsChip
 import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsKeypad
-import io.github.anderescaray.cents.ui.components.CentsSheetAction
-import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.components.EntryKindControl
 import io.github.anderescaray.cents.ui.components.rememberAmountKeypadState
@@ -61,16 +50,20 @@ import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
-import io.github.anderescaray.cents.ui.util.relativeLabel
 
 /** Which picker the form has open over itself, if any. */
-private enum class FormSheet { ACCOUNT, GROUP }
+private enum class FormSheet { CATEGORY, ACCOUNT, GROUP }
 
 /**
- * The movement form, shaped like the film's sheet: what kind, how much in large type, the
- * category as one tap on a chip, then the keypad and one button that says what it will do —
- * *Add expense*. The account, the date, the group and a note sit as small chips between, already
- * answered with the usual answer, so the common case is amount, category, done.
+ * The movement form, shaped like the film's sheet: what kind, how much in large type, then the
+ * category and the account as one row each, the keypad and one button that says what it will do —
+ * *Add expense*. The account starts on the one the last movement went in, and the date and the
+ * group sit as chips already answered, so the common case is amount, category, done.
+ *
+ * **The keypad is up only while the amount is being typed** (`docs/next-improvements.md` §4). A
+ * new movement opens on it; anything else answered on the form — a row, a chip, the note, a tap on
+ * empty space — puts it away in the same tap that does the other thing, and tapping the amount
+ * brings it back with the figure as it was.
  */
 @Composable
 fun TransactionFormScreen(
@@ -115,9 +108,19 @@ fun TransactionFormScreen(
                 focusManager.clearFocus()
                 keypad.showForAmount()
             },
-            onCreateCategory = onCreateCategory,
-            onAccount = { if (state.accounts.isEmpty()) onCreateAccount() else sheet = FormSheet.ACCOUNT },
-            onGroup = { sheet = FormSheet.GROUP },
+            choices =
+                FormChoices(
+                    // Done with the digits, and with the note's keyboard too: the two never stand
+                    // together.
+                    putKeypadAway = {
+                        focusManager.clearFocus()
+                        keypad.hide()
+                    },
+                    openSheet = { sheet = it },
+                    // With no account at all there is nothing to list: straight to making the first.
+                    onAccount = { if (state.hasAccounts) sheet = FormSheet.ACCOUNT else onCreateAccount() },
+                    onDate = viewModel::openDatePicker,
+                ),
             onNoteFocus = keypad::onTextFieldFocus,
             modifier = Modifier.weight(1f),
         )
@@ -130,7 +133,41 @@ fun TransactionFormScreen(
         )
     }
 
-    FormDialogs(state = state, viewModel = viewModel, sheet = sheet, onCloseSheet = { sheet = null })
+    FormDialogs(
+        state = state,
+        viewModel = viewModel,
+        sheet = sheet,
+        onCloseSheet = { sheet = null },
+        onCreateCategory = onCreateCategory,
+        onCreateAccount = onCreateAccount,
+    )
+}
+
+/**
+ * What each answer on the form opens. Every one of them puts the keypad away **in the same tap**
+ * (§4): a picker never needs a first tap to clear the keypad and a second to open it.
+ */
+private class FormChoices(
+    private val putKeypadAway: () -> Unit,
+    private val openSheet: (FormSheet) -> Unit,
+    private val onAccount: () -> Unit,
+    private val onDate: () -> Unit,
+) {
+    fun category() = then { openSheet(FormSheet.CATEGORY) }
+
+    fun account() = then(onAccount)
+
+    fun date() = then(onDate)
+
+    fun group() = then { openSheet(FormSheet.GROUP) }
+
+    /** A tap on the form's empty space, which answers nothing and only puts the keypad away. */
+    fun blank() = putKeypadAway()
+
+    private fun then(action: () -> Unit) {
+        putKeypadAway()
+        action()
+    }
 }
 
 /** Everything between the bar and the keypad: kind, amount, category, details and a note. */
@@ -140,14 +177,20 @@ private fun FormBody(
     viewModel: TransactionFormViewModel,
     onSwitchToTransfer: (String) -> Unit,
     onAmountTapped: () -> Unit,
-    onCreateCategory: (CategoryKind) -> Unit,
-    onAccount: () -> Unit,
-    onGroup: () -> Unit,
+    choices: FormChoices,
     onNoteFocus: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val current by rememberUpdatedState(choices)
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier =
+            modifier
+                // Only what nothing else answers: a row, a chip, the amount and the note each take
+                // their own taps first, so this hears the empty space between them and nothing
+                // more. A gesture rather than a click, so TalkBack is not offered "the form".
+                .pointerInput(Unit) { detectTapGestures { current.blank() } }
+                .testTag(TRANSACTION_FORM_BODY_TAG)
+                .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
     ) {
         EntryKindControl(
@@ -180,14 +223,9 @@ private fun FormBody(
             )
         }
 
-        CategoryChips(state = state, viewModel = viewModel, onCreateCategory = onCreateCategory)
+        ChoiceRows(state = state, onCategory = choices::category, onAccount = choices::account)
 
-        DetailChips(
-            state = state,
-            onAccount = onAccount,
-            onDate = viewModel::openDatePicker,
-            onGroup = onGroup,
-        )
+        DetailChips(state = state, onDate = choices::date, onGroup = choices::group)
 
         NoteField(
             note = state.note,
@@ -291,13 +329,15 @@ private fun AmountHeader(
     )
 }
 
-/** What the form puts on top of itself: the calendar, the two pickers, and the deletion. */
+/** What the form puts on top of itself: the calendar, the three pickers, and the deletion. */
 @Composable
 private fun FormDialogs(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
     sheet: FormSheet?,
     onCloseSheet: () -> Unit,
+    onCreateCategory: (CategoryKind) -> Unit,
+    onCreateAccount: () -> Unit,
 ) {
     if (state.pickingDate) {
         CentsDatePicker(
@@ -309,7 +349,8 @@ private fun FormDialogs(
     }
 
     when (sheet) {
-        FormSheet.ACCOUNT -> AccountSheet(state, viewModel, onCloseSheet)
+        FormSheet.CATEGORY -> CategorySheet(state, viewModel, onCreateCategory, onCloseSheet)
+        FormSheet.ACCOUNT -> AccountSheet(state, viewModel, onCreateAccount, onCloseSheet)
         FormSheet.GROUP -> GroupSheet(state, viewModel, onCloseSheet)
         null -> Unit
     }
@@ -343,7 +384,7 @@ private fun TransactionFormUiState.confirmRes(): Int =
 
 private const val AMOUNT_SIZE = 52
 private const val AMOUNT_MIN_SIZE = 20
-private val NOTE_RADIUS = CentsDimens.keyRadius
 
 internal const val NOTE_FIELD_TAG = "transactionNote"
 internal const val AMOUNT_HEADER_TAG = "transactionAmount"
+internal const val TRANSACTION_FORM_BODY_TAG = "transactionFormBody"

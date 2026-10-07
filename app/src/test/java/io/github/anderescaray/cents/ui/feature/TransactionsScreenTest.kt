@@ -1,8 +1,11 @@
 package io.github.anderescaray.cents.ui.feature
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,12 +17,15 @@ import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.feature.transactions.CLEAR_FILTER_TAG
+import io.github.anderescaray.cents.ui.feature.transactions.FILTERS_BUTTON_TAG
+import io.github.anderescaray.cents.ui.feature.transactions.FILTERS_COUNT_TAG
 import io.github.anderescaray.cents.ui.feature.transactions.SHOW_EVERYTHING_TAG
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionDay
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsList
 import io.github.anderescaray.cents.ui.feature.transactions.TransactionsUiState
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -148,6 +154,30 @@ class TransactionsScreenTest {
         // disagree about what the purchase was.
         assertEquals(listOf(9L to 42L), openedTrades)
         assertEquals(emptyList<Long>(), openedMovements)
+    }
+
+    @Test
+    fun `the filters sit on the right beside the add button, clear of the title`() {
+        setContent(unfiltered())
+
+        val filters = composeRule.onNodeWithTag(FILTERS_BUTTON_TAG)
+        filters.assertContentDescriptionEquals("Filters")
+        composeRule.onNodeWithTag(FILTERS_COUNT_TAG, useUnmergedTree = true).assertDoesNotExist()
+
+        val title = composeRule.onNodeWithText("Transactions").getUnclippedBoundsInRoot()
+        val button = filters.getUnclippedBoundsInRoot()
+        val add = composeRule.onNodeWithContentDescription("New transaction").getUnclippedBoundsInRoot()
+        // `docs/next-improvements.md` §2: the title and the action no longer share a corner.
+        assertTrue("the button is clear of the title", button.bottom <= title.top || button.left >= title.right)
+        assertTrue("and it stands with the add button, before it", button.right <= add.left)
+    }
+
+    @Test
+    fun `an active filter is counted on the button, and said`() {
+        setContent(filtered())
+
+        composeRule.onNodeWithTag(FILTERS_BUTTON_TAG).assertContentDescriptionEquals("Filters (1)")
+        composeRule.onNodeWithTag(FILTERS_COUNT_TAG, useUnmergedTree = true).assertExists()
     }
 
     private fun unfiltered() =

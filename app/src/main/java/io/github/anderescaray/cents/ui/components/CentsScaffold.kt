@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -135,6 +136,8 @@ private fun CollapsingNavBar(
                     .heightIn(min = CentsDimens.barHeight)
                     .padding(horizontal = CentsDimens.screenMargin),
             verticalAlignment = Alignment.CenterVertically,
+            // A gutter between the buttons and the compact title, so neither touches the other.
+            horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
         ) {
             // The back affordance stays legible while the large title is still on screen;
             // only the compact title itself fades in.
@@ -145,6 +148,10 @@ private fun CollapsingNavBar(
                 text = title,
                 style = CentsTheme.typography.headline,
                 color = CentsTheme.colors.label,
+                // One line in a bar: a long title in Spanish, or at a large text size, ends in an
+                // ellipsis rather than pushing the buttons out or growing the bar.
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier =
                     Modifier
                         .weight(1f)

@@ -23,6 +23,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -199,6 +200,68 @@ class HoldingEditViewModelTest {
 
                 assertTrue("the refusal is shown", state.writeFailed)
                 assertFalse("and nothing pretends it was saved", state.finished)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // Only a broker for a new holding (`docs/next-improvements.md` §10).
+
+    @Test
+    fun `a new holding is offered broker accounts only`() =
+        runTest {
+            val viewModel = editorFor()
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.accountsLoaded }
+                assertEquals(listOf("Broker"), state.accounts.map { it.name })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `with no broker account a new holding has nowhere to go, and a broker made then is chosen`() =
+        runTest {
+            database.accountDao().setArchived(brokerId, archived = true)
+            val viewModel = editorFor()
+            viewModel.onSymbolChanged("NVDA")
+            viewModel.onNameChanged("NVIDIA")
+
+            viewModel.uiState.test {
+                val empty = awaitStateThat { it.accountsLoaded && it.name.isNotEmpty() }
+                assertTrue("an archived broker is not offered either", empty.needsBrokerAccount)
+                assertNull("never silently a current account", empty.accountId)
+                assertFalse(empty.canSave)
+
+                // What the form's *New broker account* row leads to, and back.
+                val made = database.accountDao().insert(account(name = "New broker", type = AccountType.BROKER))
+
+                val state = awaitStateThat { it.accountId != null }
+                assertEquals(made, state.accountId)
+                assertFalse(state.needsBrokerAccount)
+                assertTrue(state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a holding already in a current account keeps it, and it is shown`() =
+        runTest {
+            val checking =
+                database
+                    .accountDao()
+                    .observeAll()
+                    .first()
+                    .single { it.name == "Checking" }
+                    .id
+            val id = database.holdingDao().insert(holding(checking, symbol = "NVDA"))
+
+            val viewModel = editorFor(holdingId = id)
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.accountsLoaded && it.symbol == "NVDA" }
+                assertEquals(checking, state.accountId)
+                assertEquals(listOf("Broker", "Checking"), state.accounts.map { it.name })
+                assertTrue(state.canSave)
                 cancelAndIgnoreRemainingEvents()
             }
         }

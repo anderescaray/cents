@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
-import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.Holding
+import io.github.anderescaray.cents.domain.model.holdsInvestments
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.HoldingRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
@@ -17,7 +17,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -30,7 +29,13 @@ data class HoldingEditUiState(
     val name: String = "",
     val assetClass: AssetClass = AssetClass.STOCK,
     val accountId: Long? = null,
+    /**
+     * The accounts the form offers: the brokers that are not archived, and the account an existing
+     * holding is already in, whatever it is (`docs/next-improvements.md` §10).
+     */
     val accounts: List<Account> = emptyList(),
+    /** The accounts have arrived; until then an empty list means "not yet", not "none". */
+    val accountsLoaded: Boolean = false,
     val note: String = "",
     /** The symbol is already held in the chosen account: saving would split one position in two. */
     val duplicateOf: String? = null,
@@ -41,6 +46,9 @@ data class HoldingEditUiState(
 ) {
     /** The chosen account, or null while the list is still loading. */
     val account: Account? get() = accounts.firstOrNull { it.id == accountId }
+
+    /** There is no broker account to put a new holding in, so the form offers to make one. */
+    val needsBrokerAccount: Boolean get() = accountsLoaded && accounts.isEmpty()
 
     /**
      * Saving needs an account that is actually **in the list**, not merely an id.
@@ -85,33 +93,48 @@ class HoldingEditViewModel
 
         val uiState: StateFlow<HoldingEditUiState> = form.asStateFlow()
 
+        /** The account an existing holding is in, which stays offered whatever it is. */
+        private var ownAccountId: Long? = null
+
         init {
             viewModelScope.launch { load() }
         }
 
         private suspend fun load() {
-            // Archived accounts are offered here, the way they are counted in the portfolio and
-            // offered in the Reports picker: a holding does not stop existing because the account
-            // it lives in was put away, and leaving it out of the list left the form unable to
-            // name the account its own holding is in.
-            val accounts = accountRepository.observeAccounts(includeArchived = true).first()
             val holding = holdingId?.let { holdingRepository.findById(it) }
+            ownAccountId = holding?.accountId
             form.update { state ->
                 state.copy(
                     symbol = holding?.symbol ?: state.symbol,
                     name = holding?.name ?: state.name,
                     assetClass = holding?.assetClass ?: state.assetClass,
-                    // A broker account is the obvious home for a holding, so it is offered
-                    // first — but any account is allowed, because what the owner calls the
-                    // account they invest from is theirs to decide.
-                    accountId =
-                        holding?.accountId ?: accounts.firstOrNull { it.type == AccountType.BROKER }?.id
-                            ?: accounts.firstOrNull()?.id,
-                    accounts = accounts,
+                    accountId = holding?.accountId,
                     note = holding?.note.orEmpty(),
                 )
             }
-            checkForDuplicate()
+            // Watched rather than read once: a broker made from this form, when there was none,
+            // has to appear in it on the way back. Archived accounts are read too, so an old
+            // holding can still name the account it is in.
+            accountRepository.observeAccounts(includeArchived = true).collect { accounts ->
+                form.update { it.withAccounts(accounts) }
+                checkForDuplicate()
+            }
+        }
+
+        /**
+         * Only a broker for a new holding (§10): its trades spend and return that account's cash,
+         * and a current account is not where investing happens. An existing holding keeps the
+         * account it is in and shows it, even one that is not a broker or has been archived —
+         * nothing is moved for the owner.
+         */
+        private fun HoldingEditUiState.withAccounts(all: List<Account>): HoldingEditUiState {
+            val offered = all.filter { it.holdsInvestments || it.id == ownAccountId }
+            val kept = accountId?.takeIf { id -> offered.any { it.id == id } }
+            return copy(
+                accounts = offered,
+                accountsLoaded = true,
+                accountId = kept ?: offered.firstOrNull { it.holdsInvestments }?.id,
+            )
         }
 
         fun onSymbolChanged(value: String) {

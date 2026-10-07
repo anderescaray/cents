@@ -1,13 +1,12 @@
 package io.github.anderescaray.cents.ui.feature.transactions
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +19,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
@@ -37,7 +38,6 @@ import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
 import io.github.anderescaray.cents.ui.components.open
-import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
@@ -102,8 +102,10 @@ internal fun TransactionsList(
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_transactions),
         bottomPadding = CentsDimens.sectionSpacing,
-        leading = { FiltersButton(count = state.filter.activeCount, onClick = onOpenFilters) },
+        // Both actions on the right, as round buttons beside each other: the title keeps the left
+        // to itself, expanded or collapsed, in either language and at any text size.
         trailing = {
+            FiltersButton(count = state.filter.activeCount, onClick = onOpenFilters)
             val addLabel = stringResource(R.string.add_transaction_title)
             // Read aloud as what it does rather than as "plus": the label is on the button, and
             // the glyph inside it is kept out of what TalkBack says.
@@ -140,32 +142,46 @@ internal fun TransactionsList(
  * The way into the filter form, saying how many things are currently narrowing the list.
  *
  * The count is the point: a filtered list that looks like an unfiltered one is how someone
- * concludes their movements have disappeared.
+ * concludes their movements have disappeared. So the glyph turns blue and a badge carries the
+ * number, and TalkBack hears *Filters (2)* from the same words the button used to draw.
  */
 @Composable
-private fun RowScope.FiltersButton(
+private fun FiltersButton(
     count: Int,
     onClick: () -> Unit,
 ) {
-    Text(
-        text =
-            if (count == 0) {
-                stringResource(R.string.filters_open)
-            } else {
-                stringResource(R.string.filters_open_active, count)
-            },
-        style = CentsTheme.typography.body,
-        color = CentsTheme.colors.accentText,
-        // A bare Text is a few points tall. The tap target is the row height, whatever the
-        // label happens to measure.
-        modifier =
-            Modifier
-                .testTag(FILTERS_BUTTON_TAG)
-                .clip(RoundedCornerShape(CentsDimens.spacingS))
-                .tappable(onClick = onClick)
-                .defaultMinSize(minHeight = CentsDimens.minRowHeight)
-                .wrapContentHeight(Alignment.CenterVertically),
-    )
+    Box {
+        RoundIconButton(
+            iconRes = R.drawable.ic_filter,
+            contentDescription =
+                if (count == 0) {
+                    stringResource(R.string.filters_open)
+                } else {
+                    stringResource(R.string.filters_open_active, count)
+                },
+            onClick = onClick,
+            tint = if (count == 0) CentsTheme.colors.label else CentsTheme.colors.accent,
+            modifier = Modifier.testTag(FILTERS_BUTTON_TAG),
+        )
+        if (count > 0) {
+            Text(
+                text = count.toString(),
+                style = CentsTheme.typography.caption1,
+                color = CentsTheme.colors.onAccent,
+                textAlign = TextAlign.Center,
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .clip(CircleShape)
+                        .background(CentsTheme.colors.accent)
+                        .defaultMinSize(minWidth = FILTER_BADGE)
+                        .padding(horizontal = CentsDimens.spacingXs)
+                        .testTag(FILTERS_COUNT_TAG)
+                        // Already in the button's own description.
+                        .clearAndSetSemantics {},
+            )
+        }
+    }
 }
 
 private fun LazyListScope.searchField(
@@ -364,7 +380,10 @@ private fun TransactionDetails.subtitle(): String {
     return groupName?.let { stringResource(R.string.transaction_row_in_group, it, base) } ?: base
 }
 
+private val FILTER_BADGE = 18.dp
+
 internal const val FILTERS_BUTTON_TAG = "openFilters"
+internal const val FILTERS_COUNT_TAG = "filtersCount"
 internal const val INBOX_ROW_TAG = "openInbox"
 internal const val SHOW_EVERYTHING_TAG = "showEverything"
 

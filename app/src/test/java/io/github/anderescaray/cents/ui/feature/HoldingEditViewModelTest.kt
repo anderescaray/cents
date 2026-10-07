@@ -115,7 +115,7 @@ class HoldingEditViewModelTest {
             viewModel.onSymbolChanged("NVDA")
 
             viewModel.uiState.test {
-                // The wait names the condition the assertion is about (`PLAN.md` C4): waiting
+                // The wait names the condition the assertion is about (`docs/testing.md`): waiting
                 // only for the symbol would pass while the account list was still loading, and
                 // canSave would then be false for a reason that has nothing to do with the test.
                 val state = awaitStateThat { it.symbol == "NVDA" && it.name.isNotEmpty() && it.accountId != null }

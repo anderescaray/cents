@@ -32,14 +32,15 @@ import javax.inject.Singleton
  * of one flow with the *last* value of the other, so a movement moved from one period to the
  * other does briefly render as counted twice or not at all before the second emission lands.
  * Making that impossible needs one query returning both totals, which costs the index this
- * repository is otherwise able to use — recorded in `PLAN.md` C4 rather than traded away for
- * a frame.
+ * repository is otherwise able to use — recorded in `docs/known-limitations.md` rather than
+ * traded away for a frame.
  *
  * **It picks the query rather than passing a nullable account into one.** The other three
  * reports take the account as `:accountId IS NULL OR ...`, which is not sargable and gives up
- * `index_transactions_accountId_date` (`PLAN.md` C4). Here two totals queries already existed
- * — one for every account, one for a given account — so the narrowed case gets the index for
- * free, and this is what the split recorded in that gap would look like everywhere else.
+ * `index_transactions_accountId_date` (`docs/known-limitations.md`). Here two totals queries
+ * already existed — one for every account, one for a given account — so the narrowed case gets
+ * the index for free, and this is what the split recorded in that gap would look like
+ * everywhere else.
  */
 @Singleton
 class RoomPeriodComparisonRepository

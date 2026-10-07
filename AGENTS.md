@@ -9,15 +9,13 @@ and anything else Orca launches. Claude Code loads `CLAUDE.md` by itself; you ha
    (§4). Money is a `Long` of cents, dates are `java.time`, everything out of Room is a `Flow`,
    every schema change ships with a migration and a migration test, and every user-facing string
    lives in `strings.xml` with a Spanish translation in `values-es/`.
-2. **[`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md)** and
-   **[`0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md)**, before any composable.
-   The app looks like iOS, not Material. Build from `ui/components`, not from default Material
-   widgets.
+2. **[`docs/decisions/0003-the-ring.md`](docs/decisions/0003-the-ring.md)**, before any
+   composable. The app has its own look (the ring, cards and chips), neither iOS nor Material.
+   Build from `ui/components`, not from default Material widgets.
 3. **The task prompt you were given.** It names your branch and the only folders you may write
    to.
-4. **[`docs/next-improvements.md`](docs/next-improvements.md)** before choosing the next task:
-   the owner's confirmed improvement requests and clarifications. These are planned changes,
-   not completed features; check the baseline and pending-work notes before implementing them.
+4. **[`docs/testing.md`](docs/testing.md)** before writing a test: the waits that keep a
+   view-model test from racing Room, and the other traps already met.
 
 ## How parallel work runs here
 
@@ -29,10 +27,10 @@ That is only safe because each one keeps to its own files, so these rules are no
 - **Never touch the global locks** unless your task explicitly says you own them: the Room schema
   (`data/local/` entities, `CentsDatabase`, migrations, `app/schemas/`), `ui/theme/`, and
   `gradle/libs.versions.toml`. Anything that changes one of those runs alone.
-- **Do not edit the project's shared documents**: `CLAUDE.md`, `PLAN.md`, `README.md`,
-  `DECISIONS.md`, `FEEDBACK.md`, `docs/device-check.md`. Two branches editing the same paragraph
-  has already silently deleted a decision once. Put what you learned in the PR description
-  instead; the documentation is updated in one place after merging.
+- **Do not edit any documentation**, meaning any Markdown file in the repository. Two branches
+  editing the same paragraph has already silently deleted a decision once. Put what you learned
+  in the PR description instead; Claude Code updates the documentation in one docs branch after
+  merging.
 - **New strings go in their own resource pair**: `values/strings_<feature>.xml` and
   `values-es/strings_<feature>.xml`, rather than appending to the shared `strings.xml`.
 - **Shared wiring is one line.** A `@Binds` in `RepositoryModule`, a route or a section entry:
@@ -47,8 +45,8 @@ That is only safe because each one keeps to its own files, so these rules are no
 ./gradlew spotlessCheck detekt testDebugUnitTest assembleDebug
 ```
 
-All green, then read the test results rather than trusting `BUILD SUCCESSFUL` (`PLAN.md` C4
-explains why). Commits are Conventional Commits in English (`feat(budgets): ...`). Open one PR
+All green, then read the test results rather than trusting `BUILD SUCCESSFUL`
+([`docs/testing.md`](docs/testing.md) explains why). Commits are Conventional Commits in English (`feat(budgets): ...`). Open one PR
 against `main`, and in its description say what was built, what was deliberately left out, and
 anything a reviewer should look at first. Do not merge it: the owner merges after review.
 
@@ -57,9 +55,8 @@ Things no agent does: connect to bank APIs, add analytics or telemetry, invent a
 
 ## Local verification notes
 
-- On Windows, if Spotless fails while reading generated paths under `app/build/spotless-clean`,
-  retry formatting and the verification commands with `--no-parallel --max-workers=1`. This
-  avoids the observed file-access race without changing the quality configuration.
+- On Windows, if Spotless fails reading `app/build/spotless-clean`, retry with
+  `--no-parallel --max-workers=1` ([`docs/testing.md`](docs/testing.md)).
 - Hilt entry points installed in `SingletonComponent` share a generated component. Give getters
   for different bindings distinct names, such as `captureNotifier()` and `notifier()`; identical
   method signatures with different return types fail compilation.

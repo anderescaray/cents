@@ -1,146 +1,103 @@
 # Cents
 
-A local-first personal finance tracker for Android. Income and expenses with
-user-defined categories, multiple accounts with transfers, recurring subscriptions with
-reminders, spending analytics, and an investment portfolio with net worth.
+A local-first personal finance app for Android, for one person. It records income and expenses
+in categories that person defines, keeps several accounts with transfers between them, records
+subscriptions on its own, answers where the money went, and tracks an investment portfolio and
+net worth.
 
-Built with Kotlin and Jetpack Compose. All data stays on the device — no backend, no user
-accounts, no telemetry. The one thing that leaves it is an optional daily backup, to a hidden
-folder in the owner's own Google Drive.
+Everything stays on the phone: no backend, no user accounts, no analytics. The one thing that
+leaves it is an optional daily backup, to a hidden folder in the owner's own Google Drive.
 
-> **Status (2026-09-25): Phases 1–3 built; Phase 4 built with prices typed by hand; Phases 5–6
-> not started.** Most of Phase 2 onward has still not been walked on a real phone. Since the
-> paragraph below was written, the app has gained transfers, an investment portfolio with closed
-> positions and net worth, recurring subscriptions that record themselves, ask for variable
-> bills, remind you before a charge and say what is still committed this month, JSON/CSV export
-> and restore, and a daily automatic backup to the owner's own Google Drive.
-> Budgets, the first piece of Phase 5, landed the same day, and on 2026-09-25 groups: what a
-> trip or a job cost or earned across every category it touched, and an inbox that files what
-> was saved without a category in one tap. The same day, a charge or salary can be postponed a
-> few days, and TalkBack and the largest system font are supported. 873 tests.
->
-> **Earlier status: Phase 1 of 6 complete; Phase 2 built and awaiting its walk on a real phone.**
-> Recording money works end to end: accounts, categories, transactions and balances that trace
-> back to the movements behind them; a list grouped by day that can be searched and filtered by
-> date range, account, category, kind and amount; and deletion that asks the right question —
-> including what should become of the movements inside an account you are removing. Nothing is
-> seeded: every row in the app is one the owner typed. **Analytics is built:** a Reports tab
-> with six views — where the money went or came from, income against expenses, balance over
-> time, spending by weekday, this period against the last or against the same period last year,
-> and one category followed over twelve periods — all under one period control and one account
-> picker, and every chart drills down to the movements behind it. The app opens on a **canvas of
-> bubbles**, one per section ([ADR 0002](docs/decisions/0002-bubble-launcher.md)). 369 tests run
-> on the JVM, so CI covers the database and the UI without a device. The roadmap below tracks
-> progress honestly.
+**Status:** a private project, in daily use. PRD phases 1 to 5 are built. Where it stands today,
+and what comes next, is in [`PLAN.md`](PLAN.md).
 
----
+## What it does
 
-## Why
+- **Record a movement in a few taps.** The amount goes in on a keypad, and the category and the
+  account are picked from a list. The last account used is the default. Nothing is seeded:
+  every category and account is one the owner made.
+- **Accounts** with balances computed from their movements, never stored. A balance can be set
+  to what the bank shows, either as a correction from today or as a new opening balance.
+  Deleting an account asks what becomes of its movements.
+- **Transfers** between accounts, with an optional fee. They count in every balance and in no
+  income or expense figure.
+- **Home** records, files what was saved without a category, and leads with what is left or
+  overspent this month.
+- **Movements**, grouped by day. Search ignores accents (*cafe* finds *Café*). Filters cover
+  dates, account, category, kind, amount, weekday and group.
+- **Reports:**
+  - where the money went or came from;
+  - income against expenses, or what was saved, by month, quarter or year;
+  - the balance over time;
+  - spending by weekday;
+  - this period against the last or the same one last year;
+  - one category over twelve periods;
+  - budgets, amber at 80 % and red over 100 %.
 
-Bank apps show you what each individual account did. They do not tell you where your money
-actually goes across all of them, what your fixed monthly commitments cost you, or how your
-investments are doing — and they cannot, because they only see themselves. Cents is a single
-place that answers those questions, owned entirely by the person using it.
+  Every chart opens the movements behind it, and the cards can be reordered and hidden.
+- **Subscriptions** that record themselves, with what they cost per month and per year.
+  - Variable bills are answered when they arrive.
+  - Reminders come before a charge.
+  - An occurrence can be postponed by up to 14 days.
+  - The screen shows what is still committed this month.
+- **Groups**: what an occasion (a trip, a move, a job) cost or earned, across categories.
+- **Investments:**
+  - holdings in stocks, ETFs, index funds and crypto;
+  - purchases that spend the account's cash;
+  - an average cost that survives a partial sale;
+  - prices typed per unit or as a total;
+  - closed positions.
 
-## Tech stack
+  Wallet shows what is in accounts, what is invested, and the net worth they come to.
+- **Capture:** payments read from the notifications of the apps the owner chooses. Each app has
+  its own words for expense and income. Captures land uncategorized, and *Try a notification*
+  shows what a given text would record.
+- **Your data:** JSON or CSV export, restore from a file or from Drive, and a daily Drive
+  backup.
+- English and Spanish, TalkBack, and the largest system font.
+
+## How it is built
 
 | Layer | Choice |
 |---|---|
 | Language | Kotlin |
-| UI | Jetpack Compose, Material 3 as a base, styled to iOS conventions |
-| Architecture | MVVM with `data` / `domain` / `ui` layers, unidirectional data flow |
-| Persistence | Room (KSP), versioned migrations |
+| UI | Jetpack Compose on Foundation, with its own design system ([ADR 0003](docs/decisions/0003-the-ring.md)) |
+| Architecture | MVVM, `data` / `domain` / `ui` layers, one immutable `UiState` per screen |
+| Persistence | Room (KSP) with versioned, tested migrations; DataStore for settings |
 | DI | Hilt |
-| Async | Coroutines + Flow |
+| Async | Coroutines and Flow |
 | Charts | Vico |
-| Networking | OkHttp + kotlinx.serialization, for the Drive backup only |
-| Background work | WorkManager |
-| Build | Gradle KTS with a version catalog |
-| Quality | detekt, ktlint via Spotless, GitHub Actions CI |
-| Tests | JUnit, MockK, Turbine, in-memory Room on the JVM via Robolectric, Compose UI Test |
+| Background work | WorkManager: reminders and the daily backup |
+| Networking | OkHttp and kotlinx.serialization, for Google Drive only |
+| Quality | detekt, ktlint (Spotless), GitHub Actions on every PR |
+| Tests | JUnit, MockK, Turbine, Robolectric, Compose UI Test, all on the JVM |
 
-**minSdk 26 · targetSdk latest stable**
-
-The app is Material 3 underneath and iOS on the surface: inset grouped lists, large
-collapsing titles, a bottom tab bar, iOS-style switches, alerts and action sheets,
-horizontal push/pop transitions and the Inter typeface. No screen is assembled from default
-Material widgets and there is no dynamic colour. The reasoning is in
-[`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md), and the one
-deliberate departure — the app opens on a canvas of draggable bubbles rather than on a tab, with
-the tab bar kept for moving between sections once you are inside one — is in
-[`docs/decisions/0002-bubble-launcher.md`](docs/decisions/0002-bubble-launcher.md).
-
-## Architecture
+**minSdk 26 · targetSdk latest stable.** Single Gradle module with feature packages:
 
 ```
-ui/       Compose screens, one ViewModel and immutable UiState per screen
+ui/       Compose screens, a ViewModel and an immutable UiState each
   ↓
 domain/   Pure Kotlin models, repository interfaces, use cases. No Android imports
   ↑
-data/     Room (local), Retrofit (remote), repository implementations
+data/     Room, the Drive backup client, export, and the repository implementations
 ```
 
-The `ui` layer never imports Room or Retrofit; the `domain` layer never imports Android.
-Single Gradle module with feature packages, split into modules only if build times or
-parallel work demand it.
+## Decisions worth knowing
 
-## Engineering decisions worth calling out
+- **Money is a `Long` of cents**, never a float, and every amount carries its currency.
+- **Balances are computed, not stored**, so editing an old movement cannot leave one out of
+  date.
+- **A transfer is not an expense.** Counting either leg would inflate every statistic.
+- **Stopping a subscription never deletes what it already recorded**, or past months' charts
+  would change.
+- **Due charges are written when the app opens**, idempotently, rather than by a scheduled job
+  that Android may not run on time.
+- **One currency and no conversion.** Two currencies show no total rather than an invented one.
+- **Prices are typed.** No free source carries these European listings, and paying for one was
+  declined (D25).
 
-- **Money is a `Long` in cents, never a floating point type.** Binary floats lose precision,
-  and in a finance app that means books that do not balance. Formatting happens only at the
-  UI edge, using the device locale.
-- **The app ships with nothing in it.** No default categories, no starter account. A fresh
-  install is empty, and every row in the app is one its owner typed — a suggested list is
-  still software deciding what your money is spent on.
-- **One currency, the device's, and no picker.** `Money` still carries an ISO-4217 code and
-  still refuses to add euros to dollars, but that is a guard rail against a wrong number
-  rather than multi-currency support: there is no conversion step, so where two currencies
-  somehow coexist the app shows *no* total instead of an approximate one.
-- **Account balances are computed, not stored.** A stored balance drifts out of sync the
-  moment an old transaction is edited.
-- **A transfer is not an expense.** It is a linked outflow/inflow pair excluded from every
-  income and expense report — otherwise every statistic in the app is inflated.
-- **Deleting an account asks what to keep.** A movement cannot outlive its account, so
-  deleting one that holds history is a question rather than an operation: move the movements
-  to another account, or delete them too, behind a confirmation that names how many go.
-- **Deleting a subscription never deletes its history.** It deactivates the rule from today
-  forward. Deleting past charges would silently change every chart for previous months.
-- **Recurring transactions are generated by catch-up on app open**, not by a scheduled job.
-  Android does not guarantee background work runs on time, so a job-based design silently
-  loses whole months. Generation is idempotent on `ruleId` + date and fills gaps.
-- **Performance is measured, not assumed.** Baseline Profiles and Macrobenchmark on a
-  physical device in release builds; chart aggregation pushed into SQL rather than iterated
-  in Kotlin.
-
-## Roadmap
-
-| Phase | Scope | Status |
-|---|---|---|
-| 0 | Project skeleton, CI, theme, navigation | **Done** |
-| 1 | Room schema, accounts, categories, transactions, balances, search and filters | **Done** |
-| 2 | Analytics: by category, income vs expenses, balance over time, by weekday, period comparison, category trend | **Built** · closes after the device walk |
-| 3 | Transfers, recurring rules and subscriptions, export/import and automatic backup to Drive (the biometric lock was built and removed, D31) | **Built** |
-| 4 | Investment portfolio with prices and P&L | **Built** · prices are typed by hand: no free provider carries these European listings, and paying for one was declined |
-| 5 | Uncategorized inbox, budgets, notification-based auto-capture (experimental) | **Begun** · budgets built; the inbox and capture not started |
-| 6 | Widget, animations, Baseline Profile, accessibility | Planned |
-
-## Documentation
-
-- [`docs/PRD.md`](docs/PRD.md) — product spec: features, data model, feasibility analysis,
-  roadmap
-- [`CLAUDE.md`](CLAUDE.md) — engineering guidelines: stack, architecture, non-negotiable
-  rules, git workflow
-- [`AGENTS.md`](AGENTS.md) — the same rules for the other coding agents, and how parallel work
-  in separate worktrees is kept from colliding
-- [`PLAN.md`](PLAN.md) — environment setup, the development process, and **Part C: where
-  the project stands right now**, which is where a new session starts
-- [`DECISIONS.md`](DECISIONS.md) — questions only the owner can answer, and what was decided
-- [`FEEDBACK.md`](FEEDBACK.md) — the other direction: what the owner found while using the app
-  on a real phone, which is the one thing the test suite cannot catch
-- [`docs/device-check.md`](docs/device-check.md) — the walk that finds it: what to tap, and what
-  a failure would look like
-- [`docs/decisions/`](docs/decisions/) — architecture decision records: what was decided,
-  and why, written to be read in a year
+The full rules are in [`CLAUDE.md`](CLAUDE.md) §4, and the reasons in
+[`DECISIONS.md`](DECISIONS.md) and [`docs/decisions/`](docs/decisions/).
 
 ## Building
 
@@ -151,12 +108,16 @@ parallel work demand it.
 ./gradlew detekt spotlessCheck # static analysis and formatting
 ```
 
-Requires Android Studio, which bundles the Android SDK and the JetBrains Runtime used to
-build (currently JDK 25). Do not install a separate JDK. No API key is needed: prices are
-typed, and the Drive backup's Android OAuth client is matched by package name and signing
-certificate, so nothing secret goes in the repo or in `local.properties`.
+Needs Android Studio, whose bundled JDK builds the project. No API key is needed. Setting up a
+machine, a phone and the Drive client from zero is [`docs/setup.md`](docs/setup.md).
+
+## Documentation
+
+Start with [`PLAN.md`](PLAN.md) (where things stand) and [`docs/PRD.md`](docs/PRD.md) (what the
+product is). Every document, what it is for, and the rules they all follow are listed in
+[`CLAUDE.md` §8](CLAUDE.md#8-documentation).
 
 ## License
 
-Not yet decided. The repository is private; the bundled Inter typeface is under the SIL Open
-Font License, in [`docs/licenses/`](docs/licenses/).
+Not decided. The repository is private. The bundled Inter typeface is under the SIL Open Font
+License, in [`docs/licenses/`](docs/licenses/).

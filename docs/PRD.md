@@ -3,10 +3,15 @@
 **Product document.** Describes *what* we are building, at what scope and in what order.
 Technical decisions about *how* live in [`../CLAUDE.md`](../CLAUDE.md).
 
-- **Version:** 0.1 (initial draft)
-- **Date:** 2026-08-18
-- **Status:** Phase 1 in progress — see [`../PLAN.md` Part C](../PLAN.md#part-c--where-the-project-stands) for exactly what is built
+- **Version:** 0.1, first written 2026-08-18
+- **Status:** phases 1 to 5 are built. What is built and what is next is in
+  [`../PLAN.md`](../PLAN.md).
 - **Author:** Ander
+
+Where a later answer in [`../DECISIONS.md`](../DECISIONS.md) or an ADR in
+[`decisions/`](decisions/) disagrees with this document, the later decision wins: for example,
+the look is ADR 0003's rather than iOS's, there is no lock (D31), and prices are typed (D25).
+Bringing the PRD level with those decisions is a docs task of its own.
 
 ---
 

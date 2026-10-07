@@ -28,7 +28,7 @@ import javax.inject.Singleton
  * through here rather than two halves updating at their own pace. It does not make the pair
  * atomic, and this comment used to say that it did — `combine` pairs the newest value of one
  * flow with the last value of the other, so a single frame can still show a line that starts
- * in the wrong place before the second emission lands (`PLAN.md` C4).
+ * in the wrong place before the second emission lands (`docs/known-limitations.md`).
  */
 @Singleton
 class RoomBalanceOverTimeRepository

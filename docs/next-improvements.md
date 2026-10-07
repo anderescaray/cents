@@ -1,62 +1,35 @@
-# Next improvements — owner-confirmed requirements
+# Backlog
 
-- **Recorded:** 2026-10-04.
-- **Status:** planned, not implemented by this documentation change.
-- **Purpose:** preserve the owner's requested changes and clarifications so a new agent can
-  continue without the original conversation. Read this before choosing the next implementation
-  task, alongside `CLAUDE.md`, `FEEDBACK.md`, `DECISIONS.md` and `PLAN.md`.
+What the owner has asked for and confirmed, with the details each request came with, so any
+session can build it without the original conversation. **The build order is
+[`PLAN.md`](../PLAN.md) §3**; this file holds the requests themselves.
 
-These are product requests, not a claim that the features already exist or blanket permission to
-merge code. Keep the usual review, territory, migration, localization and data-preservation rules.
-The implementation sequence below is the proposed split, not permission to start all branches at once.
+- An item is **ticked** once it is merged *and* the owner has checked it on the phone. Ticking
+  it also **deletes its section below**. The PR and git keep the details.
+- A request is not permission to skip the usual rules: review, territory, migrations, both
+  languages, and never losing data.
+- `FEEDBACK.md` outranks everything here.
 
-## Before resuming implementation
-
-**Status, 2026-10-07:** points 1 and 2 below are settled. #109, #113 (capture) and #114
-(the lock removed, D31) are merged. `fix/transaction-entry-ux` is #117 with items 2, 3, 4, 5, 9
-and 10; its phone check is Walk 22. Next is `fix/balance-adjustments-review` (#112's review), then
-`feat/app-language` from the table.
-
-1. **Check the actual UI baseline.** At the time this plan was recorded, `main` ended at #108 and
-   [UI rework PR #109](https://github.com/anderescaray/cents/pull/109), branch `feat/ui-rework`, was
-   open. That PR introduces the Home/Movements/Reports/Wallet shell, horizontal category chips and
-   per-app capture words. Its description says it was installed on the Pixel 11 Pro. This explains
-   why the owner's feedback can differ from the older form and bubble launcher on `main`.
-   Check the PR's current status; do not assume this documentation merges or approves it. Apply
-   the requested improvements to the agreed, integrated UI, not to an obsolete screen.
-2. **Preserve the separate capture work.** A local branch, `fix/capture-safety-and-feedback`, held
-   uncommitted changes for safer amount parsing, optional capture confirmations and removal of
-   the app lock when this document was written. Inspect Git and PR status before assuming those
-   changes are merged. Review and reconcile them with the UI rework separately, including its
-   per-app word lists. Do not discard that work or sweep it into a documentation commit.
-3. Start implementation branches from the latest `origin/main` after their dependencies land.
-   Do not stack them on an unmerged branch. Give each task an explicit write territory.
-4. New phone failures in `FEEDBACK.md` still take priority. Otherwise use this backlog rather than
-   assuming an older roadmap paragraph contains all of the owner's requests.
-
-## Completion checklist
-
-Only mark an item complete after it is implemented, reviewed and merged, with the relevant tests
-and device checks recorded. Add the implementing PR when updating its status.
+## Confirmed requests
 
 - [ ] 1. English/Spanish language selection in Settings.
-- [ ] 2. Proper separation between the Transactions title and Filters. **Built in #117**;
+- [ ] 2. Proper separation between the Movements title and Filters. **Merged in #117**; phone
+  check in Walk 22.
+- [ ] 3. Category selection through a large popup, not a horizontal strip. **Merged in #117**;
   phone check in Walk 22.
-- [ ] 3. Category selection through a large popup, not a horizontal strip. **Built in #117**;
-  phone check in Walk 22.
-- [ ] 4. Keypad visible only while the amount is active. **Built in #117**; phone check in Walk 22.
-- [ ] 5. Account popup with the last-used account preselected. **Built in #117**; phone check in
+- [ ] 4. Keypad visible only while the amount is active. **Merged in #117**; phone check in
   Walk 22.
+- [ ] 5. Account popup with the last-used account preselected. **Merged in #117**; phone check
+  in Walk 22.
 - [ ] 6. Liquid money, investments and total net worth on Home.
-- [ ] 7. Set an account's current balance, choosing the historical effect each time. **Built
-  and merged in #112 (2026-10-05)**; the phone check is still to do, so it stays unticked. Its
-  review (2026-10-07) left follow-ups for `fix/balance-adjustments-review` (`PLAN.md` Part C).
+- [ ] 7. Set an account's current balance, choosing the historical effect each time. **Merged in
+  #112**; phone check in Walk 21. Its review's findings are `fix/balance-adjustments-review`.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
-  **Built in #117** for the movement form; phone check in Walk 22. Subscriptions and capture are
-  left as they were and asked about in `DECISIONS.md` D32.
-- [ ] 10. Offer only broker accounts when choosing where a new investment is held (2026-10-05).
-  **Built in #117**; phone check in Walk 22.
+  **Merged in #117** for the movement form; phone check in Walk 22. Subscriptions and capture
+  wait on `DECISIONS.md` D32.
+- [ ] 10. Offer only broker accounts when choosing where a new investment is held. **Merged in
+  #117**; phone check in Walk 22.
 
 ## 1. App language
 
@@ -76,7 +49,7 @@ and device checks recorded. Add the implementing PR when updating its status.
 - Use the existing English/Spanish resources and feature-owned resource pairs for new strings.
   Any new compatibility dependency needs justification and a dedicated, serial catalog change.
 
-## 2. Transactions title and Filters
+## 2. Movements title and Filters
 
 **Request:** the title and filter action are too close together.
 
@@ -218,9 +191,8 @@ choices for transfers.
 **Request (2026-10-05):** the mirror of item 9. Just as a broker account is not offered for an
 ordinary income or expense, an account that is **not** a broker is not offered for an investment.
 
-- Today the holding form (`HoldingEditViewModel`) lists every account and only *preselects* a
-  broker, so a holding can be put in a current account, and its trades then spend and return that
-  account's cash. A new holding's account choice offers broker accounts only.
+- A new holding's account choice (`HoldingEditViewModel`) offers broker accounts only, so its
+  trades never spend or return a current account's cash.
 - Trades take their holding's account, so restricting the holding is what restricts the cash.
   Check the other entry points that create a holding or a trade and apply the same rule.
 - **Existing history is kept.** A holding already in a non-broker account keeps it, is still shown
@@ -231,75 +203,43 @@ ordinary income or expense, an account that is **not** a broker is not offered f
 - Archived broker accounts are not offered for a new holding, as today.
 - Wallet, net worth, the portfolio and transfers into and out of broker accounts are unchanged.
 
-## Proposed implementation sequence
+## Acceptance for what is still to build
 
-First resolve the baseline and pending work described above. Then use one focused PR per branch:
+- **Language:** the choice survives relaunch and reaches notifications. It leaves stored
+  currencies, balances, dates, capture's words and anything the owner typed exactly as they were.
+- **Home net worth:** Home and Wallet agree after an income, an expense, a transfer, a trade, a
+  price update and either balance correction. Unpriced investments are explicit, and a transfer
+  does not inflate net worth.
+- **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
+  and totals. Editing an old movement keeps its group, and reactivating the group restores it.
+- **Every item:** migration and backup round-trip tests for anything stored, the gates in
+  [`docs/testing.md`](testing.md), and a walk on the phone. A green JVM suite does not show that a
+  gesture, a keyboard or the system language behaves on a device.
 
-| Order | Proposed branch | Scope |
-|---|---|---|
-| 1 | `fix/transaction-entry-ux` | Items 2, 3, 4, 5, 9 and 10: header spacing, popup selectors, keypad focus, last account, and both sides of the broker rule (no broker for an income or expense, only a broker for an investment). **#117.** |
-| 2 | `feat/app-language` | Item 1: persistent language selection, compatible locale handling, notifications and currency safeguards. |
-| 3 | `feat/home-net-worth` | Item 6: the reusable Home wealth summary, using Wallet's calculation. |
-| 4 | `feat/account-balance-adjustments` | Item 7: both per-operation modes, account UI, consistent balance queries, migration and backup support. **Merged as #112, ahead of its turn, at the owner's request.** |
-| 5 | `feat/group-archive` | Item 8: group availability, selectors, historical preservation, migration and backup support. |
+## Requested, not yet placed
 
-- Keep shared-component work coordinated. Do not run two form/picker branches against the same files.
-- Room changes, design-system changes and dependency-catalog changes run serially under the existing
-  global-lock rules. In particular, land the balance migration before starting the group migration;
-  determine the actual version numbers from the then-current `main`.
-- No new bank API, price provider, full UI rewrite or capture-deduplication redesign is bundled here.
-- Local capture/lock work is a separate delivery, not an implemented item in this checklist.
+Real requests the owner has not put in the build order yet.
 
-## Verification and acceptance
+- **Hide a rarely used tab** (2026-09-25). For example Wallet, which is opened rarely once the
+  accounts exist. Nothing may become unreachable: a hidden tab needs another way in, such as a
+  row in Settings. At least one tab stays visible, and hiding is undone the same way it was done.
+- **What was saved or overspent, as a card on Reports** (2026-09-27). It would lead with one
+  figure in words, *You saved 312,40 €*, possibly with a savings rate (*no income yet* rather
+  than 0 %). Today Home leads with the month's figure, and Reports' income-and-expenses card has
+  a *Saved* mode (#101). The Spanish *Balance* label reads as an account balance and should
+  change.
+- **Delete one Drive backup at a time** (2026-10-01), from *Restore from Drive*, with a
+  confirmation. Today only retention removes copies.
+- **Resizable Reports cards** (D4). Reordering and hiding are built (#109).
+- **PRD Phase 6:** a home-screen widget, and the release measurements `CLAUDE.md` §5 asks for
+  before shipping: R8, a Baseline Profile, and Macrobenchmark on the Pixel.
 
-- English and Spanish selection survives relaunch, affects app notifications and leaves stored
-  currencies, balances, dates, parser settings and user-entered text intact.
-- Many categories and long names remain usable without horizontal scrolling. Selection closes the
-  popup; cancelling preserves the previous choice; income/expense choices never mix.
-- A picker opens on the first gesture while the keypad is visible. Outside taps hide the keypad,
-  keypad taps keep it visible, and no entered amount or note is lost.
-- The account default survives restart and remains valid after archive/delete/type changes or
-  restore. A broker-only account list does not make a new ordinary movement silently use a broker.
-- The Transactions title, Filters and add action remain separated in both languages, collapsed
-  and expanded, at large font sizes and on phone/tablet layouts.
-- Home and Wallet agree after income, expense, transfer, trade, price update and either balance
-  correction mode. Unpriced investments are explicit and a transfer does not inflate net worth.
-- Test both balance modes with positive, zero and negative targets, previous corrections, later
-  movements and concurrent writes. Income/expense reports and budgets remain unchanged; only the
-  selected mode's intended historical-balance effect occurs.
-- Archiving a June trip hides it from new December choices but keeps the June movements and totals.
-  Editing an old movement preserves its group, and reactivation restores availability.
-- Migration and backup/restore tests cover the new fields/records and backward compatibility.
-- Run the project's format, static-analysis, unit-test and debug-build gates, inspect the actual
-  test reports, and perform the relevant device checks. A passing JVM suite alone is not a claim
-  that picker gestures, keyboard transitions or system-language behavior were verified on a phone.
+## Engineering follow-ups
 
-## Requested on 2026-10-05, after this list was written
+No owner request behind these; take one when it is next to related work.
 
-**Both are built and merged in #113**, with the choices the owner made: the notification is on by
-default, and detection is editable both ways (*Try a notification* and ignore words, whose
-defaults ended as *saldo* and *balance*). The phone check is Walk 21 `q1`–`q6`. What follows is
-the request as it was recorded.
-
-- **A notification each time capture records a movement.** The owner asked whether the app
-  announces an automatic expense or income, and wants it to. `main` does not: capture records
-  silently. The uncommitted `fix/capture-safety-and-feedback` work builds it as a *Notify after
-  capture* switch in Settings › Capture: *Expense added*, the signed amount and the account, on
-  its own channel, private on the lock screen, opening the movement when tapped, and silent for
-  ignored or duplicate notifications. **It is off by default there; the owner wants it on.** It
-  ships with that work, after #109.
-- **Amount detection the owner can check and adjust.** On `main`, a masked card number written
-  right before a currency marker (`tarjeta ****7146 €23,00`) is read as the amount, 7.146 €. The
-  same uncommitted work fixes that: masks removed first, a currency required, and two amounts
-  ignored rather than guessed. The owner also asked for detection to be editable. Two shapes were
-  offered, and the choice is not made yet: a *Try a notification* box in Settings › Capture that
-  shows what a pasted text would record and why, and editable *ignore* words (*saldo*,
-  *disponible*) so an amount after one is never taken as the payment.
-
-## Handoff rule
-
-Keep this file as the durable record of these requests. When work merges or the owner changes a
-choice, update the relevant status and link the implementing PR in an authorized documentation
-change. If the file is outside an implementation task's write territory, report the update for the
-coordinator instead of editing shared documentation in parallel. Do not mark the backlog complete
-because its documentation was merged.
+- **Pin the test database's query context to the test thread**, which would close the Room races
+  in view-model tests at the root ([`docs/testing.md`](testing.md)). It touches every Room test.
+- **`CaptureViewModel.moveTo` finds the app through the derived `uiState.value`**, where
+  `requestStop` uses `editingPackage`. It cannot fail on the phone. Reading `editingPackage` would
+  make the two consistent.

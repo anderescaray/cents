@@ -2,7 +2,6 @@ package io.github.anderescaray.cents.data.repository
 
 import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
-import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
@@ -175,17 +174,7 @@ class RoomBackupRepository
                 val now = clock.instant()
                 backup.accounts.forEach { database.accountDao().insert(it.toEntity(now)) }
                 backup.categories.forEach { database.categoryDao().insert(it.toEntity(now)) }
-                backup.adjustments.forEach {
-                    database.balanceAdjustmentDao().insert(
-                        BalanceAdjustmentEntity(
-                            accountId = it.accountId,
-                            amountMinor = it.amountMinor,
-                            currency = it.currency,
-                            date = LocalDate.ofEpochDay(it.date),
-                            createdAt = now,
-                        ),
-                    )
-                }
+                backup.adjustments.forEach { database.balanceAdjustmentDao().insert(it.toEntity(now)) }
                 backup.rules.forEach { database.recurringRuleDao().insert(it.toEntity(now)) }
                 backup.reminders.forEach { database.ruleReminderDao().insert(it.toEntity()) }
                 backup.postponements.forEach {

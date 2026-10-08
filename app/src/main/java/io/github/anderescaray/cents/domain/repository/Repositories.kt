@@ -59,8 +59,8 @@ interface AccountRepository {
     /**
      * Moves every movement into [targetId] and then deletes the account, in one database
      * transaction. Nothing is lost: the history survives under another account. Its balance
-     * corrections move too, since they stand for movements that were never recorded; its opening
-     * balance does not.
+     * corrections and its opening balance move too, so [targetId] ends with both balances added
+     * together and net worth does not change.
      *
      * [targetId] must be an account in the same currency. A movement keeps the currency it
      * was recorded in, and an account's balance is the sum of its movements labelled with

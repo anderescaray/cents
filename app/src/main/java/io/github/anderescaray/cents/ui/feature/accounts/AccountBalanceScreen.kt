@@ -159,12 +159,13 @@ private fun TargetHeader(
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingXs),
     ) {
         Text(
-            text = AmountEntry.format(state.form.input, state.currency, state.form.negative),
+            // Blank for the moment the account takes to load, rather than a guessed currency.
+            text = state.currency?.let { AmountEntry.format(state.form.input, it, state.form.negative) }.orEmpty(),
             style = CentsTheme.typography.largeTitle,
             color =
                 when {
                     !state.hasTarget -> CentsTheme.colors.secondaryLabel
-                    state.target.isNegative -> CentsTheme.colors.destructiveText
+                    state.targetIsNegative -> CentsTheme.colors.destructiveText
                     else -> CentsTheme.colors.label
                 },
             textAlign = TextAlign.Center,
@@ -238,9 +239,9 @@ private fun LazyListScope.modes(
     onChoose: (BalanceChange) -> Unit,
 ) {
     item(key = "modes") {
-        val difference = state.difference?.takeUnless { it.isZero }
+        val difference = state.pendingDifference
         val rebased = state.rebasedOpening
-        val opening = state.account?.account?.openingBalance
+        val opening = state.opening
         val day = state.today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
         CentsListSection(
             header = stringResource(R.string.balance_mode_header),

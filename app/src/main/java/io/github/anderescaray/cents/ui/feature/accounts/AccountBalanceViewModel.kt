@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.domain.repository.BalanceRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.Today
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,35 +43,49 @@ data class AccountBalanceUiState(
     val today: LocalDate = LocalDate.now(),
     val isLoading: Boolean = true,
 ) {
-    val currency: String get() = account?.account?.currency ?: "EUR"
+    // Everything below is worked out once, when the view model builds the state, rather than each
+    // time a composable reads it (CLAUDE.md §5).
+
+    /** The account's currency; null until it is read, because no other currency is right (rule 2). */
+    val currency: String? = account?.account?.currency
 
     /** Nothing typed is not a target of zero: zero is typed as *0*. */
-    val hasTarget: Boolean get() = form.input != AmountEntry.EMPTY
+    val hasTarget: Boolean = form.input != AmountEntry.EMPTY
 
-    /** Typed in euros, but a balance is minor units like every amount in the app (rule 1). */
-    val target: Money
-        get() {
+    /**
+     * Typed in euros, but a balance is minor units like every amount in the app (rule 1). Null
+     * until the account says which currency it is in.
+     */
+    val target: Money? =
+        currency?.let { currency ->
             val magnitude = AmountEntry.toMinorUnits(form.input)
-            return Money(if (form.negative) -magnitude else magnitude, currency)
+            Money(if (form.negative) -magnitude else magnitude, currency)
         }
 
     /**
      * What the account holds now, live: it moves if a payment is captured while this screen is
      * open, and the difference moves with it.
      */
-    val current: Money? get() = account?.balance
+    val current: Money? = account?.balance
 
     /** Target minus what the account holds now; null until a target is typed. */
-    val difference: Money? get() = current?.takeIf { hasTarget }?.let { target - it }
+    val difference: Money? = if (hasTarget && target != null && current != null) target - current else null
 
     /** The opening balance a rebase would leave, for the option that says so. */
-    val rebasedOpening: Money?
-        get() = difference?.let { difference -> account?.account?.openingBalance?.plus(difference) }
+    val rebasedOpening: Money? = difference?.let { difference -> account?.account?.openingBalance?.plus(difference) }
 
-    val alreadyThere: Boolean get() = difference?.isZero == true
+    /** The opening balance today, which a rebase moves from. */
+    val opening: Money? = account?.account?.openingBalance
 
-    val canSave: Boolean
-        get() = difference?.isZero == false && form.change != null && !form.saving
+    val alreadyThere: Boolean = difference?.isZero == true
+
+    /** The difference each way's description names; none while there is nothing to change. */
+    val pendingDifference: Money? = difference?.takeUnless { it.isZero }
+
+    /** A typed balance below zero, drawn in red like any balance in the red. */
+    val targetIsNegative: Boolean = target?.isNegative == true
+
+    val canSave: Boolean = difference?.isZero == false && form.change != null && !form.saving
 }
 
 /**
@@ -124,20 +139,26 @@ class AccountBalanceViewModel
         fun save() {
             val state = uiState.value
             val change = state.form.change
-            if (!state.canSave || change == null) return
+            val target = state.target
+            if (!state.canSave || change == null || target == null) return
             form.update { it.copy(saving = true, writeFailed = false) }
 
             viewModelScope.launch {
                 // The difference shown is only what the screen knew a moment ago. The one written
                 // is measured again inside the write, so the account ends at the typed balance
                 // even if a payment was captured in between.
+                // Cancellation is let through rather than reported as a failed write: the screen is
+                // going, and there is nobody left to read the footer.
                 val written =
-                    runCatching {
-                        balanceRepository.setBalance(accountId, state.target, change, on = today.date.value)
+                    try {
+                        balanceRepository.setBalance(accountId, target, change, on = today.date.value)
+                        true
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        false
                     }
-                form.update {
-                    it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess)
-                }
+                form.update { it.copy(saving = false, writeFailed = !written, finished = written) }
             }
         }
 

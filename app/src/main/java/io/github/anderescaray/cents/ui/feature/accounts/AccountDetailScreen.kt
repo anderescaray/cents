@@ -10,9 +10,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -22,7 +19,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
-import io.github.anderescaray.cents.domain.model.BalanceAdjustment
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.ui.components.CentsAlert
@@ -75,7 +71,14 @@ fun AccountDetailScreen(
         onOpenTrade = onOpenTrade,
         onUndo = viewModel::undoDeletion,
         onSetBalance = onSetBalance,
-        onRemoveCorrection = viewModel::removeCorrection,
+        corrections =
+            CorrectionActions(
+                onAsk = viewModel::askToRemoveCorrection,
+                onConfirm = viewModel::confirmCorrectionRemoval,
+                onCancel = viewModel::cancelCorrectionRemoval,
+                onUndo = viewModel::undoCorrectionRemoval,
+                onFailureSeen = viewModel::dismissCorrectionFailure,
+            ),
     )
 }
 
@@ -93,11 +96,9 @@ internal fun AccountDetailContent(
     onOpenTrade: (Long, Long) -> Unit,
     onUndo: () -> Unit,
     onSetBalance: (Long) -> Unit = {},
-    onRemoveCorrection: (Long) -> Unit = {},
+    corrections: CorrectionActions = CorrectionActions(),
 ) {
     val account = state.account
-    // The correction a tap asked to remove, waiting on the confirmation every removal gets (rule 7).
-    var removing by remember { mutableStateOf<BalanceAdjustment?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CentsLargeTitleScaffold(
@@ -130,7 +131,7 @@ internal fun AccountDetailContent(
             }
 
             state.days.forEach { day ->
-                movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade) { removing = it }
+                movementDay(day, state.today, onOpenTransaction, onOpenTransfer, onOpenTrade, corrections.onAsk)
             }
         }
 
@@ -144,37 +145,65 @@ internal fun AccountDetailContent(
                         .padding(CentsDimens.screenMargin),
             )
         }
+        if (state.undoableCorrection != null) {
+            UndoBanner(
+                message = stringResource(R.string.balance_correction_removed),
+                onUndo = corrections.onUndo,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(CentsDimens.screenMargin),
+            )
+        }
     }
 
-    val correction = removing
-    if (correction != null && account != null) {
+    CorrectionAlerts(state, corrections)
+}
+
+/** The question before a correction goes, and the answer when the database refused. */
+@Composable
+private fun CorrectionAlerts(
+    state: AccountDetailUiState,
+    corrections: CorrectionActions,
+) {
+    state.removal?.let { removal ->
         RemoveCorrectionAlert(
-            balance = account.balance,
-            correction = correction,
-            onConfirm = {
-                onRemoveCorrection(correction.id)
-                removing = null
-            },
-            onDismiss = { removing = null },
+            balanceAfter = removal.balanceAfter,
+            onConfirm = corrections.onConfirm,
+            onDismiss = corrections.onCancel,
+        )
+    }
+
+    if (state.corrections.failed) {
+        CentsAlert(
+            title = stringResource(R.string.balance_correction_failed_title),
+            message = stringResource(R.string.balance_correction_failed_message),
+            confirmLabel = stringResource(R.string.action_ok),
+            onConfirm = corrections.onFailureSeen,
+            onDismiss = corrections.onFailureSeen,
         )
     }
 }
 
+/** What can be done to a balance correction from this screen. */
+internal data class CorrectionActions(
+    val onAsk: (Long) -> Unit = {},
+    val onConfirm: () -> Unit = {},
+    val onCancel: () -> Unit = {},
+    val onUndo: () -> Unit = {},
+    val onFailureSeen: () -> Unit = {},
+)
+
 /** Says what the balance becomes without the correction, before it goes. */
 @Composable
 private fun RemoveCorrectionAlert(
-    balance: Money,
-    correction: BalanceAdjustment,
+    balanceAfter: Money,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     CentsAlert(
         title = stringResource(R.string.balance_correction_remove_title),
-        message =
-            stringResource(
-                R.string.balance_correction_remove_message,
-                MoneyFormatter.format(balance - correction.amount),
-            ),
+        message = stringResource(R.string.balance_correction_remove_message, MoneyFormatter.format(balanceAfter)),
         confirmLabel = stringResource(R.string.balance_correction_remove_confirm),
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -259,7 +288,7 @@ private fun LazyListScope.movementDay(
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
-    onOpenCorrection: (BalanceAdjustment) -> Unit,
+    onOpenCorrection: (Long) -> Unit,
 ) {
     item(key = "day-${day.date}") {
         CentsListSection(header = day.date.relativeLabel(today)) {
@@ -287,7 +316,7 @@ private fun LazyListScope.movementDay(
                     // A badge like every movement beside it, so the titles line up.
                     leading = { IconBadge(iconRes = R.drawable.ic_wallet, color = CentsTheme.colors.secondaryLabel) },
                     showSeparator = index != day.corrections.lastIndex,
-                    onClick = { onOpenCorrection(correction) },
+                    onClick = { onOpenCorrection(correction.id) },
                     modifier = Modifier.testTag(CORRECTION_ROW_TAG),
                 )
             }

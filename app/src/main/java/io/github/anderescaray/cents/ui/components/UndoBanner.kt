@@ -29,6 +29,20 @@ fun UndoBanner(
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    UndoBanner(
+        message = stringResource(if (isTransfer) R.string.transfer_deleted else R.string.transaction_deleted),
+        onUndo = onUndo,
+        modifier = modifier,
+    )
+}
+
+/** The same banner for anything else that can be taken back, saying what went. */
+@Composable
+fun UndoBanner(
+    message: String,
+    onUndo: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier =
             modifier
@@ -39,10 +53,7 @@ fun UndoBanner(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text =
-                stringResource(
-                    if (isTransfer) R.string.transfer_deleted else R.string.transaction_deleted,
-                ),
+            text = message,
             style = CentsTheme.typography.subhead,
             // A dark pill: the inverse of the canvas, so it reads as something passing over the screen.
             color = CentsTheme.colors.groupedBackground,

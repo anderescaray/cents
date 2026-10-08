@@ -276,6 +276,23 @@ class RoomBalanceRepositoryTest {
         }
 
     @Test
+    fun `a removed correction can be put back as it was`() =
+        runTest {
+            val id = seventyEuros()
+            balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = today)
+            val before = database.balanceAdjustmentDao().all().single()
+
+            val removed = requireNotNull(balances.deleteAdjustment(before.id))
+            assertEquals(7_000L, balanceOf(id))
+            assertNull("a second removal finds nothing", balances.deleteAdjustment(before.id))
+
+            balances.restoreAdjustment(removed)
+
+            assertEquals(9_000L, balanceOf(id))
+            assertEquals(before.copy(createdAt = clock.instant()), database.balanceAdjustmentDao().all().single())
+        }
+
+    @Test
     fun `every screen's balance follows a correction as it is written`() =
         runTest {
             val id = seventyEuros()
@@ -311,9 +328,10 @@ class RoomBalanceRepositoryTest {
             accounts.reassignAndDelete(from, to)
 
             assertEquals(listOf(to), database.balanceAdjustmentDao().all().map { it.accountId })
-            // Its 10 € opening balance goes with the account, as it always has; the -30 € and the
-            // +20 € correction arrive.
-            assertEquals(1_000L - 3_000L + 2_000L, balanceOf(to))
+            // Everything arrives: its 100 € opening balance, the -30 € movement and the +20 €
+            // correction. The two balances are added together, 90 € and Savings' own 10 €.
+            assertEquals(9_000L + 1_000L, balanceOf(to))
+            assertEquals(10_000L + 1_000L, openingOf(to))
         }
 
     @Test

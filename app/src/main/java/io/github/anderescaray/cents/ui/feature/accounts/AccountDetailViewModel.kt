@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.BalanceAdjustment
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.PeriodSummary
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.repository.AccountRepository
@@ -16,8 +17,12 @@ import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import io.github.anderescaray.cents.ui.util.Today
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -40,6 +45,22 @@ data class AccountDay(
     val corrections: List<BalanceAdjustment> = emptyList(),
 )
 
+/** A correction the owner asked to remove, and what the balance would be without it. */
+data class CorrectionRemoval(
+    val correction: BalanceAdjustment,
+    val balanceAfter: Money,
+)
+
+/** Where removing a correction from this screen stands. */
+data class CorrectionState(
+    /** The id waiting on the confirmation every removal gets (rule 7). */
+    val askingId: Long? = null,
+    /** Just removed, and still offered back. */
+    val removed: BalanceAdjustment? = null,
+    /** The removal or its undo was refused, and the owner has not acknowledged it yet. */
+    val failed: Boolean = false,
+)
+
 data class AccountDetailUiState(
     val account: AccountWithBalance? = null,
     val monthSummary: PeriodSummary? = null,
@@ -48,7 +69,26 @@ data class AccountDetailUiState(
     val isLoading: Boolean = true,
     /** A movement or transfer just deleted from this screen's form, still offered back. */
     val undoableDeletion: DeletedTransaction? = null,
+    val corrections: CorrectionState = CorrectionState(),
 ) {
+    /**
+     * The removal being asked about, with the balance it would leave worked out here rather than
+     * in the alert. Null when nothing is asked, or the correction is no longer listed.
+     */
+    val removal: CorrectionRemoval? =
+        corrections.askingId?.let { id ->
+            val correction = days.firstNotNullOfOrNull { day -> day.corrections.find { it.id == id } }
+            val balance = account?.balance
+            if (correction != null && balance != null) {
+                CorrectionRemoval(correction, balanceAfter = balance - correction.amount)
+            } else {
+                null
+            }
+        }
+
+    /** The correction offered back, unless a movement's undo is already showing. */
+    val undoableCorrection: BalanceAdjustment? = corrections.removed.takeIf { undoableDeletion == null }
+
     val isEmpty: Boolean get() = !isLoading && days.isEmpty()
 
     /**
@@ -78,6 +118,23 @@ class AccountDetailViewModel
         today: Today,
     ) : ViewModel() {
         private val accountId: Long = savedStateHandle.toRoute<Destination.AccountDetail>().accountId
+
+        private val handle = savedStateHandle
+
+        /**
+         * The correction being asked about, kept in the saved state so the question survives the
+         * screen being rotated or the process being reclaimed while the alert is up.
+         */
+        private val askingId = savedStateHandle.getStateFlow(ASKING_KEY, NOTHING_ASKED)
+
+        private val removedCorrection = MutableStateFlow<BalanceAdjustment?>(null)
+        private val correctionFailed = MutableStateFlow(false)
+        private var undoExpiry: Job? = null
+
+        private val corrections: Flow<CorrectionState> =
+            combine(askingId, removedCorrection, correctionFailed) { asking, removed, failed ->
+                CorrectionState(askingId = asking.takeIf { it != NOTHING_ASKED }, removed = removed, failed = failed)
+            }
 
         private val account: Flow<AccountWithBalance?> =
             accountRepository.observeAccountWithBalance(accountId)
@@ -127,7 +184,7 @@ class AccountDetailViewModel
                     }.sortedByDescending { it.date }
             }
 
-        val uiState: StateFlow<AccountDetailUiState> =
+        private val content: Flow<AccountDetailUiState> =
             combine(
                 account,
                 days,
@@ -143,6 +200,11 @@ class AccountDetailViewModel
                     isLoading = false,
                     undoableDeletion = deleted,
                 )
+            }
+
+        val uiState: StateFlow<AccountDetailUiState> =
+            combine(content, corrections) { state, corrections ->
+                state.copy(corrections = corrections)
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -160,12 +222,75 @@ class AccountDetailViewModel
 
         fun dismissUndo() = deletedTransactions.clear()
 
-        /** Asked for behind a confirmation: the balance goes back to what it was without it. */
-        fun removeCorrection(id: Long) {
-            viewModelScope.launch { balanceRepository.deleteAdjustment(id) }
+        /** A tap on a correction: ask before it goes. */
+        fun askToRemoveCorrection(id: Long) {
+            handle[ASKING_KEY] = id
         }
+
+        fun cancelCorrectionRemoval() {
+            handle[ASKING_KEY] = NOTHING_ASKED
+        }
+
+        /**
+         * Removes the correction asked about. The balance goes back to what it was without it, and
+         * the correction is offered back for a moment, like a deleted movement (rule 7).
+         */
+        fun confirmCorrectionRemoval() {
+            val id = askingId.value.takeIf { it != NOTHING_ASKED } ?: return
+            handle[ASKING_KEY] = NOTHING_ASKED
+            viewModelScope.launch {
+                val removed = attempt { balanceRepository.deleteAdjustment(id) }
+                if (removed.isSuccess) {
+                    removed.getOrNull()?.let(::offerBack)
+                } else {
+                    correctionFailed.value = true
+                }
+            }
+        }
+
+        /** Puts the removed correction back, with the id it had. */
+        fun undoCorrectionRemoval() {
+            val correction = removedCorrection.value ?: return
+            undoExpiry?.cancel()
+            removedCorrection.value = null
+            viewModelScope.launch {
+                // Refused only when the account went in the meantime, and then there is nothing
+                // to put it back into: said, rather than thrown out of the scope.
+                if (attempt { balanceRepository.restoreAdjustment(correction) }.isFailure) {
+                    correctionFailed.value = true
+                }
+            }
+        }
+
+        fun dismissCorrectionFailure() {
+            correctionFailed.value = false
+        }
+
+        private fun offerBack(correction: BalanceAdjustment) {
+            undoExpiry?.cancel()
+            removedCorrection.value = correction
+            undoExpiry =
+                viewModelScope.launch {
+                    delay(DeletedTransactionBuffer.UNDO_WINDOW_MS)
+                    removedCorrection.value = null
+                }
+        }
+
+        /** A write that can be refused, without swallowing the cancellation of the screen's scope. */
+        private suspend fun <T> attempt(write: suspend () -> T): Result<T> =
+            try {
+                Result.success(write())
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (
+                @Suppress("TooGenericExceptionCaught") refused: Exception,
+            ) {
+                Result.failure(refused)
+            }
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+            const val ASKING_KEY = "removingCorrection"
+            const val NOTHING_ASKED = -1L
         }
     }

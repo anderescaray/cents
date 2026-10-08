@@ -11,9 +11,11 @@ import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomBalanceRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
+import io.github.anderescaray.cents.domain.model.BalanceChange
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.Transfer
+import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailUiState
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailViewModel
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
@@ -21,12 +23,14 @@ import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -303,4 +307,64 @@ class AccountDetailViewModelTest {
             }
             assertNull(transactions.findById(movementId))
         }
+
+    @Test
+    fun `a correction is removed only after asking, and can be put back`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
+            val balances = RoomBalanceRepository(database, clock)
+            balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)
+            val correction = balances.observeAdjustments(id).first().single()
+            val viewModel = detailFor(id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+
+                viewModel.askToRemoveCorrection(correction.id)
+                val asking = awaitStateThat { it.removal != null }
+                assertEquals("what the alert names", Money(7_000, "EUR"), asking.removal?.balanceAfter)
+                assertEquals(1, database.balanceAdjustmentDao().all().size)
+
+                viewModel.confirmCorrectionRemoval()
+                val removed = awaitStateThat { it.undoableCorrection != null && balanceIn(it) == 7_000L }
+                assertNull(removed.removal)
+
+                viewModel.undoCorrectionRemoval()
+                val back = awaitStateThat { it.undoableCorrection == null && balanceIn(it) == 9_000L }
+                assertFalse(back.corrections.failed)
+                cancelAndIgnoreRemainingEvents()
+            }
+            val ids = database.balanceAdjustmentDao().all().map { it.id }
+            assertEquals("the same row, id and all", listOf(correction.id), ids)
+        }
+
+    @Test
+    fun `cancelling the question removes nothing`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
+            val balances = RoomBalanceRepository(database, clock)
+            balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)
+            val viewModel = detailFor(id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+                viewModel.askToRemoveCorrection(
+                    balances
+                        .observeAdjustments(id)
+                        .first()
+                        .single()
+                        .id,
+                )
+                awaitStateThat { it.removal != null }
+                viewModel.cancelCorrectionRemoval()
+                awaitStateThat { it.removal == null }
+                viewModel.confirmCorrectionRemoval()
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertEquals(1, database.balanceAdjustmentDao().all().size)
+        }
+
+    private val august18 = LocalDate.of(2026, 8, 18)
+
+    private fun balanceIn(state: AccountDetailUiState): Long? = state.account?.balance?.minorUnits
 }

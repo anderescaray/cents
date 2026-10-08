@@ -20,4 +20,7 @@
     <string name="balance_correction_remove_title">¿Quitar esta corrección?</string>
     <string name="balance_correction_remove_message">El saldo vuelve a %1$s. Ningún movimiento cambia.</string>
     <string name="balance_correction_remove_confirm">Quitar</string>
+    <string name="balance_correction_removed">Corrección quitada</string>
+    <string name="balance_correction_failed_title">No se ha podido cambiar la corrección</string>
+    <string name="balance_correction_failed_message">Puede que la cuenta se haya eliminado mientras tanto. No ha cambiado nada más.</string>
 </resources>

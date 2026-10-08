@@ -201,10 +201,10 @@ class RoomRepositoriesTest {
             accounts.reassignAndDelete(id = from, targetId = to)
 
             assertEquals(listOf("New bank"), accounts.observeAccounts(includeArchived = true).first().map { it.name })
-            // Every movement is intact and now counted in the account that received them.
-            // The opening balance does not travel: it belonged to the account, not to them.
+            // Every movement is intact and now counted in the account that received them, and
+            // the 50 € opening balance travels too, so the money in the books is unchanged.
             assertEquals(
-                Money(195_401, "EUR"),
+                Money(200_401, "EUR"),
                 accounts
                     .observeAccountsWithBalances()
                     .first()

@@ -32,6 +32,19 @@ interface BalanceRepository {
         on: LocalDate,
     ): Money?
 
-    /** Removes one correction; the balance goes back to what it was without it. */
-    suspend fun deleteAdjustment(id: Long)
+    /**
+     * Removes one correction; the balance goes back to what it was without it.
+     *
+     * @return the correction removed, for [restoreAdjustment] to put back, or null when it was
+     *   already gone.
+     */
+    suspend fun deleteAdjustment(id: Long): BalanceAdjustment?
+
+    /**
+     * Puts back a correction [deleteAdjustment] removed, with the id it had, so undoing a removal
+     * leaves the account exactly as it was.
+     *
+     * @throws Exception when its account has been deleted in the meantime: the foreign key refuses.
+     */
+    suspend fun restoreAdjustment(adjustment: BalanceAdjustment)
 }

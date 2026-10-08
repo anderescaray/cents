@@ -67,8 +67,24 @@ class RoomBalanceRepository
                 Money(difference, account.currency)
             }
 
-        override suspend fun deleteAdjustment(id: Long) {
-            adjustmentDao.deleteById(id)
+        override suspend fun deleteAdjustment(id: Long): BalanceAdjustment? =
+            database.withTransaction {
+                adjustmentDao.findById(id)?.also { adjustmentDao.deleteById(id) }?.toDomain()
+            }
+
+        override suspend fun restoreAdjustment(adjustment: BalanceAdjustment) {
+            adjustmentDao.insert(
+                BalanceAdjustmentEntity(
+                    id = adjustment.id,
+                    accountId = adjustment.accountId,
+                    amountMinor = adjustment.amount.minorUnits,
+                    currency = adjustment.amount.currency,
+                    date = adjustment.date,
+                    // When the row was made is bookkeeping the domain model does not carry, and
+                    // nothing reads it back; a restore from a backup stamps it the same way.
+                    createdAt = clock.instant(),
+                ),
+            )
         }
     }
 

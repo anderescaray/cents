@@ -1,5 +1,8 @@
 package io.github.anderescaray.cents.ui.feature.accounts
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -204,29 +207,33 @@ class AccountBalanceTest {
 
     @Test
     fun `a correction is listed on its day and removed only after asking`() {
-        var removed: Long? = null
+        var confirmed = false
         val correction =
             BalanceAdjustment(id = 4, accountId = 1, amount = Money(1_250, "EUR"), date = LocalDate.of(2026, 10, 5))
+        val listed =
+            AccountDetailUiState(
+                account = checking(balance = 8_250),
+                days = listOf(AccountDay(correction.date, items = emptyList(), corrections = listOf(correction))),
+                today = LocalDate.of(2026, 10, 5),
+                isLoading = false,
+            )
+        // The view model keeps the question; here the test plays it, asking when the row asks.
+        var state by mutableStateOf(listed)
         composeRule.setContent {
             CentsTheme {
                 AccountDetailContent(
-                    state =
-                        AccountDetailUiState(
-                            account = checking(balance = 8_250),
-                            days =
-                                listOf(
-                                    AccountDay(correction.date, items = emptyList(), corrections = listOf(correction)),
-                                ),
-                            today = LocalDate.of(2026, 10, 5),
-                            isLoading = false,
-                        ),
+                    state = state,
                     onBack = {},
                     onEdit = {},
                     onOpenTransaction = {},
                     onOpenTransfer = {},
                     onOpenTrade = { _, _ -> },
                     onUndo = {},
-                    onRemoveCorrection = { removed = it },
+                    corrections =
+                        CorrectionActions(
+                            onAsk = { id -> state = state.copy(corrections = CorrectionState(askingId = id)) },
+                            onConfirm = { confirmed = true },
+                        ),
                 )
             }
         }
@@ -236,10 +243,52 @@ class AccountBalanceTest {
         composeRule
             .onNodeWithText("The balance goes back to ${MoneyFormatter.format(euros(7_000))}. No movement changes.")
             .assertExists()
-        assertNull("not before the confirmation", removed)
+        assertFalse("not before the confirmation", confirmed)
         composeRule.onNodeWithText("Remove").performClick()
 
-        assertEquals(4L, removed)
+        assertTrue(confirmed)
+    }
+
+    @Test
+    fun `a removed correction is offered back`() {
+        var undone = false
+        val correction =
+            BalanceAdjustment(id = 4, accountId = 1, amount = Money(1_250, "EUR"), date = LocalDate.of(2026, 10, 5))
+        composeRule.setContent {
+            CentsTheme {
+                AccountDetailContent(
+                    state =
+                        AccountDetailUiState(
+                            account = checking(balance = 7_000),
+                            today = LocalDate.of(2026, 10, 5),
+                            isLoading = false,
+                            corrections = CorrectionState(removed = correction),
+                        ),
+                    onBack = {},
+                    onEdit = {},
+                    onOpenTransaction = {},
+                    onOpenTransfer = {},
+                    onOpenTrade = { _, _ -> },
+                    onUndo = {},
+                    corrections = CorrectionActions(onUndo = { undone = true }),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Correction removed").assertExists()
+        composeRule.onNodeWithText("Undo").performClick()
+
+        assertTrue(undone)
+    }
+
+    @Test
+    fun `while the account loads the balance is blank, not in a guessed currency`() {
+        val loading = AccountBalanceUiState(form = BalanceForm(input = "12"))
+
+        assertNull(loading.currency)
+        assertNull(loading.target)
+        assertNull(loading.difference)
+        assertFalse(loading.canSave)
     }
 
     /** The keypad is up on arrival, so the list under the amount scrolls on a short screen. */

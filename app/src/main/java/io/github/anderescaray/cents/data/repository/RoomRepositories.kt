@@ -105,9 +105,13 @@ class RoomAccountRepository
             // exactly the state the RESTRICT foreign key exists to make impossible.
             database.withTransaction {
                 transactionDao.reassignAccount(fromId = id, toId = targetId, updatedAt = clock.instant())
-                // Corrections stand for movements that were missed, so they follow the movements
-                // rather than vanishing from every balance with the account.
+                // The whole balance travels, so net worth does not move when an account is folded
+                // into another: the corrections, which stand for movements that were missed, and
+                // the opening balance, which is money the account held before its first movement.
+                // Moving only some of it would add to the other account money it never had.
                 database.balanceAdjustmentDao().reassignAccount(fromId = id, toId = targetId)
+                val opening = accountDao.findById(id)?.openingBalanceMinor ?: 0L
+                if (opening != 0L) accountDao.addToOpeningBalance(targetId, opening)
                 accountDao.deleteById(id)
             }
         }

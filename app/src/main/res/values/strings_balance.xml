@@ -20,4 +20,7 @@
     <string name="balance_correction_remove_title">Remove this correction?</string>
     <string name="balance_correction_remove_message">The balance goes back to %1$s. No movement changes.</string>
     <string name="balance_correction_remove_confirm">Remove</string>
+    <string name="balance_correction_removed">Correction removed</string>
+    <string name="balance_correction_failed_title">The correction could not be changed</string>
+    <string name="balance_correction_failed_message">The account may have been deleted in the meantime. Nothing else changed.</string>
 </resources>

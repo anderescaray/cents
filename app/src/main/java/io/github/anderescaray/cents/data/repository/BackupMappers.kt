@@ -1,6 +1,10 @@
+// One mapper per table a backup holds: the count follows the schema, not a pile of responsibilities.
+@file:Suppress("TooManyFunctions")
+
 package io.github.anderescaray.cents.data.repository
 
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
+import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.GroupEntity
@@ -13,6 +17,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.BackupAccount
+import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
@@ -157,6 +162,19 @@ fun BackupGroup.toEntity(createdAt: Instant) =
     )
 
 fun BackupReminder.toEntity() = RuleReminderEntity(ruleId = ruleId, offsetDays = offsetDays)
+
+/**
+ * A correction carries no id in the file and gets a new one: nothing points at a correction, so
+ * there is no graph to keep.
+ */
+fun BackupAdjustment.toEntity(createdAt: Instant) =
+    BalanceAdjustmentEntity(
+        accountId = accountId,
+        amountMinor = amountMinor,
+        currency = currency,
+        date = LocalDate.ofEpochDay(date),
+        createdAt = createdAt,
+    )
 
 fun BackupQuote.toEntity() =
     PriceQuoteEntity(

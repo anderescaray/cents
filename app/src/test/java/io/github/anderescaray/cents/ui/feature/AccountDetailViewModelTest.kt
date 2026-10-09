@@ -24,6 +24,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -308,9 +310,13 @@ class AccountDetailViewModelTest {
             assertNull(transactions.findById(movementId))
         }
 
+    // The correction's undo window is a delay in the view model's scope, on Dispatchers.Main.
+    // runTest would share Main's scheduler and skip that delay the moment the test waits for
+    // Room, so the offer was gone before the balance it is asserted with arrived. Its own
+    // scheduler leaves Main's unadvanced: the window stays open for the whole test.
     @Test
     fun `a correction is removed only after asking, and can be put back`() =
-        runTest {
+        runTest(StandardTestDispatcher(TestCoroutineScheduler())) {
             val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
             val balances = RoomBalanceRepository(database, clock)
             balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)

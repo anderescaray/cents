@@ -61,7 +61,7 @@ class DeletedTransactionBufferTest {
 
             // Whatever the owner is doing by now — another tab, another screen — the offer
             // belongs to the moment it was made.
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
 
             assertNull(buffer.deleted.value)
         }
@@ -75,7 +75,7 @@ class DeletedTransactionBufferTest {
             assertEquals(DeletedTransaction.Movement(movement), buffer.take())
             assertNull(buffer.take())
 
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
             assertNull(buffer.deleted.value)
         }
 
@@ -85,12 +85,12 @@ class DeletedTransactionBufferTest {
             val buffer = DeletedTransactionBuffer(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
             buffer.remember(movement)
 
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2)
             val second = movement.copy(id = 8, amount = Money(300, "EUR"))
             buffer.remember(second)
 
             // The first one's timer must not take the second one away with it.
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2 + 1)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2 + 1)
             assertEquals(DeletedTransaction.Movement(second), buffer.deleted.value)
         }
 
@@ -103,7 +103,7 @@ class DeletedTransactionBufferTest {
 
             assertEquals(DeletedTransaction.Transfer(legs), buffer.deleted.value)
 
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
             assertNull(buffer.deleted.value)
         }
 
@@ -117,7 +117,7 @@ class DeletedTransactionBufferTest {
             assertEquals(DeletedTransaction.Transfer(legs), buffer.take())
             assertNull(buffer.take())
 
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS + 1)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
             assertNull(buffer.deleted.value)
         }
 
@@ -127,11 +127,11 @@ class DeletedTransactionBufferTest {
             val buffer = DeletedTransactionBuffer(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
             buffer.remember(movement)
 
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2)
             val legs = listOf(transferLeg1, transferLeg2)
             buffer.remember(legs)
 
-            advanceTimeBy(DeletedTransactionBuffer.UNDO_WINDOW_MS / 2 + 1)
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2 + 1)
             assertEquals(DeletedTransaction.Transfer(legs), buffer.deleted.value)
         }
 }

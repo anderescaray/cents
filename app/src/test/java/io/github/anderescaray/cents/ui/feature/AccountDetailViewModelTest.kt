@@ -19,6 +19,7 @@ import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailUiState
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailViewModel
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.undo.UndoWindow
 import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,9 +54,12 @@ class AccountDetailViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
     private lateinit var transactions: RoomTransactionRepository
 
-    // Real time on purpose, as in TransactionsViewModelTest: runTest's virtual time would
-    // expire the undo window while the database works.
-    private val deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
+    // Both undo windows, the deleted movement's and the removed correction's, count on a clock
+    // only the test moves. runTest's own would skip all six seconds the moment a test waits for
+    // Room, and real time would make the test of a window closing last six seconds.
+    private val undoClock = TestCoroutineScheduler()
+    private val undoScope = CoroutineScope(StandardTestDispatcher(undoClock))
+    private val deleted = DeletedTransactionBuffer(undoScope)
 
     @Before
     fun setUp() {
@@ -89,6 +93,7 @@ class AccountDetailViewModelTest {
                 deletedTransactions = deleted,
                 savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
                 today = Today(clock),
+                undoScope = undoScope,
             ),
         )
 
@@ -310,13 +315,9 @@ class AccountDetailViewModelTest {
             assertNull(transactions.findById(movementId))
         }
 
-    // The correction's undo window is a delay in the view model's scope, on Dispatchers.Main.
-    // runTest would share Main's scheduler and skip that delay the moment the test waits for
-    // Room, so the offer was gone before the balance it is asserted with arrived. Its own
-    // scheduler leaves Main's unadvanced: the window stays open for the whole test.
     @Test
     fun `a correction is removed only after asking, and can be put back`() =
-        runTest(StandardTestDispatcher(TestCoroutineScheduler())) {
+        runTest {
             val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
             val balances = RoomBalanceRepository(database, clock)
             balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)
@@ -342,6 +343,32 @@ class AccountDetailViewModelTest {
             }
             val ids = database.balanceAdjustmentDao().all().map { it.id }
             assertEquals("the same row, id and all", listOf(correction.id), ids)
+        }
+
+    @Test
+    fun `a removed correction is offered back only while the window is open`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
+            val balances = RoomBalanceRepository(database, clock)
+            balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)
+            val correction = balances.observeAdjustments(id).first().single()
+            val viewModel = detailFor(id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+                viewModel.askToRemoveCorrection(correction.id)
+                awaitStateThat { it.removal != null }
+                viewModel.confirmCorrectionRemoval()
+                awaitStateThat { it.undoableCorrection != null }
+
+                undoClock.advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
+
+                awaitStateThat { it.undoableCorrection == null }
+                // Too late: the window has closed, so the correction stays removed.
+                viewModel.undoCorrectionRemoval()
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertTrue(database.balanceAdjustmentDao().all().isEmpty())
         }
 
     @Test

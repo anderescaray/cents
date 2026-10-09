@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.anderescaray.cents.di.ApplicationScope
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.BalanceAdjustment
 import io.github.anderescaray.cents.domain.model.Money
@@ -16,11 +17,11 @@ import io.github.anderescaray.cents.domain.repository.TransactionRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.undo.UndoWindow
 import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -116,6 +117,7 @@ class AccountDetailViewModel
         private val deletedTransactions: DeletedTransactionBuffer,
         savedStateHandle: SavedStateHandle,
         today: Today,
+        @ApplicationScope undoScope: CoroutineScope,
     ) : ViewModel() {
         private val accountId: Long = savedStateHandle.toRoute<Destination.AccountDetail>().accountId
 
@@ -127,12 +129,12 @@ class AccountDetailViewModel
          */
         private val askingId = savedStateHandle.getStateFlow(ASKING_KEY, NOTHING_ASKED)
 
-        private val removedCorrection = MutableStateFlow<BalanceAdjustment?>(null)
+        /** A removed correction, offered back like a deleted movement (rule 7). */
+        private val removedCorrection = UndoWindow<BalanceAdjustment>(undoScope)
         private val correctionFailed = MutableStateFlow(false)
-        private var undoExpiry: Job? = null
 
         private val corrections: Flow<CorrectionState> =
-            combine(askingId, removedCorrection, correctionFailed) { asking, removed, failed ->
+            combine(askingId, removedCorrection.offered, correctionFailed) { asking, removed, failed ->
                 CorrectionState(askingId = asking.takeIf { it != NOTHING_ASKED }, removed = removed, failed = failed)
             }
 
@@ -241,7 +243,7 @@ class AccountDetailViewModel
             viewModelScope.launch {
                 val removed = attempt { balanceRepository.deleteAdjustment(id) }
                 if (removed.isSuccess) {
-                    removed.getOrNull()?.let(::offerBack)
+                    removed.getOrNull()?.let(removedCorrection::offer)
                 } else {
                     correctionFailed.value = true
                 }
@@ -250,9 +252,7 @@ class AccountDetailViewModel
 
         /** Puts the removed correction back, with the id it had. */
         fun undoCorrectionRemoval() {
-            val correction = removedCorrection.value ?: return
-            undoExpiry?.cancel()
-            removedCorrection.value = null
+            val correction = removedCorrection.take() ?: return
             viewModelScope.launch {
                 // Refused only when the account went in the meantime, and then there is nothing
                 // to put it back into: said, rather than thrown out of the scope.
@@ -266,14 +266,9 @@ class AccountDetailViewModel
             correctionFailed.value = false
         }
 
-        private fun offerBack(correction: BalanceAdjustment) {
-            undoExpiry?.cancel()
-            removedCorrection.value = correction
-            undoExpiry =
-                viewModelScope.launch {
-                    delay(DeletedTransactionBuffer.UNDO_WINDOW_MS)
-                    removedCorrection.value = null
-                }
+        /** The window counts on the application's scope, so it stops with the screen. */
+        override fun onCleared() {
+            removedCorrection.clear()
         }
 
         /** A write that can be refused, without swallowing the cancellation of the screen's scope. */

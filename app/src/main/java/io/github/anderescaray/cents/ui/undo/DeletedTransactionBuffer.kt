@@ -4,12 +4,7 @@ import io.github.anderescaray.cents.di.ApplicationScope
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Transaction
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,13 +54,12 @@ sealed interface DeletedTransaction {
 class DeletedTransactionBuffer
     @Inject
     constructor(
-        @param:ApplicationScope private val scope: CoroutineScope,
+        @ApplicationScope scope: CoroutineScope,
     ) {
-        private val state = MutableStateFlow<DeletedTransaction?>(null)
-        private var expiry: Job? = null
+        private val window = UndoWindow<DeletedTransaction>(scope)
 
         /** The movement or transfer waiting to be restored, or null when there is nothing to undo. */
-        val deleted: StateFlow<DeletedTransaction?> = state.asStateFlow()
+        val deleted: StateFlow<DeletedTransaction?> = window.offered
 
         fun remember(transaction: Transaction) {
             remember(DeletedTransaction.Movement(transaction))
@@ -81,29 +75,10 @@ class DeletedTransactionBuffer
             remember(item)
         }
 
-        fun remember(item: DeletedTransaction) {
-            expiry?.cancel()
-            state.value = item
-            expiry =
-                scope.launch {
-                    delay(UNDO_WINDOW_MS)
-                    state.value = null
-                }
-        }
+        fun remember(item: DeletedTransaction) = window.offer(item)
 
         /** Takes the deleted item out of the buffer, so it can only be restored once. */
-        fun take(): DeletedTransaction? {
-            expiry?.cancel()
-            return state.value.also { state.value = null }
-        }
+        fun take(): DeletedTransaction? = window.take()
 
-        fun clear() {
-            expiry?.cancel()
-            state.value = null
-        }
-
-        companion object {
-            /** Long enough to notice the banner, short enough to belong to the moment. */
-            const val UNDO_WINDOW_MS = 6_000L
-        }
+        fun clear() = window.clear()
     }

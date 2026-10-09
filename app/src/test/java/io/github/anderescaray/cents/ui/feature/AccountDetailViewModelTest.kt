@@ -19,11 +19,14 @@ import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailUiState
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailViewModel
 import io.github.anderescaray.cents.ui.undo.DeletedTransaction
 import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
+import io.github.anderescaray.cents.ui.undo.UndoWindow
 import io.github.anderescaray.cents.ui.util.Today
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -51,9 +54,12 @@ class AccountDetailViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-08-18T10:00:00Z"), ZoneOffset.UTC)
     private lateinit var transactions: RoomTransactionRepository
 
-    // Real time on purpose, as in TransactionsViewModelTest: runTest's virtual time would
-    // expire the undo window while the database works.
-    private val deleted = DeletedTransactionBuffer(CoroutineScope(Dispatchers.Unconfined))
+    // Both undo windows, the deleted movement's and the removed correction's, count on a clock
+    // only the test moves. runTest's own would skip all six seconds the moment a test waits for
+    // Room, and real time would make the test of a window closing last six seconds.
+    private val undoClock = TestCoroutineScheduler()
+    private val undoScope = CoroutineScope(StandardTestDispatcher(undoClock))
+    private val deleted = DeletedTransactionBuffer(undoScope)
 
     @Before
     fun setUp() {
@@ -87,6 +93,7 @@ class AccountDetailViewModelTest {
                 deletedTransactions = deleted,
                 savedStateHandle = SavedStateHandle(mapOf("accountId" to accountId)),
                 today = Today(clock),
+                undoScope = undoScope,
             ),
         )
 
@@ -336,6 +343,32 @@ class AccountDetailViewModelTest {
             }
             val ids = database.balanceAdjustmentDao().all().map { it.id }
             assertEquals("the same row, id and all", listOf(correction.id), ids)
+        }
+
+    @Test
+    fun `a removed correction is offered back only while the window is open`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
+            val balances = RoomBalanceRepository(database, clock)
+            balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)
+            val correction = balances.observeAdjustments(id).first().single()
+            val viewModel = detailFor(id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+                viewModel.askToRemoveCorrection(correction.id)
+                awaitStateThat { it.removal != null }
+                viewModel.confirmCorrectionRemoval()
+                // The removal has landed, balance and all, before the window is let run out.
+                awaitStateThat { it.undoableCorrection != null && balanceIn(it) == 7_000L }
+
+                undoClock.advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
+
+                val closed = awaitStateThat { it.undoableCorrection == null }
+                assertEquals("still removed", 7_000L, balanceIn(closed))
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertTrue(database.balanceAdjustmentDao().all().isEmpty())
         }
 
     @Test

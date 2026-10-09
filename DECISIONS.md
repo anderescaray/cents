@@ -52,6 +52,22 @@ a choice about what the app should be:
 
 **Answer:**
 
+#### D34 · Three account types, and brokers apart from cash and bank (asked 2026-10-09)
+
+On 2026-10-09 the owner asked for only three account types, **cash, bank and broker** (item 11
+of `docs/next-improvements.md`), and for the money in brokers to be shown apart from cash and
+bank, on Wallet and at the top of Home, not summed with it (item 6). Two choices are left:
+
+- **What an existing Card, Savings or Other account becomes.** *Default: Bank*, for all three.
+  Its movements and balance do not change, and its type can still be changed in the account
+  editor afterwards.
+- **Whether a total of the two figures is still shown.** D19 asked for both parts and their sum,
+  and Wallet shows the sum today. *Default: no total*, on Wallet or on Home, because the owner
+  said the brokers' part should not be summed with the rest. The alternative is a smaller third
+  line under the two.
+
+**Answer:**
+
 ### Built on the defaults: answer only to change one
 
 Each of these was built as written. A line the owner changes is an instruction, like any answer.
@@ -217,6 +233,7 @@ those versions. Limitations that are still true are now in
 
 | # | Question | Answer | Where it lives now |
 |---|---|---|---|
+| D33 | Deleting an account and moving its movements: what happens to its opening balance and its balance corrections? | **B: both move with the movements.** The other account's opening balance grows by the deleted one's, and the corrections move across, so its balance becomes the two accounts' together. Asked in #120, after #112's review found that the corrections moved and the opening balance did not; answered 2026-10-08. Deleting an empty account still deletes its corrections, because nothing moves. | 2026-10-08 · #120, `reassignAndDelete` in `RoomRepositories.kt` |
 | D30 | What replaces the bubbles, and how far does the rework go? | **Everything, after the film, and not iOS.** Home is for recording and filing (quick add, *To categorize*, the month with what was left or overspent as its headline); the capsule is Home · Movements · + · Reports · Wallet; budgets move to Reports; Reports' cards can be reordered and hidden; investments open from Wallet › Invested. **Capture's words are per app** (amends D29). Defaults taken without asking: Settings opens from Home's header; the bubble layout is deleted, not kept as an option; the ring is the launcher icon. | 2026-10-01 · `feat/ui-rework`, ADR 0003 (accepted, with amendments) |
 | — | Does the app propose a starting set of categories? | No. It ships with none; every category is one the owner typed. | PRD §4.1, `DefaultDataSeeder` |
 | — | Material or an iOS-flavoured UI? | iOS conventions, Material only as a base. | [`docs/decisions/0001-ios-flavored-ui.md`](docs/decisions/0001-ios-flavored-ui.md) |

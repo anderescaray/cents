@@ -24,16 +24,16 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-**Nothing is waiting here right now.** Everything reported so far is in *Fixed* below.
+**Nothing reported is waiting here yet, but two walks' notes are still to come (2026-10-09).**
+The walks themselves are in [`docs/device-check.md`](docs/device-check.md).
 
-An empty *Open* is the normal state between walks, not a sign the channel went quiet — it
-fills up again the next time the app is used on a phone. The walk itself is
-[`docs/device-check.md`](docs/device-check.md).
+- **Walk 21** was walked on `f08f20a`, and the owner has notes to send by step number. Check
+  each against `main` before treating it as open: #120 changed a4 (removing a correction now
+  has Undo), the balance screen's loading, and what deleting an account moves.
+- **Walk 23** (r1–r3, what #120 changed) is to walk on `f03f9f8`, now on the Pixel.
+- **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
 
-**Two walks are waiting (2026-10-07).** **Walk 21** is for the build on the Pixel (`f08f20a`):
-setting a balance, the rework's fixes, no lock, and capture switched on and checked. **Walk 22**
-is for #117, the movement form's pickers and keypad, which is not installed yet. Whatever they
-turn up lands here, and it becomes the next branch.
+Whatever they turn up lands here, and it becomes the next branch.
 
 ---
 

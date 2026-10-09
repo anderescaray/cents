@@ -41,7 +41,7 @@ rewrites an existing one, look at that diff before anything else.
 `Dispatchers.Main` in these tests is an `UnconfinedTestDispatcher`, while Room emits on its own
 threads. A view model that collects a Room flow can therefore still be working when the test's
 next line runs. On the phone everything runs on the main thread, so this is a test hazard, not
-an app bug. Four rules follow from it:
+an app bug. Five rules follow from it:
 
 1. **Wait for the state you are about to assert on, by name.** Use `awaitStateThat { … }` from
    `AwaitState.kt`, with the condition the assertion checks. Not a proxy:
@@ -54,6 +54,13 @@ an app bug. Four rules follow from it:
 4. **Wrap every view model in `ViewModelKeeper.keep(…)` and stop it before closing the
    database.** A leaked collector keeps using the test's `Dispatchers.Main`. The next class then
    fails with "Dispatchers.Main is used concurrently", in a test that did nothing wrong.
+5. **Never count a timer on `viewModelScope`.** `runTest` shares its clock with the test's
+   `Dispatchers.Main`, so while a test waits on Room's threads, virtual time skips a `delay` there.
+   #120's correction undo closed before the removal it offered back had landed: its test failed
+   every time on Windows and passed on CI by timing (#121). An undo window is an `UndoWindow`
+   (`ui/undo/UndoWindow.kt`) on the `@ApplicationScope` scope. A test hands it a scope on a
+   `TestCoroutineScheduler` of its own, and moves that clock only after waiting for the state
+   the action changes.
 
 Turbine's waits give up after 3 s at the line that waited. A bare `first { }` waits for
 `runTest`'s one-minute timeout.

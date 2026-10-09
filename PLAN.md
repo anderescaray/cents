@@ -23,62 +23,72 @@ Then read these, in this order, before writing any code:
 3. **§2 to §4 below**, then the backlog,
    [`docs/next-improvements.md`](docs/next-improvements.md), when choosing what to build.
 
-## 2. Where things stand (2026-10-07)
+## 2. Where things stand (2026-10-09)
 
-- **`main`** is at `978fdb4` (#118). It has **Room v10** and **1014 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `f03f9f8` (#121). It has **Room v10** and **1024 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
   widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
   [`README.md`](README.md#what-it-does).
 - **Latest merges:**
-  - #117: the movement form's category and account sheets, the keypad only for the amount, the
-    last account remembered, and broker accounts kept apart (backlog items 2, 3, 4, 5, 9, 10).
-  - #112: set an account's balance (Room v10).
-  - #113: safer capture, with a notification per capture.
-  - #114: the app lock removed (D31).
-- **#112 was reviewed after it merged** (`/code-review high`, 2026-10-07). It has 9 findings,
-  and they are the next branch (§3).
-- **The Pixel runs `f08f20a`**, the 2026-10-05 build. #117 is not installed yet.
-- **Documentation** was reorganised on 2026-10-07. This file was cut from 2,700 lines to the
-  present only. Known limitations, testing and setup each got their own file, and `CLAUDE.md`
-  gained its documentation rules (§8).
+  - #121: every undo window counts on the application's scope (`ui/undo/UndoWindow.kt`). It fixes
+    a test from #120 that failed every time on Windows and passed on CI by timing.
+  - #120: #112's review fixes. Removing a correction asks first and can be undone, the balance
+    screen no longer shows `"EUR"` while it loads, and deleting an account moves its opening
+    balance with its movements (D33).
+  - #119: the documentation reorganised, with its rules in `CLAUDE.md` §8.
+  - #117: the movement form's category and account sheets, and broker accounts kept apart.
+- **#121 had an independent review** (2026-10-09). It found nothing in #121 and one problem in
+  #120's code, which is §3 item 1.
+- **The Pixel runs `f03f9f8`**, installed 2026-10-09 with every row kept. **Walk 22 passed**, so
+  backlog items 2, 3, 4, 5 and 10 are done.
+- **One finding of #112's review is left on purpose:** a correction is measured against the
+  all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
 ## 3. Next, in order
 
-1. **`fix/balance-adjustments-review`**: #112's findings.
-   - **Deleting an account and moving its movements carries its balance corrections across,
-     but not its opening balance**, so the other account's balance and net worth move by money
-     it never had. An account deleted empty loses its corrections, so the two paths disagree.
-     *Planned fix:* the corrections are deleted with the account, like its opening balance.
-     Confirm with the owner first; the alternative is to move the opening balance across too.
-   - The balance screen falls back to `"EUR"` while it loads (rule 2).
-   - Removing a correction has no undo and no error handling (rule 7).
-   - The save's `runCatching` swallows cancellation.
-   - The removal alert is held in `remember`, not `rememberSaveable`.
-   - Derived values are computed in composables (§5).
-   - The backup mapper for `balance_adjustments` is outside `BackupMappers.kt`.
-   - Optional: a correction is measured against the all-time balance, so a future-dated movement
-     skews it.
+The owner says when each one starts.
+
+1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
+   and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first. Plus the problem the
+   independent review found in #120's code:
+   - **A movement's Undo hides a removed correction's Undo until the correction's window has run
+     out.** `AccountDetailUiState.undoableCorrection` is null while `undoableDeletion` shows, but
+     the correction's clock keeps running. Remove a correction, then delete a movement of the same
+     account within six seconds, and the correction can no longer be put back.
+   - *Fix:* start the correction's window only when its banner is the one showing, or show both
+     banners. If the notes are slow to come, this goes alone as `fix/correction-undo-hidden`.
 2. **`feat/app-language`** (backlog item 1).
-3. **`feat/home-net-worth`** (backlog item 6).
-4. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
-5. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
+3. **`feat/account-types`** (backlog item 11): only cash, bank and broker. A Room migration to
+   v11, so it runs alone. It needs D34's first choice, or builds on its default.
+4. **`feat/home-net-worth`** (backlog item 6, reshaped 2026-10-09): normal money and invested
+   money kept apart, on Wallet and at the top of Home. It needs D34's second choice, or builds on
+   its default.
+5. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
+6. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
    - Rewrite [`docs/device-check.md`](docs/device-check.md) as a checklist by feature, for the
      current UI. Today it is a log of walks, most of them written for screens the rework
      replaced.
-   - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written.
+   - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
+     including the account types and the money split once they are built.
 
+Items 3 and 4 were asked for on 2026-10-09 and can go ahead of item 2 if the owner prefers.
 Later, unscheduled, is listed in the backlog: requests not yet placed, and engineering
 follow-ups.
 
 ## 4. Waiting on the owner
 
-- **Walk 21** on the build already on the Pixel, and **Walk 22** once #117 is installed
-  ([`docs/device-check.md`](docs/device-check.md)). Anything they turn up goes in `FEEDBACK.md`.
+- **The Walk 21 notes**, and **Walk 23** (r1–r3) on the build now on the Pixel
+  ([`docs/device-check.md`](docs/device-check.md)). They go in `FEEDBACK.md`.
+- **D34**: what an existing Card, Savings or Other account becomes, and whether a total of normal
+  and invested money is still shown.
 - **D32**: whether subscriptions and capture should refuse broker accounts too, and how a
   dividend gets in.
+- **This session's docs PR** (`docs/session-2026-10-09`), to review and merge.
 - **Local branches** that are merged or superseded and can be deleted when the owner says so:
-  `fix/capture-safety-and-feedback`, `docs/session-2026-10-05`, `fix/transaction-entry-ux` and
-  `docs/session-2026-10-07`.
+  `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux`,
+  `fix/correction-undo-test-race`, `docs/session-2026-10-05`, `docs/session-2026-10-07`,
+  `docs/professional-docs` and `docs/drive-client-and-walk-2026-09-24`, plus the worktree
+  `C:\dev\cents-docs-plan`.
 - **Always the owner's:** using the app to judge whether it feels right; anything needing a
   device setting, an unlock or a permission dialog; and reviewing and merging every PR. The agent
   may install, launch, read logcat and take screenshots, and nothing more on the phone.

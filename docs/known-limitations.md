@@ -32,6 +32,9 @@ on purpose.
   with charges behind it has to be stopped first.
 - **Net worth counts active accounts only.** Money in an archived account is named in the
   footer, not added.
+- **A balance correction is measured against the account's all-time balance,** future-dated
+  movements included. With a movement dated ahead, the correction can be off by that movement's
+  amount. Found in #112's review and left out of #120 on purpose.
 
 ## Movements, search and filters
 

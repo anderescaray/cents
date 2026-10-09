@@ -13,23 +13,25 @@ session can build it without the original conversation. **The build order is
 ## Confirmed requests
 
 - [ ] 1. English/Spanish language selection in Settings.
-- [ ] 2. Proper separation between the Movements title and Filters. **Merged in #117**; phone
-  check in Walk 22.
-- [ ] 3. Category selection through a large popup, not a horizontal strip. **Merged in #117**;
-  phone check in Walk 22.
-- [ ] 4. Keypad visible only while the amount is active. **Merged in #117**; phone check in
+- [x] 2. Proper separation between the Movements title and Filters. #117, checked in Walk 22
+  (2026-10-09).
+- [x] 3. Category selection through a large popup, not a horizontal strip. #117, checked in
   Walk 22.
-- [ ] 5. Account popup with the last-used account preselected. **Merged in #117**; phone check
-  in Walk 22.
-- [ ] 6. Liquid money, investments and total net worth on Home.
+- [x] 4. Keypad visible only while the amount is active. #117, checked in Walk 22.
+- [x] 5. Account popup with the last-used account preselected. #117, checked in Walk 22.
+- [ ] 6. Normal money (cash and bank) and invested money (brokers), kept apart, on Wallet and at
+  the top of Home. **Reshaped 2026-10-09**; its open choices are `DECISIONS.md` D34.
 - [ ] 7. Set an account's current balance, choosing the historical effect each time. **Merged in
-  #112**; phone check in Walk 21. Its review's findings are `fix/balance-adjustments-review`.
+  #112**, with its review's fixes in #120 and #121. Phone check: the Walk 21 notes and Walk 23
+  are still to come.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
-  **Merged in #117** for the movement form; phone check in Walk 22. Subscriptions and capture
+  **Merged in #117** for the movement form, and checked in Walk 22. Subscriptions and capture
   wait on `DECISIONS.md` D32.
-- [ ] 10. Offer only broker accounts when choosing where a new investment is held. **Merged in
-  #117**; phone check in Walk 22.
+- [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
+  in Walk 22.
+- [ ] 11. Only three account types: cash, bank and broker (2026-10-09). Its open choice is
+  `DECISIONS.md` D34.
 
 ## 1. App language
 
@@ -49,82 +51,38 @@ session can build it without the original conversation. **The build order is
 - Use the existing English/Spanish resources and feature-owned resource pairs for new strings.
   Any new compatibility dependency needs justification and a dedicated, serial catalog change.
 
-## 2. Movements title and Filters
+## 6. Normal money and invested money, apart, on Wallet and Home
 
-**Request:** the title and filter action are too close together.
+**Request (2026-10-09), replacing this item's first wording** (liquid money, investments and total
+net worth on Home): see at a glance how much is **normal money**, in cash and bank accounts, and
+how much is **invested**, in broker accounts, on Wallet and at the top of Home. Today Wallet's *In
+accounts* adds every active account, brokers included, and net worth adds the holdings on top of
+that. The owner wants the brokers' part kept out of the cash-and-bank figure, not summed with it.
 
-- Give the title and actions distinct layout space, with adequate gutters and touch targets.
-- Check both the expanded header and its compact/scrolled state, including the active-filter count.
-- Keep the title legible without Filters or the add action crowding it. Use an adaptive layout,
-  not a spacing value that only happens to fit one device or one language.
-- Verify English, Spanish, large system fonts, phone widths and the Honor tablet.
+Two figures, clearly distinguished:
 
-## 3. Category popup
+1. **Normal money:** the balances of the active cash and bank accounts.
+2. **Invested:** what the broker accounts hold, which is their cash plus their holdings at the
+   latest typed prices.
 
-**Confirmed clarification:** this request concerns the form for adding/editing an expense or income,
-not merely the To categorize inbox. Do not require horizontal scrolling through category chips.
-
-- The main form shows one compact, tappable disclosure row: **Category**, or **Category: X** after
-  selection. Its chevron indicates that it opens the selector.
-- Tapping the row opens a large popup/sheet, expandable to most or all of the screen when needed.
-- Show choices vertically, with search for long lists, readable names and clear selection state.
-  Do not leave every category expanded in the main form.
-- Selecting a category applies it, closes the popup and updates the row immediately. Selecting the
-  already-selected category keeps it selected; clearing it should be an explicit action.
-- Offer categories of the current income/expense kind. Preserve existing support for creating a
-  category and for saving uncategorized movements; this request does not make category mandatory.
-- Opening the popup also hides the amount keypad, in the same gesture.
-
-## 4. Keypad behavior
-
-**Confirmed choice:** a new movement starts with the amount active and the keypad visible.
-
-- Tapping a category, account, date, group, note or a blank area outside amount editing hides it.
-- Tapping the keypad's own keys does **not** hide it: those keys are part of amount editing.
-- Tapping the amount brings it back. Showing or hiding it never clears or changes the entered value.
-- A picker-opening tap must both hide the keypad and open the picker; do not consume that tap just
-  to dismiss the keypad. Do not stack the custom keypad with the system text keyboard.
-- Opening an existing movement to read/edit it should not force the keypad to appear before the
-  amount is activated. Check dismissal, navigation, rotation and restoration of the form.
-
-## 5. Account popup and remembered choice
-
-**Confirmed choice:** use the same compact-row/popup interaction as categories, with the last-used
-account already selected. The owner explicitly withdrew the earlier request to investigate the
-"two taps" behavior separately; replacing the interaction is the task.
-
-- Show the selected account in one row. Tapping it opens the available accounts; choosing one
-  applies it and closes the popup without an additional confirmation.
-- Persist the last-used account between sessions. The proposed rule is to update it after a new
-  manual income/expense is successfully saved, not merely after a selection in a cancelled form.
-- Transfers, investment trades and background capture should not overwrite this manual-entry
-  preference. Saving the preference must not cause a successfully recorded movement to be retried.
-- Revalidate the remembered account: it must exist, be active and not be a broker. Handle deleted,
-  archived, restored or retyped accounts safely rather than keeping a stale selection.
-- Fall back to an eligible account when necessary. If none exists, offer to create one instead of
-  leaving a blank, unusable selector or silently selecting a broker.
-
-## 6. Net worth on Home
-
-**Request:** Home should show the money the owner has, in addition to the Wallet view.
-
-Add a card with three clearly distinguished values:
-
-1. **Liquid money / in accounts.**
-2. **Investments**, valued at their latest entered prices.
-3. **Total net worth**, the two together.
-
-- Reuse the Wallet/Accounts calculation and eligibility rules, including existing warnings about
-  excluded balances. `netWorthOf` and `NetWorth` already express this split; do not create a second
+- **Whether a total of the two is still shown is `DECISIONS.md` D34.** The default is no total,
+  as the owner asked. That amends D19, which asked for the parts and the sum.
+- **One formula for both screens.** Change `netWorthOf` and `NetWorth`
+  (`domain/usecase/BuildNetWorth.kt`) and have Wallet and Home read them. Do not write a second
   formula that can disagree with Wallet.
-- Broker cash still belongs in account balances. Buying an investment spends cash, so never add
-  both that spent cash and the holding's value as if they were separate assets.
-- Missing investment prices must remain explicit; do not invent a value or present an unknown as
-  zero. These are manually entered valuations, not live market prices.
-- Updates to movements, transfers, balances and prices should update Home reactively.
-- Keep net worth distinct from the month's saved/overspent figure. Do not replace one with the
-  other or remove the existing Wallet totals.
-- This request does not authorize another complete navigation or visual redesign.
+- **Money moves between the figures, it is never counted twice.** A transfer from a bank to a
+  broker moves money from normal to invested. A buy turns a broker's cash into a holding, so it
+  never touches normal money.
+- A holding still in a non-broker account (history that item 10 keeps) counts as invested.
+- Missing prices stay explicit: never invent a value or show an unknown as zero. These are typed
+  valuations, not live prices.
+- Archived accounts are named, not added, as today.
+- Updates to movements, transfers, balances and prices update Home and Wallet reactively.
+- **On Home the two figures sit at the top**, above the month. Keep them distinct from the month's
+  saved or overspent figure, and replace neither. This does not authorize another navigation or
+  visual redesign.
+- Until item 11 lands, every account that is not a broker counts as normal money, so this item
+  does not have to wait for it.
 
 ## 7. Set the current account balance
 
@@ -181,35 +139,40 @@ December, but its history must remain available.
 choices for transfers.
 
 - Filter both the account popup and its default/remembered selection, not just what is drawn.
-- Preserve brokers in transfers, investment operations, Wallet and Home's cash/net-worth totals.
+- Preserve brokers in transfers, investment operations, and Wallet's and Home's totals, where
+  they count as invested money (item 6).
 - Preserve existing broker-linked movements when editing history; do not silently reassign them.
 - Do not turn a picker restriction into removal of broker accounts or rejection of internal
   investment cash movements. Audit affected entry points and make the intended scope explicit.
 
-## 10. Investments only in broker accounts
+## 11. Three account types: cash, bank and broker
 
-**Request (2026-10-05):** the mirror of item 9. Just as a broker account is not offered for an
-ordinary income or expense, an account that is **not** a broker is not offered for an investment.
+**Request (2026-10-09):** an account is **Cash**, **Bank** or **Broker**, and nothing else. *Card*,
+*Savings* and *Other* go.
 
-- A new holding's account choice (`HoldingEditViewModel`) offers broker accounts only, so its
-  trades never spend or return a current account's cash.
-- Trades take their holding's account, so restricting the holding is what restricts the cash.
-  Check the other entry points that create a holding or a trade and apply the same rule.
-- **Existing history is kept.** A holding already in a non-broker account keeps it, is still shown
-  and editable, and its account stays displayed when the form opens; nothing is reassigned
-  silently. The same rule as item 9's broker-linked movements and item 8's archived groups.
-- **No broker account yet:** offer to create one rather than leaving an empty, unusable picker or
-  silently choosing another kind of account.
-- Archived broker accounts are not offered for a new holding, as today.
-- Wallet, net worth, the portfolio and transfers into and out of broker accounts are unchanged.
+- **An account of a removed type is retyped, never lost.** Which type it becomes is
+  `DECISIONS.md` D34 (default: Bank). Its movements, balance, corrections and history stay as
+  they are.
+- **The type is stored by name** and read with `AccountType.valueOf` (`Converters.kt`). Dropping
+  the three constants without rewriting the stored rows would crash on the first read. Ship a Room
+  migration (v11) that rewrites them, with its migration test and exported schema.
+- **A backup made before this still restores.** Reading it maps the old names the same way
+  (`BackupMappers.kt`), with a round-trip test.
+- The account editor offers the three types. The three unused strings leave both `values/` and
+  `values-es/`.
+- What already keeps brokers apart (items 9 and 10, D32) is unchanged.
+- A Room migration, so it runs alone, like item 8.
 
 ## Acceptance for what is still to build
 
 - **Language:** the choice survives relaunch and reaches notifications. It leaves stored
   currencies, balances, dates, capture's words and anything the owner typed exactly as they were.
-- **Home net worth:** Home and Wallet agree after an income, an expense, a transfer, a trade, a
-  price update and either balance correction. Unpriced investments are explicit, and a transfer
-  does not inflate net worth.
+- **Normal and invested money:** Home and Wallet agree after an income, an expense, a transfer, a
+  trade, a price update and either balance correction. A transfer from a bank to a broker moves
+  money from one figure to the other, a buy leaves normal money alone, and unpriced holdings are
+  explicit.
+- **Account types:** a Card, Savings or Other account comes through the migration and through a
+  restore of an older backup as the D34 type, with the same balance and movements.
 - **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
   and totals. Editing an old movement keeps its group, and reactivating the group restores it.
 - **Every item:** migration and backup round-trip tests for anything stored, the gates in

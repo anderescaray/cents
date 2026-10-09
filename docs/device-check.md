@@ -1603,10 +1603,10 @@ Capture › *Notify after capture* off: the next capture is recorded silently.
 
 ## Walk 22 — choosing from a list, the keypad that steps aside, brokers apart (#117)
 
-For `fix/transaction-entry-ux` (#117), which is **not installed yet**: walk it once the owner
-merges it and it is on the phone. Items 2, 3, 4, 5, 9 and 10 of `docs/next-improvements.md`.
-Walk it in **Spanish and English** and once with a **large system font**; the Honor tablet too,
-if it is at hand.
+For `fix/transaction-entry-ux` (#117): items 2, 3, 4, 5, 9 and 10 of
+`docs/next-improvements.md`. Walk it in **Spanish and English** and once with a **large system
+font**; the Honor tablet too, if it is at hand. Installed on the Pixel on 2026-10-09 (`main` at
+`f03f9f8`), and **passed** the same day: the owner reported m1–m8 all correct.
 
 ### m1 · Filters beside +
 
@@ -1660,3 +1660,31 @@ was already in the broker opens showing it.
 Wallet › Invested › add a holding: only broker accounts are listed. With no broker (archive it to
 try), the section is one row, **New broker account**, and the account editor opens already set to
 *Broker*; back on the holding, the new broker is chosen.
+
+## Walk 23 — what #120 changed in setting a balance (2026-10-09)
+
+On the same build as Walk 22 (`f03f9f8`). Walk 21 was on `f08f20a`, before #120, so these steps
+check again what #120 changed there.
+
+### r1 · Removing a correction, with Undo (was a4)
+
+Tap a **Balance correction** row: it asks first and names the balance it goes back to. After
+removing it, an **Undo** banner shows for about six seconds, and Undo puts the correction back.
+
+### r2 · Nothing guessed while the balance screen loads
+
+While **Set current balance** opens, no currency or amount is shown before the account's own,
+with no *EUR* in passing. Save stays off until a way is chosen.
+
+### r3 · Deleting an account moves its opening balance too (D33)
+
+With a **test account** that has an opening balance, delete it and move its movements to another
+account in the same currency. The other account's opening balance grows by the deleted one's, and
+its balance is the two together.
+
+> **Wrong looks like** the other account's balance moving by only the movements, or a correction
+> left behind.
+
+**Known, not to report:** a correction removed just before a movement is deleted loses its Undo,
+because the movement's banner covers it until the correction's window ends. Its fix is planned
+in `PLAN.md`.

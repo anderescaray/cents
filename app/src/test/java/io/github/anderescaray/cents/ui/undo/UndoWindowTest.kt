@@ -22,6 +22,7 @@ class UndoWindowTest {
 
             advanceTimeBy(2)
             assertNull(window.offered.value)
+            assertNull("too late to put it back", window.take())
         }
 
     @Test
@@ -50,14 +51,20 @@ class UndoWindowTest {
         }
 
     @Test
-    fun `clearing closes the window at once`() =
+    fun `clearing closes the window at once, and its clock with it`() =
         runTest {
             val window = UndoWindow<String>(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
             window.offer("correction")
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2)
 
             window.clear()
 
             assertNull(window.offered.value)
             assertNull(window.take())
+
+            // The cleared offer's clock must not close the next one early.
+            window.offer("another")
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2 + 1)
+            assertEquals("another", window.offered.value)
         }
 }

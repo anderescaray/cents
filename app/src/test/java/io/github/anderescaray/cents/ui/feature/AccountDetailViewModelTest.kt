@@ -359,13 +359,13 @@ class AccountDetailViewModelTest {
                 viewModel.askToRemoveCorrection(correction.id)
                 awaitStateThat { it.removal != null }
                 viewModel.confirmCorrectionRemoval()
-                awaitStateThat { it.undoableCorrection != null }
+                // The removal has landed, balance and all, before the window is let run out.
+                awaitStateThat { it.undoableCorrection != null && balanceIn(it) == 7_000L }
 
                 undoClock.advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
 
-                awaitStateThat { it.undoableCorrection == null }
-                // Too late: the window has closed, so the correction stays removed.
-                viewModel.undoCorrectionRemoval()
+                val closed = awaitStateThat { it.undoableCorrection == null }
+                assertEquals("still removed", 7_000L, balanceIn(closed))
                 cancelAndIgnoreRemainingEvents()
             }
             assertTrue(database.balanceAdjustmentDao().all().isEmpty())

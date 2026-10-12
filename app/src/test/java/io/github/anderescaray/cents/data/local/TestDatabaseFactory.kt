@@ -22,14 +22,29 @@ import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.Executor
 
-/** An in-memory database, discarded when the test ends. */
+/**
+ * An in-memory database, discarded when the test ends.
+ *
+ * **Every query runs on the thread that asks for it.** With Room's own executors, a view model
+ * under test resumed on Room's threads, because the tests' `Dispatchers.Main` is unconfined, and
+ * two of its collectors could run at once: a race the phone never has, where everything is on the
+ * main thread. Run in place, a write, the invalidation it causes and every flow it wakes happen in
+ * order on the test thread, as they would on the phone's one main thread. Robolectric's test
+ * thread is the main looper, hence `allowMainThreadQueries`.
+ */
 fun createTestDatabase(): CentsDatabase =
     Room
         .inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             CentsDatabase::class.java,
-        ).build()
+        ).setQueryExecutor(RunInPlace)
+        .setTransactionExecutor(RunInPlace)
+        .allowMainThreadQueries()
+        .build()
+
+private val RunInPlace = Executor { task -> task.run() }
 
 internal val FIXED_INSTANT: Instant = Instant.parse("2026-08-18T10:00:00Z")
 

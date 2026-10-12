@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Settings › Language: the app's own language, apart from the phone's (backlog item 1). -->
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">Phone\'s language</string>
+    <string name="settings_language_message">Choose the language Cents is shown in.</string>
+    <string name="settings_language_footer">Screens, amounts, dates and notifications follow it. What you typed, such as names and notes, stays as you wrote it, and so does the currency.</string>
+    <!-- Each language is named in itself, so it can be found whichever one the app is in. -->
+    <string name="settings_language_english" translatable="false">English</string>
+    <string name="settings_language_spanish" translatable="false">Español</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ajustes › Idioma: el idioma de la app, aparte del del teléfono (backlog, punto 1). -->
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_system">Idioma del teléfono</string>
+    <string name="settings_language_message">Elige el idioma en el que se muestra Cents.</string>
+    <string name="settings_language_footer">Lo siguen las pantallas, los importes, las fechas y las notificaciones. Lo que escribiste, como nombres y notas, se queda como lo escribiste, y la moneda también.</string>
+</resources>

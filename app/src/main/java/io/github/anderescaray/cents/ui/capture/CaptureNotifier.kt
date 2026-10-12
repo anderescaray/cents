@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.MainActivity
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CaptureOutcome
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.language.AppLanguages
 import io.github.anderescaray.cents.ui.notifications.notificationsAllowed
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import javax.inject.Inject
@@ -21,14 +22,16 @@ import javax.inject.Singleton
 class CaptureNotifier
     @Inject
     constructor(
-        @param:ApplicationContext private val context: Context,
+        @param:ApplicationContext private val appContext: Context,
     ) {
         fun notify(
             outcome: CaptureOutcome,
             enabled: Boolean,
         ) {
-            if (!enabled || outcome !is CaptureOutcome.Recorded || !allowed(context)) return
-            ensureChannel()
+            if (!enabled || outcome !is CaptureOutcome.Recorded || !allowed(appContext)) return
+            // In the language chosen in Settings, which before Android 13 the app applies itself.
+            val context = AppLanguages.applyTo(appContext)
+            ensureChannel(context)
             val amount = if (outcome.kind == TransactionKind.EXPENSE) -outcome.amount else outcome.amount
             val body =
                 context.getString(
@@ -70,20 +73,20 @@ class CaptureNotifier
 
         private fun intentFor(transactionId: Long): PendingIntent {
             val intent =
-                Intent(context, MainActivity::class.java).apply {
+                Intent(appContext, MainActivity::class.java).apply {
                     action = "$EXTRA_OPEN_CAPTURED.$transactionId"
                     flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra(EXTRA_OPEN_CAPTURED, transactionId)
                 }
             return PendingIntent.getActivity(
-                context,
+                appContext,
                 0,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }
 
-        private fun ensureChannel() {
+        private fun ensureChannel(context: Context) {
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,

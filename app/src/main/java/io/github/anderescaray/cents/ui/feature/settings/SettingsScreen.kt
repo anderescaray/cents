@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.ui.feature.settings
 
 import android.net.Uri
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
@@ -31,12 +32,14 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSheetAction
 import io.github.anderescaray.cents.ui.components.IconBadge
+import io.github.anderescaray.cents.ui.language.AppLanguage
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
  * Settings, opened from Home's header: what organises the money (categories, subscriptions,
- * groups, capture) in one card, then the data — Drive, export and restore.
+ * groups, capture) in one card, then the data — Drive, export and restore — and last, the
+ * language the app is shown in.
  */
 @Composable
 fun SettingsScreen(
@@ -48,10 +51,16 @@ fun SettingsScreen(
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     driveViewModel: DriveBackupViewModel = hiltViewModel(),
+    languageViewModel: AppLanguageViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
     val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
     val drive by driveViewModel.uiState.collectAsStateWithLifecycle()
+    val language by languageViewModel.language.collectAsStateWithLifecycle()
+    val activity = LocalActivity.current
+    // Each composition is a new screen: changing the language recreates it, and so can the
+    // phone's own App languages, while the view model carries on from before.
+    LaunchedEffect(Unit) { languageViewModel.refresh() }
     DriveBackupAuthorization(drive, driveViewModel)
     SettingsContent(
         onOpenCategories = onOpenCategories,
@@ -87,6 +96,8 @@ fun SettingsScreen(
                 onWriteTo = exportViewModel::writeTo,
                 onAcknowledge = exportViewModel::acknowledge,
             ),
+        language = language,
+        onChooseLanguage = { chosen -> if (languageViewModel.choose(chosen)) activity?.recreate() },
     )
 }
 
@@ -130,6 +141,8 @@ internal fun SettingsContent(
     restoreActions: RestoreActions = RestoreActions(),
     drive: DriveBackupUiState = DriveBackupUiState(),
     driveActions: DriveBackupActions = DriveBackupActions(),
+    language: AppLanguage = AppLanguage.SYSTEM,
+    onChooseLanguage: (AppLanguage) -> Unit = {},
 ) {
     val dataIdle = export.step == ExportStep.IDLE && restore.step == RestoreStep.IDLE
     val canStartData = dataIdle && !drive.isBusy && !drive.showBackups
@@ -175,6 +188,7 @@ internal fun SettingsContent(
             )
         }
         item(key = "driveBackup") { DriveBackupSection(drive, driveActions, enabled = dataIdle) }
+        item(key = "language") { LanguageSection(language, onChooseLanguage) }
     }
 
     Export(state = export, actions = exportActions)
@@ -202,6 +216,56 @@ private fun DisclosureRow(
         modifier = modifier,
     )
 }
+
+/**
+ * The language the app is shown in, last because it is set once (backlog item 1). One row with the
+ * current answer, which asks from an action sheet, like a subscription's frequency.
+ */
+@Composable
+private fun LanguageSection(
+    language: AppLanguage,
+    onChoose: (AppLanguage) -> Unit,
+) {
+    var choosing by remember { mutableStateOf(false) }
+    CentsListSection(footer = stringResource(R.string.settings_language_footer)) {
+        CentsListRow(
+            title = stringResource(R.string.settings_language),
+            value = stringResource(language.label),
+            showChevron = true,
+            showSeparator = false,
+            onClick = { choosing = true },
+            modifier = Modifier.testTag("language"),
+        )
+    }
+    if (choosing) {
+        CentsActionSheet(
+            title = stringResource(R.string.settings_language),
+            message = stringResource(R.string.settings_language_message),
+            actions =
+                AppLanguage.entries.map { option ->
+                    CentsSheetAction(
+                        label = stringResource(option.label),
+                        onClick = {
+                            choosing = false
+                            onChoose(option)
+                        },
+                    )
+                },
+            cancelLabel = stringResource(R.string.action_cancel),
+            onDismiss = { choosing = false },
+        )
+    }
+}
+
+/** What a language is called on the row and in the sheet: each one in itself. */
+@get:StringRes
+private val AppLanguage.label: Int
+    get() =
+        when (this) {
+            AppLanguage.SYSTEM -> R.string.settings_language_system
+            AppLanguage.ENGLISH -> R.string.settings_language_english
+            AppLanguage.SPANISH -> R.string.settings_language_spanish
+        }
 
 /**
  * Getting the data out, and putting it back.

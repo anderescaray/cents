@@ -87,7 +87,10 @@ data class AccountDetailUiState(
             }
         }
 
-    /** The correction offered back, unless a movement's undo is already showing. */
+    /**
+     * The correction offered back, unless a movement's undo is already showing. One banner at a
+     * time: the correction's window waits behind the movement's, so it is still there after.
+     */
     val undoableCorrection: BalanceAdjustment? = corrections.removed.takeIf { undoableDeletion == null }
 
     val isEmpty: Boolean get() = !isLoading && days.isEmpty()
@@ -212,6 +215,19 @@ class AccountDetailViewModel
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = AccountDetailUiState(),
             )
+
+        init {
+            // A movement's undo shows in place of the correction's, so the correction's window
+            // waits while it does. Counted behind it, the correction could not be put back after.
+            viewModelScope.launch {
+                deletedTransactions.deleted
+                    .map { it != null }
+                    .distinctUntilChanged()
+                    .collect { movementShowing ->
+                        if (movementShowing) removedCorrection.hold() else removedCorrection.release()
+                    }
+            }
+        }
 
         /**
          * Puts a deleted movement or transfer back, with the row ids it had — the same undo the

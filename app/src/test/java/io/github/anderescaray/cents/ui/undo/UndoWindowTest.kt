@@ -67,4 +67,52 @@ class UndoWindowTest {
             advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2 + 1)
             assertEquals("another", window.offered.value)
         }
+
+    @Test
+    fun `a held offer waits, and gets a whole window once released`() =
+        runTest {
+            val window = UndoWindow<String>(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+            window.offer("correction")
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2)
+
+            window.hold()
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS * 2)
+            assertEquals("its clock stopped while another banner showed", "correction", window.offered.value)
+
+            window.release()
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS - 1)
+            assertEquals("a whole window, not what was left of the first", "correction", window.offered.value)
+
+            advanceTimeBy(2)
+            assertNull(window.offered.value)
+        }
+
+    @Test
+    fun `an offer made while held starts its clock only once released`() =
+        runTest {
+            val window = UndoWindow<String>(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+            window.hold()
+
+            window.offer("correction")
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS * 2)
+            assertEquals("correction", window.offered.value)
+
+            window.release()
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
+            assertNull(window.offered.value)
+        }
+
+    @Test
+    fun `releasing a window that was not held leaves its clock alone`() =
+        runTest {
+            val window = UndoWindow<String>(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+            window.offer("correction")
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2)
+
+            // What a screen does when it first learns that nothing else is showing.
+            window.release()
+
+            advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2 + 1)
+            assertNull("closed on its first clock, not a fresh one", window.offered.value)
+        }
 }

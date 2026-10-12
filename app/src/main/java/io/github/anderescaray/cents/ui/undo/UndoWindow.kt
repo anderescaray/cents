@@ -21,6 +21,10 @@ import kotlinx.coroutines.launch
  * `Dispatchers.Default` while offers and takes come from the main thread, so every change holds
  * one lock, and a clock may only close the offer it was started for. A clock that ran out just as
  * a newer offer arrived would otherwise take that newer offer away with it.
+ *
+ * **A window covered by another banner does not count.** A screen that shows one banner at a time
+ * [hold]s the window behind while the other one shows, and [release]s it once that one has gone.
+ * Counted behind the other banner, the window could close unseen, and with it the only way back.
  */
 class UndoWindow<T : Any>(
     private val scope: CoroutineScope,
@@ -31,22 +35,46 @@ class UndoWindow<T : Any>(
     /** The clock of the offer showing now. Read and written under [lock] only. */
     private var expiry: Job? = null
 
+    /** Whether another banner is showing in this one's place. Read and written under [lock] only. */
+    private var held = false
+
     /** What can still be put back, or null once the window has closed. */
     val offered: StateFlow<T?> = state.asStateFlow()
 
     /**
      * Offers [item] back for a fresh window, replacing whatever was offered before it. The clock
-     * starts before the offer shows, so no one ever sees an offer with no clock behind it.
+     * starts before the offer shows, so no one ever sees an offer with no clock behind it. While
+     * the window is held, the clock waits for [release] instead.
      */
     fun offer(item: T) {
         synchronized(lock) {
-            expiry?.cancel()
-            expiry =
-                scope.launch {
-                    delay(UNDO_WINDOW_MS)
-                    close(coroutineContext.job)
-                }
+            stopClock()
+            if (!held) startClock()
             state.value = item
+        }
+    }
+
+    /**
+     * Stops the clock while another banner shows in this one's place. What was offered stays, and
+     * an offer made meanwhile waits too.
+     */
+    fun hold() {
+        synchronized(lock) {
+            held = true
+            stopClock()
+        }
+    }
+
+    /**
+     * Ends a [hold]. What is still offered shows again, with a whole window of its own rather than
+     * what was left of the first. A window that was not held is left as it is.
+     */
+    fun release() {
+        synchronized(lock) {
+            if (held) {
+                held = false
+                if (state.value != null) startClock()
+            }
         }
     }
 
@@ -72,6 +100,14 @@ class UndoWindow<T : Any>(
                 state.value = null
             }
         }
+    }
+
+    private fun startClock() {
+        expiry =
+            scope.launch {
+                delay(UNDO_WINDOW_MS)
+                close(coroutineContext.job)
+            }
     }
 
     private fun stopClock() {

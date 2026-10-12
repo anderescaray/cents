@@ -25,19 +25,18 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-12)
 
-- **`main`** is at `2e5b73e` (#122). It has **Room v10** and **1024 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `052444e` (#125). It has **Room v10** and **1031 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
   widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
   [`README.md`](README.md#what-it-does).
-- **Open: #123**, the fix for the problem #121's independent review found in #120's code. A
-  removed correction's Undo now waits behind a movement's Undo instead of running out unseen.
-  CI is green on `15f0d64`, and it waits on review. It brings the suite to 1028 tests, and
-  Walk 24 (b1) checks it on the phone.
 - **Latest merges:**
-  - #122: the 2026-10-09 session's documents.
-  - #121: every undo window counts on the application's scope (`ui/undo/UndoWindow.kt`).
-  - #120: #112's review fixes. Removing a correction asks first and can be undone, and deleting an
-    account moves its opening balance with its movements (D33).
+  - #125: the test database runs every query on the thread that asks it, which ends the Room races
+    behind the two flaky view-model tests that turned docs-only PRs red on 2026-10-09 and
+    2026-10-12 ([`docs/testing.md`](docs/testing.md)).
+  - #124: this session's documents, with D35.
+  - #123: a removed correction's Undo waits behind a movement's Undo instead of running out
+    unseen, the problem #121's independent review found in #120's code. Walk 24 (b1) checks it on
+    the phone.
 - **D35 was answered on 2026-10-12:** capture stops counting a subscription's charge twice. It is
   backlog item 12, not built, and waits on the owner's go.
 - **A cloud session now runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
@@ -52,7 +51,7 @@ The owner says when each one starts.
 
 1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
    and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first. The problem the
-   review found is no longer part of it: that is #123.
+   review found is no longer part of it: #123 fixed it.
 2. **`feat/capture-matches-subscriptions`** (backlog item 12, D35). **Proposed here, for the
    owner to confirm.** It goes ahead of the language because it fixes wrong money: every notified
    subscription charge counts twice in spending, budgets and the month's figure until the extra
@@ -78,7 +77,7 @@ placed, and engineering follow-ups.
 
 ## 4. Waiting on the owner
 
-- **#123**, to review and merge; then Walk 24 (b1) on a build with it.
+- **Walk 24 (b1)** on a build with #123 in it.
 - **Backlog item 12 (D35):** the go to build it, and whether item 2 above is its place. Its
   section lists what D35 left open, each with a default. Two are worth a look first: a fixed
   subscription matches only at its own amount, and a waiting variable bill takes the first capture

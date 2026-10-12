@@ -257,8 +257,6 @@ Real requests the owner has not put in the build order yet.
 
 No owner request behind these; take one when it is next to related work.
 
-- **Pin the test database's query context to the test thread**, which would close the Room races
-  in view-model tests at the root ([`docs/testing.md`](testing.md)). It touches every Room test.
 - **`CaptureViewModel.moveTo` finds the app through the derived `uiState.value`**, where
   `requestStop` uses `editingPackage`. It cannot fail on the phone. Reading `editingPackage` would
   make the two consistent.

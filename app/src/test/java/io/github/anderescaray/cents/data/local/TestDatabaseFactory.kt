@@ -32,7 +32,12 @@ import java.util.concurrent.Executor
  * two of its collectors could run at once: a race the phone never has, where everything is on the
  * main thread. Run in place, a write, the invalidation it causes and every flow it wakes happen in
  * order on the test thread, as they would on the phone's one main thread. Robolectric's test
- * thread is the main looper, hence `allowMainThreadQueries`.
+ * thread is the main looper, hence `allowMainThreadQueries`; `TestDatabaseFactoryTest` makes sure no
+ * DAO method could block there.
+ *
+ * One difference from the phone remains: here a write's flows emit before the write returns, and
+ * on the phone a moment after. A test waits for the state it asserts (`awaitStateThat`), and never
+ * relies on the order.
  */
 fun createTestDatabase(): CentsDatabase =
     Room

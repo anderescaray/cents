@@ -1686,5 +1686,24 @@ its balance is the two together.
 > left behind.
 
 **Known, not to report:** a correction removed just before a movement is deleted loses its Undo,
-because the movement's banner covers it until the correction's window ends. Its fix is planned
-in `PLAN.md`.
+because the movement's banner covers it until the correction's window ends. #123 fixes it, and
+Walk 24 checks it.
+
+## Walk 24 — a correction's Undo waits behind a movement's (#123)
+
+On a build with #123 in it.
+
+### b1 · Both can still be put back
+
+On an account with a **balance correction** and a movement:
+
+1. Remove the correction (it asks first). Its **Undo** banner shows.
+2. Straight away, within six seconds of step 1, open the movement and delete it. Back on the
+   account, the movement's **Undo** banner shows, and only that one. Slower than six seconds, the
+   correction's window has closed as it always does; try again faster.
+3. Wait for the movement's banner to go, about six seconds.
+
+The correction's **Undo** banner comes back for another six seconds, and Undo puts the correction
+back, with the balance it had.
+
+> **Wrong looks like** no banner after the movement's has gone, or both banners on screen at once.

@@ -117,7 +117,8 @@ What the owner did not say, each with the default the branch will build:
 - **The date and time** are when the notification arrived. *Default: as written.*
 - **A charge a subscription already records** (PRD §4.6, last point) is not matched in the
   first version. If the rent is both a rule and notified, it is recorded twice, and the extra
-  one is deleted by hand. *Default: matching comes in a later branch.*
+  one is deleted by hand. *Default: matching comes in a later branch.* **Answered 2026-10-12 by
+  D35**, which says how capture matches; `feat/capture-matches-subscriptions` builds it.
 - **Where it lives.** Settings › Capture: the switch, the chosen apps with their accounts, and
   the two word lists. *Default: as written.*
 
@@ -233,6 +234,7 @@ those versions. Limitations that are still true are now in
 
 | # | Question | Answer | Where it lives now |
 |---|---|---|---|
+| D35 | Capture counts a subscription's charge twice, once from the rule and once from the notification. What should it do? | **1, A:** when a captured payment matches a subscription's charge, nothing new is saved, and the capture notification says *Matched <subscription>, nothing added*, with Undo. **2, yes:** for a subscription marked variable, a capture within the window fills in the bill's real amount, even when it differs. **3:** the window is **3 days either side** of the charge's date, in the **same account**, of the **same kind**. Asked and answered 2026-10-12. What the answer left open is in the backlog item, each line with its default. | 2026-10-12 · not built yet: `feat/capture-matches-subscriptions`, `docs/next-improvements.md` item 12 |
 | D33 | Deleting an account and moving its movements: what happens to its opening balance and its balance corrections? | **B: both move with the movements.** The other account's opening balance grows by the deleted one's, and the corrections move across, so its balance becomes the two accounts' together. Asked in #120, after #112's review found that the corrections moved and the opening balance did not; answered 2026-10-08. Deleting an empty account still deletes its corrections, because nothing moves. | 2026-10-08 · #120, `reassignAndDelete` in `RoomRepositories.kt` |
 | D30 | What replaces the bubbles, and how far does the rework go? | **Everything, after the film, and not iOS.** Home is for recording and filing (quick add, *To categorize*, the month with what was left or overspent as its headline); the capsule is Home · Movements · + · Reports · Wallet; budgets move to Reports; Reports' cards can be reordered and hidden; investments open from Wallet › Invested. **Capture's words are per app** (amends D29). Defaults taken without asking: Settings opens from Home's header; the bubble layout is deleted, not kept as an option; the ring is the launcher icon. | 2026-10-01 · `feat/ui-rework`, ADR 0003 (accepted, with amendments) |
 | — | Does the app propose a starting set of categories? | No. It ships with none; every category is one the owner typed. | PRD §4.1, `DefaultDataSeeder` |

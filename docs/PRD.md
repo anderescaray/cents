@@ -235,9 +235,10 @@ itself. It leaves me only what a notification cannot know: what the money was fo
   the phone can be announced by both Wallet and the bank. One payment is one movement, however
   many times it is notified. The first rule, set by the owner on 2026-09-29: **two notifications with
   the same amount and kind in the same minute are one movement**, whichever chosen app sent them. A charge that a subscription already records (§4.4), like the rent
-  or Netflix, is the same money too. A captured movement that matches a rule's occurrence (same
-  account, same amount, within a few days) is offered as that occurrence rather than added as a
-  new movement.
+  or Netflix, is the same money too (D35, 2026-10-12). A captured payment in the same account, of
+  the same kind, within three days either side of a subscription's charge adds nothing new, and a
+  variable bill takes its real amount from it, even when it differs. The capture's notification
+  says what it matched, with Undo.
 - **Never** connects to a bank or asks for credentials: it reads the text the phone already
   shows.
 - See the feasibility analysis in §5.2: this is still the feature most likely not to work as

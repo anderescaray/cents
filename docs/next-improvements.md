@@ -32,6 +32,8 @@ session can build it without the original conversation. **The build order is
   in Walk 22.
 - [ ] 11. Only three account types: cash, bank and broker (2026-10-09). Its open choice is
   `DECISIONS.md` D34.
+- [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
+  `DECISIONS.md` D35). Waits on the owner's go.
 
 ## 1. App language
 
@@ -163,6 +165,56 @@ choices for transfers.
 - What already keeps brokers apart (items 9 and 10, D32) is unchanged.
 - A Room migration, so it runs alone, like item 8.
 
+## 12. Capture recognises a subscription's charge
+
+**Request (2026-10-12, `DECISIONS.md` D35):** a payment that a subscription already records is
+counted twice today, once by the rule and once by the notification, and the extra one is deleted
+by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
+Branch: `feat/capture-matches-subscriptions`.
+
+- **A fixed subscription's charge adds nothing.** A captured payment that matches it is not
+  saved, and the capture notification says *Matched Netflix, nothing added*, with **Undo**.
+- **A variable subscription's bill takes the captured amount**, even when it differs from the
+  estimate. The bill is answered as if the amount had been typed on the pending screen, and the
+  notification says so, with Undo.
+- **What matches:** a charge of an active subscription dated within **3 days either side** of the
+  day the notification arrived, in the **same account**, of the **same kind**. A postponed charge
+  is dated the day it was moved to (D28). Income matches too: a salary is a subscription.
+- **Undo puts it back as though nothing had matched:** the payment is saved as an ordinary
+  captured movement, and a variable bill waits for its amount again.
+- **Nothing else changes.** A capture that matches nothing is saved as today, the same-minute rule
+  (D29) still runs first, and what a subscription wrote stays an ordinary movement (rule 8).
+
+What D35 left open, each with the default the branch builds. A line the owner changes is an
+instruction.
+
+- **A fixed subscription matches only at its own amount.** Only a variable one was asked to take
+  a different figure, so a different amount is a different payment, and it is saved.
+- **A variable subscription matches only while its bill is waiting.** Once answered, the bill is a
+  movement like any other. While it waits, the first capture of its kind in its account inside the
+  window fills it, whatever that payment was for, and Undo is the way back. If that proves too
+  eager on the phone, requiring the subscription's name in the notification's text is the way to
+  narrow it.
+- **Early counts too.** A charge notified before its day, or before the subscription has written
+  it (it writes when the app opens), still matches. A fixed subscription then writes its charge on
+  its own day, as always; a variable bill is answered early.
+- **One capture per charge.** Once a charge has matched, another payment inside its window is
+  saved as usual, because paying twice does happen.
+- **Several candidates:** the charge nearest in date wins.
+- **A variable bill keeps its own date**, as answering it by hand does. Only the amount comes from
+  the notification.
+
+For the branch:
+
+- Matching belongs in `RoomCaptureRecorder`, after the same-minute check and inside its lock. It
+  has to see both the charges a subscription has already written (`ruleId`) and the ones it has
+  not yet, because `generateDue` runs when the app starts and capture runs without the app.
+- The capture notification has no actions today (#113: tapping it opens the movement). Undo is its
+  first, so it has to work with the app closed.
+- Remembering which charge already matched may need a stored marker. If so, that is a Room
+  migration with its test and backup support, and the branch runs alone.
+- New strings in `values/` and `values-es/`.
+
 ## Acceptance for what is still to build
 
 - **Language:** the choice survives relaunch and reaches notifications. It leaves stored
@@ -175,6 +227,10 @@ choices for transfers.
   restore of an older backup as the D34 type, with the same balance and movements.
 - **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
   and totals. Editing an old movement keeps its group, and reactivating the group restores it.
+- **Capture and subscriptions:** a notified Netflix charge leaves one movement, not two, whether
+  the notification comes before or after the subscription writes it. A notified electricity
+  payment fills in the waiting bill. Undo, from the notification with the app closed, leaves the
+  payment saved as an ordinary capture.
 - **Every item:** migration and backup round-trip tests for anything stored, the gates in
   [`docs/testing.md`](testing.md), and a walk on the phone. A green JVM suite does not show that a
   gesture, a keyboard or the system language behaves on a device.

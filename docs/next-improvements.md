@@ -29,8 +29,8 @@ session can build it without the original conversation. **The build order is
   are still to come.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
-  **Merged in #117** for the movement form, and checked in Walk 22. Subscriptions and capture
-  wait on `DECISIONS.md` D32.
+  **Merged in #117** for the movement form, and checked in Walk 22. `DECISIONS.md` D32,
+  answered 2026-10-12, widens it in #133, which is open.
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
   in Walk 22.
 - [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
@@ -158,6 +158,23 @@ choices for transfers.
 - Do not turn a picker restriction into removal of broker accounts or rejection of internal
   investment cash movements. Audit affected entry points and make the intended scope explicit.
 
+**D32, answered 2026-10-12**, built in #133:
+
+- **A broker takes an income but not an expense.** A dividend or interest is recorded as money
+  earned and counts in Reports. The movement form offers brokers for an income and leaves them
+  out of an expense.
+- **Subscriptions do not offer a broker**, and **neither does Settings › Capture** when an app is
+  tied to an account. Both say so.
+
+What the answer left open, each with the default #133 builds:
+
+- **A new movement never starts on a broker**, even for an income: a broker is chosen by tapping
+  it, and a dividend saved in one does not become where the next movement starts.
+- **An income in a broker turned into an expense leaves the broker.** A new movement goes to
+  where an expense starts; an old one back to its own account if that takes an expense.
+- **A subscription or a capture app already in a broker keeps it**, as a movement already in one
+  does. Only what is offered for something new changes.
+
 ## 11. Three account types: cash, bank and broker
 
 **Request (2026-10-09):** an account is **Cash**, **Bank** or **Broker**, and nothing else. *Card*,
@@ -184,7 +201,8 @@ choices for transfers.
 counted twice today, once by the rule and once by the notification, and the extra one is deleted
 by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
 
-**Merged in #131** (2026-10-12). This section goes once Walk 26 passes.
+**Merged in #131** (2026-10-12). This section goes once Walk 26 passes. The owner kept the
+defaults changed while building, on 2026-10-12.
 
 - **A fixed subscription's charge adds nothing.** A captured payment that matches it is not
   saved, and the capture notification says *Matched Netflix, nothing added*, with **Undo**.

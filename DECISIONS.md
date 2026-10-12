@@ -31,26 +31,7 @@ one from turning into a general notes file that nobody trusts.
 
 ### Waiting for an answer
 
-#### D32 · Where a broker account can take an income or an expense (asked 2026-10-07)
-
-Item 9 of `docs/next-improvements.md` is built in #117 for the **movement form**. There, a broker
-account is not offered for a new income or expense, and it is not the default. A movement already
-in a broker keeps it. Three other places were deliberately left as they were, because each one is
-a choice about what the app should be:
-
-- **Subscriptions.** A rule (rent, Netflix) still offers every account, brokers included.
-  *Default: the same rule as the movement form.* A new subscription is not offered a broker, and
-  an existing one keeps its account. A subscription writes ordinary incomes and expenses, just
-  later.
-- **Capture.** Each app chosen in Settings › Capture is tied to any account, brokers included.
-  *Default: unchanged.* A broker that issues a card (Trade Republic, for one) sends real payments
-  from its cash, and capturing them into the broker is right.
-- **A dividend or interest paid into a broker** can no longer be recorded from the movement form.
-  *Default: recorded with* Set current balance *on the account (#112), so it is neither an income
-  nor an expense.* The alternative is to let a broker take an **income** but not an expense, so
-  dividends count in Reports as money earned.
-
-**Answer:**
+Nothing is waiting for an answer (2026-10-12).
 
 ### Built on the defaults: answer only to change one
 
@@ -218,6 +199,7 @@ those versions. Limitations that are still true are now in
 
 | # | Question | Answer | Where it lives now |
 |---|---|---|---|
+| D32 | Item 9 keeps brokers out of the movement form. Should subscriptions and capture refuse them too, and how does a dividend get into a broker? | **1, no:** a new subscription is not offered a broker. **2, no:** an app chosen in Settings › Capture is not offered a broker either, which changes the default (it was yes). **3, B:** a broker takes an **income** but not an expense, so a dividend or interest is recorded as money earned and counts in Reports. Asked 2026-10-07, answered 2026-10-12. What the answer left open is in the backlog's item 9, each line with its default. | 2026-10-12 · #133: `takesNew(kind)` in `AccountEligibility.kt`; the defaults it left open are in item 9 of `docs/next-improvements.md` |
 | D36 | With English chosen on a Spanish phone, how do amounts and dates look? | **B, the phone's style:** `1.234,56 €` and `12 oct`. The app's language changes the words; amounts, dates and the currency stay the phone's. Asked in #128 with A built in #127, answered 2026-10-12. Month and weekday names follow the phone too, as B's own `12 oct` does, so *Today* sits beside `10 oct 2026`. | 2026-10-12 · #129: `formatLocale()` in `ui/util/FormatLocale.kt`, the phone's locale held by `ui/language/PhoneLocale.kt` |
 | D34 | Only cash, bank and broker: what does an existing Card, Savings or Other account become? And with brokers kept apart from cash and bank, is a total of the two still shown? | **Types:** the owner has no account of those types, so they simply go. The migration still rewrites any it finds to Bank, so a stray row or an older backup cannot crash a read. **Figures:** the owner chooses which to show, normal money, invested and their total, any of them, all of them or none. Asked 2026-10-09, answered 2026-10-12. What the answer left open is in the backlog's items 6 and 11, each with its default. | 2026-10-12 · not built yet: items 11 (`feat/account-types`) and 6 (`feat/home-net-worth`) of `docs/next-improvements.md` |
 | D35 | Capture counts a subscription's charge twice, once from the rule and once from the notification. What should it do? | **1, A:** when a captured payment matches a subscription's charge, nothing new is saved, and the capture notification says *Matched <subscription>, nothing added*, with Undo. **2, yes:** for a subscription marked variable, a capture within the window fills in the bill's real amount, even when it differs. **3:** the window is **3 days either side** of the charge's date, in the **same account**, of the **same kind**. Asked and answered 2026-10-12. What the answer left open is in the backlog item, each line with its default. | 2026-10-12 · #131: `CaptureMatcher.kt`, Room v11. What changed from the backlog's defaults, and why, is in `docs/next-improvements.md` item 12 |

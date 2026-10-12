@@ -40,7 +40,9 @@ Then read these, in this order, before writing any code:
     (backlog item 1).
   - #125: the test database runs every query on the thread that asks it, which ended the Room
     races behind the flaky view-model tests ([`docs/testing.md`](docs/testing.md)).
-- **Answered on 2026-10-12:** D34, D35 and D36. Only D32 is still open.
+- **Answered on 2026-10-12:** D32, D34, D35 and D36. No question is open.
+- **Reported on 2026-10-12:** Ruralvía, the owner's bank, is missing from Settings › Capture's
+  list of apps, so its payments cannot be captured (`FEEDBACK.md`).
 - **A cloud session runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
   through foojay, and Maven Central through Google's mirror ([`docs/setup.md`](docs/setup.md)).
 - **The Pixel runs `f03f9f8`**, installed 2026-10-09 with every row kept. **Walk 22 passed.**
@@ -52,21 +54,25 @@ Then read these, in this order, before writing any code:
 
 The owner says when each one starts.
 
-1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's notes
+1. **`fix/capture-app-list`**: Ruralvía in Settings › Capture's list (`FEEDBACK.md`), once the
+   owner says where it is installed and how its payments notify.
+2. **#133 merged** (backlog item 9, D32 answered): a broker takes an income but not an expense,
+   and subscriptions and capture stop offering brokers.
+3. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's notes
    from Walks 21 and 23 to 26 in `FEEDBACK.md`, each checked against `main` first.
-2. **`feat/account-types`** (backlog item 11, D34 answered): only cash, bank and broker. Room v12,
+4. **`feat/account-types`** (backlog item 11, D34 answered): only cash, bank and broker. Room v12,
    so it runs alone.
-3. **`feat/home-net-worth`** (backlog item 6, D34 answered): normal money and invested money kept
+5. **`feat/home-net-worth`** (backlog item 6, D34 answered): normal money and invested money kept
    apart, on Wallet and at the top of Home, with the owner choosing which figures show.
-4. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
-5. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
+6. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
+7. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
    - Rewrite [`docs/device-check.md`](docs/device-check.md) as a checklist by feature, for the
      current UI. Today it is a log of walks, most of them written for screens the rework
      replaced.
    - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
      including the account types and the money split once they are built.
 
-Items 2 to 4 do not wait on the walks. Each Room migration takes the next version number when it
+Items 4 to 6 do not wait on the walks. Each Room migration takes the next version number when it
 merges. Later, unscheduled, is listed in the backlog: requests not yet placed, and engineering
 follow-ups.
 
@@ -75,14 +81,13 @@ follow-ups.
 - **A build with #131 on the Pixel**, then **Walks 24, 25 and 26**
   ([`docs/device-check.md`](docs/device-check.md)). Walk 26 uses a test account and small Bizums.
 - **The Walk 21 notes**, and **Walk 23** (r1–r3). They go in `FEEDBACK.md`.
-- **Item 12's changed defaults**, in its backlog section, to keep or change. The one most worth a
-  look: a charge still to come is written at once, dated its own day, rather than on that day.
+- **Ruralvía:** whether it is in a work profile or the private space, and whether a card payment
+  notifies from Ruralvía or by SMS.
+- **Reviewing and merging #133** (D32).
 - **D36's names:** with English chosen on a Spanish phone, month and weekday names are Spanish
   (`Octubre` over Home, `10 oct` under *Yesterday*), as B's own `12 oct` is. If English names in
   the phone's order are wanted instead, that is a new answer.
-- **D32**: whether subscriptions and capture should refuse broker accounts too, and how a
-  dividend gets in.
-- **Which item starts next**, of §3's 2 to 4.
+- **Which item starts next**, of §3's 4 to 6.
 - **This session's docs PR** (`docs/session-2026-10-12`), to review and merge.
 - **Local branches** that are merged or superseded and can be deleted when the owner says so:
   `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux`,

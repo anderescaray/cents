@@ -54,7 +54,8 @@ and what comes next, is in [`PLAN.md`](PLAN.md).
   shows what a given text would record.
 - **Your data:** JSON or CSV export, restore from a file or from Drive, and a daily Drive
   backup.
-- English and Spanish, TalkBack, and the largest system font.
+- English and Spanish, chosen in Settings apart from the phone's language; TalkBack; and the
+  largest system font.
 
 ## How it is built
 

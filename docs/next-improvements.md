@@ -12,7 +12,8 @@ session can build it without the original conversation. **The build order is
 
 ## Confirmed requests
 
-- [ ] 1. English/Spanish language selection in Settings.
+- [ ] 1. English/Spanish language selection in Settings. **Merged in #127** as the last row of
+  Settings. Phone check: Walk 25. How amounts and dates look in English is `DECISIONS.md` D36.
 - [x] 2. Proper separation between the Movements title and Filters. #117, checked in Walk 22
   (2026-10-09).
 - [x] 3. Category selection through a large popup, not a horizontal strip. #117, checked in
@@ -38,6 +39,8 @@ session can build it without the original conversation. **The build order is
 ## 1. App language
 
 **Request:** choose English or Spanish from inside Settings, independently of the phone language.
+
+**Built in #127** (2026-10-12), with no new dependency. This section goes once Walk 25 passes.
 
 - Add a persistent language preference. Offer **System default**, **English** and **Español**;
   following the system is the proposed initial behavior.

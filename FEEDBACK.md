@@ -24,7 +24,7 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-**Nothing reported is waiting here yet, but three walks' notes are still to come (2026-10-12).**
+**Nothing reported is waiting here yet, but four walks' notes are still to come (2026-10-12).**
 The walks themselves are in [`docs/device-check.md`](docs/device-check.md).
 
 - **Walk 21** was walked on `f08f20a`, and the owner has notes to send by step number. Check
@@ -32,6 +32,7 @@ The walks themselves are in [`docs/device-check.md`](docs/device-check.md).
   has Undo), the balance screen's loading, and what deleting an account moves.
 - **Walk 23** (r1–r3, what #120 changed) is to walk on `f03f9f8`, now on the Pixel.
 - **Walk 24** (b1) is to walk once a build with #123 is installed.
+- **Walk 25** (l1–l5, the app's own language) is to walk on a build with #127.
 - **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
 
 Whatever they turn up lands here, and it becomes the next branch.

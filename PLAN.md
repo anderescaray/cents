@@ -25,18 +25,20 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-12)
 
-- **`main`** is at `052444e` (#125). It has **Room v10** and **1031 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `550f8e2` (#127). It has **Room v10** and **1057 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
   widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
   [`README.md`](README.md#what-it-does).
 - **Latest merges:**
+  - #127: Settings › Language, the last row of Settings: the phone's language, English or Español
+    (backlog item 1). The system keeps it from Android 13; before that, the app does. The currency
+    stays the phone's whatever the language. How amounts and dates look in English is D36.
+  - #126: the documents after #123 and #125.
   - #125: the test database runs every query on the thread that asks it, which ends the Room races
     behind the two flaky view-model tests that turned docs-only PRs red on 2026-10-09 and
     2026-10-12 ([`docs/testing.md`](docs/testing.md)).
-  - #124: this session's documents, with D35.
   - #123: a removed correction's Undo waits behind a movement's Undo instead of running out
-    unseen, the problem #121's independent review found in #120's code. Walk 24 (b1) checks it on
-    the phone.
+    unseen. Walk 24 (b1) checks it on the phone.
 - **D35 was answered on 2026-10-12:** capture stops counting a subscription's charge twice. It is
   backlog item 12, not built, and waits on the owner's go.
 - **A cloud session now runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
@@ -52,32 +54,32 @@ The owner says when each one starts.
 1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
    and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first. The problem the
    review found is no longer part of it: #123 fixed it.
-2. **`feat/capture-matches-subscriptions`** (backlog item 12, D35). **Proposed here, for the
-   owner to confirm.** It goes ahead of the language because it fixes wrong money: every notified
-   subscription charge counts twice in spending, budgets and the month's figure until the extra
-   one is deleted by hand. If it needs a stored marker, it is a Room migration and runs
-   alone.
-3. **`feat/app-language`** (backlog item 1).
-4. **`feat/account-types`** (backlog item 11): only cash, bank and broker. A Room migration, so it
+2. **`feat/capture-matches-subscriptions`** (backlog item 12, D35), **waiting on the owner's go.**
+   It fixes wrong money: every notified subscription charge counts twice in spending, budgets and
+   the month's figure until the extra one is deleted by hand. If it needs a stored marker, it is a
+   Room migration and runs alone.
+3. **`feat/account-types`** (backlog item 11): only cash, bank and broker. A Room migration, so it
    runs alone. It needs D34's first choice, or builds on its default.
-5. **`feat/home-net-worth`** (backlog item 6): normal money and invested money kept apart, on
+4. **`feat/home-net-worth`** (backlog item 6): normal money and invested money kept apart, on
    Wallet and at the top of Home. It needs D34's second choice, or builds on its default.
-6. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
-7. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
+5. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
+6. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
    - Rewrite [`docs/device-check.md`](docs/device-check.md) as a checklist by feature, for the
      current UI. Today it is a log of walks, most of them written for screens the rework
      replaced.
    - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
      including the account types and the money split once they are built.
 
-Items 4 and 5 were asked for on 2026-10-09 and can go ahead of item 3 if the owner prefers. Each
-Room migration takes the next version number when it merges, so the backlog's *v11* for item 4
-holds only if it lands first. Later, unscheduled, is listed in the backlog: requests not yet
+Items 3 to 5 can be built on D34's defaults while item 2 waits. Each Room migration takes the next
+version number when it merges, so the backlog's *v11* for item 3 holds only if it lands first. Later, unscheduled, is listed in the backlog: requests not yet
 placed, and engineering follow-ups.
 
 ## 4. Waiting on the owner
 
-- **Walk 24 (b1)** on a build with #123 in it.
+- **Walk 24 (b1)** on a build with #123, and **Walk 25 (l1–l5)** on one with #127: `main` has
+  both ([`docs/device-check.md`](docs/device-check.md)).
+- **D36**: with English chosen, amounts and dates in English style (`€1,234.56`, built) or in the
+  phone's (`1.234,56 €`).
 - **Backlog item 12 (D35):** the go to build it, and whether item 2 above is its place. Its
   section lists what D35 left open, each with a default. Two are worth a look first: a fixed
   subscription matches only at its own amount, and a waiting variable bill takes the first capture

@@ -1728,8 +1728,9 @@ category names, notes, capture's words) is unchanged.
 
 ### l3 · Money does not move
 
-With English chosen, open a new account (a **test account**): its currency is EUR. Amounts read in
-the English style, `€1,234.56`, unless D36 says otherwise.
+With English chosen, open a new account (a **test account**): its currency is EUR. On a build with
+#129, amounts and dates keep the phone's style (D36): `1.234,56 €`, `12 oct`, and the keypad's
+decimal key is a comma. On #127 alone they read `€1,234.56`.
 
 ### l4 · The phone agrees, and a half-typed movement survives
 

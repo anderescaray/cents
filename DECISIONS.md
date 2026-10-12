@@ -52,35 +52,6 @@ a choice about what the app should be:
 
 **Answer:**
 
-#### D34 · Three account types, and brokers apart from cash and bank (asked 2026-10-09)
-
-On 2026-10-09 the owner asked for only three account types, **cash, bank and broker** (item 11
-of `docs/next-improvements.md`), and for the money in brokers to be shown apart from cash and
-bank, on Wallet and at the top of Home, not summed with it (item 6). Two choices are left:
-
-- **What an existing Card, Savings or Other account becomes.** *Default: Bank*, for all three.
-  Its movements and balance do not change, and its type can still be changed in the account
-  editor afterwards.
-- **Whether a total of the two figures is still shown.** D19 asked for both parts and their sum,
-  and Wallet shows the sum today. *Default: no total*, on Wallet or on Home, because the owner
-  said the brokers' part should not be summed with the rest. The alternative is a smaller third
-  line under the two.
-
-**Answer:**
-
-#### D36 · Amounts and dates in English on a Spanish phone (asked 2026-10-12, built on the default)
-
-Settings › Language (#127) shows the app in the phone's language, English or Español. With English
-chosen on a Spanish phone, the words are English; this is about how amounts and dates look.
-
-- **A, English style:** `€1,234.56`, `Oct 12`. *Default, built in #127:* it is what Android does
-  with a per-app English.
-- **B, the phone's style with English words:** `1.234,56 €`, `12 oct`.
-
-Either way the currency stays the phone's, and nothing the owner typed changes.
-
-**Answer:**
-
 ### Built on the defaults: answer only to change one
 
 Each of these was built as written. A line the owner changes is an instruction, like any answer.
@@ -247,7 +218,9 @@ those versions. Limitations that are still true are now in
 
 | # | Question | Answer | Where it lives now |
 |---|---|---|---|
-| D35 | Capture counts a subscription's charge twice, once from the rule and once from the notification. What should it do? | **1, A:** when a captured payment matches a subscription's charge, nothing new is saved, and the capture notification says *Matched <subscription>, nothing added*, with Undo. **2, yes:** for a subscription marked variable, a capture within the window fills in the bill's real amount, even when it differs. **3:** the window is **3 days either side** of the charge's date, in the **same account**, of the **same kind**. Asked and answered 2026-10-12. What the answer left open is in the backlog item, each line with its default. | 2026-10-12 · not built yet: `feat/capture-matches-subscriptions`, `docs/next-improvements.md` item 12 |
+| D36 | With English chosen on a Spanish phone, how do amounts and dates look? | **B, the phone's style:** `1.234,56 €` and `12 oct`. The app's language changes the words; amounts, dates and the currency stay the phone's. Asked in #128 with A built in #127, answered 2026-10-12. Month and weekday names follow the phone too, as B's own `12 oct` does, so *Today* sits beside `10 oct 2026`. | 2026-10-12 · #129: `formatLocale()` in `ui/util/FormatLocale.kt`, the phone's locale held by `ui/language/PhoneLocale.kt` |
+| D34 | Only cash, bank and broker: what does an existing Card, Savings or Other account become? And with brokers kept apart from cash and bank, is a total of the two still shown? | **Types:** the owner has no account of those types, so they simply go. The migration still rewrites any it finds to Bank, so a stray row or an older backup cannot crash a read. **Figures:** the owner chooses which to show, normal money, invested and their total, any of them, all of them or none. Asked 2026-10-09, answered 2026-10-12. What the answer left open is in the backlog's items 6 and 11, each with its default. | 2026-10-12 · not built yet: items 11 (`feat/account-types`) and 6 (`feat/home-net-worth`) of `docs/next-improvements.md` |
+| D35 | Capture counts a subscription's charge twice, once from the rule and once from the notification. What should it do? | **1, A:** when a captured payment matches a subscription's charge, nothing new is saved, and the capture notification says *Matched <subscription>, nothing added*, with Undo. **2, yes:** for a subscription marked variable, a capture within the window fills in the bill's real amount, even when it differs. **3:** the window is **3 days either side** of the charge's date, in the **same account**, of the **same kind**. Asked and answered 2026-10-12. What the answer left open is in the backlog item, each line with its default. | 2026-10-12 · built, and opens as a PR once #129 merges: `CaptureMatcher.kt`, Room v11. What changed from the backlog's defaults, and why, is in `docs/next-improvements.md` item 12 |
 | D33 | Deleting an account and moving its movements: what happens to its opening balance and its balance corrections? | **B: both move with the movements.** The other account's opening balance grows by the deleted one's, and the corrections move across, so its balance becomes the two accounts' together. Asked in #120, after #112's review found that the corrections moved and the opening balance did not; answered 2026-10-08. Deleting an empty account still deletes its corrections, because nothing moves. | 2026-10-08 · #120, `reassignAndDelete` in `RoomRepositories.kt` |
 | D30 | What replaces the bubbles, and how far does the rework go? | **Everything, after the film, and not iOS.** Home is for recording and filing (quick add, *To categorize*, the month with what was left or overspent as its headline); the capsule is Home · Movements · + · Reports · Wallet; budgets move to Reports; Reports' cards can be reordered and hidden; investments open from Wallet › Invested. **Capture's words are per app** (amends D29). Defaults taken without asking: Settings opens from Home's header; the bubble layout is deleted, not kept as an option; the ring is the launcher icon. | 2026-10-01 · `feat/ui-rework`, ADR 0003 (accepted, with amendments) |
 | — | Does the app propose a starting set of categories? | No. It ships with none; every category is one the owner typed. | PRD §4.1, `DefaultDataSeeder` |

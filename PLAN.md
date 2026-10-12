@@ -25,15 +25,14 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-12)
 
-- **`main`** is at `2e5b73e` (#122). It has **Room v10** and **1024 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `03a04b7` (#123). It has **Room v10** and **1028 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
   widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
   [`README.md`](README.md#what-it-does).
-- **Open: #123**, the fix for the problem #121's independent review found in #120's code. A
-  removed correction's Undo now waits behind a movement's Undo instead of running out unseen.
-  CI is green on `15f0d64`, and it waits on review. It brings the suite to 1028 tests, and
-  Walk 24 (b1) checks it on the phone.
 - **Latest merges:**
+  - #123: a removed correction's Undo waits behind a movement's Undo instead of running out
+    unseen, the problem #121's independent review found in #120's code. Walk 24 (b1) checks it on
+    the phone.
   - #122: the 2026-10-09 session's documents.
   - #121: every undo window counts on the application's scope (`ui/undo/UndoWindow.kt`).
   - #120: #112's review fixes. Removing a correction asks first and can be undone, and deleting an
@@ -43,6 +42,9 @@ Then read these, in this order, before writing any code:
 - **A cloud session now runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
   through foojay, and Maven Central through Google's mirror ([`docs/setup.md`](docs/setup.md)).
 - **The Pixel runs `f03f9f8`**, installed 2026-10-09 with every row kept. **Walk 22 passed.**
+- **CI went red twice on docs-only PRs** (2026-10-09 and 2026-10-12), each time from one of the two
+  known flaky view-model tests, not from the change. A re-run passes
+  ([`docs/testing.md`](docs/testing.md)).
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
@@ -52,7 +54,7 @@ The owner says when each one starts.
 
 1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
    and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first. The problem the
-   review found is no longer part of it: that is #123.
+   review found is no longer part of it: #123 fixed it.
 2. **`feat/capture-matches-subscriptions`** (backlog item 12, D35). **Proposed here, for the
    owner to confirm.** It goes ahead of the language because it fixes wrong money: every notified
    subscription charge counts twice in spending, budgets and the month's figure until the extra
@@ -71,6 +73,10 @@ The owner says when each one starts.
    - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
      including the account types and the money split once they are built.
 
+**Proposed ahead of all of these:** the fix for the Room races in view-model tests (backlog,
+*Engineering follow-ups*), because its two known flakes now turn unrelated PRs red. It touches
+every Room test, so it runs alone.
+
 Items 4 and 5 were asked for on 2026-10-09 and can go ahead of item 3 if the owner prefers. Each
 Room migration takes the next version number when it merges, so the backlog's *v11* for item 4
 holds only if it lands first. Later, unscheduled, is listed in the backlog: requests not yet
@@ -78,7 +84,8 @@ placed, and engineering follow-ups.
 
 ## 4. Waiting on the owner
 
-- **#123**, to review and merge; then Walk 24 (b1) on a build with it.
+- **Walk 24 (b1)** on a build with #123 in it.
+- **Whether the test-race fix goes first**, as proposed under §3.
 - **Backlog item 12 (D35):** the go to build it, and whether item 2 above is its place. Its
   section lists what D35 left open, each with a default. Two are worth a look first: a fixed
   subscription matches only at its own amount, and a waiting variable bill takes the first capture

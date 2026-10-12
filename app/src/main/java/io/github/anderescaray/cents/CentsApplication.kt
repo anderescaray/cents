@@ -1,7 +1,9 @@
 package io.github.anderescaray.cents
 
 import android.app.Application
+import android.content.res.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import io.github.anderescaray.cents.ui.language.AppLanguages
 
 /**
  * Application entry point. Annotating it with [HiltAndroidApp] is what generates the
@@ -13,4 +15,15 @@ import dagger.hilt.android.HiltAndroidApp
  * which is what makes an empty database a first run rather than a dead end.
  */
 @HiltAndroidApp
-class CentsApplication : Application()
+class CentsApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // The language chosen in Settings, before anything formats an amount or a date.
+        AppLanguages.onAppStart(this)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        AppLanguages.onConfigurationChanged(this)
+    }
+}

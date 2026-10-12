@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.MainActivity
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.DueReminder
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.language.AppLanguages
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +38,7 @@ import javax.inject.Singleton
 class ReminderNotifier
     @Inject
     constructor(
-        @param:ApplicationContext private val context: Context,
+        @param:ApplicationContext private val appContext: Context,
     ) {
         /**
          * Whether the system will actually show anything.
@@ -47,19 +48,22 @@ class ReminderNotifier
          * permission the owner grants; before that it is the app-wide switch in system settings,
          * which they can also have turned off.
          */
-        val canNotify: Boolean get() = notificationsAllowed(context)
+        val canNotify: Boolean get() = notificationsAllowed(appContext)
 
         fun notify(due: DueReminder) {
             if (!canNotify) return
-            ensureChannel()
+            // In the language chosen in Settings, which before Android 13 the app applies itself.
+            val context = AppLanguages.applyTo(appContext)
+            ensureChannel(context)
 
+            val body = bodyFor(context, due)
             val notification =
                 NotificationCompat
                     .Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_tab_transactions)
                     .setContentTitle(due.rule.name)
-                    .setContentText(bodyFor(due))
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(bodyFor(due)))
+                    .setContentText(body)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setAutoCancel(true)
                     .setContentIntent(intentFor(due))
@@ -71,8 +75,11 @@ class ReminderNotifier
             NotificationManagerCompat.from(context).notify(due.notificationId, notification)
         }
 
-        private fun bodyFor(due: DueReminder): String {
-            val whenIt = whenLabel(due)
+        private fun bodyFor(
+            context: Context,
+            due: DueReminder,
+        ): String {
+            val whenIt = whenLabel(context, due)
             return if (due.asksForAmount) {
                 // A salary is asked about too, and "what it cost" is the wrong question for one.
                 val body =
@@ -98,7 +105,10 @@ class ReminderNotifier
          * is: the owner chose "three days before", and being told "three days" is the promise
          * being kept.
          */
-        private fun whenLabel(due: DueReminder): String =
+        private fun whenLabel(
+            context: Context,
+            due: DueReminder,
+        ): String =
             when {
                 due.offsetDays == 0 -> {
                     context.getString(R.string.reminder_when_today)
@@ -130,19 +140,19 @@ class ReminderNotifier
          */
         private fun intentFor(due: DueReminder): PendingIntent {
             val intent =
-                Intent(context, MainActivity::class.java).apply {
+                Intent(appContext, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     if (due.asksForAmount) putExtra(EXTRA_OPEN_PENDING, true)
                 }
             return PendingIntent.getActivity(
-                context,
+                appContext,
                 due.notificationId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
         }
 
-        private fun ensureChannel() {
+        private fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
             val channel =
                 NotificationChannel(

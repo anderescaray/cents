@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.anderescaray.cents.ui.CentsApp
 import io.github.anderescaray.cents.ui.capture.CaptureNotifier
+import io.github.anderescaray.cents.ui.language.AppLanguages
 import io.github.anderescaray.cents.ui.notifications.ReminderNotifier
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.Today
@@ -56,6 +57,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    /** The language chosen in Settings, put on the screen before it is drawn (Android 12 and older). */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.applyTo(newBase))
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -84,10 +90,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        openPending = intent.wantsPending
         // A recreated activity gets back the intent it was launched with, extra and all, even
-        // after `removeExtra`: reading it again would push that movement over the restored screen.
-        if (savedInstanceState == null) openCapturedTransactionId = intent.capturedTransactionId
+        // after `removeExtra`: reading it again would push that screen over the restored one. A
+        // language change recreates it, so opening Settings from a reminder and changing the
+        // language would otherwise land on the pending charges.
+        if (savedInstanceState == null) {
+            openPending = intent.wantsPending
+            openCapturedTransactionId = intent.capturedTransactionId
+        }
         enableEdgeToEdge()
         setContent {
             CentsTheme {

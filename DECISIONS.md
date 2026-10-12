@@ -68,6 +68,19 @@ bank, on Wallet and at the top of Home, not summed with it (item 6). Two choices
 
 **Answer:**
 
+#### D36 · Amounts and dates in English on a Spanish phone (asked 2026-10-12, built on the default)
+
+Settings › Language (#127) shows the app in the phone's language, English or Español. With English
+chosen on a Spanish phone, the words are English; this is about how amounts and dates look.
+
+- **A, English style:** `€1,234.56`, `Oct 12`. *Default, built in #127:* it is what Android does
+  with a per-app English.
+- **B, the phone's style with English words:** `1.234,56 €`, `12 oct`.
+
+Either way the currency stays the phone's, and nothing the owner typed changes.
+
+**Answer:**
+
 ### Built on the defaults: answer only to change one
 
 Each of these was built as written. A line the owner changes is an instruction, like any answer.

@@ -1707,3 +1707,40 @@ The correction's **Undo** banner comes back for another six seconds, and Undo pu
 back, with the balance it had.
 
 > **Wrong looks like** no banner after the movement's has gone, or both banners on screen at once.
+
+## Walk 25 — the app's own language (#127)
+
+On a build with #127 in it. The Pixel runs Android 13 or later, where the system keeps the choice.
+
+### l1 · Last in Settings
+
+Settings ends with **Language**, reading *Idioma del teléfono* on a Spanish phone. Tapping it
+offers the phone's language, *English* and *Español*, each named in itself.
+
+### l2 · English, everywhere
+
+Choose *English*. The app redraws in English: Home, the tabs, the movement form, the alerts. A
+capture or reminder notification that arrives now is in English too. What you typed (account and
+category names, notes, capture's words) is unchanged.
+
+> **Wrong looks like** a screen still in Spanish, or a notification in Spanish while the app is in
+> English.
+
+### l3 · Money does not move
+
+With English chosen, open a new account (a **test account**): its currency is EUR. Amounts read in
+the English style, `€1,234.56`, unless D36 says otherwise.
+
+### l4 · The phone agrees, and a half-typed movement survives
+
+Open a new movement, type an amount and a note, then go to the phone's *Settings › Apps › Cents ›
+Language* and choose *Español*. Back in Cents, the form is in Spanish and still holds the amount
+and the note. The phone's page and Cents' row show the same choice; set it back to the phone's
+language from either.
+
+### l5 · Opened from a reminder
+
+If a reminder asking for an amount is at hand: open Cents from it (it opens the pending charges),
+go to Home › Settings and change the language. The app stays on Settings.
+
+> **Wrong looks like** landing on the pending charges after the change.

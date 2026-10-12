@@ -36,7 +36,7 @@ session can build it without the original conversation. **The build order is
 - [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
   answered 2026-10-12: the removed types simply go.
 - [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
-  `DECISIONS.md` D35). **Built in #131**, which is open.
+  `DECISIONS.md` D35). **Merged in #131.** Phone check: Walk 26.
 
 ## 1. App language
 
@@ -184,7 +184,7 @@ choices for transfers.
 counted twice today, once by the rule and once by the notification, and the extra one is deleted
 by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
 
-**Built in #131** (2026-10-12), which is open. This section goes once its walk passes.
+**Merged in #131** (2026-10-12). This section goes once Walk 26 passes.
 
 - **A fixed subscription's charge adds nothing.** A captured payment that matches it is not
   saved, and the capture notification says *Matched Netflix, nothing added*, with **Undo**.

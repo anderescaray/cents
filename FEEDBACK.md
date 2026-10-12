@@ -34,6 +34,8 @@ The walks themselves are in [`docs/device-check.md`](docs/device-check.md).
 - **Walk 24** (b1) is to walk once a build with #123 is installed.
 - **Walk 25** (l1–l5, the app's own language) is to walk on a build with #127, and l3's amounts
   on one with #129.
+- **Walk 26** (w1–w5, capture recognising a subscription's charge) is to walk on a build with
+  #131.
 - **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
 
 Whatever they turn up lands here, and it becomes the next branch.

@@ -6,6 +6,7 @@ package io.github.anderescaray.cents.data.repository
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.data.local.entity.BudgetEntity
+import io.github.anderescaray.cents.data.local.entity.CaptureMatchEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
@@ -19,6 +20,7 @@ import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
+import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
@@ -97,6 +99,24 @@ fun BackupTransaction.toEntity(createdAt: Instant) =
         groupId = groupId,
         createdAt = createdAt,
         updatedAt = createdAt,
+    )
+
+fun BackupCaptureMatch.toEntity(matchedAt: Instant) =
+    CaptureMatchEntity(
+        id = id,
+        chargeTransactionId = chargeTransactionId,
+        wroteCharge = wroteCharge,
+        ruleId = ruleId,
+        occurrence = occurrence?.let(LocalDate::ofEpochDay),
+        previousLastGenerated = previousLastGenerated?.let(LocalDate::ofEpochDay),
+        postponedTo = postponedTo?.let(LocalDate::ofEpochDay),
+        accountId = accountId,
+        kind = enumOrDefault(kind, TransactionKind.EXPENSE),
+        amountMinor = amountMinor,
+        currency = currency,
+        date = LocalDate.ofEpochDay(date),
+        note = note,
+        matchedAt = matchedAt,
     )
 
 fun BackupHolding.toEntity(createdAt: Instant) =

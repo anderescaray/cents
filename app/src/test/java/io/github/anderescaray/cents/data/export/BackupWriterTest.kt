@@ -66,6 +66,7 @@ class BackupWriterTest {
                 "groups",
                 "rulePostponements",
                 "balanceAdjustments",
+                "captureMatches",
             ),
             json.keys,
         )

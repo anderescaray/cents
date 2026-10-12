@@ -56,9 +56,21 @@ interface CaptureSettingsRepository {
  * decides whether to keep it lives here, so the listener is only the part that needs Android.
  */
 interface CaptureRecorder {
+    /**
+     * @param announced whether a match would be announced, with Undo (D35). Without that
+     * notification a wrong match could be neither seen nor undone, so the payment is saved as an
+     * ordinary capture instead.
+     */
     suspend fun record(
         packageName: String,
         text: String,
         postedAt: Instant,
+        announced: Boolean = true,
     ): CaptureOutcome
+
+    /**
+     * Undoes [CaptureOutcome.Matched]: the payment is saved as an ordinary capture, and a charge
+     * the match wrote goes back to waiting. Null when there is nothing left to undo.
+     */
+    suspend fun undoMatch(matchId: Long): CaptureOutcome.Recorded?
 }

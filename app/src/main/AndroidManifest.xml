@@ -61,6 +61,11 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Undo on a capture that matched a subscription (D35). Only the app's own notification reaches it. -->
+        <receiver
+            android:name=".ui.capture.CaptureUndoReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

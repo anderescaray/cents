@@ -393,6 +393,8 @@ class RestoreTest {
         assertNull(backup.transactions.single().groupId)
         // And before a balance could be corrected: none, so every balance is what it was.
         assertTrue(backup.adjustments.isEmpty())
+        // And before capture recognised a subscription's charge: nothing matched.
+        assertTrue(backup.captureMatches.isEmpty())
     }
 
     @Test

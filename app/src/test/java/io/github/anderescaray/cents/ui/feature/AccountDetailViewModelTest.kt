@@ -372,6 +372,47 @@ class AccountDetailViewModelTest {
         }
 
     @Test
+    fun `a correction removed just before a movement is deleted can still be put back after`() =
+        runTest {
+            val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))
+            val movementId =
+                database.transactionDao().insert(
+                    transaction(accountId = id, kind = TransactionKind.EXPENSE, amountMinor = 1_000),
+                )
+            val movement = requireNotNull(transactions.findById(movementId))
+            val balances = RoomBalanceRepository(database, clock)
+            balances.setBalance(id, Money(9_000, "EUR"), BalanceChange.CORRECT_FROM_TODAY, on = august18)
+            val correction = balances.observeAdjustments(id).first().single()
+            val viewModel = detailFor(id)
+
+            viewModel.uiState.test {
+                awaitStateThat { it.days.isNotEmpty() }
+                viewModel.askToRemoveCorrection(correction.id)
+                awaitStateThat { it.removal != null }
+                viewModel.confirmCorrectionRemoval()
+                awaitStateThat { it.undoableCorrection != null && balanceIn(it) == 6_000L }
+
+                // Three seconds into the correction's window, a movement is deleted from its form.
+                undoClock.advanceTimeBy(UndoWindow.UNDO_WINDOW_MS / 2)
+                transactions.deleteTransaction(movementId)
+                deleted.remember(movement)
+                val movementShowing = awaitStateThat { it.undoableDeletion != null && balanceIn(it) == 7_000L }
+                assertNull("one banner at a time", movementShowing.undoableCorrection)
+
+                // The movement's window runs out, and the correction's first six seconds with it.
+                undoClock.advanceTimeBy(UndoWindow.UNDO_WINDOW_MS + 1)
+                awaitStateThat { it.undoableDeletion == null && it.undoableCorrection != null }
+
+                viewModel.undoCorrectionRemoval()
+                val back = awaitStateThat { it.undoableCorrection == null && balanceIn(it) == 10_000L }
+                assertFalse(back.corrections.failed)
+                cancelAndIgnoreRemainingEvents()
+            }
+            val ids = database.balanceAdjustmentDao().all().map { it.id }
+            assertEquals("the same row, id and all", listOf(correction.id), ids)
+        }
+
+    @Test
     fun `cancelling the question removes nothing`() =
         runTest {
             val id = database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 7_000))

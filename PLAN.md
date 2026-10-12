@@ -25,19 +25,18 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-12)
 
-- **`main`** is at `0fe9ae5` (#128). It has **Room v10** and **1057 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `0e1dfd3` (#129). It has **Room v10** and **1064 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
   widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
   [`README.md`](README.md#what-it-does).
-- **Open, green, waiting on the owner's merge: #129**, D36 answered B. With English chosen on a
-  Spanish phone, amounts and dates keep the phone's style (`1.234,56 €`, `12 oct`). 1064 tests.
-- **Built and reviewed, not yet pushed: backlog item 12** (D35), capture recognising a
-  subscription's charge, with Room v11. It goes out on the same branch as #129, so its PR opens
-  once #129 merges. With it, `main` would have 1088 tests. Its review changed three of the
-  backlog's defaults and added a fourth; the backlog item says which, and why.
+- **Open, waiting on the owner's merge: #131**, backlog item 12 (D35): capture recognises a
+  subscription's charge, with Room v11 and 1095 tests. Its review changed three of the backlog's
+  defaults and added a fourth; the backlog item says which, and why.
 - **Answered on 2026-10-12:** D34 (the removed account types simply go; the owner chooses which
-  money figures show), D35 (item 12), and D36 (#129). Only D32 is still open.
+  money figures show), D35 (item 12, #131), and D36 (#129). Only D32 is still open.
 - **Latest merges:**
+  - #129: D36 answered B. With English chosen on a Spanish phone, amounts and dates keep the
+    phone's style (`1.234,56 €`, `12 oct`); the currency stays the phone's.
   - #128: the documents after #127, with D36 asked.
   - #127: Settings › Language, the last row of Settings: the phone's language, English or Español
     (backlog item 1). The system keeps it from Android 13; before that, the app does.
@@ -55,9 +54,8 @@ Then read these, in this order, before writing any code:
 
 The owner says when each one starts, apart from item 1, which the owner chose on 2026-10-12.
 
-1. **Item 12's PR** (`feat/capture-matches-subscriptions`, D35), as soon as #129 merges, then a
-   docs PR with its walk, Walk 26, and what it changes in [`README.md`](README.md) and
-   [`docs/known-limitations.md`](docs/known-limitations.md).
+1. **#131 merged** (item 12, D35), then a docs PR with its walk, Walk 26, and what it changes in
+   [`README.md`](README.md) and [`docs/known-limitations.md`](docs/known-limitations.md).
 2. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
    and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first.
 3. **`feat/account-types`** (backlog item 11, D34 answered): only cash, bank and broker. A Room
@@ -77,7 +75,7 @@ in the backlog: requests not yet placed, and engineering follow-ups.
 
 ## 4. Waiting on the owner
 
-- **Merging #129**, which lets item 12's PR open, and then reviewing and merging that one.
+- **Reviewing and merging #131** (item 12).
 - **Walk 24 (b1)** on a build with #123, and **Walk 25 (l1–l5)** on one with #127, l3's amounts on
   one with #129 ([`docs/device-check.md`](docs/device-check.md)).
 - **The Walk 21 notes**, and **Walk 23** (r1–r3) on the build now on the Pixel. They go in

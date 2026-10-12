@@ -14,7 +14,7 @@ session can build it without the original conversation. **The build order is
 
 - [ ] 1. English/Spanish language selection in Settings. **Merged in #127** as the last row of
   Settings. Phone check: Walk 25. Amounts and dates keep the phone's style (`DECISIONS.md` D36,
-  answered B), built in #129, which is open.
+  answered B), merged in #129.
 - [x] 2. Proper separation between the Movements title and Filters. #117, checked in Walk 22
   (2026-10-09).
 - [x] 3. Category selection through a large popup, not a horizontal strip. #117, checked in
@@ -36,8 +36,7 @@ session can build it without the original conversation. **The build order is
 - [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
   answered 2026-10-12: the removed types simply go.
 - [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
-  `DECISIONS.md` D35). **Built**, and opens as a PR once #129 merges, since both go out on the
-  same branch.
+  `DECISIONS.md` D35). **Built in #131**, which is open.
 
 ## 1. App language
 
@@ -185,8 +184,7 @@ choices for transfers.
 counted twice today, once by the rule and once by the notification, and the extra one is deleted
 by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
 
-**Built** (2026-10-12), and opens as a PR once #129 merges, since both go out on the same branch.
-This section goes once its walk passes.
+**Built in #131** (2026-10-12), which is open. This section goes once its walk passes.
 
 - **A fixed subscription's charge adds nothing.** A captured payment that matches it is not
   saved, and the capture notification says *Matched Netflix, nothing added*, with **Undo**.

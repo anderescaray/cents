@@ -32,6 +32,7 @@ val ALL_MIGRATIONS: Array<Migration>
             MIGRATION_7_8,
             MIGRATION_8_9,
             MIGRATION_9_10,
+            MIGRATION_10_11,
         )
 
 /**
@@ -343,6 +344,50 @@ val MIGRATION_9_10 =
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_balance_adjustments_date` ON `balance_adjustments` (`date`)",
+            )
+        }
+    }
+
+/**
+ * v10 to v11 — somewhere to remember a captured payment taken to be a subscription's charge
+ * (`DECISIONS.md` D35).
+ *
+ * Purely additive. An install made before capture recognised a charge has matched nothing, so
+ * every movement and every rule is exactly as it was.
+ */
+val MIGRATION_10_11 =
+    object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `capture_matches` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`chargeTransactionId` INTEGER, " +
+                    "`wroteCharge` INTEGER NOT NULL, " +
+                    "`ruleId` INTEGER, " +
+                    "`occurrence` INTEGER, " +
+                    "`previousLastGenerated` INTEGER, " +
+                    "`postponedTo` INTEGER, " +
+                    "`accountId` INTEGER NOT NULL, " +
+                    "`kind` TEXT NOT NULL, " +
+                    "`amountMinor` INTEGER NOT NULL, " +
+                    "`currency` TEXT NOT NULL, " +
+                    "`date` INTEGER NOT NULL, " +
+                    "`note` TEXT NOT NULL, " +
+                    "`matchedAt` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`ruleId`) REFERENCES `recurring_rules`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE SET NULL , " +
+                    "FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_capture_matches_chargeTransactionId` " +
+                    "ON `capture_matches` (`chargeTransactionId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_capture_matches_ruleId` ON `capture_matches` (`ruleId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_capture_matches_accountId` ON `capture_matches` (`accountId`)",
             )
         }
     }

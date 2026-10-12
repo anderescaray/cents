@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -72,9 +73,14 @@ class RoomRecurringRuleRepository
          * with the edit, so the two are never seen apart.
          */
         override suspend fun updateRule(rule: RecurringRule) {
-            val existing = ruleDao.findById(rule.id) ?: return
             database.withTransaction {
-                ruleDao.update(rule.toEntity(createdAt = existing.createdAt))
+                // The watermark is the generator's, never the editor's: kept as stored, so a charge
+                // written while the form was open, by the catch-up or by capture (D35), is not
+                // written again.
+                val existing = ruleDao.findById(rule.id) ?: return@withTransaction
+                ruleDao.update(
+                    rule.toEntity(createdAt = existing.createdAt).copy(lastGenerated = existing.lastGenerated),
+                )
                 val saved = ruleDao.findById(rule.id)?.toDomain() ?: return@withTransaction
                 database
                     .rulePostponementDao()
@@ -113,40 +119,45 @@ class RoomRecurringRuleRepository
             val today = LocalDate.now(clock)
             val moved = movedByRule()
             var written = 0
-            ruleDao.activeRules().forEach { entity ->
-                if (entity.mode != RuleMode.AUTOMATIC) return@forEach
-                val postponed = moved[entity.id].orEmpty()
-                // A postponed occurrence waits for its new day, and the ones behind it wait too:
-                // the watermark is a single date, so writing April past a March still to come
-                // would take March with it.
-                val due =
-                    entity.toDomain().dueOccurrences(today).takeWhile { date ->
-                        (postponed[date] ?: date) <= today
-                    }
-                if (due.isEmpty()) return@forEach
-
-                // The movements and the watermark together, or neither. Separately, a crash in
-                // between would either repeat a charge or skip a period for ever.
-                database.withTransaction {
-                    val now = clock.instant()
-                    due.forEach { date ->
-                        database.transactionDao().insert(entity.movementOn(postponed[date] ?: date, now))
-                    }
-                    advance(entity.id, due.last())
+            ruleDao.activeRules().forEach { listed ->
+                if (listed.mode != RuleMode.AUTOMATIC || listed.due(today, moved[listed.id].orEmpty()).isEmpty()) {
+                    return@forEach
                 }
-                written += due.size
+                // The movements and the watermark together, or neither. Separately, a crash in
+                // between would either repeat a charge or skip a period for ever. The rule is read
+                // again inside, because capture can write a charge after the list was read (D35),
+                // and counted from the list that charge would be written twice.
+                written +=
+                    database.withTransaction {
+                        val entity =
+                            ruleDao.findById(listed.id)?.takeIf { it.active && it.mode == RuleMode.AUTOMATIC }
+                                ?: return@withTransaction 0
+                        val postponed =
+                            database.rulePostponementDao().forRule(entity.id).associate {
+                                it.occurrence to
+                                    it.postponedTo
+                            }
+                        val due = entity.due(today, postponed)
+                        val now = clock.instant()
+                        due.forEach { date ->
+                            database.transactionDao().insert(entity.movementOn(postponed[date] ?: date, now))
+                        }
+                        due.lastOrNull()?.let { database.advanceRule(entity.id, it) }
+                        due.size
+                    }
             }
             return written
         }
 
-        /** Moves the watermark, and forgets any postponement it has now passed. */
-        private suspend fun advance(
-            ruleId: Long,
-            through: LocalDate,
-        ) {
-            ruleDao.setLastGenerated(ruleId, through)
-            database.rulePostponementDao().deleteThrough(ruleId, through)
-        }
+        /**
+         * What has fallen due. A postponed occurrence waits for its new day, and the ones behind it
+         * wait too: the watermark is a single date, so writing April past a March still to come would
+         * take March with it.
+         */
+        private fun RecurringRuleEntity.due(
+            today: LocalDate,
+            postponed: Map<LocalDate, LocalDate>,
+        ): List<LocalDate> = toDomain().dueOccurrences(today).takeWhile { date -> (postponed[date] ?: date) <= today }
 
         /** Every postponement, as rule → (occurrence → the day it was moved to). */
         private suspend fun movedByRule(): Map<Long, Map<LocalDate, LocalDate>> =
@@ -166,50 +177,56 @@ class RoomRecurringRuleRepository
                     .sortedBy { it.recordOn }
             }
 
+        /**
+         * The movement and the watermark together, for the same reason the catch-up writes them
+         * together: separately, a crash in between records a charge the rule will happily record
+         * again tomorrow. Dated the day it was moved to, if it was. Checked inside the transaction,
+         * so a capture filling the same bill (D35) cannot slip in between and have it written twice.
+         */
         override suspend fun recordPending(
             ruleId: Long,
             dueDate: LocalDate,
             amount: Money,
-        ): Boolean {
-            val (entity, pending) =
-                ruleDao.findById(ruleId)?.let { rule -> rule.waitingOn(dueDate, amount)?.let { rule to it } }
-                    ?: return false
-
-            // The movement and the watermark together, for the same reason the catch-up writes
-            // them together: separately, a crash in between records a charge the rule will
-            // happily record again tomorrow. Dated the day it was moved to, if it was.
+        ): Boolean =
             database.withTransaction {
-                val now = clock.instant()
-                database.transactionDao().insert(entity.movementOn(pending.recordOn, now, amount.minorUnits))
-                advance(ruleId, dueDate)
+                val entity = ruleDao.findById(ruleId)
+                val pending = entity?.waitingOn(dueDate, amount)
+                if (entity != null && pending != null) {
+                    database.transactionDao().insert(
+                        entity.movementOn(pending.recordOn, clock.instant(), amount.minorUnits),
+                    )
+                    database.advanceRule(ruleId, dueDate)
+                }
+                pending != null
             }
-            return true
-        }
 
         override suspend fun skipPending(
             ruleId: Long,
             dueDate: LocalDate,
-        ): Boolean {
-            if (ruleDao.findById(ruleId)?.waitingOn(dueDate, amount = null) == null) return false
-            database.withTransaction { advance(ruleId, dueDate) }
-            return true
-        }
+        ): Boolean =
+            database.withTransaction {
+                val waiting = ruleDao.findById(ruleId)?.waitingOn(dueDate, amount = null) != null
+                if (waiting) database.advanceRule(ruleId, dueDate)
+                waiting
+            }
 
         override fun observePostponements(): Flow<List<Postponement>> =
             database.rulePostponementDao().observeAll().map { rows ->
                 rows.map { Postponement(it.ruleId, it.occurrence, it.postponedTo) }
             }
 
+        /** Checked inside the transaction, so capture cannot write the occurrence in between (D35). */
         override suspend fun postpone(
             ruleId: Long,
             occurrence: LocalDate,
             to: LocalDate,
-        ): Boolean {
-            val rule = ruleDao.findById(ruleId)?.toDomain()
-            val allowed = rule != null && rule.canPostpone(occurrence, to, LocalDate.now(clock))
-            if (allowed) database.rulePostponementDao().upsert(RulePostponementEntity(ruleId, occurrence, to))
-            return allowed
-        }
+        ): Boolean =
+            database.withTransaction {
+                val rule = ruleDao.findById(ruleId)?.toDomain()
+                val allowed = rule != null && rule.canPostpone(occurrence, to, LocalDate.now(clock))
+                if (allowed) database.rulePostponementDao().upsert(RulePostponementEntity(ruleId, occurrence, to))
+                allowed
+            }
 
         override suspend fun cancelPostponement(
             ruleId: Long,
@@ -331,32 +348,44 @@ class RoomRecurringRuleRepository
                 ?.takeIf { movedTo == null || movedTo <= today }
                 ?.let { PendingCharge(this, it, laterCount = due.size - 1, postponedTo = movedTo) }
         }
-
-        /**
-         * One occurrence as a real movement.
-         *
-         * It carries the rule's id and nothing else unusual: from here on it is an ordinary
-         * movement, counted by every report, editable and deletable. That is the whole point of
-         * a rule being a template — the charge it made is as real as one typed by hand, and
-         * cancelling the rule later cannot reach back and remove it.
-         */
-        private fun RecurringRuleEntity.movementOn(
-            date: LocalDate,
-            now: java.time.Instant,
-            /** What it actually came to, for a rule whose amount the owner has just read off a bill. */
-            amountMinor: Long = this.amountMinor,
-        ) = TransactionEntity(
-            accountId = accountId,
-            categoryId = categoryId,
-            kind = kind,
-            amountMinor = amountMinor,
-            currency = currency,
-            date = date,
-            // The rule's name, so a generated row is recognisable in a list of movements
-            // without having to look up what made it.
-            note = name,
-            ruleId = id,
-            createdAt = now,
-            updatedAt = now,
-        )
     }
+
+/**
+ * One occurrence as a real movement.
+ *
+ * It carries the rule's id and nothing else unusual: from here on it is an ordinary movement,
+ * counted by every report, editable and deletable. That is the whole point of a rule being a
+ * template — the charge it made is as real as one typed by hand, and cancelling the rule later
+ * cannot reach back and remove it. Shared with capture, which writes a charge it recognises (D35).
+ */
+internal fun RecurringRuleEntity.movementOn(
+    date: LocalDate,
+    now: Instant,
+    /** What it actually came to, for a rule whose amount the owner has just read off a bill. */
+    amountMinor: Long = this.amountMinor,
+) = TransactionEntity(
+    accountId = accountId,
+    categoryId = categoryId,
+    kind = kind,
+    amountMinor = amountMinor,
+    currency = currency,
+    date = date,
+    // The rule's name, so a generated row is recognisable in a list of movements without having
+    // to look up what made it.
+    note = name,
+    ruleId = id,
+    createdAt = now,
+    updatedAt = now,
+)
+
+/**
+ * Moves a rule's watermark to [through], and forgets any postponement it has now passed. Inside the
+ * caller's transaction, with the movements it describes.
+ */
+internal suspend fun CentsDatabase.advanceRule(
+    ruleId: Long,
+    through: LocalDate,
+) {
+    recurringRuleDao().setLastGenerated(ruleId, through)
+    rulePostponementDao().deleteThrough(ruleId, through)
+}

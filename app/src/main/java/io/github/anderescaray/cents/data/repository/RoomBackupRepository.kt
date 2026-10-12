@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
+import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
@@ -66,6 +67,7 @@ class RoomBackupRepository
                     groups = groups(),
                     postponements = postponements(),
                     adjustments = adjustments(),
+                    captureMatches = captureMatches(),
                 )
             }
 
@@ -148,7 +150,8 @@ class RoomBackupRepository
          * **The order is the foreign keys' order, in both directions.** Movements point at
          * accounts, categories, trades and rules; trades point at holdings; rules point at
          * accounts and categories, reminders and postponements at rules, budgets at categories, and movements at
-         * groups too; balance corrections point at accounts; so the emptying
+         * groups too; balance corrections point at accounts; capture matches at movements, rules and
+         * accounts; so the emptying
          * goes from the leaves inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
          * would turn every restore into a failure, so it is written down rather than discovered.
@@ -158,6 +161,7 @@ class RoomBackupRepository
          */
         override suspend fun restore(backup: Backup) {
             database.withTransaction {
+                database.captureMatchDao().deleteAll()
                 database.balanceAdjustmentDao().deleteAll()
                 database.transactionDao().deleteAll()
                 database.groupDao().deleteAll()
@@ -192,6 +196,7 @@ class RoomBackupRepository
                 backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
                 backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
                 backup.quotes.forEach { database.priceQuoteDao().upsert(it.toEntity()) }
+                backup.captureMatches.forEach { database.captureMatchDao().insert(it.toEntity(now)) }
             }
         }
 
@@ -224,6 +229,25 @@ class RoomBackupRepository
                     ruleId = it.ruleId,
                     occurrence = it.occurrence.toEpochDay(),
                     postponedTo = it.postponedTo.toEpochDay(),
+                )
+            }
+
+        private suspend fun captureMatches() =
+            database.captureMatchDao().all().map {
+                BackupCaptureMatch(
+                    id = it.id,
+                    chargeTransactionId = it.chargeTransactionId,
+                    wroteCharge = it.wroteCharge,
+                    ruleId = it.ruleId,
+                    occurrence = it.occurrence?.toEpochDay(),
+                    previousLastGenerated = it.previousLastGenerated?.toEpochDay(),
+                    postponedTo = it.postponedTo?.toEpochDay(),
+                    accountId = it.accountId,
+                    kind = it.kind.name,
+                    amountMinor = it.amountMinor,
+                    currency = it.currency,
+                    date = it.date.toEpochDay(),
+                    note = it.note,
                 )
             }
 

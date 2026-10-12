@@ -43,13 +43,15 @@ data class Backup(
      * that version of the app showed it.
      */
     val adjustments: List<BackupAdjustment> = emptyList(),
+    /** Empty in a file written before capture recognised a subscription's charge, read as none. */
+    val captureMatches: List<BackupCaptureMatch> = emptyList(),
 ) {
     /** How many rows are in it, for a screen that wants to say what it just wrote. */
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
                 holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size + groups.size +
-                postponements.size + adjustments.size
+                postponements.size + adjustments.size + captureMatches.size
 }
 
 data class BackupAccount(
@@ -176,6 +178,27 @@ data class BackupAdjustment(
     val currency: String,
     /** Epoch day, like every other date in the file. */
     val date: Long,
+)
+
+/**
+ * A captured payment taken to be a subscription's charge (D35): what keeps a second payment from
+ * matching the same charge, and what Undo puts back. It keeps its id, because a notification's Undo
+ * names it. Dates are epoch days.
+ */
+data class BackupCaptureMatch(
+    val id: Long,
+    val chargeTransactionId: Long?,
+    val wroteCharge: Boolean,
+    val ruleId: Long?,
+    val occurrence: Long?,
+    val previousLastGenerated: Long?,
+    val postponedTo: Long?,
+    val accountId: Long,
+    val kind: String,
+    val amountMinor: Long,
+    val currency: String,
+    val date: Long,
+    val note: String,
 )
 
 /** An occasion that cuts across categories. Movements point at its id, so it keeps one. */

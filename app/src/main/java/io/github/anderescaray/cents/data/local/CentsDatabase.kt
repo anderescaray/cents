@@ -8,6 +8,7 @@ import io.github.anderescaray.cents.data.local.converter.InvestmentConverters
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.BalanceAdjustmentDao
 import io.github.anderescaray.cents.data.local.dao.BudgetDao
+import io.github.anderescaray.cents.data.local.dao.CaptureMatchDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.GroupDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
@@ -20,6 +21,7 @@ import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
 import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
 import io.github.anderescaray.cents.data.local.entity.BudgetEntity
+import io.github.anderescaray.cents.data.local.entity.CaptureMatchEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
@@ -49,6 +51,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
         GroupEntity::class,
         RulePostponementEntity::class,
         BalanceAdjustmentEntity::class,
+        CaptureMatchEntity::class,
     ],
     version = CentsDatabase.VERSION,
     exportSchema = true,
@@ -79,6 +82,8 @@ abstract class CentsDatabase : RoomDatabase() {
 
     abstract fun balanceAdjustmentDao(): BalanceAdjustmentDao
 
+    abstract fun captureMatchDao(): CaptureMatchDao
+
     companion object {
         /**
          * v2 (2026-09-09) added holdings, trades and price quotes; v3 (2026-09-16) added
@@ -87,9 +92,10 @@ abstract class CentsDatabase : RoomDatabase() {
          * account; v5 (2026-09-17) added `recurring_rules` and `transactions.ruleId`; v6
          * (2026-09-17) added `rule_reminders`; v7 (2026-09-23) added `budgets`; v8
          * (2026-09-25) added `movement_groups` and `transactions.groupId`; v9 (2026-09-25) added
-         * `rule_postponements`; v10 (2026-10-05) added `balance_adjustments`. See `Migrations.kt`.
+         * `rule_postponements`; v10 (2026-10-05) added `balance_adjustments`; v11 (2026-10-12)
+         * added `capture_matches`. See `Migrations.kt`.
          */
-        const val VERSION = 10
+        const val VERSION = 11
         const val NAME = "cents.db"
     }
 }

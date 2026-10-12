@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
+import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
@@ -84,6 +85,7 @@ object BackupWriter {
                     "groups" to backup.groups.toArray(::groupJson),
                     "rulePostponements" to backup.postponements.toArray(::postponementJson),
                     "balanceAdjustments" to backup.adjustments.toArray(::adjustmentJson),
+                    "captureMatches" to backup.captureMatches.toArray(::captureMatchJson),
                 ),
             )
         return PRETTY.encodeToString(JsonElement.serializer(), root)
@@ -191,6 +193,23 @@ object BackupWriter {
             "amountMinor" to JsonPrimitive(row.amountMinor),
             "currency" to JsonPrimitive(row.currency),
             "date" to JsonPrimitive(row.date),
+        )
+
+    private fun captureMatchJson(row: BackupCaptureMatch) =
+        mapOf(
+            "id" to JsonPrimitive(row.id),
+            "chargeTransactionId" to JsonPrimitive(row.chargeTransactionId),
+            "wroteCharge" to JsonPrimitive(row.wroteCharge),
+            "ruleId" to JsonPrimitive(row.ruleId),
+            "occurrence" to JsonPrimitive(row.occurrence),
+            "previousLastGenerated" to JsonPrimitive(row.previousLastGenerated),
+            "postponedTo" to JsonPrimitive(row.postponedTo),
+            "accountId" to JsonPrimitive(row.accountId),
+            "kind" to JsonPrimitive(row.kind),
+            "amountMinor" to JsonPrimitive(row.amountMinor),
+            "currency" to JsonPrimitive(row.currency),
+            "date" to JsonPrimitive(row.date),
+            "note" to JsonPrimitive(row.note),
         )
 
     private fun budgetJson(row: BackupBudget) =

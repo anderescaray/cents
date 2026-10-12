@@ -104,7 +104,11 @@ class CaptureListenerService : NotificationListenerService() {
     ) {
         val outcome =
             try {
-                dependencies.recorder().record(posted.packageName, text, postedAt)
+                // A subscription's charge is only matched when the match will be announced, with
+                // Undo (D35): unseen, a wrong match could not be put right.
+                val current = setup
+                val announced = current.notifyOnCapture && CaptureNotifier.allowed(applicationContext)
+                dependencies.recorder().record(posted.packageName, text, postedAt, announced)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (

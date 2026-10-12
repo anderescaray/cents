@@ -3,7 +3,6 @@ package io.github.anderescaray.cents.data.repository
 import io.github.anderescaray.cents.data.local.dao.AccountDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.data.local.entity.AccountEntity
-import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.CaptureOutcome
 import io.github.anderescaray.cents.domain.model.CaptureOutcome.IgnoreReason
 import io.github.anderescaray.cents.domain.model.CaptureSettings
@@ -25,10 +24,11 @@ import javax.inject.Singleton
  * One notification in, one movement or nothing out (PRD §4.6, `DECISIONS.md` D29).
  *
  * In order: capture is on, the app is one the owner chose, its account still exists, the text
- * has a word and an amount, the amount is in the account's currency, and the same payment was not
- * already captured in the same minute. Only then is anything kept, and it is an ordinary movement
- * with **no category**, which puts it under *To categorize* (PRD §4.6). The text is only read
- * once the first three pass: most notifications are from apps nobody chose.
+ * has a word and an amount, the amount is in the account's currency, the same payment was not
+ * already captured in the same minute, and it is not a subscription's charge ([CaptureMatcher],
+ * D35). Only then is anything kept, and it is an ordinary movement with **no category**, which puts
+ * it under *To categorize* (`docs/PRD.md`). The text is only read once the first three pass: most
+ * notifications are from apps nobody chose.
  *
  * **"The same minute" is remembered here, in memory, and only for captured notifications.** It
  * is not asked of the ledger, because a movement restored from a backup, written by a
@@ -43,6 +43,7 @@ class RoomCaptureRecorder
         private val settings: CaptureSettingsRepository,
         private val accountDao: AccountDao,
         private val transactionDao: TransactionDao,
+        private val matcher: CaptureMatcher,
         private val clock: Clock,
     ) : CaptureRecorder {
         /**
@@ -58,10 +59,11 @@ class RoomCaptureRecorder
             packageName: String,
             text: String,
             postedAt: Instant,
+            announced: Boolean,
         ): CaptureOutcome =
             when (val plan = plan(settings.observe().first(), packageName, text)) {
                 is Plan.Skip -> CaptureOutcome.Ignored(plan.reason)
-                is Plan.Write -> write(plan, text, postedAt)
+                is Plan.Write -> write(plan, text, postedAt, announced)
             }
 
         /** Whether it is on, the app is chosen and its account is still there, before any reading. */
@@ -133,6 +135,7 @@ class RoomCaptureRecorder
             plan: Plan.Write,
             text: String,
             postedAt: Instant,
+            announced: Boolean,
         ): CaptureOutcome =
             oneAtATime.withLock {
                 val seen = Seen(plan.kind, plan.amountMinor, plan.account.currency, postedAt)
@@ -140,37 +143,75 @@ class RoomCaptureRecorder
                 if (recent.any { it.isSamePaymentAs(seen) }) {
                     CaptureOutcome.Duplicate
                 } else {
-                    val now = clock.instant()
-                    val id =
-                        transactionDao.insert(
-                            TransactionEntity(
-                                accountId = plan.account.id,
-                                categoryId = null,
-                                kind = plan.kind,
-                                amountMinor = plan.amountMinor,
-                                currency = plan.account.currency,
-                                date = postedAt.atZone(clock.zone).toLocalDate(),
-                                // The whole text, so the merchant or the sender is in it (D29).
-                                note =
-                                    CaptureParser
-                                        .readable(
-                                            text,
-                                        ).trim()
-                                        .replace(WHITESPACE, " ")
-                                        .clippedTo(MAX_NOTE_LENGTH),
-                                createdAt = now,
-                                updatedAt = now,
-                            ),
+                    val payment =
+                        CapturedPayment(
+                            accountId = plan.account.id,
+                            kind = plan.kind,
+                            amountMinor = plan.amountMinor,
+                            currency = plan.account.currency,
+                            date = postedAt.atZone(clock.zone).toLocalDate(),
+                            // The whole text, so the merchant or the sender is in it (D29).
+                            note =
+                                CaptureParser
+                                    .readable(text)
+                                    .trim()
+                                    .replace(WHITESPACE, " ")
+                                    .clippedTo(MAX_NOTE_LENGTH),
                         )
+                    val outcome =
+                        (
+                            if (announced) {
+                                matcher.match(
+                                    payment,
+                                )
+                            } else {
+                                null
+                            }
+                        )?.let { matched(it, payment, plan.account.name) }
+                            ?: recorded(
+                                transactionDao.insert(payment.toMovement(clock.instant())),
+                                payment,
+                                plan.account.name,
+                            )
+                    // A matched payment counts too: the bank and Wallet announcing the same charge
+                    // in the same minute is still one payment.
                     recent.addLast(seen)
-                    CaptureOutcome.Recorded(
-                        transactionId = id,
-                        amount = Money(plan.amountMinor, plan.account.currency),
-                        kind = plan.kind,
-                        accountName = plan.account.name,
-                    )
+                    outcome
                 }
             }
+
+        override suspend fun undoMatch(matchId: Long): CaptureOutcome.Recorded? =
+            oneAtATime.withLock {
+                matcher.undo(matchId)?.let { undone ->
+                    val account = accountDao.findById(undone.payment.accountId)
+                    recorded(undone.transactionId, undone.payment, account?.name.orEmpty())
+                }
+            }
+
+        private fun recorded(
+            transactionId: Long,
+            payment: CapturedPayment,
+            accountName: String,
+        ) = CaptureOutcome.Recorded(
+            transactionId = transactionId,
+            amount = Money(payment.amountMinor, payment.currency),
+            kind = payment.kind,
+            accountName = accountName,
+        )
+
+        private fun matched(
+            match: CaptureMatcher.Match,
+            payment: CapturedPayment,
+            accountName: String,
+        ) = CaptureOutcome.Matched(
+            matchId = match.matchId,
+            subscription = match.subscription,
+            amount = Money(payment.amountMinor, payment.currency),
+            kind = payment.kind,
+            accountName = accountName,
+            filledBill = match.filledBill,
+            chargeTransactionId = match.chargeTransactionId,
+        )
 
         /** One captured payment, as much of it as "the same one again" needs. */
         private data class Seen(

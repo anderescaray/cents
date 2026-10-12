@@ -59,12 +59,13 @@ interface RecurringRuleDao {
      *
      * Written in the same database transaction as the movements it describes, so a catch-up that
      * dies halfway cannot leave a rule claiming to have produced something it did not — which
-     * would skip that period for ever.
+     * would skip that period for ever. Null only when Undo puts back a rule that had written
+     * nothing (D35).
      */
     @Query("UPDATE recurring_rules SET lastGenerated = :date WHERE id = :id")
     suspend fun setLastGenerated(
         id: Long,
-        date: LocalDate,
+        date: LocalDate?,
     )
 
     @Query("DELETE FROM recurring_rules")

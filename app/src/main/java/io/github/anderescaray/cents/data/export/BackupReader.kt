@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupAdjustment
 import io.github.anderescaray.cents.domain.model.BackupBudget
+import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
@@ -130,6 +131,8 @@ object BackupReader {
             postponements = root.rows("rulePostponements", ::postponement),
             // Absent before a balance could be corrected, and read as none.
             adjustments = root.rows("balanceAdjustments", ::adjustment),
+            // Absent before capture recognised a subscription's charge, and read as none.
+            captureMatches = root.rows("captureMatches", ::captureMatch),
         )
 
     private fun account(row: JsonObject) =
@@ -234,6 +237,23 @@ object BackupReader {
             amountMinor = row.requireLong("amountMinor"),
             currency = row.requireString("currency"),
             date = row.requireLong("date"),
+        )
+
+    private fun captureMatch(row: JsonObject) =
+        BackupCaptureMatch(
+            id = row.requireLong("id"),
+            chargeTransactionId = row.long("chargeTransactionId"),
+            wroteCharge = row.boolean("wroteCharge"),
+            ruleId = row.long("ruleId"),
+            occurrence = row.long("occurrence"),
+            previousLastGenerated = row.long("previousLastGenerated"),
+            postponedTo = row.long("postponedTo"),
+            accountId = row.requireLong("accountId"),
+            kind = row.requireString("kind"),
+            amountMinor = row.requireLong("amountMinor"),
+            currency = row.requireString("currency"),
+            date = row.requireLong("date"),
+            note = row.requireString("note"),
         )
 
     private fun budget(row: JsonObject) =

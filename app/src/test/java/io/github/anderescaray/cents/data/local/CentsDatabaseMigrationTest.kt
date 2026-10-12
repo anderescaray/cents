@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
+import io.github.anderescaray.cents.data.local.entity.CaptureMatchEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
@@ -501,6 +502,55 @@ class CentsDatabaseMigrationTest {
                 assertThrows(SQLiteConstraintException::class.java) {
                     runBlocking { database.accountDao().deleteById(accountId) }
                 }
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a version 10 database keeps its money and gains somewhere to remember a matched charge`() =
+        runTest {
+            createVersion(10)
+
+            val database = openWithMigrations()
+            try {
+                val accountId =
+                    database
+                        .accountDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                        .id
+                assertEquals("the money written at v10 should survive", 2_550L, moneyIn(database))
+                val chargeId = database.transactionDao().insert(transaction(accountId = accountId, amountMinor = 1_299))
+                val matchId =
+                    database.captureMatchDao().insert(
+                        CaptureMatchEntity(
+                            chargeTransactionId = chargeId,
+                            wroteCharge = false,
+                            ruleId = null,
+                            occurrence = null,
+                            previousLastGenerated = null,
+                            postponedTo = null,
+                            accountId = accountId,
+                            kind = TransactionKind.EXPENSE,
+                            amountMinor = 1_299,
+                            currency = "EUR",
+                            date = LocalDate.of(2026, 10, 12),
+                            note = "Compra en NETFLIX por 12,99 €",
+                            matchedAt = Instant.parse("2026-10-12T10:00:00Z"),
+                        ),
+                    )
+
+                // No key on the charge: deleting it leaves the match pointing where it did, so a
+                // movement put back by its Undo is still the charge it was.
+                database.transactionDao().deleteById(chargeId)
+
+                assertEquals(chargeId, database.captureMatchDao().findById(matchId)?.chargeTransactionId)
+                // `CASCADE` on the account: a match is about the account's captures, and goes with it.
+                database.transactionDao().deleteAll()
+                database.accountDao().deleteById(accountId)
+                assertNull(database.captureMatchDao().findById(matchId))
             } finally {
                 database.close()
             }

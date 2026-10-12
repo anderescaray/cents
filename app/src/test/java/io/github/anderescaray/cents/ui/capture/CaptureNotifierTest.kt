@@ -174,6 +174,70 @@ class CaptureNotifierTest {
         assertEquals(1, manager.activeNotifications.size)
     }
 
+    @Test
+    fun `a matched charge names the subscription, adds nothing and offers Undo`() {
+        notifier.notify(matched(), enabled = true)
+
+        val notification = manager.activeNotifications.single().notification
+        assertEquals("Matched Netflix", notification.title())
+        assertTrue(notification.body().contains(MoneyFormatter.format(Money(-1_299, "EUR"), withSign = true)))
+        assertTrue(notification.body().contains("Nothing added"))
+        val undo = notification.actions.single()
+        assertEquals("Undo", undo.title.toString())
+        assertTrue(undo.actionIntent.isImmutable)
+        assertTrue(shadowOf(undo.actionIntent).isBroadcast)
+        val intent = shadowOf(undo.actionIntent).savedIntent
+        assertEquals(CaptureUndoReceiver::class.java.name, intent.component?.className)
+        assertEquals(7L, intent.getLongExtra(CaptureNotifier.EXTRA_MATCH_ID, 0L))
+        // Tapping it opens the subscription's movement.
+        assertEquals(
+            3L,
+            shadowOf(notification.contentIntent).savedIntent.getLongExtra(CaptureNotifier.EXTRA_OPEN_CAPTURED, 0L),
+        )
+        assertEquals("A payment was matched to a subscription.", requireNotNull(notification.publicVersion).body())
+    }
+
+    @Test
+    fun `a variable bill filled in by the payment says so`() {
+        notifier.notify(matched().copy(subscription = "Electricity", filledBill = true), enabled = true)
+
+        val notification = manager.activeNotifications.single().notification
+        assertEquals("Electricity filled in", notification.title())
+        assertTrue(notification.body().contains("from the notification"))
+    }
+
+    @Test
+    fun `each match has its own Undo, and undoing one takes only its notification away`() {
+        notifier.notify(matched(), enabled = true)
+        notifier.notify(matched().copy(matchId = 8, chargeTransactionId = 4), enabled = true)
+
+        notifier.cancelMatch(7)
+
+        val left = manager.activeNotifications.single().notification
+        assertEquals(
+            8L,
+            shadowOf(left.actions.single().actionIntent).savedIntent.getLongExtra(CaptureNotifier.EXTRA_MATCH_ID, 0L),
+        )
+    }
+
+    @Test
+    fun `matches stay silent when confirmations are off`() {
+        notifier.notify(matched(), enabled = false)
+
+        assertTrue(manager.activeNotifications.isEmpty())
+    }
+
+    private fun matched() =
+        CaptureOutcome.Matched(
+            matchId = 7,
+            subscription = "Netflix",
+            amount = Money(1_299, "EUR"),
+            kind = TransactionKind.EXPENSE,
+            accountName = "Bank",
+            filledBill = false,
+            chargeTransactionId = 3,
+        )
+
     private fun recorded() =
         CaptureOutcome.Recorded(
             transactionId = 1,

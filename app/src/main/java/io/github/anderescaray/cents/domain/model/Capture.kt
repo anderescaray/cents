@@ -156,6 +156,23 @@ sealed interface CaptureOutcome {
         val accountName: String,
     ) : CaptureOutcome
 
+    /**
+     * Taken to be a subscription's charge, so nothing new was saved for it (D35). Undo, by
+     * [matchId], saves it as an ordinary capture instead.
+     */
+    data class Matched(
+        val matchId: Long,
+        /** The subscription's name. */
+        val subscription: String,
+        val amount: Money,
+        val kind: TransactionKind,
+        val accountName: String,
+        /** A variable bill took this amount, rather than a fixed charge already covering it. */
+        val filledBill: Boolean,
+        /** The subscription's movement, to open from the notification. */
+        val chargeTransactionId: Long,
+    ) : CaptureOutcome
+
     /** The same payment was already written in the same minute, so nothing new was. */
     data object Duplicate : CaptureOutcome
 

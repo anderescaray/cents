@@ -50,7 +50,7 @@
     <string name="capture_income_words_hint">Lo que dice la app cuando entra dinero</string>
     <string name="capture_words_for">De %1$s</string>
     <string name="capture_notify">Notificar movimientos capturados</string>
-    <string name="capture_notify_footer">Muestra el importe y la cuenta después de registrar un movimiento. Las notificaciones ignoradas y duplicadas no generan avisos.</string>
+    <string name="capture_notify_footer">Muestra el importe y la cuenta después de registrar un movimiento. Un pago solo se reconoce como el cargo de una suscripción mientras esto está activado, porque ese aviso trae Deshacer. Las notificaciones ignoradas y duplicadas no generan avisos.</string>
     <string name="capture_notify_blocked">Los avisos de confirmación están bloqueados</string>
     <string name="capture_notify_settings">Permite las notificaciones en los ajustes de Android.</string>
     <string name="capture_notification_channel">Movimientos capturados</string>
@@ -59,6 +59,12 @@
     <string name="capture_notification_income">Ingreso añadido</string>
     <string name="capture_notification_body">%1$s · %2$s</string>
     <string name="capture_notification_public">Se ha añadido un movimiento automáticamente.</string>
+    <string name="capture_notification_matched">Coincide con %1$s</string>
+    <string name="capture_notification_matched_body">%1$s · %2$s. No se ha añadido nada: la suscripción ya lo cuenta.</string>
+    <string name="capture_notification_filled">Importe de %1$s completado</string>
+    <string name="capture_notification_filled_body">%1$s · %2$s, desde la notificación.</string>
+    <string name="capture_notification_matched_public">Se ha reconocido un pago de una suscripción.</string>
+    <string name="capture_notification_undo">Deshacer</string>
     <string name="capture_section_reading">Lectura de notificaciones</string>
     <string name="capture_ignore_words">Palabras a ignorar</string>
     <string name="capture_ignore_words_hint">El importe justo después de una no es el pago</string>

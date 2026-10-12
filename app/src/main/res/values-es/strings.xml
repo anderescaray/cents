@@ -51,6 +51,7 @@
     <string name="action_edit">Editar</string>
     <string name="field_account_empty">Crea tu primera cuenta</string>
     <string name="field_account_empty_footer">Un movimiento tiene que vivir en una cuenta, así que hay algo que hacer antes.</string>
+    <string name="rule_account_brokers_footer">Las cuentas de bróker no aparecen: una suscripción apunta ingresos y gastos normales.</string>
 
     <!-- Ajustes -->
     <string name="settings_section_data">Datos</string>

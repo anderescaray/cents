@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.CaptureSource
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.takesIncomeAndExpenses
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,11 @@ data class CaptureSourceRow(
     /** How many words make this app's notification an expense, and an income. */
     val expenseWordCount: Int = 0,
     val incomeWordCount: Int = 0,
+    /**
+     * Its account is one an app may be tied to. False for one already in a broker (D32), which it
+     * keeps, shown as current, though a broker is not offered to move to.
+     */
+    val accountOffered: Boolean = true,
 )
 
 @Immutable
@@ -38,7 +44,7 @@ data class CaptureUiState(
     val enabled: Boolean = false,
     val notifyOnCapture: Boolean = false,
     val sources: List<CaptureSourceRow> = emptyList(),
-    /** The accounts an app can be tied to: the active ones. */
+    /** The accounts an app can be tied to: the active ones that are not brokers (D32). */
     val accounts: List<Account> = emptyList(),
     val expenseWordCount: Int = 0,
     val incomeWordCount: Int = 0,
@@ -79,11 +85,13 @@ class CaptureViewModel
                 stoppingPackage,
             ) { setup, active, editing, stopping ->
                 val names = active.associate { it.id to it.name }
+                val offered = active.filter { it.takesIncomeAndExpenses }
                 val rows =
                     setup.sources.map {
                         CaptureSourceRow(
                             source = it,
                             accountName = names[it.accountId],
+                            accountOffered = offered.any { account -> account.id == it.accountId },
                             expenseWordCount = setup.wordsFor(it.packageName, TransactionKind.EXPENSE).size,
                             incomeWordCount = setup.wordsFor(it.packageName, TransactionKind.INCOME).size,
                         )
@@ -92,7 +100,7 @@ class CaptureViewModel
                     enabled = setup.enabled,
                     notifyOnCapture = setup.notifyOnCapture,
                     sources = rows,
-                    accounts = active,
+                    accounts = offered,
                     expenseWordCount = setup.expenseWords.size,
                     ignoreWordCount = setup.ignoreWords.size,
                     incomeWordCount = setup.incomeWords.size,

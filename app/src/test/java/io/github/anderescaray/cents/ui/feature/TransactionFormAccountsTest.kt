@@ -21,6 +21,7 @@ import io.github.anderescaray.cents.ui.undo.DeletedTransactionBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -40,9 +41,10 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 /**
- * Which account a movement goes in (`docs/next-improvements.md` §5 and §9): a new one starts on the
- * account the last new one went in, if that account can still take it; a broker is never offered
- * for an income or an expense, nor started on; and an old movement keeps the account it is in.
+ * Which account a movement goes in (`docs/next-improvements.md`, items 5 and 9): a new one starts on
+ * the account the last new one went in, if that account can still take it; a broker is offered for
+ * an income but not an expense (`DECISIONS.md` D32), and never started on; and an old movement keeps
+ * the account it is in.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -174,7 +176,7 @@ class TransactionFormAccountsTest {
         }
 
     @Test
-    fun `a broker is not offered for an income or an expense, nor started on when remembered`() =
+    fun `a broker is not offered for an expense, nor started on when remembered`() =
         runTest {
             // A broker first in the list, and remembered too: neither is enough to choose it.
             val broker = database.accountDao().insert(account(name = "A broker", type = AccountType.BROKER))
@@ -186,6 +188,118 @@ class TransactionFormAccountsTest {
                 assertEquals(checking, state.selectedAccountId)
                 assertEquals(listOf("Checking"), state.accounts.map { it.name })
                 assertTrue("the picker says where the broker went", state.brokersLeftOut)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a broker is offered for an income, a dividend, but still not started on`() =
+        runTest {
+            val broker = database.accountDao().insert(account(name = "A broker", type = AccountType.BROKER))
+            val checking = database.accountDao().insert(account(name = "Checking"))
+            val card = database.accountDao().insert(account(name = "Card"))
+            entryDefaults.lastAccountId.value = card
+
+            val form = formFor()
+
+            form.uiState.test {
+                awaitStateThat { it.selectedAccountId != null }
+                form.setKind(TransactionKind.INCOME)
+                val income = awaitStateThat { it.kind == TransactionKind.INCOME }
+                assertEquals(setOf("A broker", "Checking", "Card"), income.accounts.map { it.name }.toSet())
+                assertFalse("nothing is left out of an income", income.brokersLeftOut)
+                assertEquals("chosen only by tapping it", card, income.selectedAccountId)
+                assertTrue(income.accounts.any { it.id == checking })
+
+                form.selectAccount(broker)
+                "12".forEach(form::appendDigit)
+                awaitStateThat { it.canSave && it.selectedAccountId == broker }
+                form.save()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved =
+                database
+                    .transactionDao()
+                    .observeAll()
+                    .first()
+                    .single()
+            assertEquals(broker, saved.accountId)
+            assertEquals(TransactionKind.INCOME, saved.kind)
+            assertEquals(
+                "a dividend does not move where the next movement starts",
+                card,
+                entryDefaults.lastAccountId.value,
+            )
+        }
+
+    @Test
+    fun `an old income in a broker turned into an expense leaves the broker`() =
+        runTest {
+            val broker = database.accountDao().insert(account(name = "A broker", type = AccountType.BROKER))
+            val checking = database.accountDao().insert(account(name = "Checking"))
+            val id =
+                transactions.addTransaction(
+                    Transaction(
+                        id = 0,
+                        accountId = broker,
+                        categoryId = null,
+                        kind = TransactionKind.INCOME,
+                        amount = Money(4_200, "EUR"),
+                        date = LocalDate.of(2026, 8, 18),
+                        note = "Dividend",
+                    ),
+                )
+            val editor = formFor(id)
+
+            editor.uiState.test {
+                awaitStateThat { it.isEditing && it.selectedAccountId == broker }
+                editor.setKind(TransactionKind.EXPENSE)
+
+                // Kept, it would be a new expense in a broker (D32).
+                val expense = awaitStateThat { it.kind == TransactionKind.EXPENSE }
+                assertEquals(checking, expense.selectedAccountId)
+                assertTrue(expense.accounts.none { it.id == broker })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a broker made from an income's picker is the one chosen on the way back`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.selectedAccountId != null }
+                viewModel.setKind(TransactionKind.INCOME)
+                awaitStateThat { it.kind == TransactionKind.INCOME }
+                viewModel.makingAccount()
+                val broker = database.accountDao().insert(account(name = "Broker", type = AccountType.BROKER))
+
+                assertEquals(broker, awaitStateThat { it.accounts.size == 2 }.selectedAccountId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an income in a broker turned into an expense moves to where an expense starts`() =
+        runTest {
+            val broker = database.accountDao().insert(account(name = "A broker", type = AccountType.BROKER))
+            val checking = database.accountDao().insert(account(name = "Checking"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.selectedAccountId != null }
+                viewModel.setKind(TransactionKind.INCOME)
+                awaitStateThat { it.kind == TransactionKind.INCOME }
+                viewModel.selectAccount(broker)
+                awaitStateThat { it.selectedAccountId == broker }
+
+                viewModel.setKind(TransactionKind.EXPENSE)
+
+                val expense = awaitStateThat { it.kind == TransactionKind.EXPENSE }
+                assertEquals(checking, expense.selectedAccountId)
+                assertTrue(expense.brokersLeftOut)
                 cancelAndIgnoreRemainingEvents()
             }
         }

@@ -198,7 +198,7 @@ class TransactionFormScreenTest {
     }
 
     @Test
-    fun `the account list leaves brokers out and says so`() {
+    fun `an expense's account list leaves brokers out and says so`() {
         runBlocking {
             database.accountDao().insert(account(name = "Checking"))
             database.accountDao().insert(account(name = "Savings"))
@@ -210,7 +210,7 @@ class TransactionFormScreenTest {
 
         composeRule.onNodeWithText("Broker").assertDoesNotExist()
         composeRule
-            .onNodeWithText("Broker accounts are not offered here", substring = true)
+            .onNodeWithText("Broker accounts take incomes only", substring = true)
             .assertExists()
         composeRule.onNodeWithText("Savings").performClick()
         assertEquals(

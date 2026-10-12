@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomRecurringRuleRepository
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Frequency
 import io.github.anderescaray.cents.domain.model.Money
@@ -89,6 +90,57 @@ class RuleFormViewModelTest {
                 assertFalse("no name and no amount is not a subscription", state.canSave)
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `a new rule is not offered a broker, nor started on one`() =
+        runTest {
+            // A broker first in the list: a subscription writes incomes and expenses unattended,
+            // and those do not go in a broker (D32).
+            database.accountDao().insert(account(name = "A broker", type = AccountType.BROKER))
+
+            form().uiState.test {
+                val state = awaitStateThat { it.accountId != null }
+                assertEquals(accountId, state.accountId)
+                assertEquals(listOf("Checking"), state.accounts.map { it.name })
+                assertTrue("the section says where the broker went", state.brokersLeftOut)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a rule already in a broker keeps it, shown, through an edit`() =
+        runTest {
+            val broker = database.accountDao().insert(account(name = "A broker", type = AccountType.BROKER))
+            val ruleId =
+                repository().createRule(
+                    RecurringRule(
+                        id = 0,
+                        name = "Interest",
+                        accountId = broker,
+                        categoryId = null,
+                        kind = TransactionKind.INCOME,
+                        amount = Money(250, "EUR"),
+                        frequency = Frequency.MONTHLY,
+                        intervalDays = null,
+                        startDate = today.plusDays(1),
+                        endDate = null,
+                        mode = RuleMode.AUTOMATIC,
+                        active = true,
+                        lastGenerated = null,
+                    ),
+                )
+            val viewModel = form(ruleId)
+
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.isEditing && it.accountId == broker }
+                assertTrue(state.accounts.any { it.id == broker })
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.setName("Interest, monthly")
+            save(viewModel)
+
+            assertEquals(broker, repository().findById(ruleId)?.accountId)
         }
 
     @Test

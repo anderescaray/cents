@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AppWords
 import io.github.anderescaray.cents.domain.model.CaptureSettings
 import io.github.anderescaray.cents.domain.model.CaptureSource
@@ -141,6 +142,24 @@ class CaptureViewModelsTest {
             viewModel.requestStop()
             viewModel.confirmStop()
             assertEquals(0, settings.state.value.sources.size)
+        }
+
+    @Test
+    fun `a broker is not offered to tie an app to, and an app already in one keeps it`() =
+        runTest {
+            val broker = database.accountDao().insert(account(name = "Broker", type = AccountType.BROKER))
+            settings.state.value = CaptureSettings(sources = listOf(CaptureSource(BANK_APP, "My bank", broker)))
+
+            val state = capture().uiState.first { !it.isLoading && it.accounts.isNotEmpty() }
+            val chosen =
+                picker()
+                    .uiState
+                    .first { !it.isLoading && it.accounts.isNotEmpty() }
+
+            // Capture writes ordinary incomes and expenses, and those do not go in a broker (D32).
+            assertEquals(listOf(bank, card), state.accounts.map { it.id })
+            assertEquals(listOf(bank, card), chosen.accounts.map { it.id })
+            assertEquals("Broker", state.sources.single().accountName)
         }
 
     @Test

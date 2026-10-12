@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.CaptureSource
+import io.github.anderescaray.cents.domain.model.takesIncomeAndExpenses
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import io.github.anderescaray.cents.domain.usecase.CaptureParser
@@ -72,7 +73,8 @@ class CaptureAppsViewModel
                             .filter { it.app.packageName !in chosen && it.matches(needle) }
                             .map { it.app },
                     query = current.query,
-                    accounts = active,
+                    // Not a broker (D32): capture writes ordinary incomes and expenses.
+                    accounts = active.filter { it.takesIncomeAndExpenses },
                     choosing = current.choosing,
                     finished = current.finished,
                     isLoading = false,

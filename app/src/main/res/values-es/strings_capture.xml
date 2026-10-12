@@ -15,7 +15,7 @@
     <string name="capture_app_into">En %1$s</string>
     <string name="capture_app_no_account">Su cuenta ya no existe, así que no se registra nada</string>
     <string name="capture_add_app">Añadir una app</string>
-    <string name="capture_add_app_needs_account">Crea una cuenta primero</string>
+    <string name="capture_add_app_needs_account">Crea primero una cuenta de efectivo o de banco</string>
     <string name="capture_section_words">Palabras</string>
     <string name="capture_words_footer">Una notificación necesita una palabra de ingreso o gasto y un único importe con moneda, como € o EUR. Los números ocultos y los importes ambiguos se ignoran. Las capturas con el mismo importe, moneda y tipo en un minuto se registran una vez.</string>
     <string name="capture_expense_words">Palabras de gasto</string>

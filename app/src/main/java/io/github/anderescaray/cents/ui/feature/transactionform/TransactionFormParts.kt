@@ -266,8 +266,8 @@ internal fun CategorySheet(
 }
 
 /**
- * The accounts a movement can go in. Brokers are left out (§9) and the foot of the sheet says so,
- * since an account that has quietly gone missing from a list reads as a bug.
+ * The accounts a movement can go in. Brokers are left out of an expense (D32) and the foot of the
+ * sheet says so, since an account that has quietly gone missing from a list reads as a bug.
  */
 @Composable
 internal fun AccountSheet(

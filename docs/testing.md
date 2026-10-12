@@ -38,10 +38,11 @@ rewrites an existing one, look at that diff before anything else.
 
 ## View-model tests and Room
 
-`Dispatchers.Main` in these tests is an `UnconfinedTestDispatcher`, while Room emits on its own
-threads. A view model that collects a Room flow can therefore still be working when the test's
-next line runs. On the phone everything runs on the main thread, so this is a test hazard, not
-an app bug. Five rules follow from it:
+`Dispatchers.Main` in these tests is an `UnconfinedTestDispatcher`, and the test database runs
+every query, transaction and flow on the thread that asks for it (`createTestDatabase()`, #125).
+So a view model under test runs on the test thread alone, as it runs on the phone's main thread.
+One difference is left, on purpose: a write's flows emit before the write returns, where on the
+phone they come a moment later. A test must not depend on either order. Five rules follow:
 
 1. **Wait for the state you are about to assert on, by name.** Use `awaitStateThat { … }` from
    `AwaitState.kt`, with the condition the assertion checks. Not a proxy:
@@ -55,7 +56,7 @@ an app bug. Five rules follow from it:
    database.** A leaked collector keeps using the test's `Dispatchers.Main`. The next class then
    fails with "Dispatchers.Main is used concurrently", in a test that did nothing wrong.
 5. **Never count a timer on `viewModelScope`.** `runTest` shares its clock with the test's
-   `Dispatchers.Main`, so while a test waits on Room's threads, virtual time skips a `delay` there.
+   `Dispatchers.Main`, so while a test waits, virtual time skips a `delay` there.
    #120's correction undo closed before the removal it offered back had landed: its test failed
    every time on Windows and passed on CI by timing (#121). An undo window is an `UndoWindow`
    (`ui/undo/UndoWindow.kt`) on the `@ApplicationScope` scope. A test hands it a scope on a
@@ -65,21 +66,10 @@ an app bug. Five rules follow from it:
 Turbine's waits give up after 3 s at the line that waited. A bare `first { }` waits for
 `runTest`'s one-minute timeout.
 
-**Known flakes**, both a Room collector writing on another thread while the state is built:
-
-- `CategoryEditViewModelTest` › *the same name is free on the other kind*. `nameTaken` is computed
-  from names a Room collector writes on another thread, so a keystroke and the first load can
-  cross.
-- `TransactionFormViewModelTest` › *editing loads the movement into the form, note and date
-  included*. It failed once on CI on 2026-10-12, on #124, a PR that changes no code. Most likely
-  cause: `load()` and the accounts-and-categories collector resume on Room's threads, and
-  `withOptions()` reads the lists and their *loaded* flags, plain fields the collector writes
-  outside the state update. The loaded movement's category or account can then be pruned against
-  a stale list.
-
-If one fails, re-run it and give the fix its own branch. The fix at the root has not been tried
-yet: pin the test database's query context to the test thread (`setQueryCoroutineContext` in
-`createTestDatabase()`). It touches every Room test, so it needs a full run of its own.
+**No known flakes.** A view-model test that fails only sometimes is a new problem. First check
+that its database comes from `createTestDatabase()`; `TestDatabaseFactoryTest` fails if that
+database ever goes back to Room's own threads. Because that database allows main-thread queries,
+the same test also requires every DAO method to suspend or return a `Flow`.
 
 ## Compose tests
 

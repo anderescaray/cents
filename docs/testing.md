@@ -65,12 +65,21 @@ an app bug. Five rules follow from it:
 Turbine's waits give up after 3 s at the line that waited. A bare `first { }` waits for
 `runTest`'s one-minute timeout.
 
-**Known flake:** `CategoryEditViewModelTest` › *the same name is free on the other kind*.
-`nameTaken` is computed from names a Room collector writes on another thread, so a keystroke and
-the first load can cross. If it fails, re-run it and give the fix its own branch. The fix at the
-root has not been tried yet: pin the test database's query context to the test thread
-(`setQueryCoroutineContext` in `createTestDatabase()`). It touches every Room test, so it needs a
-full run of its own.
+**Known flakes**, both a Room collector writing on another thread while the state is built:
+
+- `CategoryEditViewModelTest` › *the same name is free on the other kind*. `nameTaken` is computed
+  from names a Room collector writes on another thread, so a keystroke and the first load can
+  cross.
+- `TransactionFormViewModelTest` › *editing loads the movement into the form, note and date
+  included*. It failed once on CI on 2026-10-12, on #124, a PR that changes no code. Most likely
+  cause: `load()` and the accounts-and-categories collector resume on Room's threads, and
+  `withOptions()` reads the lists and their *loaded* flags, plain fields the collector writes
+  outside the state update. The loaded movement's category or account can then be pruned against
+  a stale list.
+
+If one fails, re-run it and give the fix its own branch. The fix at the root has not been tried
+yet: pin the test database's query context to the test thread (`setQueryCoroutineContext` in
+`createTestDatabase()`). It touches every Room test, so it needs a full run of its own.
 
 ## Compose tests
 

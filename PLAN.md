@@ -25,23 +25,26 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-12)
 
-- **`main`** is at `550f8e2` (#127). It has **Room v10** and **1057 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `0e1dfd3` (#129). It has **Room v10** and **1064 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
   widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
   [`README.md`](README.md#what-it-does).
+- **Open, waiting on the owner's merge: #131**, backlog item 12 (D35): capture recognises a
+  subscription's charge, with Room v11 and 1095 tests. Its review changed three of the backlog's
+  defaults and added a fourth; the backlog item says which, and why.
+- **Answered on 2026-10-12:** D34 (the removed account types simply go; the owner chooses which
+  money figures show), D35 (item 12, #131), and D36 (#129). Only D32 is still open.
 - **Latest merges:**
+  - #129: D36 answered B. With English chosen on a Spanish phone, amounts and dates keep the
+    phone's style (`1.234,56 €`, `12 oct`); the currency stays the phone's.
+  - #128: the documents after #127, with D36 asked.
   - #127: Settings › Language, the last row of Settings: the phone's language, English or Español
-    (backlog item 1). The system keeps it from Android 13; before that, the app does. The currency
-    stays the phone's whatever the language. How amounts and dates look in English is D36.
-  - #126: the documents after #123 and #125.
-  - #125: the test database runs every query on the thread that asks it, which ends the Room races
-    behind the two flaky view-model tests that turned docs-only PRs red on 2026-10-09 and
-    2026-10-12 ([`docs/testing.md`](docs/testing.md)).
+    (backlog item 1). The system keeps it from Android 13; before that, the app does.
+  - #125: the test database runs every query on the thread that asks it, which ended the Room
+    races behind the flaky view-model tests ([`docs/testing.md`](docs/testing.md)).
   - #123: a removed correction's Undo waits behind a movement's Undo instead of running out
-    unseen. Walk 24 (b1) checks it on the phone.
-- **D35 was answered on 2026-10-12:** capture stops counting a subscription's charge twice. It is
-  backlog item 12, not built, and waits on the owner's go.
-- **A cloud session now runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
+    unseen.
+- **A cloud session runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
   through foojay, and Maven Central through Google's mirror ([`docs/setup.md`](docs/setup.md)).
 - **The Pixel runs `f03f9f8`**, installed 2026-10-09 with every row kept. **Walk 22 passed.**
 - **One finding of #112's review is left on purpose:** a correction is measured against the
@@ -49,19 +52,16 @@ Then read these, in this order, before writing any code:
 
 ## 3. Next, in order
 
-The owner says when each one starts.
+The owner says when each one starts, apart from item 1, which the owner chose on 2026-10-12.
 
-1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
-   and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first. The problem the
-   review found is no longer part of it: #123 fixed it.
-2. **`feat/capture-matches-subscriptions`** (backlog item 12, D35), **waiting on the owner's go.**
-   It fixes wrong money: every notified subscription charge counts twice in spending, budgets and
-   the month's figure until the extra one is deleted by hand. If it needs a stored marker, it is a
-   Room migration and runs alone.
-3. **`feat/account-types`** (backlog item 11): only cash, bank and broker. A Room migration, so it
-   runs alone. It needs D34's first choice, or builds on its default.
-4. **`feat/home-net-worth`** (backlog item 6): normal money and invested money kept apart, on
-   Wallet and at the top of Home. It needs D34's second choice, or builds on its default.
+1. **#131 merged** (item 12, D35), then a docs PR with its walk, Walk 26, and what it changes in
+   [`README.md`](README.md) and [`docs/known-limitations.md`](docs/known-limitations.md).
+2. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's Walk 21
+   and Walk 23 notes from `FEEDBACK.md`, each checked against `main` first.
+3. **`feat/account-types`** (backlog item 11, D34 answered): only cash, bank and broker. A Room
+   migration, v12 after item 12, so it runs alone.
+4. **`feat/home-net-worth`** (backlog item 6, D34 answered): normal money and invested money kept
+   apart, on Wallet and at the top of Home, with the owner choosing which figures show.
 5. **`feat/group-archive`** (backlog item 8; a Room migration, so it runs alone).
 6. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
    - Rewrite [`docs/device-check.md`](docs/device-check.md) as a checklist by feature, for the
@@ -70,24 +70,21 @@ The owner says when each one starts.
    - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
      including the account types and the money split once they are built.
 
-Items 3 to 5 can be built on D34's defaults while item 2 waits. Each Room migration takes the next
-version number when it merges, so the backlog's *v11* for item 3 holds only if it lands first. Later, unscheduled, is listed in the backlog: requests not yet
-placed, and engineering follow-ups.
+Each Room migration takes the next version number when it merges. Later, unscheduled, is listed
+in the backlog: requests not yet placed, and engineering follow-ups.
 
 ## 4. Waiting on the owner
 
-- **Walk 24 (b1)** on a build with #123, and **Walk 25 (l1–l5)** on one with #127: `main` has
-  both ([`docs/device-check.md`](docs/device-check.md)).
-- **D36**: with English chosen, amounts and dates in English style (`€1,234.56`, built) or in the
-  phone's (`1.234,56 €`).
-- **Backlog item 12 (D35):** the go to build it, and whether item 2 above is its place. Its
-  section lists what D35 left open, each with a default. Two are worth a look first: a fixed
-  subscription matches only at its own amount, and a waiting variable bill takes the first capture
-  of its kind in its account within the window, whatever that payment was for.
-- **The Walk 21 notes**, and **Walk 23** (r1–r3) on the build now on the Pixel
-  ([`docs/device-check.md`](docs/device-check.md)). They go in `FEEDBACK.md`.
-- **D34**: what an existing Card, Savings or Other account becomes, and whether a total of normal
-  and invested money is still shown.
+- **Reviewing and merging #131** (item 12).
+- **Walk 24 (b1)** on a build with #123, and **Walk 25 (l1–l5)** on one with #127, l3's amounts on
+  one with #129 ([`docs/device-check.md`](docs/device-check.md)).
+- **The Walk 21 notes**, and **Walk 23** (r1–r3) on the build now on the Pixel. They go in
+  `FEEDBACK.md`.
+- **Item 12's changed defaults**, in its backlog section, to keep or change. The one most worth a
+  look: a charge still to come is written at once, dated its own day, rather than on that day.
+- **D36's names:** with English chosen on a Spanish phone, month and weekday names are Spanish
+  (`Octubre` over Home, `10 oct` under *Yesterday*), as B's own `12 oct` is. If English names in
+  the phone's order are wanted instead, that is a new answer.
 - **D32**: whether subscriptions and capture should refuse broker accounts too, and how a
   dividend gets in.
 - **This session's docs PR** (`docs/session-2026-10-12`), to review and merge.

@@ -13,7 +13,8 @@ session can build it without the original conversation. **The build order is
 ## Confirmed requests
 
 - [ ] 1. English/Spanish language selection in Settings. **Merged in #127** as the last row of
-  Settings. Phone check: Walk 25. How amounts and dates look in English is `DECISIONS.md` D36.
+  Settings. Phone check: Walk 25. Amounts and dates keep the phone's style (`DECISIONS.md` D36,
+  answered B), merged in #129.
 - [x] 2. Proper separation between the Movements title and Filters. #117, checked in Walk 22
   (2026-10-09).
 - [x] 3. Category selection through a large popup, not a horizontal strip. #117, checked in
@@ -21,7 +22,8 @@ session can build it without the original conversation. **The build order is
 - [x] 4. Keypad visible only while the amount is active. #117, checked in Walk 22.
 - [x] 5. Account popup with the last-used account preselected. #117, checked in Walk 22.
 - [ ] 6. Normal money (cash and bank) and invested money (brokers), kept apart, on Wallet and at
-  the top of Home. **Reshaped 2026-10-09**; its open choices are `DECISIONS.md` D34.
+  the top of Home. **Reshaped 2026-10-09**. The owner chooses which figures show
+  (`DECISIONS.md` D34, answered 2026-10-12).
 - [ ] 7. Set an account's current balance, choosing the historical effect each time. **Merged in
   #112**, with its review's fixes in #120 and #121. Phone check: the Walk 21 notes and Walk 23
   are still to come.
@@ -31,10 +33,10 @@ session can build it without the original conversation. **The build order is
   wait on `DECISIONS.md` D32.
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
   in Walk 22.
-- [ ] 11. Only three account types: cash, bank and broker (2026-10-09). Its open choice is
-  `DECISIONS.md` D34.
+- [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
+  answered 2026-10-12: the removed types simply go.
 - [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
-  `DECISIONS.md` D35). Waits on the owner's go.
+  `DECISIONS.md` D35). **Built in #131**, which is open.
 
 ## 1. App language
 
@@ -44,8 +46,9 @@ session can build it without the original conversation. **The build order is
 
 - Add a persistent language preference. Offer **System default**, **English** and **Español**;
   following the system is the proposed initial behavior.
-- Apply the choice consistently to the app's screens, dialogs, labels, formatting and notifications,
-  including capture confirmations. User-entered names and notes are not translated or rewritten.
+- Apply the choice consistently to the app's screens, dialogs, labels and notifications, including
+  capture confirmations. Amounts and dates keep the phone's style (D36). User-entered names and
+  notes are not translated or rewritten.
 - Use Android's per-app language support with a tested compatibility path for the app's supported
   Android versions. Do not assume adding a settings row or changing a global locale is sufficient.
 - Preserve navigation and in-progress form values through any activity recreation.
@@ -70,8 +73,13 @@ Two figures, clearly distinguished:
 2. **Invested:** what the broker accounts hold, which is their cash plus their holdings at the
    latest typed prices.
 
-- **Whether a total of the two is still shown is `DECISIONS.md` D34.** The default is no total,
-  as the owner asked. That amends D19, which asked for the parts and the sum.
+- **The owner chooses what shows** (`DECISIONS.md` D34, answered 2026-10-12): normal money,
+  invested and their total, each on or off. All of them, none, or, for example, normal money and
+  the total. What the answer left open, each with the default the branch builds:
+  - **One choice for both screens**, set in Settings.
+  - **It starts with the two parts and no total**, as the owner first asked. That amends D19,
+    which asked for the parts and the sum.
+  - **With nothing chosen, nothing is drawn**, on Wallet or on Home.
 - **One formula for both screens.** Change `netWorthOf` and `NetWorth`
   (`domain/usecase/BuildNetWorth.kt`) and have Wallet and Home read them. Do not write a second
   formula that can disagree with Wallet.
@@ -155,12 +163,14 @@ choices for transfers.
 **Request (2026-10-09):** an account is **Cash**, **Bank** or **Broker**, and nothing else. *Card*,
 *Savings* and *Other* go.
 
-- **An account of a removed type is retyped, never lost.** Which type it becomes is
-  `DECISIONS.md` D34 (default: Bank). Its movements, balance, corrections and history stay as
-  they are.
+- **An account of a removed type is retyped, never lost.** The owner has none
+  (`DECISIONS.md` D34, answered 2026-10-12), so the three types simply go. The migration still
+  rewrites any stored row to Bank, so a stray row cannot crash a read, and its movements, balance,
+  corrections and history stay as they are.
 - **The type is stored by name** and read with `AccountType.valueOf` (`Converters.kt`). Dropping
   the three constants without rewriting the stored rows would crash on the first read. Ship a Room
-  migration (v11) that rewrites them, with its migration test and exported schema.
+  migration that rewrites them, with its migration test and exported schema. It is v12 if item
+  12, which takes v11, merges first.
 - **A backup made before this still restores.** Reading it maps the old names the same way
   (`BackupMappers.kt`), with a round-trip test.
 - The account editor offers the three types. The three unused strings leave both `values/` and
@@ -173,7 +183,8 @@ choices for transfers.
 **Request (2026-10-12, `DECISIONS.md` D35):** a payment that a subscription already records is
 counted twice today, once by the rule and once by the notification, and the extra one is deleted
 by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
-Branch: `feat/capture-matches-subscriptions`.
+
+**Built in #131** (2026-10-12), which is open. This section goes once its walk passes.
 
 - **A fixed subscription's charge adds nothing.** A captured payment that matches it is not
   saved, and the capture notification says *Matched Netflix, nothing added*, with **Undo**.
@@ -184,7 +195,10 @@ Branch: `feat/capture-matches-subscriptions`.
   day the notification arrived, in the **same account**, of the **same kind**. A postponed charge
   is dated the day it was moved to (D28). Income matches too: a salary is a subscription.
 - **Undo puts it back as though nothing had matched:** the payment is saved as an ordinary
-  captured movement, and a variable bill waits for its amount again.
+  captured movement, and a charge the match wrote waits again, postponement included. It works
+  with the app closed. **Changed while building:** that holds while the rule stands where the
+  match left it. Once the rule has written a later occurrence, the charge stays, because taking
+  it then would lose that occurrence for good.
 - **Nothing else changes.** A capture that matches nothing is saved as today, the same-minute rule
   (D29) still runs first, and what a subscription wrote stays an ordinary movement (rule 8).
 
@@ -199,24 +213,27 @@ instruction.
   eager on the phone, requiring the subscription's name in the notification's text is the way to
   narrow it.
 - **Early counts too.** A charge notified before its day, or before the subscription has written
-  it (it writes when the app opens), still matches. A fixed subscription then writes its charge on
-  its own day, as always; a variable bill is answered early.
+  it (it writes when the app opens), still matches. **Changed while building:** every charge that
+  has fallen due is written first, as opening the app would, and a charge still to come is written
+  by the match at once, dated its own day, for a fixed subscription as for a variable one. Left
+  for the rule, a charge whose rule was stopped or moved before its day would leave the payment
+  recorded nowhere.
+- **Only when the match is announced.** *(Added while building.)* With *Notify after capture* off,
+  or the app's notifications blocked, the payment is saved as an ordinary capture: a wrong match
+  nobody saw could not be undone. Settings › Capture says so under the switch.
 - **One capture per charge.** Once a charge has matched, another payment inside its window is
   saved as usual, because paying twice does happen.
 - **Several candidates:** the charge nearest in date wins.
 - **A variable bill keeps its own date**, as answering it by hand does. Only the amount comes from
   the notification.
 
-For the branch:
+How it is built:
 
-- Matching belongs in `RoomCaptureRecorder`, after the same-minute check and inside its lock. It
-  has to see both the charges a subscription has already written (`ruleId`) and the ones it has
-  not yet, because `generateDue` runs when the app starts and capture runs without the app.
-- The capture notification has no actions today (#113: tapping it opens the movement). Undo is its
-  first, so it has to work with the app closed.
-- Remembering which charge already matched may need a stored marker. If so, that is a Room
-  migration with its test and backup support, and the branch runs alone.
-- New strings in `values/` and `values-es/`.
+- `CaptureMatcher`, called from `RoomCaptureRecorder` after the same-minute check and inside its
+  lock, matches in one database transaction. The catch-up, answering a bill, postponing and
+  editing a rule read the rule inside their own, so no charge is written twice.
+- Undo is the notification's only action, a broadcast to `CaptureUndoReceiver`.
+- A match is stored in `capture_matches`, Room v11, with its migration test, and backups carry it.
 
 ## Acceptance for what is still to build
 
@@ -227,7 +244,7 @@ For the branch:
   money from one figure to the other, a buy leaves normal money alone, and unpriced holdings are
   explicit.
 - **Account types:** a Card, Savings or Other account comes through the migration and through a
-  restore of an older backup as the D34 type, with the same balance and movements.
+  restore of an older backup as a Bank account, with the same balance and movements.
 - **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
   and totals. Editing an old movement keeps its group, and reactivating the group restores it.
 - **Capture and subscriptions:** a notified Netflix charge leaves one movement, not two, whether

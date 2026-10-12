@@ -8,9 +8,8 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.medium
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /**
  * What a group came to, in words: *Cost you 840 €* or *Earned you 1 150 €* (D27).
@@ -60,5 +59,3 @@ internal fun GroupSummary.subtitle(): String {
         pluralStringResource(R.plurals.group_row_movements, movementCount, movementCount),
     )
 }
-
-internal fun LocalDate.medium(): String = format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))

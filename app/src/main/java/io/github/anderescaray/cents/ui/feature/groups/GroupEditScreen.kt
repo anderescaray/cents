@@ -30,6 +30,7 @@ import io.github.anderescaray.cents.ui.components.CentsModalBar
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.medium
 
 /**
  * Making or changing one group. [onDone] closes the editor; [onDeleted] is called instead once the

@@ -36,8 +36,7 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import io.github.anderescaray.cents.ui.util.medium
 
 /**
  * Telling the app what an account really holds, when movements were missed, without inventing an
@@ -242,7 +241,7 @@ private fun LazyListScope.modes(
         val difference = state.pendingDifference
         val rebased = state.rebasedOpening
         val opening = state.opening
-        val day = state.today.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+        val day = state.today.medium()
         CentsListSection(
             header = stringResource(R.string.balance_mode_header),
             footer = stringResource(R.string.balance_mode_footer),

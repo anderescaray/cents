@@ -31,8 +31,8 @@ import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.weekdays
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import java.time.format.TextStyle
-import java.util.Locale
 
 /**
  * Everything that narrows the transaction list except the search field, on one screen.
@@ -172,7 +172,7 @@ private fun LazyListScope.weekdaySection(
     viewModel: TransactionFiltersViewModel,
 ) {
     item(key = "weekday") {
-        val locale = Locale.getDefault()
+        val locale = formatLocale()
         CentsListSection(header = stringResource(R.string.filters_weekday_header)) {
             SelectableRow(
                 title = stringResource(R.string.filters_weekday_any),

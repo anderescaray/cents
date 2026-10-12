@@ -6,8 +6,8 @@ import java.util.Locale
  * The languages the app can be shown in, chosen in Settings (`docs/next-improvements.md`, item 1).
  *
  * [SYSTEM] follows the phone, and is where every install starts. The others carry a bare
- * language, with no country: the app's words and formats follow it, and money does not, because
- * the currency is read from the phone's region (`deviceCurrency`).
+ * language, with no country. The app's words follow it; the currency and the way amounts and
+ * dates are written do not, because both come from the phone (`deviceCurrency`, `formatLocale`).
  */
 enum class AppLanguage(
     /** The BCP 47 tag the app is set to, or null to follow the phone. */

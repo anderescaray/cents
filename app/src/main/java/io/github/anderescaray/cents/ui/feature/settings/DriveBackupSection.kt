@@ -206,7 +206,7 @@ private fun DriveBackupFileRow(
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
-    val date = remember(backup.createdAt, configuration) { backupDateTime(context, backup.createdAt) }
+    val date = remember(backup.createdAt, configuration) { backupDateTime(backup.createdAt) }
     val size =
         remember(backup.sizeBytes, configuration) {
             backup.sizeBytes?.let { Formatter.formatFileSize(context, it) }

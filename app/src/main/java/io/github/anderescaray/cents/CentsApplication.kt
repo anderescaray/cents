@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.res.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import io.github.anderescaray.cents.ui.language.AppLanguages
+import io.github.anderescaray.cents.ui.language.PhoneLocale
 
 /**
  * Application entry point. Annotating it with [HiltAndroidApp] is what generates the
@@ -18,12 +19,14 @@ import io.github.anderescaray.cents.ui.language.AppLanguages
 class CentsApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        // The language chosen in Settings, before anything formats an amount or a date.
+        // The language chosen in Settings, and the phone's, which amounts and dates are written in.
         AppLanguages.onAppStart(this)
+        PhoneLocale.onAppStart(this)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         AppLanguages.onConfigurationChanged(this)
+        PhoneLocale.onConfigurationChanged()
     }
 }

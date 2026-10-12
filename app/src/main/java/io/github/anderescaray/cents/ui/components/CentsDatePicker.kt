@@ -31,6 +31,7 @@ import androidx.compose.ui.window.Dialog
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -52,7 +53,7 @@ fun CentsDatePicker(
     today: LocalDate,
     onSelect: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
-    locale: Locale = Locale.getDefault(),
+    locale: Locale = formatLocale(),
 ) {
     var month by remember(selected) { mutableStateOf(YearMonth.from(selected)) }
 

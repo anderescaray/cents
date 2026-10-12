@@ -4,7 +4,7 @@
     <string name="settings_language">Language</string>
     <string name="settings_language_system">Phone\'s language</string>
     <string name="settings_language_message">Choose the language Cents is shown in.</string>
-    <string name="settings_language_footer">Screens, amounts, dates and notifications follow it. What you typed, such as names and notes, stays as you wrote it, and so does the currency.</string>
+    <string name="settings_language_footer">Screens and notifications follow it. Amounts and dates keep the phone\'s style, the currency stays the phone\'s, and what you typed, such as names and notes, stays as you wrote it.</string>
     <!-- Each language is named in itself, so it can be found whichever one the app is in. -->
     <string name="settings_language_english" translatable="false">English</string>
     <string name="settings_language_spanish" translatable="false">Español</string>

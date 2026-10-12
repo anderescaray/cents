@@ -65,12 +65,12 @@ class AppLanguagesBeforeAndroid13Test {
     }
 
     @Test
-    fun `amounts and dates follow it, as they do on Android 13`() {
+    fun `the default locale follows it, as Android 13 sets it`() {
         AppLanguages.choose(context, AppLanguage.SPANISH)
         assertEquals("es", Locale.getDefault().language)
 
         AppLanguages.choose(context, AppLanguage.SYSTEM)
-        assertEquals(AppLanguages.phoneLocale(), Locale.getDefault())
+        assertEquals(PhoneLocale.get(), Locale.getDefault())
     }
 
     @Test
@@ -86,11 +86,11 @@ class AppLanguagesBeforeAndroid13Test {
         AppLanguages.choose(context, AppLanguage.SPANISH)
         AppLanguages.applyTo(context)
 
-        assertEquals(Currency.getInstance(AppLanguages.phoneLocale()).currencyCode, deviceCurrency())
+        assertEquals(Currency.getInstance(PhoneLocale.get()).currencyCode, deviceCurrency())
     }
 
     @Test
-    fun `the phone changing its own configuration does not take formats back to its language`() {
+    fun `the phone changing its own configuration does not take the default locale back to its language`() {
         AppLanguages.choose(context, AppLanguage.ENGLISH)
         // What the system does to the default locale on a change of its own configuration.
         Locale.setDefault(Locale.forLanguageTag("es-ES"))

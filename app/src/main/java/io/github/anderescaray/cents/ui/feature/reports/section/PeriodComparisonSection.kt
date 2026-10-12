@@ -53,10 +53,10 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.formatLocale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -363,7 +363,7 @@ internal fun ComparisonColumns(
  */
 @Composable
 private fun ReportPeriod.label(): String {
-    val formatter = remember { DateTimeFormatter.ofPattern(RANGE_LABEL_PATTERN, Locale.getDefault()) }
+    val formatter = remember { DateTimeFormatter.ofPattern(RANGE_LABEL_PATTERN, formatLocale()) }
     return "${from.format(formatter)} – ${to.format(formatter)}"
 }
 

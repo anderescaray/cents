@@ -118,8 +118,7 @@ object AmountEntry {
     }
 
     /** The separator this phone writes decimals with, which is what the keypad key says. */
-    fun separatorFor(locale: Locale = Locale.getDefault()): Char =
-        DecimalFormatSymbols.getInstance(locale).decimalSeparator
+    fun separatorFor(locale: Locale = formatLocale()): Char = DecimalFormatSymbols.getInstance(locale).decimalSeparator
 
     /**
      * Canonical text as it should appear inside a text field: the same characters, with the
@@ -128,7 +127,7 @@ object AmountEntry {
      */
     fun toTypedText(
         input: String,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale = formatLocale(),
     ): String = input.replace(SEPARATOR, separatorFor(locale))
 
     /**
@@ -144,7 +143,7 @@ object AmountEntry {
         input: String,
         currency: String,
         negative: Boolean = false,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale = formatLocale(),
     ): String {
         val separator = input.indexOf(SEPARATOR)
         val typedFraction = if (separator < 0) 0 else input.length - separator - 1

@@ -14,7 +14,7 @@ import java.util.Locale
 object MoneyFormatter {
     fun format(
         money: Money,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale = formatLocale(),
         withSign: Boolean = false,
     ): String {
         val currency = runCatching { Currency.getInstance(money.currency) }.getOrNull()
@@ -44,7 +44,7 @@ object MoneyFormatter {
     /** Formats the amount the way it should appear in a list: expenses negative. */
     fun formatSigned(
         money: Money,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale = formatLocale(),
     ): String = format(money, locale, withSign = true)
 
     /** The typographic minus sign, which is what iOS uses in amounts. */

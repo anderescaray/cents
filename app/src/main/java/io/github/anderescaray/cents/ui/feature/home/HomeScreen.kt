@@ -43,11 +43,11 @@ import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
 import io.github.anderescaray.cents.ui.feature.inbox.InboxViewModel
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
-/** The day under the month: *Wednesday, 1 October*, in the device's language. */
+/** The day under the month: *Wednesday, 1 October*, written the phone's way. */
 private const val DAY_PATTERN = "EEEE, d MMMM"
 
 private const val STATUS_SCRIM_ALPHA = 0.94f
@@ -143,7 +143,7 @@ private fun HomeList(
         verticalArrangement = Arrangement.spacedBy(CentsDimens.sectionSpacing),
     ) {
         item(key = "header") {
-            val locale = Locale.getDefault()
+            val locale = formatLocale()
             ScreenHeader(
                 title =
                     state.today.month

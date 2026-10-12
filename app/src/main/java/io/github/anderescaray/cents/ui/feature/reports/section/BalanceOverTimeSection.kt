@@ -39,10 +39,10 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
@@ -148,7 +148,7 @@ internal fun BalanceLineChart(
 
     val labels =
         remember(balance) {
-            val formatter = DateTimeFormatter.ofPattern(DAY_LABEL_PATTERN, Locale.getDefault())
+            val formatter = DateTimeFormatter.ofPattern(DAY_LABEL_PATTERN, formatLocale())
             balance.points.map { it.date.format(formatter) }
         }
 

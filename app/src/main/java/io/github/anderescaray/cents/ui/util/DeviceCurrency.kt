@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui.util
 
-import io.github.anderescaray.cents.ui.language.AppLanguages
 import java.util.Currency
 import java.util.Locale
 
@@ -16,7 +15,7 @@ import java.util.Locale
  * name a currency: a phone in the United States shown in Spanish would otherwise open new accounts
  * in euros. Money does not change with the language.
  */
-fun deviceCurrency(locale: Locale = AppLanguages.phoneLocale()): String =
+fun deviceCurrency(locale: Locale = formatLocale()): String =
     runCatching { Currency.getInstance(locale).currencyCode }.getOrDefault(LAST_RESORT)
 
 private const val LAST_RESORT = "EUR"

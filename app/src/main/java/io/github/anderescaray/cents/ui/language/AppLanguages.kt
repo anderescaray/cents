@@ -20,29 +20,25 @@ import java.util.Locale
  * **Before Android 13 the app keeps it itself**, in a `SharedPreferences` file rather than the
  * app's DataStore, because it is read synchronously in `attachBaseContext`, before injection and
  * before the first frame. [applyTo] puts it on the activity and on the notifiers' context, the
- * only two places text is made; the default locale is set to it so formats follow it as they do
- * on Android 13. The screen that changes it recreates the activity ([appliedBySystem]).
+ * only two places text is made; the default locale is set to it, as Android 13 sets it. The screen
+ * that changes it recreates the activity ([appliedBySystem]).
  *
- * Either way the language never touches money: the currency comes from [phoneLocale].
+ * Either way the language changes words only. The currency and the way amounts and dates are
+ * written come from [PhoneLocale] (D36).
  */
 object AppLanguages {
-    /** The application, kept from [onAppStart] so [phoneLocale] can ask the system. */
-    @Volatile private var application: Context? = null
-
     /** Whether the system applies the language and recreates the screens itself. */
     @get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)
     val appliedBySystem: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
-    /** Run once when the process starts, before anything formats an amount or a date. */
+    /** Run once when the process starts, before anything is drawn. */
     fun onAppStart(context: Context) {
-        application = context.applicationContext
         if (!appliedBySystem) setDefault(stored(context))
     }
 
     /**
      * Run when the phone's configuration changes. Before Android 13 the system then resets the
-     * default locale to the phone's, which would leave formats in one language and words in
-     * another until the app restarts.
+     * default locale to the phone's; this puts the chosen language back, as 13 keeps it.
      */
     fun onConfigurationChanged(context: Context) {
         if (!appliedBySystem) setDefault(stored(context))
@@ -84,25 +80,7 @@ object AppLanguages {
         return context.createConfigurationContext(configuration)
     }
 
-    /**
-     * The phone's own locale, whatever language the app is shown in: what names its currency.
-     *
-     * From Android 13 a per-app language is part of the process's configuration, which the
-     * system's resources take on too, so only [LocaleManager] still tells the two apart. Before
-     * 13 the app's language never reaches the system's resources.
-     */
-    fun phoneLocale(): Locale {
-        val context = application
-        val locales =
-            if (appliedBySystem && context != null) {
-                localeManager(context).systemLocales
-            } else {
-                Resources.getSystem().configuration.locales
-            }
-        return locales.firstOrNull() ?: Locale.getDefault()
-    }
-
-    /** Before Android 13: formats follow the chosen language, or the phone's list again. */
+    /** Before Android 13: the default locales are the chosen language, as 13 sets them, or the phone's. */
     private fun setDefault(language: AppLanguage) {
         LocaleList.setDefault(language.locale?.let { LocaleList(it) } ?: Resources.getSystem().configuration.locales)
     }
@@ -121,5 +99,3 @@ object AppLanguages {
 
 private fun AppLanguage.localeList(): LocaleList =
     tag?.let(LocaleList::forLanguageTags) ?: LocaleList.getEmptyLocaleList()
-
-private fun LocaleList.firstOrNull(): Locale? = if (isEmpty) null else get(0)

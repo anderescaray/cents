@@ -40,6 +40,7 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.formatLocale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Locale
@@ -67,7 +68,7 @@ data class SpendingByWeekdaySection(
 
     @Composable
     override fun Content(actions: ReportActions) {
-        val locale = Locale.getDefault()
+        val locale = formatLocale()
         // Computed once per state rather than in the body: CLAUDE.md §5 asks for a derived
         // value to be precomputed rather than rebuilt on every recomposition, and this list
         // was already remembered inside WeekdayColumns — one source, passed to both places

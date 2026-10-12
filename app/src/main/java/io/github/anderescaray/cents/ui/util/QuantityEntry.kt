@@ -35,7 +35,7 @@ object QuantityEntry {
     /** Canonical text with the separator this phone writes, for showing inside a field. */
     fun toTypedText(
         input: String,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale = formatLocale(),
     ): String = input.replace(DecimalEntry.SEPARATOR, AmountEntry.separatorFor(locale))
 
     /**
@@ -45,7 +45,7 @@ object QuantityEntry {
      */
     fun format(
         quantity: Quantity,
-        locale: Locale = Locale.getDefault(),
+        locale: Locale = formatLocale(),
     ): String {
         val value = BigDecimal.valueOf(quantity.scaled, FRACTION_DIGITS).stripTrailingZeros()
         val decimals = value.scale().coerceIn(0, FRACTION_DIGITS)

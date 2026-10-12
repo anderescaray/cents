@@ -8,6 +8,7 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -48,7 +49,7 @@ fun profitColor(profit: Money?): Color =
  */
 fun formatReturn(
     ratio: Double,
-    locale: Locale = Locale.getDefault(),
+    locale: Locale = formatLocale(),
 ): String {
     val formatter =
         NumberFormat.getPercentInstance(locale).apply {

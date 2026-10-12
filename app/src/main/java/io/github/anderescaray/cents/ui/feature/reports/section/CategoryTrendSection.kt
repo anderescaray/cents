@@ -45,13 +45,13 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.feature.reports.Swatch
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -244,7 +244,7 @@ internal fun TrendLine(
                         .first()
                         .whole
                         .labelPattern(),
-                    Locale.getDefault(),
+                    formatLocale(),
                 )
             trend.buckets.map { it.whole.from.format(formatter) }
         }

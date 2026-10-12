@@ -39,9 +39,9 @@ import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.formatLocale
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun BudgetsScreen(
@@ -202,11 +202,11 @@ private fun AddBudgetButton(onClick: () -> Unit) {
     )
 }
 
-/** "September 2026", in the device's language, which is what a section header reads as. */
-internal fun monthLabel(month: YearMonth): String =
-    month
-        .format(DateTimeFormatter.ofPattern(MONTH_PATTERN, Locale.getDefault()))
-        .replaceFirstChar { it.titlecase(Locale.getDefault()) }
+/** "September 2026", written the phone's way, which is what a section header reads as. */
+internal fun monthLabel(month: YearMonth): String {
+    val locale = formatLocale()
+    return month.format(DateTimeFormatter.ofPattern(MONTH_PATTERN, locale)).replaceFirstChar { it.titlecase(locale) }
+}
 
 private const val BAR_HEIGHT = 10
 private const val MONTH_PATTERN = "LLLL yyyy"

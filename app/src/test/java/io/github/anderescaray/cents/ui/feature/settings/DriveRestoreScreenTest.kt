@@ -148,7 +148,7 @@ class DriveRestoreScreenTest {
         composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(label))
         composeRule.onNodeWithText(label).performClick()
         composeRule.onNodeWithText(context.getString(R.string.drive_backup_list_title)).assertExists()
-        composeRule.onNodeWithText(backupDateTime(context, file.createdAt)).performClick()
+        composeRule.onNodeWithText(backupDateTime(file.createdAt)).performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) { restore.uiState.value.step == RestoreStep.CONFIRMING }
     }
 }

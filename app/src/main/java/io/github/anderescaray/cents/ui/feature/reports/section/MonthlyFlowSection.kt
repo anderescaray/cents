@@ -64,13 +64,13 @@ import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.formatLocale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.roundToInt
@@ -246,8 +246,8 @@ private fun BucketDetail(
     size: FlowBucketSize,
     onOpen: () -> Unit,
 ) {
-    val formatter = remember(size) { DateTimeFormatter.ofPattern(size.titlePattern(), Locale.getDefault()) }
-    val dayFormatter = remember { DateTimeFormatter.ofPattern(CUT_DAY_PATTERN, Locale.getDefault()) }
+    val formatter = remember(size) { DateTimeFormatter.ofPattern(size.titlePattern(), formatLocale()) }
+    val dayFormatter = remember { DateTimeFormatter.ofPattern(CUT_DAY_PATTERN, formatLocale()) }
     val net = bucket.summary.net
 
     // A column cut where the period ends says so, or "2026" read in August looks like a
@@ -313,7 +313,7 @@ internal fun FlowChart(
     val size = flow.shape.size
     val labels =
         remember(buckets, size) {
-            val formatter = DateTimeFormatter.ofPattern(size.axisPattern(), Locale.getDefault())
+            val formatter = DateTimeFormatter.ofPattern(size.axisPattern(), formatLocale())
             buckets.map { it.whole.from.format(formatter) }
         }
     val labelStyle = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)

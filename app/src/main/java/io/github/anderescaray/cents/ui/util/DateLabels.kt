@@ -18,5 +18,9 @@ fun LocalDate.relativeLabel(today: LocalDate = LocalDate.now()): String =
     when (this) {
         today -> stringResource(R.string.date_today)
         today.minusDays(1) -> stringResource(R.string.date_yesterday)
-        else -> format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+        else -> medium()
     }
+
+/** "12 Oct 2026", written the phone's way ([formatLocale]). */
+fun LocalDate.medium(): String =
+    format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(formatLocale()))

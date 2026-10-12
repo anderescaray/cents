@@ -1,6 +1,6 @@
 package io.github.anderescaray.cents.ui.util
 
-import io.github.anderescaray.cents.ui.language.AppLanguages
+import io.github.anderescaray.cents.ui.language.PhoneLocale
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -26,7 +26,7 @@ class DeviceCurrencyTest {
     @Test
     @Config(qualifiers = "es-rES")
     fun `a Spanish phone works in euros`() {
-        assertEquals(Locale.forLanguageTag("es-ES"), AppLanguages.phoneLocale())
+        assertEquals(Locale.forLanguageTag("es-ES"), PhoneLocale.get())
         assertEquals("EUR", deviceCurrency())
     }
 

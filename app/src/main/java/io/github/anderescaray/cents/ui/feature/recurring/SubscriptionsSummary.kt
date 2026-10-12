@@ -14,6 +14,7 @@ import io.github.anderescaray.cents.domain.usecase.SubscriptionTotals
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.formatLocale
 import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Locale
@@ -92,7 +93,7 @@ private val SubscriptionTotals.incomeShareCaption: Int
 
 internal fun formatIncomeShare(
     share: FixedChargeIncomeShare,
-    locale: Locale = Locale.getDefault(),
+    locale: Locale = formatLocale(),
 ): String {
     val ratio =
         share.monthlyExpenses.minorUnits

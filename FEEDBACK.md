@@ -24,8 +24,13 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-**Nothing reported is waiting here yet, but four walks' notes are still to come (2026-10-12).**
-The walks themselves are in [`docs/device-check.md`](docs/device-check.md).
+- **Ruralvía is not in Settings › Capture › Add an app** (2026-10-12). It is not in the list at
+  all, searching or scrolling, so its payments cannot be captured. Not the accent: the search
+  folds it. Asked the owner whether Ruralvía is in a work profile or the private space, and
+  whether a card payment notifies from Ruralvía or by SMS; the fix depends on both.
+
+**Four walks' notes are still to come (2026-10-12).** The walks themselves are in
+[`docs/device-check.md`](docs/device-check.md).
 
 - **Walk 21** was walked on `f08f20a`, and the owner has notes to send by step number. Check
   each against `main` before treating it as open: #120 changed a4 (removing a correction now
@@ -34,6 +39,8 @@ The walks themselves are in [`docs/device-check.md`](docs/device-check.md).
 - **Walk 24** (b1) is to walk once a build with #123 is installed.
 - **Walk 25** (l1–l5, the app's own language) is to walk on a build with #127, and l3's amounts
   on one with #129.
+- **Walk 26** (w1–w5, capture recognising a subscription's charge) is to walk on a build with
+  #131.
 - **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
 
 Whatever they turn up lands here, and it becomes the next branch.

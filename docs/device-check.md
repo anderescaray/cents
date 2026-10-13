@@ -13,7 +13,7 @@ in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *
 decimal went in anyway"* is a complete entry.
 
 **When to run it.** After any branch that changes what the owner sees or touches, and before
-closing a phase. **Walks 21 and 22 are current.** Walks 1 to 20 were written before the rework
+closing a phase. **Walks 21 to 26 are current.** Walks 1 to 20 were written before the rework
 of 2026-10-01 (ADR 0003), so some of their steps describe screens that no longer exist, such as
 the bubble canvas in step 01. Rewriting them as one checklist by feature, for the current app,
 is the branch `docs/refresh-prd-and-device-check` in [`PLAN.md`](../PLAN.md) §3. There is no
@@ -1745,3 +1745,48 @@ If a reminder asking for an amount is at hand: open Cents from it (it opens the 
 go to Home › Settings and change the language. The app stays on Settings.
 
 > **Wrong looks like** landing on the pending charges after the change.
+
+## Walk 26 — capture recognises a subscription's charge (#131)
+
+On a build with #131, on the Pixel, with capture set up as in Walk 19 and **Notify after capture**
+on. It uses a **test account** and small Bizums you send yourself, so nothing real is matched:
+in Settings › Capture, tap the bank's app and point it at the test account for the walk.
+
+### w1 · A fixed charge counts once
+
+Add a subscription in the test account: *Walk fixed*, **fixed**, 1,00 €, monthly, starting today.
+Open the movement list: it has written today's charge. Send a 1,00 € Bizum. The notification says
+**Matched Walk fixed, nothing added**, with **Undo**. The list still has one 1,00 € movement,
+*Walk fixed*, and nothing under *To categorize*.
+
+> **Wrong looks like** a second 1,00 € movement under *To categorize*, or the ordinary *Expense
+> added* notification.
+
+### w2 · Undo, with the app closed
+
+Close Cents (swipe it away). Tap **Undo** on w1's notification. It becomes **Expense added**, and
+opening Cents shows the Bizum under *To categorize*, beside *Walk fixed*, which stays.
+
+> **Wrong looks like** Cents opening on the tap, the notification staying as it was, or *Walk
+> fixed* gone.
+
+### w3 · A variable bill takes the amount paid
+
+Add *Walk bill*: **variable**, 5,00 €, monthly, starting today, in the test account. Its bill
+waits under the pending charges. Send a 1,50 € Bizum. The notification says **Walk bill filled
+in**. The pending charges no longer list it, and the list has *Walk bill* at 1,50 €, dated today.
+
+> **Wrong looks like** the bill still waiting, or a 1,50 € movement under *To categorize* as well.
+
+### w4 · Nothing is matched unseen
+
+Turn **Notify after capture** off. Add *Walk quiet*: fixed, 2,00 €, monthly, starting today. Send
+a 2,00 € Bizum: it lands under *To categorize* as an ordinary capture, beside *Walk quiet*.
+
+> **Wrong looks like** only *Walk quiet* in the list, with no trace of the Bizum.
+
+### w5 · Putting it back
+
+Turn **Notify after capture** on again, point the bank's app back at its own account, and stop and
+delete the three walk subscriptions and the test account.
+

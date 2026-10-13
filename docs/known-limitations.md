@@ -16,6 +16,9 @@ on purpose.
   so nothing needs converting.
 - **A quote stored in a currency the holding does not use reads as *no price*.** That can only
   happen on an install from before D2.
+- **With English chosen, month and weekday names follow the phone** (D36), as amounts and dates
+  do. An English app on a Spanish phone reads *Today*, *Yesterday*, then `10 oct 2026`, under
+  *Octubre*. A backup's file size follows the app's language, being neither an amount nor a date.
 
 ## Accounts
 
@@ -89,6 +92,13 @@ on purpose.
   on restores them. The editor says when nothing will be shown.
 - **A variable bill with no reminder is only seen on the Subscriptions screen.**
 - **Only the oldest waiting occurrence of each rule can be answered.** The watermark is one date.
+  Capture is held to the same rule: it fills a variable subscription's bill only when that bill is
+  the oldest still waiting.
+- **Capture recognises a subscription's charge only while *Notify after capture* is on** (D35).
+  The match is announced with Undo, and one nobody saw could not be put right, so with the switch
+  off, or notifications blocked, a charge is saved again as before.
+- **A charge capture recognises before its day is written at once, dated its own day.** It shows
+  ahead in the list and counts in the balance from then, because the money has gone.
 - **Skipping a waiting occurrence cannot be undone from that screen.** The confirmation is the
   protection.
 - **Editing a rule changes what it writes next, never what it already wrote.** Past charges are

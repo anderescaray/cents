@@ -15,7 +15,7 @@
     <string name="capture_app_into">Into %1$s</string>
     <string name="capture_app_no_account">Its account is gone, so nothing is recorded</string>
     <string name="capture_add_app">Add an app</string>
-    <string name="capture_add_app_needs_account">Create an account first</string>
+    <string name="capture_add_app_needs_account">Create a cash or bank account first</string>
     <string name="capture_section_words">Words</string>
     <string name="capture_words_footer">A notification needs an income or expense word and one amount with a currency, such as € or EUR. Masked numbers and ambiguous amounts are ignored. Captures with the same amount, currency and direction within a minute are counted once.</string>
     <string name="capture_expense_words">Expense words</string>

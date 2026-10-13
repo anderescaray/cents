@@ -344,18 +344,30 @@ private fun EditAppSheet(
     actions: CaptureActions,
 ) {
     val current = editing.source.accountId
+    // An app already tied to a broker keeps it (D32), so it is listed as current although a broker
+    // is not offered to move to.
+    val kept =
+        editing.accountName
+            ?.takeUnless { editing.accountOffered }
+            ?.let {
+                CentsSheetAction(
+                    label = stringResource(R.string.capture_account_current, it),
+                    onClick = actions.onCloseEditor,
+                )
+            }
     val accounts =
-        state.accounts.map { account ->
-            CentsSheetAction(
-                label =
-                    if (account.id == current) {
-                        stringResource(R.string.capture_account_current, account.name)
-                    } else {
-                        account.name
-                    },
-                onClick = { if (account.id == current) actions.onCloseEditor() else actions.onMoveTo(account.id) },
-            )
-        }
+        listOfNotNull(kept) +
+            state.accounts.map { account ->
+                CentsSheetAction(
+                    label =
+                        if (account.id == current) {
+                            stringResource(R.string.capture_account_current, account.name)
+                        } else {
+                            account.name
+                        },
+                    onClick = { if (account.id == current) actions.onCloseEditor() else actions.onMoveTo(account.id) },
+                )
+            }
     CentsActionSheet(
         title = editing.source.label,
         message = stringResource(R.string.capture_edit_message),

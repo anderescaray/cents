@@ -14,6 +14,7 @@ import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.holdsInvestments
 import io.github.anderescaray.cents.domain.model.takesIncomeAndExpenses
+import io.github.anderescaray.cents.domain.model.takesNew
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.EntryDefaultsRepository
@@ -43,14 +44,14 @@ data class TransactionFormUiState(
     val kind: TransactionKind = TransactionKind.EXPENSE,
     val amountInput: String = AmountEntry.EMPTY,
     /**
-     * The accounts the picker offers: every one that can take an income or an expense — not a
-     * broker, not archived — plus the one an existing movement is already in, whatever it is, so
-     * that opening it to fix the note does not move it (`docs/next-improvements.md` §9).
+     * The accounts the picker offers: every one that can take a new movement of this kind (a
+     * broker for an income, never for an expense; D32), plus the one an existing movement is
+     * already in, whatever it is, so that opening it to fix the note does not move it.
      */
     val accounts: List<Account> = emptyList(),
     /** Whether any account exists at all. None means the first one is still to be made. */
     val hasAccounts: Boolean = false,
-    /** Brokers exist and are not offered, so the picker says where they went. */
+    /** Brokers exist and are not offered for this kind, so the picker says where they went. */
     val brokersLeftOut: Boolean = false,
     val categories: List<Category> = emptyList(),
     val selectedAccountId: Long? = null,
@@ -201,7 +202,7 @@ class TransactionFormViewModel
                         // Worked out before the update, which may run its block more than once.
                         val madeAccount =
                             accountsBeforeMaking?.let { before ->
-                                accounts.firstOrNull { it.id !in before && it.takesIncomeAndExpenses }
+                                accounts.firstOrNull { it.id !in before && it.takesNew(form.value.kind) }
                             }
                         val madeCategory =
                             categoriesBeforeMaking?.let { before -> categories.firstOrNull { it.id !in before } }
@@ -285,17 +286,28 @@ class TransactionFormViewModel
                         (!category.archived || category.id == selectedCategoryId)
                 }
             val ownAccountId = stored?.accountId
-            val offeredAccounts = allAccounts.filter { it.takesIncomeAndExpenses || it.id == ownAccountId }
+            // An old movement keeps the account it is in, unless its kind changes to one that account
+            // cannot take: an income in a broker turned into an expense would be a new expense there.
+            val keepsOwn = stored?.kind == kind
+            val offeredAccounts = allAccounts.filter { it.takesNew(kind) || (keepsOwn && it.id == ownAccountId) }
             // A choice that can no longer be offered — archived, deleted or made a broker while
-            // the form was open — is let go, but only once the real list is known.
+            // the form was open, or a broker once an income becomes an expense — is let go, but
+            // only once the real list is known.
             val kept = selectedAccountId?.takeIf { id -> !accountsLoaded || offeredAccounts.any { it.id == id } }
             // A movement with no account chosen yet takes the default, and its currency with it;
             // an existing movement keeps the currency it was recorded in.
-            val defaulted = if (kept == null) defaultAccount() else null
+            val defaulted =
+                if (kept == null) {
+                    offeredAccounts.firstOrNull { it.id == ownAccountId } ?: defaultAccount()
+                } else {
+                    null
+                }
             return copy(
                 accounts = offeredAccounts,
                 hasAccounts = allAccounts.isNotEmpty(),
-                brokersLeftOut = allAccounts.any { it.holdsInvestments && it.id != ownAccountId },
+                brokersLeftOut =
+                    kind == TransactionKind.EXPENSE &&
+                        allAccounts.any { it.holdsInvestments && !(keepsOwn && it.id == ownAccountId) },
                 categories = offered,
                 selectedAccountId = kept ?: defaulted?.id,
                 currency = defaulted?.currency ?: currency,
@@ -309,8 +321,9 @@ class TransactionFormViewModel
 
         /**
          * Where a new movement starts: the account the last one went in, if it can still take one,
-         * and otherwise the first that can. Never a broker, and never nothing when there is a
-         * choice — with none, the picker offers to make one instead (§5, §9).
+         * and otherwise the first that can. Never a broker, even for an income: a broker is chosen
+         * by tapping it. Never nothing when there is a choice — with none, the picker offers to
+         * make one instead.
          */
         private fun defaultAccount(): Account? {
             val eligible = allAccounts.filter { it.takesIncomeAndExpenses }
@@ -404,8 +417,11 @@ class TransactionFormViewModel
                         }
                     }
                 // Only a new one moves the default: correcting an old movement is not choosing
-                // where the next goes. Handed off rather than awaited, so the form closes at once.
-                if (written.isSuccess && transactionId == null) {
+                // where the next goes. Nor does a broker, which a new movement never starts on, so a
+                // dividend does not wipe the account the owner usually uses. Handed off rather than
+                // awaited, so the form closes at once.
+                val remembers = allAccounts.firstOrNull { it.id == movement.accountId }?.takesIncomeAndExpenses == true
+                if (written.isSuccess && transactionId == null && remembers) {
                     entryDefaults.rememberLastAccount(movement.accountId)
                 }
                 // A write that fails leaves the form open and says so, rather than taking

@@ -33,10 +33,11 @@ internal fun LazyListScope.accountSection(
     onCreateAccount: () -> Unit,
 ) {
     item(key = "account") {
+        val brokers = if (state.brokersLeftOut) stringResource(R.string.rule_account_brokers_footer) else null
         if (state.accounts.isEmpty()) {
             CentsListSection(
                 header = stringResource(R.string.field_account),
-                footer = stringResource(R.string.field_account_empty_footer),
+                footer = brokers ?: stringResource(R.string.field_account_empty_footer),
             ) {
                 CentsListRow(
                     title = stringResource(R.string.field_account_empty),
@@ -46,7 +47,7 @@ internal fun LazyListScope.accountSection(
                 )
             }
         } else {
-            CentsListSection(header = stringResource(R.string.field_account)) {
+            CentsListSection(header = stringResource(R.string.field_account), footer = brokers) {
                 state.accounts.forEachIndexed { index, account ->
                     key(account.id) {
                         SelectableRow(

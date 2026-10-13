@@ -15,6 +15,8 @@ import io.github.anderescaray.cents.domain.model.RecurringRule
 import io.github.anderescaray.cents.domain.model.Reminder
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.holdsInvestments
+import io.github.anderescaray.cents.domain.model.takesIncomeAndExpenses
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.CategoryRepository
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
@@ -42,6 +44,8 @@ data class RuleFormUiState(
     val kind: TransactionKind = TransactionKind.EXPENSE,
     val amountInput: String = AmountEntry.EMPTY,
     val accounts: List<Account> = emptyList(),
+    /** Brokers exist and are not offered (D32), so the account section says where they went. */
+    val brokersLeftOut: Boolean = false,
     val categories: List<Category> = emptyList(),
     val accountId: Long? = null,
     val categoryId: Long? = null,
@@ -149,6 +153,10 @@ class RuleFormViewModel
         val uiState: StateFlow<RuleFormUiState> = form.asStateFlow()
 
         private var allCategories: List<Category> = emptyList()
+        private var allAccounts: List<Account> = emptyList()
+
+        /** The account the rule being edited is in, offered even when a new rule could not be. */
+        private var ownAccountId: Long? = null
 
         init {
             viewModelScope.launch { load() }
@@ -159,7 +167,8 @@ class RuleFormViewModel
                 ) { accounts, categories -> accounts to categories }
                     .collect { (accounts, categories) ->
                         allCategories = categories
-                        form.update { it.withOptions(accounts) }
+                        allAccounts = accounts
+                        form.update { it.withOptions() }
                     }
             }
         }
@@ -168,6 +177,7 @@ class RuleFormViewModel
             val id = ruleId ?: return
             val rule = repository.findById(id) ?: return
             val generated = repository.countGenerated(id)
+            ownAccountId = rule.accountId
             form.update { state ->
                 state
                     .copy(
@@ -186,19 +196,25 @@ class RuleFormViewModel
                         ruleActive = rule.active,
                         reminders = repository.remindersFor(id),
                         generatedCount = generated,
-                    ).withOptions(state.accounts)
+                    ).withOptions()
             }
         }
 
-        private fun RuleFormUiState.withOptions(accounts: List<Account>): RuleFormUiState {
+        /**
+         * What the pickers offer. Never a broker for a new rule (D32): a subscription writes
+         * ordinary incomes and expenses unattended. A rule already in one keeps it, shown.
+         */
+        private fun RuleFormUiState.withOptions(): RuleFormUiState {
             val offered =
                 allCategories.filter { category ->
                     category.kind == kind.toCategoryKind() &&
                         (!category.archived || category.id == categoryId)
                 }
+            val accounts = allAccounts.filter { it.takesIncomeAndExpenses || it.id == ownAccountId }
             val defaulted = if (accountId == null) accounts.firstOrNull() else null
             return copy(
                 accounts = accounts,
+                brokersLeftOut = allAccounts.any { it.holdsInvestments && it.id != ownAccountId },
                 categories = offered,
                 accountId = accountId ?: defaulted?.id,
                 currency = if (isEditing) currency else defaulted?.currency ?: currency,
@@ -218,8 +234,7 @@ class RuleFormViewModel
 
         fun deleteDigit() = form.update { it.copy(amountInput = AmountEntry.delete(it.amountInput)) }
 
-        fun setKind(kind: TransactionKind) =
-            form.update { it.copy(kind = kind, categoryId = null).withOptions(it.accounts) }
+        fun setKind(kind: TransactionKind) = form.update { it.copy(kind = kind, categoryId = null).withOptions() }
 
         fun selectAccount(id: Long) =
             form.update { state ->

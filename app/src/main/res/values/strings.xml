@@ -53,6 +53,7 @@
     <string name="action_edit">Edit</string>
     <string name="field_account_empty">Create your first account</string>
     <string name="field_account_empty_footer">A movement has to live in an account, so there is one thing to do first.</string>
+    <string name="rule_account_brokers_footer">Broker accounts are not offered: a subscription records ordinary incomes and expenses.</string>
 
     <!-- Settings -->
     <string name="settings_section_data">Data</string>

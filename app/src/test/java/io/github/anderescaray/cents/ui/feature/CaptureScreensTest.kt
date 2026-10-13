@@ -63,7 +63,7 @@ class CaptureScreensTest {
         composeRule.onNodeWithText("Not allowed").assertExists()
         scrollTo("Its account is gone, so nothing is recorded")
         // No account to tie a new app to, so the row says what to do first.
-        scrollTo("Create an account first")
+        scrollTo("Create a cash or bank account first")
     }
 
     @Test

@@ -10,7 +10,7 @@
     <string name="form_category_new">Nueva categoría</string>
     <string name="form_account_new">Nueva cuenta</string>
     <string name="form_account_none_offered">Crea una cuenta</string>
-    <string name="form_account_brokers_footer">Las cuentas de bróker no aparecen aquí: el dinero entra y sale de ellas con una transferencia.</string>
+    <string name="form_account_brokers_footer">Las cuentas de bróker solo admiten ingresos, como un dividendo: lo que sale de ellas sale con una transferencia o una operación.</string>
 
     <!-- El formulario de una posición, donde solo se ofrece una cuenta de bróker -->
     <string name="holding_account_new_broker">Nueva cuenta de bróker</string>

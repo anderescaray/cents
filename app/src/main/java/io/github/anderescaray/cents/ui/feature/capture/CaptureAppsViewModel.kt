@@ -12,11 +12,13 @@ import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import io.github.anderescaray.cents.domain.usecase.CaptureParser
 import io.github.anderescaray.cents.ui.capture.InstalledApp
 import io.github.anderescaray.cents.ui.capture.InstalledApps
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -50,12 +52,18 @@ class CaptureAppsViewModel
     ) : ViewModel() {
         private val form = MutableStateFlow(Form())
 
+        /** Bumped each time the screen comes back, so the list is asked again. */
+        private val asked = MutableStateFlow(0)
+
         /**
          * The phone's apps, each with its name folded once for searching. Asked of the package
-         * manager once per screen, not on every return to it, and not re-folded on every key.
+         * manager when the screen opens and each time it comes back, not on every key: an app
+         * notifying now is offered, so coming back while the bank's notification shows finds it.
          */
+        @OptIn(ExperimentalCoroutinesApi::class)
         private val installedApps =
-            flow { emit(installed.launchable().map { Searchable(it, CaptureParser.fold(it.label)) }) }
+            asked
+                .mapLatest { installed.choosable().map { Searchable(it, CaptureParser.fold(it.label)) } }
                 .shareIn(viewModelScope, SharingStarted.Lazily, replay = 1)
 
         val uiState: StateFlow<CaptureAppsUiState> =
@@ -84,6 +92,11 @@ class CaptureAppsViewModel
                 started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                 initialValue = CaptureAppsUiState(),
             )
+
+        /** The screen came back: the apps notifying now may have changed. */
+        fun refresh() {
+            asked.update { it + 1 }
+        }
 
         fun setQuery(query: String) {
             form.update { it.copy(query = query) }

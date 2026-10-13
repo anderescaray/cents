@@ -43,7 +43,7 @@ and what was actually done — so this file stays short and the history stays so
   on one with #129.
 - **Walk 26** (w1–w5, capture recognising a subscription's charge) is to walk on a build with
   #131.
-- **Walk 27** (y1–y4, the bank in Capture's list and brokers taking an income) is to walk on a
+- **Walk 27** (y1–y3, the bank in Capture's list and brokers taking an income) is to walk on a
   build with #133 and #134.
 - **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
 

@@ -13,7 +13,7 @@ in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *
 decimal went in anyway"* is a complete entry.
 
 **When to run it.** After any branch that changes what the owner sees or touches, and before
-closing a phase. **Walks 21 to 26 are current.** Walks 1 to 20 were written before the rework
+closing a phase. **Walks 21 to 27 are current.** Walks 1 to 20 were written before the rework
 of 2026-10-01 (ADR 0003), so some of their steps describe screens that no longer exist, such as
 the bubble canvas in step 01. Rewriting them as one checklist by feature, for the current app,
 is the branch `docs/refresh-prd-and-device-check` in [`PLAN.md`](../PLAN.md) §3. There is no
@@ -1789,4 +1789,32 @@ a 2,00 € Bizum: it lands under *To categorize* as an ordinary capture, beside 
 
 Turn **Notify after capture** on again, point the bank's app back at its own account, and stop and
 delete the three walk subscriptions and the test account.
+
+## Walk 27 — the bank in Capture's list, and a broker taking an income (#133, #134)
+
+On a build with #133 and #134 in it.
+
+### y1 · The bank's app is in the list
+
+Settings › Capture › **Add an app**. Ruralvía is there, under the name on its icon; typing
+`rural` finds it. If it is not: leave one of its notifications showing, switch to another app
+and back, and look again: an app with a notification showing is always listed.
+
+> **Wrong looks like** Ruralvía missing both ways. Write down the name it has in the phone's
+> *Settings › Apps › See all apps* in `FEEDBACK.md`.
+
+### y2 · A dividend goes in a broker, an expense does not
+
+Open a new movement. As an **expense**, the account list has no broker, and its foot says brokers
+take incomes only. Switch to **income**: the broker is listed, though the form did not start on
+it. Choose it and save a small amount, then delete it.
+
+> **Wrong looks like** the broker offered for the expense, or chosen for you on the income.
+
+### y3 · Subscriptions and capture do not offer a broker
+
+A new subscription's account list has no broker, and says so. In Settings › Capture, tapping a
+chosen app offers no broker to move it to.
+
+> **Wrong looks like** a broker in either list.
 

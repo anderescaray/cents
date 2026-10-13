@@ -26,7 +26,7 @@
     <string name="capture_apps_title">Elige una app</string>
     <string name="capture_apps_search">Buscar apps</string>
     <string name="capture_apps_none">Ninguna app coincide</string>
-    <string name="capture_apps_footer_picker">Solo aparecen las apps con icono en la pantalla de inicio. Las ya elegidas no.</string>
+    <string name="capture_apps_footer_picker">Aparecen las apps con icono en la pantalla de inicio y las que tienen ahora una notificación a la vista. Las ya elegidas no. Si falta la app de tu banco, vuelve mientras se vea una notificación suya.</string>
     <string name="capture_choose_account_message">¿En qué cuenta entran sus pagos?</string>
     <string name="capture_words_add_placeholder">Una palabra o una frase</string>
     <string name="capture_words_add">Añadir</string>

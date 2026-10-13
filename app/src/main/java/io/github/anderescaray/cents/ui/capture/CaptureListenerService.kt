@@ -41,6 +41,8 @@ class CaptureListenerService : NotificationListenerService() {
         fun settings(): CaptureSettingsRepository
 
         fun captureNotifier(): CaptureNotifier
+
+        fun notifyingApps(): ListenerNotifyingApps
     }
 
     /** Off the main thread (rule 4), and one failure never stops the next notification. */
@@ -57,6 +59,7 @@ class CaptureListenerService : NotificationListenerService() {
     }
 
     override fun onListenerConnected() {
+        dependencies.notifyingApps().attach(this)
         following?.cancel()
         following = scope.launch { dependencies.settings().observe().collect { setup = it } }
     }
@@ -66,6 +69,7 @@ class CaptureListenerService : NotificationListenerService() {
      * rather than left dead until the owner toggles access or restarts the phone.
      */
     override fun onListenerDisconnected() {
+        dependencies.notifyingApps().detach(this)
         following?.cancel()
         requestRebind(ComponentName(this, CaptureListenerService::class.java))
     }
@@ -78,7 +82,7 @@ class CaptureListenerService : NotificationListenerService() {
                 ownPackage = packageName,
                 chosen = current.sources.mapTo(HashSet()) { it.packageName },
                 enabled = current.enabled,
-                ongoing = (posted.notification.flags and IGNORED_FLAGS) != 0,
+                ongoing = (posted.notification.flags and IGNORED_NOTIFICATION_FLAGS) != 0,
                 groupSummary = (posted.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0,
             )
         val text = if (worthReading) posted.text() else null
@@ -93,6 +97,7 @@ class CaptureListenerService : NotificationListenerService() {
     }
 
     override fun onDestroy() {
+        dependencies.notifyingApps().detach(this)
         scope.cancel()
         super.onDestroy()
     }
@@ -144,6 +149,5 @@ class CaptureListenerService : NotificationListenerService() {
 
     private companion object {
         const val TAG = "Capture"
-        const val IGNORED_FLAGS = Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE
     }
 }

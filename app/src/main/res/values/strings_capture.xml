@@ -26,7 +26,7 @@
     <string name="capture_apps_title">Choose an app</string>
     <string name="capture_apps_search">Search apps</string>
     <string name="capture_apps_none">No app matches</string>
-    <string name="capture_apps_footer_picker">Only apps with an icon on the home screen are listed. Apps already chosen are not.</string>
+    <string name="capture_apps_footer_picker">Apps with an icon on the home screen are listed, and any app with a notification showing now. Apps already chosen are not. If your bank\'s app is missing, come back while one of its notifications is showing.</string>
     <string name="capture_choose_account_message">Which account do its payments go into?</string>
     <string name="capture_words_add_placeholder">A word or a phrase</string>
     <string name="capture_words_add">Add</string>

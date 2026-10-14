@@ -30,7 +30,7 @@ session can build it without the original conversation. **The build order is
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
   **Merged in #117** for the movement form, and checked in Walk 22. `DECISIONS.md` D32,
-  answered 2026-10-12, widens it in #133, which is open.
+  answered 2026-10-12, widens it: merged in #133. Phone check: Walk 27.
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
   in Walk 22.
 - [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
@@ -158,7 +158,7 @@ choices for transfers.
 - Do not turn a picker restriction into removal of broker accounts or rejection of internal
   investment cash movements. Audit affected entry points and make the intended scope explicit.
 
-**D32, answered 2026-10-12**, built in #133:
+**D32, answered 2026-10-12**, merged in #133:
 
 - **A broker takes an income but not an expense.** A dividend or interest is recorded as money
   earned and counts in Reports. The movement form offers brokers for an income and leaves them

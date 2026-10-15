@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.data.local.quote
 import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.local.transaction
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceChange
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -396,6 +397,48 @@ class RestoreTest {
         // And before capture recognised a subscription's charge: nothing matched.
         assertTrue(backup.captureMatches.isEmpty())
     }
+
+    @Test
+    fun `a card, a savings account and an other, from a file written before v12, come back as bank accounts`() =
+        runTest {
+            val v11 =
+                """
+                {
+                  "schemaVersion": 11,
+                  "exportedAt": "2026-10-12T10:00:00Z",
+                  "accounts": [
+                    {"id":1,"name":"Visa","type":"CARD","currency":"EUR",
+                     "openingBalanceMinor":-20000,"colorArgb":0,"archived":false,"sortOrder":0},
+                    {"id":2,"name":"Savings","type":"SAVINGS","currency":"EUR",
+                     "openingBalanceMinor":500000,"colorArgb":0,"archived":true,"sortOrder":1},
+                    {"id":3,"name":"Piggy bank","type":"OTHER","currency":"EUR",
+                     "openingBalanceMinor":3000,"colorArgb":0,"archived":false,"sortOrder":2},
+                    {"id":4,"name":"Wallet","type":"CASH","currency":"EUR",
+                     "openingBalanceMinor":4000,"colorArgb":0,"archived":false,"sortOrder":3}
+                  ],
+                  "categories": [],
+                  "transactions": [{"id":1,"accountId":1,"categoryId":null,"kind":"EXPENSE",
+                                    "amountMinor":1299,"currency":"EUR","date":20684,"note":null}],
+                  "holdings": [], "trades": [], "quotes": []
+                }
+                """.trimIndent()
+
+            backups.restore(readable(v11))
+
+            // As stored: a name the app no longer knows would not survive being read back.
+            val stored =
+                database.openHelper.readableDatabase.query("SELECT name, type FROM accounts").use { rows ->
+                    buildMap { while (rows.moveToNext()) put(rows.getString(0), rows.getString(1)) }
+                }
+            assertEquals(
+                mapOf("Visa" to "BANK", "Savings" to "BANK", "Piggy bank" to "BANK", "Wallet" to "CASH"),
+                stored,
+            )
+            val accounts = database.accountDao().observeAll().first()
+            assertEquals(AccountType.BANK, accounts.single { it.name == "Visa" }.type)
+            assertEquals(-21_299L, database.accountDao().balanceOf(accounts.single { it.name == "Visa" }.id))
+            assertTrue(accounts.single { it.name == "Savings" }.archived)
+        }
 
     @Test
     fun `the wrong file is named as the wrong file`() {

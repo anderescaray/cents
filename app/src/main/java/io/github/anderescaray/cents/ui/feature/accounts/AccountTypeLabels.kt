@@ -10,8 +10,5 @@ fun AccountType.labelRes(): Int =
     when (this) {
         AccountType.CASH -> R.string.account_type_cash
         AccountType.BANK -> R.string.account_type_bank
-        AccountType.CARD -> R.string.account_type_card
-        AccountType.SAVINGS -> R.string.account_type_savings
         AccountType.BROKER -> R.string.account_type_broker
-        AccountType.OTHER -> R.string.account_type_other
     }

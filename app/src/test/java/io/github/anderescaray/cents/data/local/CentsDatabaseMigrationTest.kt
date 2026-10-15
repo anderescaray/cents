@@ -9,6 +9,7 @@ import io.github.anderescaray.cents.data.local.entity.CaptureMatchEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.migration.ALL_MIGRATIONS
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
@@ -557,6 +558,50 @@ class CentsDatabaseMigrationTest {
         }
 
     @Test
+    fun `a version 11 card, savings or other account comes through as a bank account, money and all`() =
+        runTest {
+            createVersion(11)
+            writeRaw(
+                "INSERT INTO accounts " +
+                    "(id, name, type, currency, openingBalanceMinor, colorArgb, archived, sortOrder, createdAt) " +
+                    "VALUES (2, 'Visa', 'CARD', 'EUR', -20000, 0, 0, 1, 1755511200000), " +
+                    "(3, 'Savings', 'SAVINGS', 'EUR', 500000, 0, 1, 2, 1755511200000), " +
+                    "(4, 'Piggy bank', 'OTHER', 'EUR', 3000, 0, 0, 3, 1755511200000), " +
+                    "(5, 'Wallet', 'CASH', 'EUR', 4000, 0, 0, 4, 1755511200000)",
+                "INSERT INTO transactions " +
+                    "(accountId, categoryId, kind, amountMinor, currency, date, createdAt, updatedAt) " +
+                    "VALUES (2, NULL, 'EXPENSE', 1299, 'EUR', 20684, 1755511200000, 1755511200000)",
+            )
+
+            val database = openWithMigrations()
+            try {
+                // Read as stored, not through the converter, so it is the migration that is tested.
+                assertEquals(
+                    mapOf(
+                        "Checking" to "BANK",
+                        "Visa" to "BANK",
+                        "Savings" to "BANK",
+                        "Piggy bank" to "BANK",
+                        "Wallet" to "CASH",
+                    ),
+                    storedTypes(database),
+                )
+                // And the app reads every one of them.
+                val accounts = database.accountDao().observeAll().first()
+                assertEquals(AccountType.CASH, accounts.single { it.name == "Wallet" }.type)
+                // Only the name of the type moves: the same account, archived as it was, with
+                // the same movements behind the same balance.
+                assertEquals(listOf(1L, 2L, 3L, 4L, 5L), accounts.map { it.id }.sorted())
+                assertTrue(accounts.single { it.name == "Savings" }.archived)
+                assertEquals(-21_299L, database.accountDao().balanceOf(2))
+                assertEquals(500_000L, database.accountDao().balanceOf(3))
+                assertEquals("the money written at v11 should survive", 7_450L, database.accountDao().balanceOf(1))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `the migrated schema is one Room agrees to open`() =
         runTest {
             createVersion(1)
@@ -593,6 +638,22 @@ class CentsDatabaseMigrationTest {
             .first()
             .first { it.ruleId == null }
             .amountMinor
+
+    /** Each account's type as the database holds it, by name. */
+    private fun storedTypes(database: CentsDatabase): Map<String, String> =
+        database.openHelper.readableDatabase.query("SELECT name, type FROM accounts").use { rows ->
+            buildMap { while (rows.moveToNext()) put(rows.getString(0), rows.getString(1)) }
+        }
+
+    /** Rows written into the database [createVersion] left, before Room opens it. */
+    private fun writeRaw(vararg statements: String) {
+        val database = SQLiteDatabase.openDatabase(databaseFile.path, null, SQLiteDatabase.OPEN_READWRITE)
+        try {
+            statements.forEach(database::execSQL)
+        } finally {
+            database.close()
+        }
+    }
 
     private fun openWithMigrations(): CentsDatabase =
         Room

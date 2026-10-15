@@ -28,10 +28,7 @@
     <string name="account_type_header">Tipo</string>
     <string name="account_type_cash">Efectivo</string>
     <string name="account_type_bank">Banco</string>
-    <string name="account_type_card">Tarjeta</string>
-    <string name="account_type_savings">Ahorro</string>
     <string name="account_type_broker">Bróker</string>
-    <string name="account_type_other">Otra</string>
     <string name="account_currency_header">Moneda</string>
     <string name="account_currency_footer">Cents funciona en una sola moneda, la de tu dispositivo. Todas las cuentas y todos los movimientos van en ella.</string>
     <string name="account_color_header">Color</string>

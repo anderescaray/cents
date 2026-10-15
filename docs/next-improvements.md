@@ -34,7 +34,8 @@ session can build it without the original conversation. **The build order is
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
   in Walk 22.
 - [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
-  answered 2026-10-12: the removed types simply go.
+  answered 2026-10-12: the removed types simply go. **Merged in #136**, with Room v12. Phone
+  check: Walk 28.
 - [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
   `DECISIONS.md` D35). **Merged in #131.** Phone check: Walk 26.
 
@@ -180,20 +181,19 @@ What the answer left open, each with the default #133 builds:
 **Request (2026-10-09):** an account is **Cash**, **Bank** or **Broker**, and nothing else. *Card*,
 *Savings* and *Other* go.
 
+**Merged in #136** (2026-10-15). This section goes once Walk 28 passes.
+
 - **An account of a removed type is retyped, never lost.** The owner has none
-  (`DECISIONS.md` D34, answered 2026-10-12), so the three types simply go. The migration still
-  rewrites any stored row to Bank, so a stray row cannot crash a read, and its movements, balance,
+  (`DECISIONS.md` D34, answered 2026-10-12), so the three types simply go. Room v12
+  (`MIGRATION_11_12`) still rewrites any stored row to Bank, and its id, movements, balance,
   corrections and history stay as they are.
-- **The type is stored by name** and read with `AccountType.valueOf` (`Converters.kt`). Dropping
-  the three constants without rewriting the stored rows would crash on the first read. Ship a Room
-  migration that rewrites them, with its migration test and exported schema. It is v12 if item
-  12, which takes v11, merges first.
-- **A backup made before this still restores.** Reading it maps the old names the same way
-  (`BackupMappers.kt`), with a round-trip test.
-- The account editor offers the three types. The three unused strings leave both `values/` and
+- **A backup made before this still restores**, with those accounts as Bank (`BackupMappers.kt`).
+- The account editor offers the three types. The three unused strings left both `values/` and
   `values-es/`.
 - What already keeps brokers apart (items 9 and 10, D32) is unchanged.
-- A Room migration, so it runs alone, like item 8.
+- **The type is still read strictly** *(added while building)*, with `AccountType.valueOf`
+  (`Converters.kt`). After the migration and the backup mapping nothing can store a retired name,
+  so an unknown one is a bug to see rather than an account to relabel.
 
 ## 12. Capture recognises a subscription's charge
 

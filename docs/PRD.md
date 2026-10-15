@@ -50,7 +50,7 @@ Understanding these eight entities is understanding the whole app.
 
 | Entity | What it is | Main fields |
 |---|---|---|
-| **Account** | A container of money: bank, cash, card, broker | name, type, currency, opening balance, color/icon, archived |
+| **Account** | A container of money: cash, bank or broker | name, type, currency, opening balance, color/icon, archived |
 | **Category** | A user-created label for classification | name, kind (income/expense), color, icon, parent category (optional) |
 | **Transaction** | One income or expense in an account | amount (cents), currency, kind, account, category, date, note, attachment |
 | **Transfer** | Money moved between two of my own accounts | source account, target account, amount, date, fee |

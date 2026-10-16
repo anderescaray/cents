@@ -62,7 +62,8 @@ fun BackupAccount.toEntity(createdAt: Instant) =
     AccountEntity(
         id = id,
         name = name,
-        type = enumOrDefault(type, AccountType.OTHER),
+        // Card, Savings and Other, from a file written before v12, come back as Bank (D34).
+        type = enumOrDefault(type, AccountType.BANK),
         currency = currency,
         openingBalanceMinor = openingBalanceMinor,
         colorArgb = colorArgb,

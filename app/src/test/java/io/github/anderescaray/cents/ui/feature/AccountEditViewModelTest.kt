@@ -116,7 +116,6 @@ class AccountEditViewModelTest {
 
             editor.uiState.test {
                 editor.setName("Credit card")
-                editor.setType(AccountType.CARD)
                 "450".forEach(editor::appendDigit)
                 editor.toggleSign()
                 awaitStateThat { it.openingNegative && it.openingInput == "450" }
@@ -133,6 +132,31 @@ class AccountEditViewModelTest {
                     .first()
                     .single()
                     .openingBalance.minorUnits,
+            )
+        }
+
+    @Test
+    fun `the type chosen is the type stored`() =
+        runTest {
+            val editor = editorFor()
+
+            editor.uiState.test {
+                editor.setName("Wallet")
+                editor.setType(AccountType.CASH)
+                awaitStateThat { it.type == AccountType.CASH }
+
+                editor.save()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(
+                AccountType.CASH,
+                accounts
+                    .observeAccounts()
+                    .first()
+                    .single()
+                    .type,
             )
         }
 

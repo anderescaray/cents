@@ -30,10 +30,7 @@
     <string name="account_type_header">Type</string>
     <string name="account_type_cash">Cash</string>
     <string name="account_type_bank">Bank</string>
-    <string name="account_type_card">Card</string>
-    <string name="account_type_savings">Savings</string>
     <string name="account_type_broker">Broker</string>
-    <string name="account_type_other">Other</string>
     <string name="account_currency_header">Currency</string>
     <string name="account_currency_footer">Cents works in one currency, taken from your device. Every account and every movement is in it.</string>
     <string name="account_color_header">Colour</string>

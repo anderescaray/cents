@@ -33,6 +33,7 @@ val ALL_MIGRATIONS: Array<Migration>
             MIGRATION_8_9,
             MIGRATION_9_10,
             MIGRATION_10_11,
+            MIGRATION_11_12,
         )
 
 /**
@@ -389,5 +390,19 @@ val MIGRATION_10_11 =
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS `index_capture_matches_accountId` ON `capture_matches` (`accountId`)",
             )
+        }
+    }
+
+/**
+ * v11 to v12 — three account types: cash, bank and broker (`DECISIONS.md` D34).
+ *
+ * No table changes shape. An account stored as *Card*, *Savings* or *Other* becomes a bank
+ * account, with its id, balance, movements and holdings exactly as they were: only the name of
+ * its type changes, so the app can read it once those names are gone.
+ */
+val MIGRATION_11_12 =
+    object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("UPDATE `accounts` SET `type` = 'BANK' WHERE `type` IN ('CARD', 'SAVINGS', 'OTHER')")
         }
     }

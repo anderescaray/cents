@@ -13,7 +13,7 @@ in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *
 decimal went in anyway"* is a complete entry.
 
 **When to run it.** After any branch that changes what the owner sees or touches, and before
-closing a phase. **Walks 21 to 27 are current.** Walks 1 to 20 were written before the rework
+closing a phase. **Walks 21 to 28 are current.** Walks 1 to 20 were written before the rework
 of 2026-10-01 (ADR 0003), so some of their steps describe screens that no longer exist, such as
 the bubble canvas in step 01. Rewriting them as one checklist by feature, for the current app,
 is the branch `docs/refresh-prd-and-device-check` in [`PLAN.md`](../PLAN.md) §3. There is no
@@ -1818,3 +1818,21 @@ chosen app offers no broker to move it to.
 
 > **Wrong looks like** a broker in either list.
 
+## Walk 28 — three account types (#136)
+
+On a build with #136, installed over the one before so every row is kept. Before installing, note
+each account's balance on Wallet.
+
+### a1 · Every account came through
+
+Cents opens, and Wallet lists the same accounts with the same balances. An account that was a
+card, a savings account or *Other* is now a bank account, with its movements.
+
+> **Wrong looks like** Cents failing to open, an account missing, or a balance that moved.
+
+### a2 · Three types to choose from
+
+Wallet › **Add account**. *Type* offers **Cash**, **Bank** and **Broker**, and nothing else; in
+Spanish, *Efectivo*, *Banco* and *Bróker*. Back out without saving.
+
+> **Wrong looks like** *Card*, *Savings* or *Other* (*Tarjeta*, *Ahorro*, *Otra*) still offered.

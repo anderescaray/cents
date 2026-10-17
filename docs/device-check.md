@@ -13,7 +13,7 @@ in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *
 decimal went in anyway"* is a complete entry.
 
 **When to run it.** After any branch that changes what the owner sees or touches, and before
-closing a phase. **Walks 21 to 28 are current.** Walks 1 to 20 were written before the rework
+closing a phase. **Walks 21 to 29 are current.** Walks 1 to 20 were written before the rework
 of 2026-10-01 (ADR 0003), so some of their steps describe screens that no longer exist, such as
 the bubble canvas in step 01. Rewriting them as one checklist by feature, for the current app,
 is the branch `docs/refresh-prd-and-device-check` in [`PLAN.md`](../PLAN.md) §3. There is no
@@ -1836,3 +1836,34 @@ Wallet › **Add account**. *Type* offers **Cash**, **Bank** and **Broker**, and
 Spanish, *Efectivo*, *Banco* and *Bróker*. Back out without saving.
 
 > **Wrong looks like** *Card*, *Savings* or *Other* (*Tarjeta*, *Ahorro*, *Otra*) still offered.
+
+## Walk 29 — cash and bank apart from invested (#138)
+
+On a build with #138. You need a bank account and a broker; a portfolio with a typed price helps.
+
+### f1 · Two figures, and the same on both screens
+
+Wallet shows **Cash and bank** and **Invested** side by side, and no *Net worth* card. Cash and
+bank is your cash and bank accounts added up; Invested is the broker's balance plus what the
+portfolio is worth. Home shows the same two figures at the top, above Expense · Income · Transfer,
+with the same amounts. Tapping Invested on Wallet opens the portfolio; on Home it does nothing.
+
+> **Wrong looks like** the broker's balance inside Cash and bank, the two screens disagreeing, or a
+> *Net worth* card you did not ask for.
+
+### f2 · A transfer moves money from one figure to the other
+
+Transfer 1,00 € from the bank to the broker. On both screens Cash and bank drops by 1,00 € and
+Invested rises by 1,00 €. Delete the transfer: both go back.
+
+> **Wrong looks like** only one of the two moving, or either moving by 2,00 €.
+
+### f3 · You choose what shows
+
+Settings › **Wallet and Home**: switch **Net worth** on and **Invested** off. Wallet shows the Net
+worth card and Cash and bank, and still has a row to the portfolio; Home shows the same, its Net
+worth smaller than the month's figure. Switch all three off: neither screen shows any figure.
+Switch Cash and bank and Invested back on, and Net worth off.
+
+> **Wrong looks like** a figure you switched off still showing, the portfolio unreachable from
+> Wallet, or the switches back where they were after leaving Settings.

@@ -23,7 +23,7 @@ session can build it without the original conversation. **The build order is
 - [x] 5. Account popup with the last-used account preselected. #117, checked in Walk 22.
 - [ ] 6. Normal money (cash and bank) and invested money (brokers), kept apart, on Wallet and at
   the top of Home. **Reshaped 2026-10-09**. The owner chooses which figures show
-  (`DECISIONS.md` D34, answered 2026-10-12).
+  (`DECISIONS.md` D34, answered 2026-10-12). **Merged in #138.** Phone check: Walk 29.
 - [ ] 7. Set an account's current balance, choosing the historical effect each time. **Merged in
   #112**, with its review's fixes in #120 and #121. Phone check: the Walk 21 notes and Walk 23
   are still to come.
@@ -64,9 +64,11 @@ session can build it without the original conversation. **The build order is
 
 **Request (2026-10-09), replacing this item's first wording** (liquid money, investments and total
 net worth on Home): see at a glance how much is **normal money**, in cash and bank accounts, and
-how much is **invested**, in broker accounts, on Wallet and at the top of Home. Today Wallet's *In
-accounts* adds every active account, brokers included, and net worth adds the holdings on top of
-that. The owner wants the brokers' part kept out of the cash-and-bank figure, not summed with it.
+how much is **invested**, in broker accounts, on Wallet and at the top of Home. Wallet's *In
+accounts* used to add every active account, brokers included. The owner wants the brokers' part
+kept out of the cash-and-bank figure, not summed with it.
+
+**Merged in #138** (2026-10-17). This section goes once Walk 29 passes.
 
 Two figures, clearly distinguished:
 
@@ -95,8 +97,21 @@ Two figures, clearly distinguished:
 - **On Home the two figures sit at the top**, above the month. Keep them distinct from the month's
   saved or overspent figure, and replace neither. This does not authorize another navigation or
   visual redesign.
-- Until item 11 lands, every account that is not a broker counts as normal money, so this item
-  does not have to wait for it.
+
+What changed while building, each a line the owner can change:
+
+- **A broker's cash counts while its holdings wait for a price**, and the unpriced holdings are
+  said under the figures. Invested reads *No price yet* only when holdings are held, none has a
+  price, and the brokers hold no cash: otherwise known money would vanish because something beside
+  it has no price.
+- **On Home the figures lead nowhere.** On Wallet the Invested tile still opens the portfolio, and
+  with Invested off Wallet keeps a row to it.
+- **The total is called *Net worth*,** on its switch and on its card, as Wallet has always called
+  it.
+
+How it is built: `netWorthOf` in `domain/usecase/BuildNetWorth.kt`, read by Wallet and Home;
+`MoneyFiguresBlock` in `ui/components`; one DataStore key per switch, behind Settings › *Wallet
+and Home*. With none chosen, Home reads no balances or portfolio for them.
 
 ## 7. Set the current account balance
 

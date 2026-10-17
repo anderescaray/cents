@@ -48,7 +48,8 @@ and what comes next, is in [`PLAN.md`](PLAN.md).
   - prices typed per unit or as a total;
   - closed positions.
 
-  Wallet shows what is in accounts, what is invested, and the net worth they come to.
+  Wallet and the top of Home show cash and bank apart from what is invested (the brokers' cash
+  and holdings), and the net worth they come to, each switched on or off in Settings.
 - **Capture:** payments read from the notifications of the apps the owner chooses. Each app has
   its own words for expense and income. Captures land uncategorized, and *Try a notification*
   shows what a given text would record. A payment a subscription already records is recognised

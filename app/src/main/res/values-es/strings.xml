@@ -248,7 +248,6 @@
 
     <!-- Lo que tienes, efectivo e inversiones juntos (D19) -->
     <string name="net_worth_header">Lo que tienes</string>
-    <string name="net_worth_in_accounts">En cuentas</string>
     <string name="net_worth_invested">Invertido</string>
     <string name="net_worth_total">Patrimonio</string>
     <string name="net_worth_archived">Hay %1$s en cuentas archivadas que no se cuentan arriba.</string>

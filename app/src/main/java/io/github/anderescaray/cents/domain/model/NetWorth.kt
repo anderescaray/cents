@@ -1,51 +1,51 @@
 package io.github.anderescaray.cents.domain.model
 
 /**
- * What the owner has: the money in their accounts, the money in their holdings, and the two
- * added together.
+ * What the owner has, kept apart the way they asked (`DECISIONS.md` D34): the
+ * **normal money** in cash and bank accounts, what is **invested** with brokers, and the two
+ * together.
  *
- * **Three numbers rather than one**, because the owner asked for all three (`DECISIONS.md` D19)
- * and because each answers a different question: [inAccounts] is what could be spent today,
- * [invested] is what is tied up, and [total] is what it comes to. A single net-worth figure
- * hides which of the two moved when it changes.
+ * **The parts rather than one figure**, because each answers a different question: [normal] is
+ * what could be spent today, [invested] is what is tied up, and [total] is what it comes to. A
+ * single figure hides which of the two moved when it changes. Which of the three are shown is
+ * the owner's choice ([MoneyFigures]); this holds all of them either way.
  *
- * The three only add up because a purchase now takes its cost out of the account it is held in.
- * Before that, an investments account's balance and the portfolio described the same euros twice
- * and adding them would have counted the money twice.
+ * Money moves between the two, it is never counted twice. A transfer from a bank to a broker
+ * takes it out of [normal] and puts it in [invested]; a purchase turns a broker's cash into a
+ * holding, which leaves [normal] alone. That only holds because a purchase takes its cost out of
+ * the account it is held in.
  */
 data class NetWorth(
     val currency: String,
+    /** The balances of the active cash and bank accounts. Archived ones are in [inArchivedAccounts]. */
+    val normal: Money,
     /**
-     * What the accounts hold, which is **cash**: whatever has been invested has already left
-     * them. Archived accounts are not in it — see [inArchivedAccounts].
-     */
-    val inAccounts: Money,
-    /**
-     * What the holdings are worth, and **null when none of them has a price**.
+     * The active broker accounts' cash plus what the priced holdings are worth, and **null when
+     * nothing is known**: holdings are held, none of them has a price, and the brokers hold no
+     * cash.
      *
-     * Only the priced ones are counted, exactly as [PortfolioTotal] counts them one screen
-     * down. A portfolio that shows 0,00 € for something nobody has priced is worse than one
-     * that admits it does not know: the first is a number, and numbers get believed.
+     * Only the priced holdings are counted, exactly as [PortfolioTotal] counts them one screen
+     * down, and [unpricedCount] says how many were left out. An invested figure of 0,00 € over
+     * holdings nobody has priced would be a number, and numbers get believed.
      */
     val invested: Money?,
     /** How many holdings were left out of [invested] for want of a price. */
     val unpricedCount: Int,
     /**
-     * Money sitting in archived accounts, which [inAccounts] does not count.
+     * Money sitting in archived accounts, which neither part counts.
      *
-     * Usually zero, because archiving an account usually follows emptying it. When it is not,
-     * the screen says so rather than quietly leaving the money out of a figure called *net
-     * worth* — the alternative, counting it, would make this disagree with the total the
-     * accounts list has always shown under the active ones.
+     * Usually zero, because archiving an account usually follows emptying it. When it is not, the
+     * screen says so rather than quietly leaving the money out of a figure about what the owner
+     * has.
      */
     val inArchivedAccounts: Money,
 ) {
-    /** Cash plus holdings, and null while nothing is priced — there is nothing to add yet. */
-    val total: Money? get() = invested?.let { inAccounts + it }
+    /** Normal money plus invested, and null while the invested part is unknown. */
+    val total: Money? get() = invested?.let { normal + it }
 
     /** Whether anything was left out for want of a price. */
     val hasUnpriced: Boolean get() = unpricedCount > 0
 
-    /** Whether there is money the figure above does not count. */
+    /** Whether there is money the figures do not count. */
     val hasArchivedMoney: Boolean get() = inArchivedAccounts.minorUnits != 0L
 }

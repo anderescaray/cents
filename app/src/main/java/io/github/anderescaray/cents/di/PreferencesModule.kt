@@ -15,9 +15,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.local.preferences.DataStoreCaptureSettingsRepository
 import io.github.anderescaray.cents.data.local.preferences.DataStoreEntryDefaultsRepository
+import io.github.anderescaray.cents.data.local.preferences.DataStoreMoneyFiguresRepository
 import io.github.anderescaray.cents.data.local.preferences.DataStoreReportLayoutRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
 import io.github.anderescaray.cents.domain.repository.EntryDefaultsRepository
+import io.github.anderescaray.cents.domain.repository.MoneyFiguresRepository
 import io.github.anderescaray.cents.domain.repository.ReportLayoutRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,9 @@ abstract class PreferencesModule {
 
     @Binds
     abstract fun bindEntryDefaultsRepository(impl: DataStoreEntryDefaultsRepository): EntryDefaultsRepository
+
+    @Binds
+    abstract fun bindMoneyFiguresRepository(impl: DataStoreMoneyFiguresRepository): MoneyFiguresRepository
 
     companion object {
         private const val PREFERENCES_NAME = "cents.preferences"

@@ -23,6 +23,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.data.export.ExportFormat
+import io.github.anderescaray.cents.domain.model.MoneyFigure
+import io.github.anderescaray.cents.domain.model.MoneyFigures
 import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsBackButton
@@ -38,8 +40,8 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
  * Settings, opened from Home's header: what organises the money (categories, subscriptions,
- * groups, capture) in one card, then the data — Drive, export and restore — and last, the
- * language the app is shown in.
+ * groups, capture) in one card, which money figures Wallet and Home show, then the data — Drive,
+ * export and restore — and last, the language the app is shown in.
  */
 @Composable
 fun SettingsScreen(
@@ -52,11 +54,13 @@ fun SettingsScreen(
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     driveViewModel: DriveBackupViewModel = hiltViewModel(),
     languageViewModel: AppLanguageViewModel = hiltViewModel(),
+    figuresViewModel: MoneyFiguresViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
     val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
     val drive by driveViewModel.uiState.collectAsStateWithLifecycle()
     val language by languageViewModel.language.collectAsStateWithLifecycle()
+    val figures by figuresViewModel.figures.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     // Each composition is a new screen: changing the language recreates it, and so can the
     // phone's own App languages, while the view model carries on from before.
@@ -98,6 +102,8 @@ fun SettingsScreen(
             ),
         language = language,
         onChooseLanguage = { chosen -> if (languageViewModel.choose(chosen)) activity?.recreate() },
+        figures = figures,
+        onFiguresChanged = figuresViewModel::set,
     )
 }
 
@@ -143,6 +149,8 @@ internal fun SettingsContent(
     driveActions: DriveBackupActions = DriveBackupActions(),
     language: AppLanguage = AppLanguage.SYSTEM,
     onChooseLanguage: (AppLanguage) -> Unit = {},
+    figures: MoneyFigures = MoneyFigures(),
+    onFiguresChanged: (MoneyFigure, Boolean) -> Unit = { _, _ -> },
 ) {
     val dataIdle = export.step == ExportStep.IDLE && restore.step == RestoreStep.IDLE
     val canStartData = dataIdle && !drive.isBusy && !drive.showBackups
@@ -180,6 +188,7 @@ internal fun SettingsContent(
                 )
             }
         }
+        item(key = "figures") { MoneyFiguresSection(figures, onFiguresChanged) }
         item(key = "data") {
             DataSection(
                 onExport = exportActions.onStart.takeIf { canStartData },

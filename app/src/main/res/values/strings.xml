@@ -251,7 +251,6 @@
 
     <!-- What the owner has, cash and holdings together (D19) -->
     <string name="net_worth_header">What you have</string>
-    <string name="net_worth_in_accounts">In accounts</string>
     <string name="net_worth_invested">Invested</string>
     <string name="net_worth_total">Net worth</string>
     <string name="net_worth_archived">%1$s sits in archived accounts and is not counted above.</string>

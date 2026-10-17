@@ -23,13 +23,17 @@ Then read these, in this order, before writing any code:
 3. **§2 to §4 below**, then the backlog,
    [`docs/next-improvements.md`](docs/next-improvements.md), when choosing what to build.
 
-## 2. Where things stand (2026-10-15)
+## 2. Where things stand (2026-10-17)
 
-- **`main`** has **#136**: only cash, bank and broker (backlog item 11, D34), with **Room v12**
-  and **1111 JVM tests**. PRD phases 1 to 5 are built, with prices typed by hand (D25). From
-  Phase 6, accessibility is built (#96); the widget, the Baseline Profile and Macrobenchmark are
-  not. What the app does is in [`README.md`](README.md#what-it-does).
+- **`main`** has **#138**: cash and bank apart from invested, on Wallet and at the top of Home
+  (backlog item 6, D34), with **Room v12** and **1129 JVM tests**. PRD phases 1 to 5 are built,
+  with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the widget, the
+  Baseline Profile and Macrobenchmark are not. What the app does is in
+  [`README.md`](README.md#what-it-does).
 - **Latest merges:**
+  - #138: Wallet and Home show cash and bank, invested (the brokers' cash and holdings) and their
+    total, each switched on or off in Settings › *Wallet and Home*; by default the two parts and
+    no total. Walk 29.
   - #136: an account is Cash, Bank or Broker. Room v12 rewrites any Card, Savings or Other
     account to Bank, and so does restoring an older backup. Walk 28.
   - #134: Settings › Capture's list of apps names each app as its icon does, and offers any app
@@ -39,12 +43,12 @@ Then read these, in this order, before writing any code:
     offer brokers. Walk 27, y2 and y3.
   - #131: capture recognises a subscription's charge instead of counting it twice (backlog item
     12, D35), with Room v11. Walk 26.
-  - #129: D36 answered B: with English chosen, amounts and dates keep the phone's style.
-- **No question is open in `DECISIONS.md`.** D32, D34, D35 and D36 were answered on 2026-10-12.
+- **No question is open in `DECISIONS.md`.** D32, D34, D35 and D36 were answered on 2026-10-12;
+  what #138 settled while building is in backlog item 6, each line one the owner can change.
 - **A cloud session runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
   through foojay, and Maven Central through Google's mirror ([`docs/setup.md`](docs/setup.md)).
 - **The Pixel runs `f03f9f8`**, installed 2026-10-09 with every row kept. **Walk 22 passed.**
-  Walks 24 to 28 need a newer build; the owner installs it and walks them later, all together.
+  Walks 24 to 29 need a newer build; the owner installs it and walks them later, all together.
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
@@ -53,29 +57,26 @@ Then read these, in this order, before writing any code:
 The owner says when each one starts.
 
 1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's notes
-   from Walks 21 and 23 to 28 in `FEEDBACK.md`, each checked against `main` first. Ruralvía comes
+   from Walks 21 and 23 to 29 in `FEEDBACK.md`, each checked against `main` first. Ruralvía comes
    first if Walk 27's y1 still cannot find it.
-2. **`feat/home-net-worth`** (backlog item 6, D34 answered): normal money and invested money kept
-   apart, on Wallet and at the top of Home, with the owner choosing which figures show. Now that
-   #136 leaves only cash, bank and broker, the split is by type.
-3. **`feat/group-archive`** (backlog item 8; a Room migration, v13, so it runs alone).
-4. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
+2. **`feat/group-archive`** (backlog item 8; a Room migration, v13, so it runs alone). It does not
+   wait on the walks.
+3. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
    - Rewrite [`docs/device-check.md`](docs/device-check.md) as a checklist by feature, for the
      current UI. Today it is a log of walks, most of them written for screens the rework
      replaced.
    - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
-     including the money split once it is built.
+     including the account types and the money split.
 
-Items 2 and 3 do not wait on the walks, and either can go first. Later, unscheduled, is listed in
-the backlog: requests not yet placed, and engineering follow-ups.
+Later, unscheduled, is listed in the backlog: requests not yet placed, and engineering follow-ups.
 
 ## 4. Waiting on the owner
 
-- **A build with #136 on the Pixel**, then the walks in
+- **A build with #138 on the Pixel**, then the walks in
   [`docs/device-check.md`](docs/device-check.md), all in one go: **Walk 27's y1 first** (Ruralvía
-  in Capture's list), then Walks 24 to 28.
+  in Capture's list), then Walks 24 to 29.
 - **The Walk 21 notes**, and **Walk 23** (r1–r3). They go in `FEEDBACK.md`.
-- **Which comes next:** item 6 (normal and invested money) or item 8 (archiving groups).
+- **When item 8 starts.**
 - **D36's names:** with English chosen on a Spanish phone, month and weekday names are Spanish
   (`Octubre` over Home, `10 oct` under *Yesterday*), as B's own `12 oct` is. If English names in
   the phone's order are wanted instead, that is a new answer.

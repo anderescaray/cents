@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomGroupRepository
@@ -225,16 +226,19 @@ class TransactionFiltersViewModelTest {
         }
 
     @Test
-    fun `the form offers archived accounts and categories, because history still points at them`() =
+    fun `the form offers archived accounts, categories and groups, because history still points at them`() =
         runTest {
             database.accountDao().insert(account(name = "Old card", archived = true))
             database.categoryDao().insert(category(name = "Old habit", archived = true))
+            database.groupDao().insert(group(name = "June trip", archived = true))
             val form = viewModel()
 
             form.uiState.test {
-                val loaded = awaitStateThat { it.accounts.isNotEmpty() && it.categories.isNotEmpty() }
+                val loaded =
+                    awaitStateThat { it.accounts.isNotEmpty() && it.categories.isNotEmpty() && it.groups.isNotEmpty() }
                 assertEquals(listOf("Old card"), loaded.accounts.map { it.name })
                 assertEquals(listOf("Old habit"), loaded.categories.map { it.name })
+                assertEquals(listOf("June trip"), loaded.groups.map { it.name })
                 cancelAndIgnoreRemainingEvents()
             }
         }

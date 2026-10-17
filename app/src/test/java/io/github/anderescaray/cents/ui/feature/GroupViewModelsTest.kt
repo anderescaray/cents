@@ -146,6 +146,64 @@ class GroupViewModelsTest {
         }
 
     @Test
+    fun `archiving a group keeps it, its movements and its totals, and reactivating puts it back`() =
+        runTest {
+            val checking = database.accountDao().insert(account())
+            val june = database.groupDao().insert(group(name = "June trip"))
+            val dinner = database.transactionDao().insert(transaction(checking, amountMinor = 4_500, groupId = june))
+            val list = viewModels.keep(GroupsViewModel(groups, accounts()))
+
+            val editor = editorFor(june)
+            editor.uiState.first { it.loaded }
+            editor.setArchived(true)
+            assertTrue(editor.uiState.first { it.finished }.finished)
+
+            val archived = list.uiState.first { it.archived.isNotEmpty() }
+            assertTrue("listed apart, below the ones on offer", archived.groups.isEmpty())
+            assertEquals(Money(-4_500, "EUR"), archived.archived.single().net)
+            assertEquals(june, database.transactionDao().findById(dinner)?.groupId)
+
+            val reopened = editorFor(june)
+            assertTrue(reopened.uiState.first { it.loaded }.archived)
+            reopened.setArchived(false)
+            reopened.uiState.first { it.finished }
+
+            val back = list.uiState.first { it.archived.isEmpty() && it.groups.isNotEmpty() }
+            assertEquals(
+                "June trip",
+                back.groups
+                    .single()
+                    .group.name,
+            )
+        }
+
+    @Test
+    fun `archiving keeps a rename typed just before it, and saving an archived group keeps it archived`() =
+        runTest {
+            val june = database.groupDao().insert(group(name = "June trip"))
+
+            val editor = editorFor(june)
+            editor.uiState.first { it.loaded }
+            editor.setName("Lisbon, June 2026")
+            editor.setArchived(true)
+            editor.uiState.first { it.finished }
+
+            val archived = database.groupDao().findById(june)!!
+            assertEquals("Lisbon, June 2026", archived.name)
+            assertTrue(archived.archived)
+
+            val renamer = editorFor(june)
+            renamer.uiState.first { it.loaded }
+            renamer.setName("Lisbon trip")
+            renamer.save()
+            renamer.uiState.first { it.finished }
+
+            val renamed = database.groupDao().findById(june)!!
+            assertEquals("Lisbon trip", renamed.name)
+            assertTrue("a rename does not reactivate it", renamed.archived)
+        }
+
+    @Test
     fun `a group's screen splits it by category and opens exactly the movements behind a row`() =
         runTest {
             val checking = database.accountDao().insert(account())

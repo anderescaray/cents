@@ -244,7 +244,10 @@ private fun LazyListScope.categorySection(
     }
 }
 
-/** One group's movements (PRD §4.9). Left off entirely while no group exists. */
+/**
+ * One group's movements (PRD §4.9), archived groups included and said to be: looking back at the
+ * June trip is exactly what they are kept for. Left off entirely while no group exists.
+ */
 private fun LazyListScope.groupSection(
     state: TransactionFiltersUiState,
     viewModel: TransactionFiltersViewModel,
@@ -262,7 +265,7 @@ private fun LazyListScope.groupSection(
             )
             state.groups.forEachIndexed { index, group ->
                 SelectableRow(
-                    title = group.name,
+                    title = group.displayName(),
                     selected = state.draft.groupId == group.id,
                     last = index == state.groups.lastIndex,
                     onClick = { viewModel.setGroup(group.id) },

@@ -5,10 +5,12 @@ import androidx.compose.ui.res.stringResource
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.Category
+import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.components.archivedName
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
@@ -73,10 +75,13 @@ internal fun AmountField(
 
 /** An archived row still classifies history, so it is offered — and said to be archived. */
 @Composable
-internal fun Account.displayName(): String = if (archived) stringResource(R.string.filters_archived, name) else name
+internal fun Account.displayName(): String = archivedName(name, archived)
 
 @Composable
-internal fun Category.displayName(): String = if (archived) stringResource(R.string.filters_archived, name) else name
+internal fun Category.displayName(): String = archivedName(name, archived)
+
+@Composable
+internal fun Group.displayName(): String = archivedName(name, archived)
 
 /**
  * "From 10,00 € to 50,00 €", or whichever half of it was actually given.

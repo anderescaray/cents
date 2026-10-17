@@ -46,4 +46,12 @@
     <string name="transaction_row_in_group">%1$s · %2$s</string>
     <string name="restore_confirm_incoming_extra">With it come %1$d budgets and %2$d groups.</string>
     <string name="restore_confirm_replaces_extra">It also removes the %1$d budgets and %2$d groups here now.</string>
+    <!-- Archiving a group: kept, with its history, but not offered for new movements. -->
+    <string name="group_archive">Archive group</string>
+    <string name="group_reactivate">Reactivate group</string>
+    <string name="group_archive_footer">An archived group is not offered when you record a movement. Its movements, totals and reports stay exactly as they are, and Filters still finds it.</string>
+    <string name="group_archived_footer">Archived: not offered for new movements. Reactivate it to pick it again.</string>
+    <string name="groups_archived_header">Archived</string>
+    <string name="groups_archived_footer">Not offered for new movements. Their movements and totals are kept.</string>
+    <string name="group_archived_note">Archived: not offered for new movements. Edit › Reactivate group puts it back.</string>
 </resources>

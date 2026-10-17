@@ -16,6 +16,11 @@ data class Group(
     val name: String,
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
+    /**
+     * Kept, with its movements and totals, but no longer offered for new movements: the June trip
+     * that should not come up in December. A movement already in it keeps it.
+     */
+    val archived: Boolean = false,
 ) {
     /**
      * Whether [date] falls inside the dates the owner gave this group, so the form can offer it

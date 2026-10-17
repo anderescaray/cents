@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.Instant
@@ -16,6 +17,10 @@ import java.time.LocalDate
  * [startDate] and [endDate] are **a hint, not a boundary**: while a movement's date falls between
  * them the form offers this group first, and that is all they do. A dinner recorded a day after
  * the trip ended still belongs to it if the owner says so.
+ *
+ * [archived] keeps a group out of the choices for new movements and leaves everything else as it
+ * was: its movements, its totals and the reports that count them. Added in Room v13, every group
+ * from before reads as not archived.
  */
 @Entity(tableName = "movement_groups")
 data class GroupEntity(
@@ -25,4 +30,6 @@ data class GroupEntity(
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
     val createdAt: Instant,
+    @ColumnInfo(defaultValue = "0")
+    val archived: Boolean = false,
 )

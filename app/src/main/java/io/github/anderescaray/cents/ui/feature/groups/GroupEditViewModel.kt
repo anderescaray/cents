@@ -29,6 +29,8 @@ data class GroupEditUiState(
     val name: String = "",
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
+    /** Kept, but not offered for new movements; the editor is where it is reactivated. */
+    val archived: Boolean = false,
     val today: LocalDate = LocalDate.now(),
     val picking: GroupDate? = null,
     val loaded: Boolean = false,
@@ -83,6 +85,7 @@ class GroupEditViewModel
                             name = existing?.name.orEmpty(),
                             startDate = existing?.startDate,
                             endDate = existing?.endDate,
+                            archived = existing?.archived == true,
                             loaded = existing != null,
                         )
                     }
@@ -107,7 +110,19 @@ class GroupEditViewModel
 
         fun clearDates() = form.update { it.copy(startDate = null, endDate = null) }
 
-        fun save() {
+        fun save() = persist(archived = form.value.archived)
+
+        /**
+         * Archives the group, or reactivates it, saving whatever else was changed on the form with
+         * it: a rename typed just before tapping Archive is not lost. Nothing else changes: its
+         * movements keep it, and its totals and every report stay as they were.
+         */
+        fun setArchived(archived: Boolean) {
+            if (groupId == null) return
+            persist(archived = archived)
+        }
+
+        private fun persist(archived: Boolean) {
             val state = form.value
             if (!state.canSave) return
             form.update { it.copy(saving = true, writeFailed = false) }
@@ -120,6 +135,7 @@ class GroupEditViewModel
                                 name = state.name,
                                 startDate = state.startDate,
                                 endDate = state.endDate,
+                                archived = archived,
                             ),
                         )
                     }

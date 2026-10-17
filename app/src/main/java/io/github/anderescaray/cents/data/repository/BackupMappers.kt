@@ -180,6 +180,7 @@ fun BackupGroup.toEntity(createdAt: Instant) =
         startDate = startDate?.let(LocalDate::ofEpochDay),
         endDate = endDate?.let(LocalDate::ofEpochDay),
         createdAt = createdAt,
+        archived = archived,
     )
 
 fun BackupReminder.toEntity() = RuleReminderEntity(ruleId = ruleId, offsetDays = offsetDays)

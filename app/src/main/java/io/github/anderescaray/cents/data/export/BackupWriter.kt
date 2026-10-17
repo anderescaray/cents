@@ -225,6 +225,7 @@ object BackupWriter {
             "name" to JsonPrimitive(row.name),
             "startDate" to row.startDate.orNull(),
             "endDate" to row.endDate.orNull(),
+            "archived" to JsonPrimitive(row.archived),
         )
 
     private fun quoteJson(row: BackupQuote) =

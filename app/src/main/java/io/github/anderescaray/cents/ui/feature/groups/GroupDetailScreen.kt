@@ -97,6 +97,17 @@ internal fun GroupDetailContent(
 
         item(key = "net") { NetHeader(summary) }
         totals(summary = summary, onShowAll = onShowAll)
+        if (summary.group.archived) {
+            // Said here, where an archived row of the list leads, with the way back to it.
+            item(key = "archived") {
+                Text(
+                    text = stringResource(R.string.group_archived_note),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.secondaryLabel,
+                    modifier = Modifier.testTag(GROUP_ARCHIVED_NOTE_TAG).padding(horizontal = CentsDimens.screenMargin),
+                )
+            }
+        }
         if (state.spending.isNotEmpty()) {
             breakdown(
                 key = "spending",
@@ -202,3 +213,4 @@ private const val PERCENT = 100
 internal const val EDIT_GROUP_TAG = "editGroup"
 internal const val GROUP_NET_TAG = "groupNet"
 internal const val GROUP_MOVEMENTS_TAG = "groupMovements"
+internal const val GROUP_ARCHIVED_NOTE_TAG = "groupArchivedNote"

@@ -94,9 +94,9 @@ abstract class CentsDatabase : RoomDatabase() {
          * (2026-09-25) added `movement_groups` and `transactions.groupId`; v9 (2026-09-25) added
          * `rule_postponements`; v10 (2026-10-05) added `balance_adjustments`; v11 (2026-10-12)
          * added `capture_matches`; v12 (2026-10-15) turned every Card, Savings and Other account
-         * into a Bank one. See `Migrations.kt`.
+         * into a Bank one; v13 (2026-10-18) added `movement_groups.archived`. See `Migrations.kt`.
          */
-        const val VERSION = 12
+        const val VERSION = 13
         const val NAME = "cents.db"
     }
 }

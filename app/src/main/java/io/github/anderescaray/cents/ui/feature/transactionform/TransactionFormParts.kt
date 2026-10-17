@@ -40,6 +40,7 @@ import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.PickerAction
 import io.github.anderescaray.cents.ui.components.PickerChoice
+import io.github.anderescaray.cents.ui.components.archivedName
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -174,10 +175,15 @@ internal fun DetailChips(
             onClick = onDate,
             modifier = Modifier.testTag(DATE_CHIP_TAG),
         )
-        if (state.groups.isNotEmpty()) {
+        if (state.offeredGroups.isNotEmpty()) {
             CentsChip(
                 label =
-                    state.groups.firstOrNull { it.id == state.selectedGroupId }?.name
+                    state.groups.firstOrNull { it.id == state.selectedGroupId }?.let {
+                        archivedName(
+                            it.name,
+                            it.archived,
+                        )
+                    }
                         ?: stringResource(R.string.field_group),
                 iconRes = R.drawable.ic_tab_home,
                 selected = state.selectedGroupId != null,
@@ -326,7 +332,7 @@ internal fun GroupSheet(
                 state.offeredGroups.forEach { group ->
                     add(
                         CentsSheetAction(
-                            label = group.name,
+                            label = archivedName(group.name, group.archived),
                             onClick = {
                                 if (group.id != selected) viewModel.selectGroup(group.id)
                                 onCloseSheet()

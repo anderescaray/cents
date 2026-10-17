@@ -19,10 +19,13 @@ import javax.inject.Inject
 
 @Immutable
 data class GroupsUiState(
+    /** The groups offered for new movements, most recent first. */
     val groups: List<GroupSummary> = emptyList(),
+    /** Kept, with their movements and totals, but not offered: listed apart, below. */
+    val archived: List<GroupSummary> = emptyList(),
     val isLoading: Boolean = true,
 ) {
-    val isEmpty: Boolean get() = !isLoading && groups.isEmpty()
+    val isEmpty: Boolean get() = !isLoading && groups.isEmpty() && archived.isEmpty()
 }
 
 /**
@@ -43,8 +46,10 @@ class GroupsViewModel
                 .map { it.firstOrNull()?.currency ?: deviceCurrency() }
                 .distinctUntilChanged()
                 .flatMapLatest { currency -> groups.observeSummaries(currency) }
-                .map { GroupsUiState(groups = it, isLoading = false) }
-                .stateIn(
+                .map { all ->
+                    val (archived, active) = all.partition { it.group.archived }
+                    GroupsUiState(groups = active, archived = archived, isLoading = false)
+                }.stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
                     initialValue = GroupsUiState(),

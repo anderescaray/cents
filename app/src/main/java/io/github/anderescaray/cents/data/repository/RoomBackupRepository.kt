@@ -273,6 +273,7 @@ class RoomBackupRepository
                     name = it.name,
                     startDate = it.startDate?.toEpochDay(),
                     endDate = it.endDate?.toEpochDay(),
+                    archived = it.archived,
                 )
             }
 

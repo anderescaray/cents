@@ -40,7 +40,8 @@ and what comes next, is in [`PLAN.md`](PLAN.md).
   - Reminders come before a charge.
   - An occurrence can be postponed by up to 14 days.
   - The screen shows what is still committed this month.
-- **Groups**: what an occasion (a trip, a move, a job) cost or earned, across categories.
+- **Groups**: what an occasion (a trip, a move, a job) cost or earned, across categories. An old
+  one can be archived: kept, with its history, but not offered for new movements.
 - **Investments:**
   - holdings in stocks, ETFs, index funds and crypto;
   - purchases that spend the account's cash;

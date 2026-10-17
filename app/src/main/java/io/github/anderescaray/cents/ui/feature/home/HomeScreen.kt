@@ -35,6 +35,7 @@ import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsCard
 import io.github.anderescaray.cents.ui.components.IconBadge
+import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
 import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.ScreenHeader
 import io.github.anderescaray.cents.ui.components.arrive
@@ -162,6 +163,8 @@ private fun HomeList(
             }
         }
 
+        moneyFigures(state)
+
         item(key = "add") {
             QuickAdd(
                 hasAccounts = state.hasAccounts,
@@ -185,6 +188,24 @@ private fun HomeList(
                 MonthCard(state = state, onOpenCategory = actions.onOpenCategory, modifier = Modifier.arrive(3))
             }
         }
+    }
+}
+
+/**
+ * Cash and bank apart from what is invested, at the top as the owner chose (`DECISIONS.md` D34).
+ * The same figures as Wallet, from the same formula, and smaller than the month's: that one is
+ * Home's. Only figures here; the way to the portfolio stays on Wallet.
+ */
+private fun LazyListScope.moneyFigures(state: HomeUiState) {
+    val netWorth = state.netWorth ?: return
+    if (!state.figures.any) return
+    item(key = "figures") {
+        MoneyFiguresBlock(
+            netWorth = netWorth,
+            figures = state.figures,
+            totalStyle = CentsTheme.typography.title2,
+            modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
+        )
     }
 }
 

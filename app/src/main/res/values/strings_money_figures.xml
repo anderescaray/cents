@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Normal money and invested money, apart, on Wallet and at the top of Home (DECISIONS.md D34). -->
+    <string name="money_normal">Cash and bank</string>
+    <string name="settings_figures_header">Wallet and Home</string>
+    <string name="settings_figures_footer">The figures at the top of Wallet and of Home. Invested is what your brokers hold, cash and holdings at their latest price. With none on, neither screen shows any.</string>
+</resources>

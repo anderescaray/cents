@@ -2,28 +2,18 @@ package io.github.anderescaray.cents.ui.feature.accounts
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -31,14 +21,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
+import io.github.anderescaray.cents.domain.model.MoneyFigures
 import io.github.anderescaray.cents.domain.model.NetWorth
-import io.github.anderescaray.cents.ui.components.AnimatedMoney
-import io.github.anderescaray.cents.ui.components.CentsCard
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
 import io.github.anderescaray.cents.ui.components.IconBadge
+import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
 import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.arrive
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -46,8 +36,8 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 
 /**
- * What you have: the net worth, what of it is in accounts and what is invested, then the accounts
- * themselves. Every balance here is computed from the movements that produced it, never stored,
+ * What you have: the figures the owner chose, cash and bank apart from what is invested, then the
+ * accounts themselves. Every balance here is computed from the movements that produced it, never stored,
  * so it cannot drift away from the history behind it.
  */
 @Composable
@@ -75,7 +65,7 @@ fun AccountsScreen(
         if (state.showEmptyState) {
             emptyState()
         } else {
-            state.netWorth?.let { netWorth -> netWorthSection(netWorth, onOpenInvestments) }
+            state.netWorth?.let { netWorth -> figuresSection(netWorth, state.figures, onOpenInvestments) }
             accountSection(
                 key = "active",
                 headerRes = R.string.accounts_section_header,
@@ -98,9 +88,10 @@ fun AccountsScreen(
         }
 
         // The Invested tile is the way to the portfolio, and it is not drawn without a net worth
-        // (accounts in two currencies) or without active accounts. The portfolio has no tab of
-        // its own any more, so it gets a row instead of becoming unreachable.
-        if (state.showEmptyState || state.netWorth == null) {
+        // (accounts in two currencies), without active accounts, or when the owner switched it
+        // off. The portfolio has no tab of its own any more, so it gets a row instead of becoming
+        // unreachable.
+        if (state.showEmptyState || state.netWorth == null || !state.figures.invested) {
             item(key = "portfolio") {
                 CentsListSection {
                     CentsListRow(
@@ -119,153 +110,24 @@ fun AccountsScreen(
 }
 
 /**
- * What the owner has, in the three numbers they asked for (`DECISIONS.md` D19): the cash in
- * their accounts, what their holdings are worth, and the two together.
- *
- * **Three rows rather than one**, because each answers a different question — what could be
- * spent today, what is tied up, and what it comes to — and a single figure hides which of the
- * two moved when it changes. They only add up at all because a purchase takes its cost out of
- * the account it is held in; before that, the two described the same euros twice.
- *
- * With no holdings the section is two rows and says so by omission, which is the "without the
- * portfolio" half of what was asked for. With holdings but no prices there is nothing to add,
- * so the total stands down rather than reading as zero.
+ * The money figures the owner chose (`DECISIONS.md` D34): cash and bank, invested, and their
+ * total, each on or off in Settings. The Invested tile leads to the portfolio.
  */
-private fun LazyListScope.netWorthSection(
+private fun LazyListScope.figuresSection(
     netWorth: NetWorth,
+    figures: MoneyFigures,
     onOpenInvestments: () -> Unit,
 ) {
-    item(key = "net-worth") {
-        val total = netWorth.total
-        Column(
+    item(key = "figures") {
+        MoneyFiguresBlock(
+            netWorth = netWorth,
+            figures = figures,
+            totalStyle = CentsTheme.typography.display,
+            onOpenInvestments = onOpenInvestments,
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
-            verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingM),
-        ) {
-            CentsCard {
-                Text(
-                    text = stringResource(R.string.net_worth_total),
-                    style = CentsTheme.typography.subhead,
-                    color = CentsTheme.colors.secondaryLabel,
-                )
-                if (total != null) {
-                    AnimatedMoney(
-                        money = total,
-                        style = CentsTheme.typography.display,
-                        color = if (total.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
-                    )
-                } else {
-                    // Nothing priced is not the same as nothing held, and the two must not
-                    // render the same way.
-                    Text(
-                        text = stringResource(R.string.investments_no_price),
-                        style = CentsTheme.typography.title2,
-                        color = CentsTheme.colors.secondaryLabel,
-                    )
-                }
-                netWorthFooter(netWorth)?.let { footer ->
-                    Text(
-                        text = footer,
-                        style = CentsTheme.typography.footnote,
-                        color = CentsTheme.colors.secondaryLabel,
-                    )
-                }
-            }
-            WorthTiles(netWorth, onOpenInvestments)
-        }
-    }
-}
-
-/** What is in accounts and what is invested, side by side, the second leading to the portfolio. */
-@Composable
-private fun WorthTiles(
-    netWorth: NetWorth,
-    onOpenInvestments: () -> Unit,
-) {
-    val invested = netWorth.invested
-    Row(horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
-        WorthTile(
-            iconRes = R.drawable.ic_wallet,
-            color = CentsTheme.colors.accent,
-            label = stringResource(R.string.net_worth_in_accounts),
-            value = MoneyFormatter.format(netWorth.inAccounts),
-            negative = netWorth.inAccounts.isNegative,
-            modifier = Modifier.weight(1f),
-        )
-        WorthTile(
-            iconRes = R.drawable.ic_trend_up,
-            color = CentsTheme.colors.positive,
-            label = stringResource(R.string.net_worth_invested),
-            value = invested?.let { MoneyFormatter.format(it) } ?: stringResource(R.string.investments_no_price),
-            onClick = onOpenInvestments,
-            modifier = Modifier.weight(1f),
         )
     }
 }
-
-/** One half of the net worth, as a small card: the cash, or what the holdings are worth. */
-@Composable
-private fun WorthTile(
-    iconRes: Int,
-    color: Color,
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    /** Drawn in the warning colour, as an overdrawn total is everywhere else. */
-    negative: Boolean = false,
-    onClick: (() -> Unit)? = null,
-) {
-    CentsCard(modifier = modifier, onClick = onClick) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(iconRes = iconRes, color = color)
-            Spacer(Modifier.weight(1f))
-            if (onClick != null) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = CentsTheme.colors.tertiaryLabel,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-        Spacer(Modifier.height(CentsDimens.spacingM))
-        Text(text = label, style = CentsTheme.typography.footnote, color = CentsTheme.colors.secondaryLabel)
-        Text(
-            text = value,
-            style = CentsTheme.typography.headline,
-            color = if (negative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
-            maxLines = 1,
-        )
-    }
-}
-
-/**
- * What the three numbers leave out, said only when they leave something out.
- *
- * Both cases are money or value that exists and is not in the figure above it, and a net worth
- * that quietly omits either is the kind of number that gets believed and should not be.
- */
-@Composable
-private fun netWorthFooter(netWorth: NetWorth): String? =
-    when {
-        netWorth.hasUnpriced -> {
-            pluralStringResource(
-                R.plurals.net_worth_unpriced,
-                netWorth.unpricedCount,
-                netWorth.unpricedCount,
-            )
-        }
-
-        netWorth.hasArchivedMoney -> {
-            stringResource(
-                R.string.net_worth_archived,
-                MoneyFormatter.format(netWorth.inArchivedAccounts),
-            )
-        }
-
-        else -> {
-            null
-        }
-    }
 
 /**
  * The total, or an explanation instead of one: accounts in different currencies cannot be
@@ -278,7 +140,8 @@ private fun totalFooter(state: AccountsUiState): String? {
     return when {
         state.active.isEmpty() -> null
 
-        // Already the *In accounts* figure above, when there is one: said once, not twice.
+        // The figures above say what there is, normal money and invested apart, and adding the
+        // brokers into one sum here is what the owner asked not to see (`DECISIONS.md` D34).
         total != null && state.netWorth != null -> null
 
         total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))

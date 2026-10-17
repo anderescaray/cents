@@ -1,13 +1,18 @@
 package io.github.anderescaray.cents.ui.feature
 
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import io.github.anderescaray.cents.domain.model.MoneyFigure
+import io.github.anderescaray.cents.domain.model.MoneyFigures
 import io.github.anderescaray.cents.ui.feature.settings.SettingsContent
+import io.github.anderescaray.cents.ui.feature.settings.switchTag
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -52,6 +57,25 @@ class SettingsScreenTest {
 
         composeRule.onNodeWithText("Budgets").assertDoesNotExist()
         composeRule.onNodeWithText("Reset the bubble layout").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a money figure is switched on from Settings, the others left as they were`() {
+        var switched: Pair<MoneyFigure, Boolean>? = null
+        composeRule.setContent {
+            CentsTheme {
+                SettingsContent(
+                    onOpenCategories = {},
+                    figures = MoneyFigures(normal = true, invested = true, total = false),
+                    onFiguresChanged = { figure, on -> switched = figure to on },
+                )
+            }
+        }
+
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(MoneyFigure.TOTAL.switchTag))
+        composeRule.onNodeWithTag(MoneyFigure.TOTAL.switchTag).performClick()
+
+        assertEquals(MoneyFigure.TOTAL to true, switched)
     }
 
     @Test

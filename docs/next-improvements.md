@@ -27,7 +27,8 @@ session can build it without the original conversation. **The build order is
 - [ ] 7. Set an account's current balance, choosing the historical effect each time. **Merged in
   #112**, with its review's fixes in #120 and #121. Phone check: the Walk 21 notes and Walk 23
   are still to come.
-- [ ] 8. Hide/archive groups from new-movement selectors without deleting them.
+- [ ] 8. Hide/archive groups from new-movement selectors without deleting them. **Merged in
+  #140**, with Room v13. Phone check: Walk 30.
 - [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
   **Merged in #117** for the movement form, and checked in Walk 22. `DECISIONS.md` D32,
   answered 2026-10-12, widens it: merged in #133. Phone check: Walk 27.
@@ -149,6 +150,8 @@ Implementation constraints:
 **Request:** an old trip, such as June 2026, should not keep appearing when recording movements in
 December, but its history must remain available.
 
+**Merged in #140** (2026-10-18). This section goes once Walk 30 passes.
+
 - Add a reversible **Show when adding movements** control, or equivalent **Archive / Reactivate**
   actions, for a group.
 - Hide inactive/archived groups from new-movement choices, without deleting the group or changing
@@ -161,6 +164,15 @@ December, but its history must remain available.
   hints for ordering unless the owner separately requests a different rule.
 - Persist the flag with the group and carry it in backups. Existing groups and older backups
   should default to available. Ship the Room migration and round-trip tests with the feature.
+
+What was settled while building, each a line the owner can change:
+
+- **Archive and Reactivate are in the group's editor**, beside Delete, and archiving saves whatever
+  else was changed on the form. Archived groups are listed apart, below the others, and a group's
+  own screen says it is archived and how to bring it back.
+- **Editing a movement already recorded offers every group**, archived ones last and marked
+  *(archived)*: a forgotten dinner can still be put in the June trip. Only a new movement leaves
+  them out.
 
 ## 9. Broker account eligibility
 

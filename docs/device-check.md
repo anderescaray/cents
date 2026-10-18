@@ -13,7 +13,7 @@ in [`FEEDBACK.md`](../FEEDBACK.md) — the number is enough to identify it, so *
 decimal went in anyway"* is a complete entry.
 
 **When to run it.** After any branch that changes what the owner sees or touches, and before
-closing a phase. **Walks 21 to 29 are current.** Walks 1 to 20 were written before the rework
+closing a phase. **Walks 21 to 30 are current.** Walks 1 to 20 were written before the rework
 of 2026-10-01 (ADR 0003), so some of their steps describe screens that no longer exist, such as
 the bubble canvas in step 01. Rewriting them as one checklist by feature, for the current app,
 is the branch `docs/refresh-prd-and-device-check` in [`PLAN.md`](../PLAN.md) §3. There is no
@@ -1867,3 +1867,31 @@ Switch Cash and bank and Invested back on, and Net worth off.
 
 > **Wrong looks like** a figure you switched off still showing, the portfolio unreachable from
 > Wallet, or the switches back where they were after leaving Settings.
+
+## Walk 30 — archiving a group (#140)
+
+On a build with #140. Make a **test group**, *Walk trip*, and record one 1,00 € expense in it.
+
+### g1 · Archived, it is no longer offered
+
+Settings › Groups › *Walk trip* › Edit › **Archive group**. The editor closes, and the list shows
+*Walk trip* under **Archived**, still with its 1,00 €. Its own screen says it is archived. Open a new
+movement: the Group chip does not offer *Walk trip* (with no other group, there is no chip at all).
+
+> **Wrong looks like** *Walk trip* offered for the new movement, its 1,00 € gone from its total, or
+> the movement out of the group.
+
+### g2 · An old movement keeps it
+
+Open the 1,00 € expense and change its note. The Group chip reads *Walk trip (archived)*; save, and
+the movement is still in the group. Movements › Filters › Group lists *Walk trip (archived)*, and
+choosing it shows the movement.
+
+> **Wrong looks like** the movement saved without its group, or the trip missing from Filters.
+
+### g3 · Reactivated, it is back
+
+*Walk trip* › Edit › **Reactivate group**: it is back in the list above, and a new movement offers
+it again. Delete the 1,00 € expense and the test group.
+
+> **Wrong looks like** the group still under Archived, or still not offered.

@@ -31,7 +31,7 @@ and what was actually done — so this file stays short and the history stays so
   does, and offers any app with a notification showing now. Stays open until Ruralvía is found;
   if it still is not, the name it has in the phone's *Settings › Apps* is the next clue.
 
-**Eight walks' notes are still to come (2026-10-17).** The walks themselves are in
+**Nine walks' notes are still to come (2026-10-18).** The walks themselves are in
 [`docs/device-check.md`](docs/device-check.md).
 
 - **Walk 21** was walked on `f08f20a`, and the owner has notes to send by step number. Check
@@ -47,6 +47,7 @@ and what was actually done — so this file stays short and the history stays so
   build with #133 and #134.
 - **Walk 28** (a1–a2, only cash, bank and broker) is to walk on a build with #136.
 - **Walk 29** (f1–f3, cash and bank apart from invested) is to walk on a build with #138.
+- **Walk 30** (g1–g3, archiving a group) is to walk on a build with #140.
 - **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
 
 Whatever they turn up lands here, and it becomes the next branch.

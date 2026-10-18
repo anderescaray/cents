@@ -25,28 +25,17 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-18)
 
-- **`main`** has **#140**: a group can be archived (backlog item 8), with **Room v13** and **1140
+- **`main`** is at `8dd2a78` (#141), with **#140** (archiving a group), **Room v13** and **1140
   JVM tests**. PRD phases 1 to 5 are built, with prices typed by hand (D25). From Phase 6,
   accessibility is built (#96); the widget, the Baseline Profile and Macrobenchmark are not. What
   the app does is in [`README.md`](README.md#what-it-does).
-- **Latest merges:**
-  - #140: a group can be archived and reactivated from its editor. A new movement is not offered an
-    archived group; one already recorded keeps it and can still be put in one; Filters keep them.
-    Walk 30.
-  - #138: Wallet and Home show cash and bank, invested (the brokers' cash and holdings) and their
-    total, each switched on or off in Settings › *Wallet and Home*. Walk 29.
-  - #136: an account is Cash, Bank or Broker; Room v12 rewrites any other to Bank. Walk 28.
-  - #134: Settings › Capture's list of apps names each app as its icon does, and offers any app
-    with a notification showing now, for Ruralvía (`FEEDBACK.md`). Walk 27, y1.
-  - #133: D32. A broker takes an income but not an expense. Walk 27, y2 and y3.
-- **The confirmed backlog is built.** Items 1, 6, 7, 8, 9, 11 and 12 wait only on their walks; 2 to
-  5 and 10 are checked. What is left is listed in the backlog as later and unscheduled.
-- **No question is open in `DECISIONS.md`.** What #138 and #140 settled while building is in
-  backlog items 6 and 8, each line one the owner can change.
-- **A cloud session runs every gate**, with the SDK from `dl.google.com`, the JDK 25 daemon
-  through foojay, and Maven Central through Google's mirror ([`docs/setup.md`](docs/setup.md)).
-- **The Pixel runs `f03f9f8`**, installed 2026-10-09 with every row kept. **Walk 22 passed.**
-  Walks 24 to 30 need a newer build; the owner installs it and walks them later, all together.
+- **The Pixel runs `8dd2a78`**, installed 2026-10-18 over the build before, every row kept: the
+  migrations from v10 to v13 ran on the owner's data and Cents opened.
+- **Walked on 2026-10-18 and correct:** Walks 23 to 25 and 27 to 29. Backlog items 1, 6, 7, 9 and
+  11 are ticked, and what they settled moved to [`docs/PRD.md`](docs/PRD.md) §4.2 and §4.8.
+- **Ruralvía was not a bug** (`FEEDBACK.md`): it was already chosen, so *Add an app* left it out,
+  and Cents had no notification access. Capture now runs on the phone for the first time.
+- **No question is open in `DECISIONS.md`.**
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
@@ -54,28 +43,28 @@ Then read these, in this order, before writing any code:
 
 The owner says when each one starts.
 
-1. **The walk fixes** (`fix/walk-21`, or a better name once the notes are in): the owner's notes
-   from Walks 21 and 23 to 30 in `FEEDBACK.md`, each checked against `main` first. Ruralvía comes
-   first if Walk 27's y1 still cannot find it.
-2. **`docs/refresh-prd-and-device-check`**, the rest of the documentation cleanup:
-   - Rewrite [`docs/device-check.md`](docs/device-check.md) as a checklist by feature, for the
-     current UI. Today it is a log of walks, most of them written for screens the rework
-     replaced.
-   - Bring [`docs/PRD.md`](docs/PRD.md) level with the decisions taken since it was written,
-     including the account types, the money split and archived groups.
+1. **Fixes from Walks 26 and 30**, if they turn anything up. Walk 26 is capture on real Ruralvía
+   notifications, so it is the likelier of the two to.
+2. **`docs/device-check-by-feature`**: rewrite [`docs/device-check.md`](docs/device-check.md) as a
+   checklist by feature, for the current UI. Today it is a log of 30 walks, most of them written
+   for screens the rework replaced. Then the rest of [`docs/PRD.md`](docs/PRD.md): its vision and
+   §4.8 still speak of an iOS-flavoured look, which ADR 0003 replaced.
 3. **Phase 6's remainder** (the widget, a Baseline Profile, Macrobenchmark), or a new request: the
    owner's choice.
 
 ## 4. Waiting on the owner
 
-- **A build with #140 on the Pixel**, then the walks in
-  [`docs/device-check.md`](docs/device-check.md), all in one go: **Walk 27's y1 first** (Ruralvía
-  in Capture's list), then Walks 24 to 30.
-- **The Walk 21 notes**, and **Walk 23** (r1–r3). They go in `FEEDBACK.md`.
-- **What comes after the walk fixes** (§3).
-- **D36's names:** with English chosen on a Spanish phone, month and weekday names are Spanish
-  (`Octubre` over Home, `10 oct` under *Yesterday*), as B's own `12 oct` is. If English names in
-  the phone's order are wanted instead, that is a new answer.
+- **Walk 26** (w1–w5, capture matching a subscription) and **Walk 30** (g1–g3, archiving a group)
+  on the build now on the Pixel. Notes go in `FEEDBACK.md`, or to the agent by step number.
+- **This session's docs PR** (`docs/session-2026-10-18`), to review and merge.
+- **What comes after §3's item 2.**
+- **Local branches** that are merged and can be deleted when the owner says so: every
+  `docs/session-*` except this one, `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
+  `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux` and
+  `fix/correction-undo-test-race`, plus the worktree `C:\dev\cents-docs-plan`.
+- **Always the owner's:** using the app to judge whether it feels right; anything needing a
+  device setting, an unlock or a permission dialog; and reviewing and merging every PR. The agent
+  may install, launch, read logcat and take screenshots, and nothing more on the phone.
 
 ## 5. How work passes between owner and agent
 

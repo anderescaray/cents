@@ -9,6 +9,7 @@ It is the mirror of [`DECISIONS.md`](DECISIONS.md):
 
 | File | Direction | Holds |
 |---|---|---|
+| 2026-10-18 | **Ruralvía was not in Settings › Capture › Add an app** | Not a bug. Ruralvía was already chosen, with an account, so it was on Capture's own list and not under *Add an app*, which offers only apps not yet chosen; and Cents had no notification access, so nothing was captured. #134 changed how the list names apps, which this did not need. |
 | [`DECISIONS.md`](DECISIONS.md) | agent → owner | Questions only you can answer |
 | **`FEEDBACK.md`** | **owner → agent** | **Things you saw go wrong, and things you want changed** |
 
@@ -24,33 +25,17 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-- **Ruralvía is not in Settings › Capture › Add an app** (2026-10-12). It is not in the list at
-  all, searching or scrolling, so its payments cannot be captured. Not the accent: the search
-  folds it. It is not in a work profile, and its payments notify from the Ruralvía app itself.
-  **#134 is the fix, to check on the phone (Walk 27, y1):** the list names apps as their icon
-  does, and offers any app with a notification showing now. Stays open until Ruralvía is found;
-  if it still is not, the name it has in the phone's *Settings › Apps* is the next clue.
+Nothing is open. Two walks are still to come (2026-10-18), on the build installed that day
+(`8dd2a78`); the walks themselves are in [`docs/device-check.md`](docs/device-check.md).
 
-**Nine walks' notes are still to come (2026-10-18).** The walks themselves are in
-[`docs/device-check.md`](docs/device-check.md).
+- **Walk 26** (w1–w5, capture recognising a subscription's charge).
+- **Walk 30** (g1–g3, archiving a group).
 
-- **Walk 21** was walked on `f08f20a`, and the owner has notes to send by step number. Check
-  each against `main` before treating it as open: #120 changed a4 (removing a correction now
-  has Undo), the balance screen's loading, and what deleting an account moves.
-- **Walk 23** (r1–r3, what #120 changed) is to walk on `f03f9f8`, now on the Pixel.
-- **Walk 24** (b1) is to walk once a build with #123 is installed.
-- **Walk 25** (l1–l5, the app's own language) is to walk on a build with #127, and l3's amounts
-  on one with #129.
-- **Walk 26** (w1–w5, capture recognising a subscription's charge) is to walk on a build with
-  #131.
-- **Walk 27** (y1–y3, the bank in Capture's list and brokers taking an income) is to walk on a
-  build with #133 and #134.
-- **Walk 28** (a1–a2, only cash, bank and broker) is to walk on a build with #136.
-- **Walk 29** (f1–f3, cash and bank apart from invested) is to walk on a build with #138.
-- **Walk 30** (g1–g3, archiving a group) is to walk on a build with #140.
-- **Walk 22 passed** on 2026-10-09: m1–m8 all correct.
+**Walked on 2026-10-18 and correct:** Walks 23 (r1–r3), 24 (b1), 25 (l1–l5), 27 (y1–y3), 28
+(a1–a2) and 29 (f1–f3). On b1 the owner asked for nothing more to change. Walk 22 passed on
+2026-10-09. Walk 21's notes are not coming: Walks 23 and 24 checked again what #120 changed there.
 
-Whatever they turn up lands here, and it becomes the next branch.
+Whatever the two walks turn up lands here, and it becomes the next branch.
 
 ---
 

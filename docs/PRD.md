@@ -124,7 +124,39 @@ Priority: **P0** = required for the app to be worth using · **P1** = important 
 - Transfers between my own accounts, with an optional fee, excluded from expense reports.
 - Global filter: view "all accounts" or one specific account.
 - Archive closed accounts without losing their history — and, separately, delete one
-  outright, choosing what becomes of its movements (see §3).
+  outright, choosing what becomes of its movements (see §3). Its opening balance and balance
+  corrections move with them (D33).
+- **Three types: Cash, Bank and Broker** (2026-10-09, D34). Room v12 rewrote any older *Card*,
+  *Savings* or *Other* account to Bank, and so does restoring an older backup.
+- **A broker holds invested money, not everyday spending** (D32):
+  - It takes an **income** (a dividend, interest) but not an expense, and transfers in and out.
+  - A new movement never starts on a broker, even an income; it is chosen by tapping it, and a
+    dividend saved in one does not become where the next movement starts.
+  - An income in a broker turned into an expense leaves the broker.
+  - Subscriptions and Settings › Capture do not offer a broker, and say so. One already in a
+    broker keeps it, as a movement already in one does.
+  - Only a broker is offered as where a new investment is held.
+- **Set the current balance**, when movements were missed, without inventing an expense or an
+  income. Each time, I choose between two ways, and see the current balance, the new one and the
+  way chosen before saving:
+  - **Keep past balances:** a dated *balance correction* from today. Earlier balances do not
+    move. Removing one asks first and has Undo.
+  - **Change the opening balance:** past balances shift too, and the app says so.
+
+  Neither touches spending, income, budgets or holdings. A correction is measured against the
+  all-time balance (`docs/known-limitations.md`).
+- **Cash and bank apart from invested** (2026-10-09, D34), at the top of Home and on Wallet, with
+  one formula for both:
+  - **Cash and bank:** the active cash and bank accounts' balances.
+  - **Invested:** the brokers' cash plus their holdings at the latest typed prices. A broker's
+    cash counts while its holdings wait for a price, and the unpriced ones are named. *No price
+    yet* shows only when nothing at all has a value.
+  - **Net worth:** the two together.
+
+  Settings › *Wallet and Home* switches each one on or off, for both screens. By default the two
+  parts show and the total does not; with none on, neither screen shows a figure. On Wallet,
+  Invested opens the portfolio, and a row to it stays when Invested is off; on Home the figures
+  lead nowhere. A transfer from a bank to a broker moves money from one figure to the other.
 
 ### 4.3 Analytics and charts — P0
 
@@ -261,6 +293,13 @@ screen transition animations, and accessibility support (TalkBack, font scaling)
 iOS-flavoured app whose accent color follows the wallpaper looks like neither platform.
 The palette is fixed, with a proper dark variant.
 
+**The app's own language** (#127): the last row of Settings offers the phone's language, English
+and Español, apart from the phone's own setting, and the phone's *Settings › Apps › Cents ›
+Language* shows the same choice. Screens, alerts and notifications follow it; what I typed does
+not change. **Language never changes money** (D36): amounts, dates and a new account's currency
+keep the phone's style and currency, so English on a Spanish phone still reads `1.234,56 €` and
+`12 oct`.
+
 ### 4.9 Groups: what an occasion cost or earned — P1
 
 *Added by the owner on 2026-09-25. The questions it raises are `DECISIONS.md` D27, each with the
@@ -290,6 +329,10 @@ none of those categories can say what the trip cost. A group can.
   count as income or expense (§3).
 - **Deleting a group never deletes a movement** — they only lose the label, as rule 8 already
   requires of subscriptions. It asks for confirmation first.
+- **An old group can be archived instead** (#140), so a June trip is not offered in December.
+  Archive and Reactivate are in the group's editor. An archived group keeps its movements and
+  totals, is listed apart under *Archived*, and is still offered in Filters and when editing a
+  movement already recorded, marked *(archived)*. Only a new movement leaves it out.
 
 ## 5. Feasibility analysis
 

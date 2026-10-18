@@ -427,7 +427,10 @@ interface BudgetRepository {
 
 /** Occasions that cut across categories, and what each one came to (PRD §4.9, `DECISIONS.md` D27). */
 interface GroupRepository {
-    /** Every group, by name: what the form's picker offers. */
+    /**
+     * Every group, by name, archived ones included: the form's picker leaves those out for a new
+     * movement, and the filters keep them for looking back.
+     */
     fun observeGroups(): Flow<List<Group>>
 
     /**
@@ -456,7 +459,8 @@ interface GroupRepository {
     suspend fun findById(id: Long): Group?
 
     /**
-     * Creates it when its id is [Group.NEW] and replaces it otherwise. Returns the id.
+     * Creates it when its id is [Group.NEW] and replaces it otherwise, archived or not as
+     * [Group.archived] says. Returns the id.
      *
      * The name is trimmed and has to be non-blank; the dates may be absent, but not backwards.
      */

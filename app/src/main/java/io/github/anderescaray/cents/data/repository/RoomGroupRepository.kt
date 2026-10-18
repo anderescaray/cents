@@ -72,11 +72,17 @@ class RoomGroupRepository
             require(start == null || end == null || start <= end) { "A group cannot end before it starts" }
             return if (group.id == Group.NEW) {
                 groupDao.insert(
-                    GroupEntity(name = name, startDate = start, endDate = end, createdAt = clock.instant()),
+                    GroupEntity(
+                        name = name,
+                        startDate = start,
+                        endDate = end,
+                        createdAt = clock.instant(),
+                        archived = group.archived,
+                    ),
                 )
             } else {
                 val existing = requireNotNull(groupDao.findById(group.id)) { "No group ${group.id}" }
-                groupDao.update(existing.copy(name = name, startDate = start, endDate = end))
+                groupDao.update(existing.copy(name = name, startDate = start, endDate = end, archived = group.archived))
                 group.id
             }
         }
@@ -91,11 +97,12 @@ class RoomGroupRepository
             lastDate ?: endDate ?: startDate ?: createdAt.atZone(clock.zone).toLocalDate()
     }
 
-private fun GroupEntity.toDomain() = Group(id = id, name = name, startDate = startDate, endDate = endDate)
+private fun GroupEntity.toDomain() =
+    Group(id = id, name = name, startDate = startDate, endDate = endDate, archived = archived)
 
 private fun GroupTotals.toSummary(currency: String) =
     GroupSummary(
-        group = Group(id = id, name = name, startDate = startDate, endDate = endDate),
+        group = Group(id = id, name = name, startDate = startDate, endDate = endDate, archived = archived),
         income = Money(incomeMinor, currency),
         expenses = Money(expenseMinor, currency),
         movementCount = movementCount,

@@ -269,6 +269,7 @@ object BackupReader {
             name = row.requireString("name"),
             startDate = row.long("startDate"),
             endDate = row.long("endDate"),
+            archived = row.boolean("archived"),
         )
 
     private fun quote(row: JsonObject) =

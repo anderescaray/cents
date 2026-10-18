@@ -34,6 +34,7 @@ val ALL_MIGRATIONS: Array<Migration>
             MIGRATION_9_10,
             MIGRATION_10_11,
             MIGRATION_11_12,
+            MIGRATION_12_13,
         )
 
 /**
@@ -404,5 +405,19 @@ val MIGRATION_11_12 =
     object : Migration(11, 12) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("UPDATE `accounts` SET `type` = 'BANK' WHERE `type` IN ('CARD', 'SAVINGS', 'OTHER')")
+        }
+    }
+
+/**
+ * v12 to v13 — a group can be archived: kept, with everything in it, but no longer offered for new
+ * movements, so an old trip stops coming up when recording movements months later.
+ *
+ * One column, defaulting to not archived, so every group made before stays on offer exactly as it
+ * was and no movement changes.
+ */
+val MIGRATION_12_13 =
+    object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `movement_groups` ADD COLUMN `archived` INTEGER NOT NULL DEFAULT 0")
         }
     }

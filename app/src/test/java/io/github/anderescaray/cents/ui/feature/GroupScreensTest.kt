@@ -7,7 +7,10 @@ import androidx.compose.ui.test.performClick
 import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.ui.feature.groups.ARCHIVED_GROUP_ROW_TAG
+import io.github.anderescaray.cents.ui.feature.groups.GROUP_ARCHIVED_NOTE_TAG
 import io.github.anderescaray.cents.ui.feature.groups.GROUP_MOVEMENTS_TAG
+import io.github.anderescaray.cents.ui.feature.groups.GROUP_ROW_TAG
 import io.github.anderescaray.cents.ui.feature.groups.GroupDetailContent
 import io.github.anderescaray.cents.ui.feature.groups.GroupDetailUiState
 import io.github.anderescaray.cents.ui.feature.groups.GroupsContent
@@ -53,6 +56,53 @@ class GroupScreensTest {
     }
 
     @Test
+    fun `archived groups are listed apart, under their own header, with the list's footer when alone`() {
+        composeRule.setContent {
+            CentsTheme {
+                GroupsContent(
+                    state =
+                        GroupsUiState(
+                            archived = listOf(summary("June trip", income = 0, expenses = 4_500, archived = true)),
+                            isLoading = false,
+                        ),
+                    onBack = {},
+                    onNewGroup = {},
+                    onOpenGroup = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(ARCHIVED_GROUP_ROW_TAG).assertExists()
+        composeRule.onNodeWithTag(GROUP_ROW_TAG).assertDoesNotExist()
+        // Section headers are drawn in capitals.
+        composeRule.onNodeWithText("Archived", ignoreCase = true).assertExists()
+        composeRule
+            .onNodeWithText("Reports and budgets are unchanged", substring = true)
+            .assertExists()
+    }
+
+    @Test
+    fun `an archived group's screen says so, and how to bring it back`() {
+        composeRule.setContent {
+            CentsTheme {
+                GroupDetailContent(
+                    state =
+                        GroupDetailUiState(
+                            summary = summary("June trip", income = 0, expenses = 4_500, archived = true),
+                            isLoading = false,
+                        ),
+                    onBack = {},
+                    onEdit = {},
+                    onShowAll = {},
+                    onShowSlice = { _, _ -> },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(GROUP_ARCHIVED_NOTE_TAG).assertExists()
+    }
+
+    @Test
     fun `an empty list says what a group is for`() {
         composeRule.setContent {
             CentsTheme {
@@ -91,8 +141,9 @@ class GroupScreensTest {
         name: String,
         income: Long,
         expenses: Long,
+        archived: Boolean = false,
     ) = GroupSummary(
-        group = Group(id = name.hashCode().toLong(), name = name),
+        group = Group(id = name.hashCode().toLong(), name = name, archived = archived),
         income = Money(income, "EUR"),
         expenses = Money(expenses, "EUR"),
         movementCount = 3,

@@ -65,6 +65,11 @@ data class TransactionFormUiState(
      * first — the trip you are on — and the rest by name after them. **Offered, never chosen**
      * (D27): a movement joins a group only when the owner taps it. Held rather than derived, so
      * the list is sorted when the groups or the date change and not on every keypad digit.
+     *
+     * An archived group is not offered for a **new** movement: the June trip does not come up in
+     * December. Editing a movement already recorded offers every group, archived ones last and
+     * said to be archived, so a dinner from the June trip keeps its trip and a forgotten one can
+     * still be put in it.
      */
     val offeredGroups: List<Group> = emptyList(),
     val date: LocalDate = LocalDate.now(),
@@ -232,10 +237,14 @@ class TransactionFormViewModel
                         state
                             .copy(
                                 groups = groups,
-                                // A group deleted while this form was open is no longer on offer.
-                                // Pruned only once the real list is known, for the reason the
-                                // category is: the movement and the groups load independently.
-                                selectedGroupId = state.selectedGroupId?.takeIf { id -> groups.any { it.id == id } },
+                                // A group deleted while this form was open is no longer on offer, nor
+                                // one archived while a new movement was being recorded. Pruned only
+                                // once the real list is known, for the reason the category is: the
+                                // movement and the groups load independently.
+                                selectedGroupId =
+                                    state.selectedGroupId?.takeIf { id ->
+                                        groups.any { it.id == id && it.offeredFor(state.isEditing) }
+                                    },
                             ).withOfferedGroups()
                     }
                 }
@@ -469,4 +478,12 @@ internal fun TransactionKind.toCategoryKind(): CategoryKind =
     }
 
 private fun TransactionFormUiState.withOfferedGroups(): TransactionFormUiState =
-    copy(offeredGroups = groups.sortedByDescending { it.covers(date) })
+    copy(
+        offeredGroups =
+            groups
+                .filter { it.offeredFor(isEditing) }
+                .sortedWith(compareByDescending<Group> { it.covers(date) }.thenBy { it.archived }),
+    )
+
+/** Every group for a movement already recorded; only the ones not archived for a new one. */
+private fun Group.offeredFor(editing: Boolean): Boolean = editing || !archived

@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -78,21 +79,46 @@ private fun LazyListScope.groupRows(
     state: GroupsUiState,
     onOpenGroup: (Long) -> Unit,
 ) {
-    item(key = "groups") {
-        CentsListSection(footer = stringResource(R.string.groups_footer)) {
-            state.groups.forEachIndexed { index, summary ->
-                CentsListRow(
-                    title = summary.group.name,
-                    subtitle = summary.subtitle(),
-                    value = if (summary.isEmpty) null else summary.netSentence(),
-                    valueColor = summary.netColor(),
-                    showChevron = true,
-                    showSeparator = index != state.groups.lastIndex,
-                    onClick = { onOpenGroup(summary.group.id) },
-                    modifier = Modifier.testTag(GROUP_ROW_TAG),
-                )
+    if (state.groups.isNotEmpty()) {
+        item(key = "groups") {
+            CentsListSection(footer = stringResource(R.string.groups_footer)) {
+                GroupRows(state.groups, onOpenGroup, Modifier.testTag(GROUP_ROW_TAG))
             }
         }
+    }
+    // Apart and below, as archived accounts and categories are: kept, with their totals, and
+    // reactivated from their editor. With none on offer, the list's own footer moves here.
+    if (state.archived.isNotEmpty()) {
+        item(key = "archived") {
+            val archivedFooter = stringResource(R.string.groups_archived_footer)
+            val listFooter = stringResource(R.string.groups_footer)
+            CentsListSection(
+                header = stringResource(R.string.groups_archived_header),
+                footer = if (state.groups.isEmpty()) "$archivedFooter $listFooter" else archivedFooter,
+            ) {
+                GroupRows(state.archived, onOpenGroup, Modifier.testTag(ARCHIVED_GROUP_ROW_TAG))
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupRows(
+    groups: List<GroupSummary>,
+    onOpenGroup: (Long) -> Unit,
+    modifier: Modifier,
+) {
+    groups.forEachIndexed { index, summary ->
+        CentsListRow(
+            title = summary.group.name,
+            subtitle = summary.subtitle(),
+            value = if (summary.isEmpty) null else summary.netSentence(),
+            valueColor = summary.netColor(),
+            showChevron = true,
+            showSeparator = index != groups.lastIndex,
+            onClick = { onOpenGroup(summary.group.id) },
+            modifier = modifier,
+        )
     }
 }
 
@@ -109,3 +135,4 @@ private fun AddGroupButton(onClick: () -> Unit) {
 
 internal const val ADD_GROUP_TAG = "addGroup"
 internal const val GROUP_ROW_TAG = "groupRow"
+internal const val ARCHIVED_GROUP_ROW_TAG = "archivedGroupRow"

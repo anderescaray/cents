@@ -74,21 +74,47 @@ fun GroupEditScreen(
         ) {
             nameSection(state = state, onName = viewModel::setName)
             datesSection(state = state, viewModel = viewModel)
-            if (!state.isNew) {
-                item(key = "delete") {
-                    CentsListSection {
-                        CentsActionRow(
-                            label = stringResource(R.string.group_delete),
-                            onClick = viewModel::requestDelete,
-                            destructive = true,
-                        )
-                    }
-                }
-            }
+            if (!state.isNew && state.loaded) groupActions(state = state, viewModel = viewModel)
         }
     }
 
     GroupEditDialogs(state = state, viewModel = viewModel)
+}
+
+/**
+ * Archive keeps everything and stops offering the group; delete takes the group and leaves its
+ * movements in none. Two intentions, side by side, as for an account.
+ */
+private fun LazyListScope.groupActions(
+    state: GroupEditUiState,
+    viewModel: GroupEditViewModel,
+) {
+    item(key = "archive") {
+        CentsListSection(
+            footer =
+                stringResource(
+                    if (state.archived) R.string.group_archived_footer else R.string.group_archive_footer,
+                ),
+        ) {
+            CentsActionRow(
+                label =
+                    stringResource(
+                        if (state.archived) R.string.group_reactivate else R.string.group_archive,
+                    ),
+                onClick = { viewModel.setArchived(!state.archived) },
+                modifier = Modifier.testTag(ARCHIVE_GROUP_TAG),
+            )
+        }
+    }
+    item(key = "delete") {
+        CentsListSection {
+            CentsActionRow(
+                label = stringResource(R.string.group_delete),
+                onClick = viewModel::requestDelete,
+                destructive = true,
+            )
+        }
+    }
 }
 
 @Composable
@@ -181,3 +207,5 @@ private fun LazyListScope.datesSection(
 internal const val GROUP_NAME_TAG = "groupName"
 internal const val GROUP_START_TAG = "groupStart"
 internal const val GROUP_END_TAG = "groupEnd"
+
+internal const val ARCHIVE_GROUP_TAG = "archiveGroup"

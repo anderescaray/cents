@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -438,6 +439,41 @@ class RestoreTest {
             assertEquals(AccountType.BANK, accounts.single { it.name == "Visa" }.type)
             assertEquals(-21_299L, database.accountDao().balanceOf(accounts.single { it.name == "Visa" }.id))
             assertTrue(accounts.single { it.name == "Savings" }.archived)
+        }
+
+    @Test
+    fun `an archived group comes back archived, and one from an older file comes back on offer`() =
+        runTest {
+            database.groupDao().insert(group(name = "June trip", archived = true))
+            database.groupDao().insert(group(name = "Wedding"))
+            val text = BackupWriter.toJson(backups.snapshot())
+
+            backups.restore(readable(text))
+
+            val restored = database.groupDao().all().associate { it.name to it.archived }
+            assertEquals(mapOf("June trip" to true, "Wedding" to false), restored)
+
+            // Written before Room v13, so its groups carry no `archived` at all.
+            val v12 =
+                """
+                {
+                  "schemaVersion": 12,
+                  "exportedAt": "2026-10-15T10:00:00Z",
+                  "accounts": [], "categories": [], "transactions": [],
+                  "holdings": [], "trades": [], "quotes": [],
+                  "groups": [{"id":1,"name":"Lisbon trip","startDate":null,"endDate":null}]
+                }
+                """.trimIndent()
+
+            backups.restore(readable(v12))
+
+            assertFalse(
+                database
+                    .groupDao()
+                    .all()
+                    .single()
+                    .archived,
+            )
         }
 
     @Test

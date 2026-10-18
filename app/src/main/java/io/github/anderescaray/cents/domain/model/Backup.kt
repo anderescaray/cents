@@ -208,4 +208,6 @@ data class BackupGroup(
     /** Epoch days, like every other date in the file. */
     val startDate: Long?,
     val endDate: Long?,
+    /** Absent from a file written before Room v13, and read as not archived. */
+    val archived: Boolean = false,
 )

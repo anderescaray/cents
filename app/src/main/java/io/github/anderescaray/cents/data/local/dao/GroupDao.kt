@@ -33,7 +33,7 @@ interface GroupDao {
     @Query(
         """
         SELECT g.id AS id, g.name AS name, g.startDate AS startDate, g.endDate AS endDate,
-               g.createdAt AS createdAt,
+               g.createdAt AS createdAt, g.archived AS archived,
                COALESCE(SUM(CASE WHEN t.kind = 'INCOME' THEN t.amountMinor ELSE 0 END), 0) AS incomeMinor,
                COALESCE(SUM(CASE WHEN t.kind = 'EXPENSE' THEN t.amountMinor ELSE 0 END), 0) AS expenseMinor,
                COUNT(t.id) AS movementCount,
@@ -51,7 +51,7 @@ interface GroupDao {
     @Query(
         """
         SELECT g.id AS id, g.name AS name, g.startDate AS startDate, g.endDate AS endDate,
-               g.createdAt AS createdAt,
+               g.createdAt AS createdAt, g.archived AS archived,
                COALESCE(SUM(CASE WHEN t.kind = 'INCOME' THEN t.amountMinor ELSE 0 END), 0) AS incomeMinor,
                COALESCE(SUM(CASE WHEN t.kind = 'EXPENSE' THEN t.amountMinor ELSE 0 END), 0) AS expenseMinor,
                COUNT(t.id) AS movementCount,
@@ -88,6 +88,7 @@ data class GroupTotals(
     val startDate: LocalDate?,
     val endDate: LocalDate?,
     val createdAt: Instant,
+    val archived: Boolean,
     val incomeMinor: Long,
     val expenseMinor: Long,
     val movementCount: Int,

@@ -216,9 +216,11 @@ fun group(
     name: String = "Lisbon trip",
     startDate: LocalDate? = null,
     endDate: LocalDate? = null,
+    archived: Boolean = false,
 ) = GroupEntity(
     name = name,
     startDate = startDate,
     endDate = endDate,
     createdAt = Instant.parse("2026-09-25T10:00:00Z"),
+    archived = archived,
 )

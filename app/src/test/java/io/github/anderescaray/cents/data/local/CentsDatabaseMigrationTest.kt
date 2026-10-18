@@ -17,6 +17,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -596,6 +597,38 @@ class CentsDatabaseMigrationTest {
                 assertEquals(-21_299L, database.accountDao().balanceOf(2))
                 assertEquals(500_000L, database.accountDao().balanceOf(3))
                 assertEquals("the money written at v11 should survive", 7_450L, database.accountDao().balanceOf(1))
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    fun `a version 12 group comes through on offer, and can then be archived`() =
+        runTest {
+            createVersion(12)
+            writeRaw(
+                "INSERT INTO movement_groups (id, name, startDate, endDate, createdAt) " +
+                    "VALUES (1, 'June trip', 20615, 20622, 1755511200000)",
+                "UPDATE transactions SET groupId = 1",
+            )
+
+            val database = openWithMigrations()
+            try {
+                val june = database.groupDao().findById(1)!!
+                assertEquals("June trip", june.name)
+                assertFalse("every group made before stays on offer", june.archived)
+                assertEquals("the money written at v12 should survive", 2_550L, moneyIn(database))
+
+                database.groupDao().update(june.copy(archived = true))
+
+                assertTrue(database.groupDao().findById(1)!!.archived)
+                val movement =
+                    database
+                        .transactionDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                assertEquals("archiving moves no movement out of its group", 1L, movement.groupId)
             } finally {
                 database.close()
             }

@@ -25,7 +25,7 @@ session can build it without the original conversation. **The build order is
 - [x] 7. Set an account's current balance, choosing the historical effect each time. #112, #120
   and #121, checked in Walks 23 and 24 (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them. **Merged in
-  #140**, with Room v13. Phone check: Walk 30.
+  #140**, with Room v13. Phone check: `docs/device-check.md` G2–G4.
 - [x] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
   #117 and #133 (D32), checked in Walks 22 and 27 (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
@@ -33,14 +33,14 @@ session can build it without the original conversation. **The build order is
 - [x] 11. Only three account types: cash, bank and broker. #136, checked in Walk 28
   (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
-  `DECISIONS.md` D35). **Merged in #131.** Phone check: Walk 26.
+  `DECISIONS.md` D35). **Merged in #131.** Phone check: `docs/device-check.md` K6–K10.
 
 ## 8. Group visibility without deletion
 
 **Request:** an old trip, such as June 2026, should not keep appearing when recording movements in
 December, but its history must remain available.
 
-**Merged in #140** (2026-10-18). This section goes once Walk 30 passes.
+**Merged in #140** (2026-10-18). This section goes once G2–G4 pass.
 
 - Add a reversible **Show when adding movements** control, or equivalent **Archive / Reactivate**
   actions, for a group.
@@ -70,7 +70,7 @@ What was settled while building, each a line the owner can change:
 counted twice today, once by the rule and once by the notification, and the extra one is deleted
 by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
 
-**Merged in #131** (2026-10-12). This section goes once Walk 26 passes. The owner kept the
+**Merged in #131** (2026-10-12). This section goes once K6–K10 pass. The owner kept the
 defaults changed while building, on 2026-10-12.
 
 - **A fixed subscription's charge adds nothing.** A captured payment that matches it is not

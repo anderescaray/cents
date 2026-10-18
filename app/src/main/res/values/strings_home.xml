@@ -8,7 +8,7 @@
     <string name="action_back_to">Back to %1$s</string>
     <string name="home_add_label">Add: %1$s</string>
     <string name="home_no_accounts_title">Create your first account</string>
-    <string name="home_no_accounts_message">Movements are recorded in an account: a bank account, a card or cash. Tap to make one.</string>
+    <string name="home_no_accounts_message">Movements are recorded in an account: a bank account or cash. Tap to make one.</string>
     <string name="home_see_all">See all %1$d</string>
     <string name="home_pending_message">Bills and salaries that fell due and need their figure.</string>
     <string name="home_this_month">This month</string>

@@ -7,7 +7,7 @@
     <string name="action_back_to">Volver a %1$s</string>
     <string name="home_add_label">Añadir: %1$s</string>
     <string name="home_no_accounts_title">Crea tu primera cuenta</string>
-    <string name="home_no_accounts_message">Los movimientos se anotan en una cuenta: un banco, una tarjeta o efectivo. Toca para crear una.</string>
+    <string name="home_no_accounts_message">Los movimientos se anotan en una cuenta: un banco o efectivo. Toca para crear una.</string>
     <string name="home_see_all">Ver los %1$d</string>
     <string name="home_pending_message">Recibos y nóminas que han vencido y necesitan su importe.</string>
     <string name="home_this_month">Este mes</string>

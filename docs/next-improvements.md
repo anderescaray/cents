@@ -12,138 +12,28 @@ session can build it without the original conversation. **The build order is
 
 ## Confirmed requests
 
-- [ ] 1. English/Spanish language selection in Settings. **Merged in #127** as the last row of
-  Settings. Phone check: Walk 25. Amounts and dates keep the phone's style (`DECISIONS.md` D36,
-  answered B), merged in #129.
+- [x] 1. English/Spanish language selection in Settings. #127 and #129, checked in Walk 25
+  (2026-10-18). Now in `docs/PRD.md` §4.8.
 - [x] 2. Proper separation between the Movements title and Filters. #117, checked in Walk 22
   (2026-10-09).
 - [x] 3. Category selection through a large popup, not a horizontal strip. #117, checked in
   Walk 22.
 - [x] 4. Keypad visible only while the amount is active. #117, checked in Walk 22.
 - [x] 5. Account popup with the last-used account preselected. #117, checked in Walk 22.
-- [ ] 6. Normal money (cash and bank) and invested money (brokers), kept apart, on Wallet and at
-  the top of Home. **Reshaped 2026-10-09**. The owner chooses which figures show
-  (`DECISIONS.md` D34, answered 2026-10-12). **Merged in #138.** Phone check: Walk 29.
-- [ ] 7. Set an account's current balance, choosing the historical effect each time. **Merged in
-  #112**, with its review's fixes in #120 and #121. Phone check: the Walk 21 notes and Walk 23
-  are still to come.
+- [x] 6. Normal money (cash and bank) and invested money (brokers), kept apart, on Wallet and at
+  the top of Home. #138, checked in Walk 29 (2026-10-18). Now in `docs/PRD.md` §4.2.
+- [x] 7. Set an account's current balance, choosing the historical effect each time. #112, #120
+  and #121, checked in Walks 23 and 24 (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [ ] 8. Hide/archive groups from new-movement selectors without deleting them. **Merged in
   #140**, with Room v13. Phone check: Walk 30.
-- [ ] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
-  **Merged in #117** for the movement form, and checked in Walk 22. `DECISIONS.md` D32,
-  answered 2026-10-12, widens it: merged in #133. Phone check: Walk 27.
+- [x] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
+  #117 and #133 (D32), checked in Walks 22 and 27 (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
   in Walk 22.
-- [ ] 11. Only three account types: cash, bank and broker (2026-10-09). `DECISIONS.md` D34,
-  answered 2026-10-12: the removed types simply go. **Merged in #136**, with Room v12. Phone
-  check: Walk 28.
+- [x] 11. Only three account types: cash, bank and broker. #136, checked in Walk 28
+  (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
   `DECISIONS.md` D35). **Merged in #131.** Phone check: Walk 26.
-
-## 1. App language
-
-**Request:** choose English or Spanish from inside Settings, independently of the phone language.
-
-**Built in #127** (2026-10-12), with no new dependency. This section goes once Walk 25 passes.
-
-- Add a persistent language preference. Offer **System default**, **English** and **Español**;
-  following the system is the proposed initial behavior.
-- Apply the choice consistently to the app's screens, dialogs, labels and notifications, including
-  capture confirmations. Amounts and dates keep the phone's style (D36). User-entered names and
-  notes are not translated or rewritten.
-- Use Android's per-app language support with a tested compatibility path for the app's supported
-  Android versions. Do not assume adding a settings row or changing a global locale is sufficient.
-- Preserve navigation and in-progress form values through any activity recreation.
-- **Language must not change money.** Keep stored ISO currencies and financial calculations intact,
-  including the currency chosen for a newly created account. The existing `deviceCurrency()` helper
-  uses `Locale.getDefault()`, so this must be addressed explicitly rather than assuming English
-  means USD or Spanish means EUR.
-- Use the existing English/Spanish resources and feature-owned resource pairs for new strings.
-  Any new compatibility dependency needs justification and a dedicated, serial catalog change.
-
-## 6. Normal money and invested money, apart, on Wallet and Home
-
-**Request (2026-10-09), replacing this item's first wording** (liquid money, investments and total
-net worth on Home): see at a glance how much is **normal money**, in cash and bank accounts, and
-how much is **invested**, in broker accounts, on Wallet and at the top of Home. Wallet's *In
-accounts* used to add every active account, brokers included. The owner wants the brokers' part
-kept out of the cash-and-bank figure, not summed with it.
-
-**Merged in #138** (2026-10-17). This section goes once Walk 29 passes.
-
-Two figures, clearly distinguished:
-
-1. **Normal money:** the balances of the active cash and bank accounts.
-2. **Invested:** what the broker accounts hold, which is their cash plus their holdings at the
-   latest typed prices.
-
-- **The owner chooses what shows** (`DECISIONS.md` D34, answered 2026-10-12): normal money,
-  invested and their total, each on or off. All of them, none, or, for example, normal money and
-  the total. What the answer left open, each with the default the branch builds:
-  - **One choice for both screens**, set in Settings.
-  - **It starts with the two parts and no total**, as the owner first asked. That amends D19,
-    which asked for the parts and the sum.
-  - **With nothing chosen, nothing is drawn**, on Wallet or on Home.
-- **One formula for both screens.** Change `netWorthOf` and `NetWorth`
-  (`domain/usecase/BuildNetWorth.kt`) and have Wallet and Home read them. Do not write a second
-  formula that can disagree with Wallet.
-- **Money moves between the figures, it is never counted twice.** A transfer from a bank to a
-  broker moves money from normal to invested. A buy turns a broker's cash into a holding, so it
-  never touches normal money.
-- A holding still in a non-broker account (history that item 10 keeps) counts as invested.
-- Missing prices stay explicit: never invent a value or show an unknown as zero. These are typed
-  valuations, not live prices.
-- Archived accounts are named, not added, as today.
-- Updates to movements, transfers, balances and prices update Home and Wallet reactively.
-- **On Home the two figures sit at the top**, above the month. Keep them distinct from the month's
-  saved or overspent figure, and replace neither. This does not authorize another navigation or
-  visual redesign.
-
-What changed while building, each a line the owner can change:
-
-- **A broker's cash counts while its holdings wait for a price**, and the unpriced holdings are
-  said under the figures. Invested reads *No price yet* only when holdings are held, none has a
-  price, and the brokers hold no cash: otherwise known money would vanish because something beside
-  it has no price.
-- **On Home the figures lead nowhere.** On Wallet the Invested tile still opens the portfolio, and
-  with Invested off Wallet keeps a row to it.
-- **The total is called *Net worth*,** on its switch and on its card, as Wallet has always called
-  it.
-
-How it is built: `netWorthOf` in `domain/usecase/BuildNetWorth.kt`, read by Wallet and Home;
-`MoneyFiguresBlock` in `ui/components`; one DataStore key per switch, behind Settings › *Wallet
-and Home*. With none chosen, Home reads no balances or portfolio for them.
-
-## 7. Set the current account balance
-
-**Request:** enter the real account balance when movements were missed, without inventing an expense
-or income to explain the difference.
-
-**Confirmed choice: offer both modes every time the balance is changed.** This is not a one-time
-or global preference. Show the current balance, the requested new balance and the selected mode
-before saving.
-
-| Mode | Effect |
-|---|---|
-| **Preserve past balances** | Apply a dated balance correction from today, separate from income and expense transactions. Earlier balance-chart values are not shifted by this operation. |
-| **Rebase opening balance** | Adjust the opening balance so the current balance reaches the requested value. Clearly warn that historical balance charts also shift. |
-
-Implementation constraints:
-
-- Compute `difference = requested balance - current computed balance`, including any previous
-  corrections. For the dated mode, record that difference separately; for rebasing, add it to
-  the opening balance. Repeated changes and switching between modes must both work.
-- Calculate and write atomically so a concurrent capture cannot leave the account at the wrong
-  balance. Keep money as `Long` minor units with its actual currency.
-- Neither mode creates a fake income/expense or changes spending, income, budgets or savings
-  statistics. Neither deletes existing movements. Future movements still change the balance normally.
-- Account balances, Wallet, Home and balance-over-time queries must agree about corrections.
-  Do not store a display-only override or a second mutable balance that drifts from the ledger.
-- Correcting broker cash must not alter holdings, units, prices or investment profit/loss.
-- Keep **opening balance** and **set current balance** clearly distinguished in the UI.
-- Ship the data-model change with its migration, exported schema, migration tests and full-backup
-  support. Cover restore and account removal/reassignment so corrections cannot become orphaned
-  or silently disappear from the calculated balance.
 
 ## 8. Group visibility without deletion
 
@@ -173,54 +63,6 @@ What was settled while building, each a line the owner can change:
 - **Editing a movement already recorded offers every group**, archived ones last and marked
   *(archived)*: a forgotten dinner can still be put in the June trip. Only a new movement leaves
   them out.
-
-## 9. Broker account eligibility
-
-**Request:** broker accounts are not choices for ordinary new manual expenses/incomes; they remain
-choices for transfers.
-
-- Filter both the account popup and its default/remembered selection, not just what is drawn.
-- Preserve brokers in transfers, investment operations, and Wallet's and Home's totals, where
-  they count as invested money (item 6).
-- Preserve existing broker-linked movements when editing history; do not silently reassign them.
-- Do not turn a picker restriction into removal of broker accounts or rejection of internal
-  investment cash movements. Audit affected entry points and make the intended scope explicit.
-
-**D32, answered 2026-10-12**, merged in #133:
-
-- **A broker takes an income but not an expense.** A dividend or interest is recorded as money
-  earned and counts in Reports. The movement form offers brokers for an income and leaves them
-  out of an expense.
-- **Subscriptions do not offer a broker**, and **neither does Settings › Capture** when an app is
-  tied to an account. Both say so.
-
-What the answer left open, each with the default #133 builds:
-
-- **A new movement never starts on a broker**, even for an income: a broker is chosen by tapping
-  it, and a dividend saved in one does not become where the next movement starts.
-- **An income in a broker turned into an expense leaves the broker.** A new movement goes to
-  where an expense starts; an old one back to its own account if that takes an expense.
-- **A subscription or a capture app already in a broker keeps it**, as a movement already in one
-  does. Only what is offered for something new changes.
-
-## 11. Three account types: cash, bank and broker
-
-**Request (2026-10-09):** an account is **Cash**, **Bank** or **Broker**, and nothing else. *Card*,
-*Savings* and *Other* go.
-
-**Merged in #136** (2026-10-15). This section goes once Walk 28 passes.
-
-- **An account of a removed type is retyped, never lost.** The owner has none
-  (`DECISIONS.md` D34, answered 2026-10-12), so the three types simply go. Room v12
-  (`MIGRATION_11_12`) still rewrites any stored row to Bank, and its id, movements, balance,
-  corrections and history stay as they are.
-- **A backup made before this still restores**, with those accounts as Bank (`BackupMappers.kt`).
-- The account editor offers the three types. The three unused strings left both `values/` and
-  `values-es/`.
-- What already keeps brokers apart (items 9 and 10, D32) is unchanged.
-- **The type is still read strictly** *(added while building)*, with `AccountType.valueOf`
-  (`Converters.kt`). After the migration and the backup mapping nothing can store a retired name,
-  so an unknown one is a bug to see rather than an account to relabel.
 
 ## 12. Capture recognises a subscription's charge
 
@@ -282,14 +124,6 @@ How it is built:
 
 ## Acceptance for what is still to build
 
-- **Language:** the choice survives relaunch and reaches notifications. It leaves stored
-  currencies, balances, dates, capture's words and anything the owner typed exactly as they were.
-- **Normal and invested money:** Home and Wallet agree after an income, an expense, a transfer, a
-  trade, a price update and either balance correction. A transfer from a bank to a broker moves
-  money from one figure to the other, a buy leaves normal money alone, and unpriced holdings are
-  explicit.
-- **Account types:** a Card, Savings or Other account comes through the migration and through a
-  restore of an older backup as a Bank account, with the same balance and movements.
 - **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
   and totals. Editing an old movement keeps its group, and reactivating the group restores it.
 - **Capture and subscriptions:** a notified Netflix charge leaves one movement, not two, whether

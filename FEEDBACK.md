@@ -25,25 +25,27 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-Nothing is open. Two walks are still to come (2026-10-18), on the build installed that day
-(`8dd2a78`); the walks themselves are in [`docs/device-check.md`](docs/device-check.md).
+Nothing is open. Two checks are still to come (2026-10-18), on the build installed that day
+(`8dd2a78`), with the steps in [`docs/device-check.md`](docs/device-check.md):
 
-- **Walk 26** (w1–w5, capture recognising a subscription's charge).
-- **Walk 30** (g1–g3, archiving a group).
+- **K6–K10**, capture recognising a subscription's charge (#131). The session's message called
+  them w1–w5.
+- **G2–G4**, archiving a group (#140). The session's message called them g1–g3.
 
 **Walked on 2026-10-18 and correct:** Walks 23 (r1–r3), 24 (b1), 25 (l1–l5), 27 (y1–y3), 28
 (a1–a2) and 29 (f1–f3). On b1 the owner asked for nothing more to change. Walk 22 passed on
 2026-10-09. Walk 21's notes are not coming: Walks 23 and 24 checked again what #120 changed there.
 
-Whatever the two walks turn up lands here, and it becomes the next branch.
+Whatever the two checks turn up lands here, and it becomes the next branch.
 
 ---
 
 ## Where the numbers come from
 
-Items like `05` and `d5` are the steps of [`docs/device-check.md`](docs/device-check.md) — the
-walk through the app on a real phone. Quoting the number saves describing the whole step, so
-*"05: the keypad showed 2.500,00"* is a complete entry.
+Items like `H3` and `K6` are the steps of [`docs/device-check.md`](docs/device-check.md) — the
+checklist for the app on a real phone. Quoting the code saves describing the whole step, so
+*"H3: the keypad showed 2.500,00"* is a complete entry. Codes in the *Fixed* table below are from
+the walks that file replaced, and are in git.
 
 ---
 

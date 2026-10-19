@@ -9,9 +9,8 @@ Technical decisions about *how* live in [`../CLAUDE.md`](../CLAUDE.md).
 - **Author:** Ander
 
 Where a later answer in [`../DECISIONS.md`](../DECISIONS.md) or an ADR in
-[`decisions/`](decisions/) disagrees with this document, the later decision wins: for example,
-the look is ADR 0003's rather than iOS's, there is no lock (D31), and prices are typed (D25).
-Bringing the PRD level with those decisions is a docs task of its own.
+[`decisions/`](decisions/) disagrees with this document, the later decision wins, and this
+document is corrected to match.
 
 ---
 
@@ -28,12 +27,13 @@ place and without depending on any bank's app.
 2. **Fast and smooth.** Logging an expense must take under 5 seconds and 3 taps. If it is
    slow I will stop using it, and then the app is worthless.
 3. **Categories I define.** No fixed taxonomy imposed by the app.
-4. **The numbers never lie.** Exact precision on money, and full transparency when a
-   value comes from the internet and may be stale.
-5. **It feels like an Apple app.** The appearance and the flow follow iOS conventions —
-   inset grouped lists, large collapsing titles, a bottom tab bar, push/pop transitions —
-   even though this is an Android app built with Compose. Recorded, with its consequences,
-   in [`decisions/0001-ios-flavored-ui.md`](decisions/0001-ios-flavored-ui.md).
+4. **The numbers never lie.** Exact precision on money, and no invented value: a price is
+   one I typed, shown with its date, and without one the app says *no price yet* (D25).
+5. **It has a look of its own.** White cards with a soft shadow on a pale canvas, one clear
+   number each, the ring of category colours, chips for one-tap choices, and a floating tab
+   capsule with the add button in the middle: not iOS and not Material. Specified in
+   [`decisions/0003-the-ring.md`](decisions/0003-the-ring.md), which superseded the earlier
+   iOS-flavoured design.
 
 **Non-goals** (out of scope, at least for now): multi-user or shared expenses, direct
 bank connections, iOS, a web version, publishing on Google Play.
@@ -221,18 +221,16 @@ not only when they are charged — otherwise the budget flatters you early in th
 ### 4.5 Investments — P1 (the hardest part)
 
 - Portfolio of holdings: what I own, how much, at what average cost.
-- Current market value, profit/loss in € and %, both per holding and for the total.
-- Price refresh on app open, on pull-to-refresh, and in the background every N minutes
-  (configurable, with a Wi-Fi-only option).
-- Portfolio value over time.
-- Currency conversion for USD-denominated holdings. **This is the one place conversion
-  comes back**, and it is not a reversal of §3: a share priced in dollars needs a rate no
-  matter what the owner spends in, which is a different problem from an account they spend
-  from. It gets designed here, with where the rate comes from and how an approximate total
-  is labelled, rather than being assumed everywhere else.
-- Buy and sell records, with average cost recalculation.
-
-**See the feasibility analysis in §5.1: "real time" carries important caveats.**
+- Current value, profit/loss in € and %, both per holding and for the total.
+- **Prices are typed, for good** (D25): per unit or as a total value, dated. Nothing is fetched,
+  and a holding without a price says *no price yet* rather than counting as zero. §5.1 says why.
+- **No currency conversion** (D18): a holding tracks the euro listing the broker sells, such as
+  `NVD.DE` for Nvidia, so the app shows the broker's own number.
+- Buy and sell records, with average cost recalculation; a sale keeps the average. A buy spends
+  the broker's cash and a sale gives it back, so neither is income or expense.
+- A quantity can be corrected to what the broker says, as a recorded correction that moves no
+  money. A holding sold in full leaves the portfolio for **Closed positions**, with what it made
+  (D17).
 
 ### 4.6 Auto-capture from notifications — P3 (experimental)
 
@@ -280,18 +278,18 @@ itself. It leaves me only what a notification cannot know: what the money was fo
 
 - Export to CSV and to a full JSON backup (so I am never locked into the app).
 - Import from that backup.
-- ~~App lock using the device fingerprint/PIN (BiometricPrompt).~~ Built, then removed at the
-  owner's request (D31, 2026-10-05): the phone's own lock screen is the protection.
-- Database encryption with SQLCipher — P2.
+- No lock of the app's own and no SQLCipher (D16, D31): the phone's encryption, its lock screen
+  and the app sandbox are the protection.
+- An automatic daily backup to the app's own hidden folder on Google Drive, when switched on
+  (D22), with a restore from any copy.
 
 ### 4.8 Polish — P2
 
 Light/dark theme, a home screen widget for quick expense entry, an app icon shortcut,
 screen transition animations, and accessibility support (TalkBack, font scaling).
 
-*Dynamic color (Material You) was dropped:* it contradicts design principle 5, since an
-iOS-flavoured app whose accent color follows the wallpaper looks like neither platform.
-The palette is fixed, with a proper dark variant.
+*Dynamic color (Material You) was dropped:* an accent that follows the wallpaper would
+break design principle 5. The palette is fixed, with a proper dark variant.
 
 **The app's own language** (#127): the last row of Settings offers the phone's language, English
 and Español, apart from the phone's own setting, and the phone's *Settings › Apps › Cents ›
@@ -339,40 +337,13 @@ none of those categories can say what the trip cost. A group can.
 These are the two places where the idea meets technical reality. Worth reading before
 counting on the features.
 
-### 5.1 Real-time investment prices
+### 5.1 Investment prices from the internet
 
-**Verdict: feasible, with caveats about what "real time" means.**
-
-Three very different difficulty tiers:
-
-| What you want to track | Difficulty | How |
-|---|---|---|
-| Listed stocks and ETFs (NVDA, VOO, IWDA...) | **Easy** | Financial APIs with a free tier, looked up by ticker |
-| FX rates (USD→EUR) | **Easy** | The same APIs, or a dedicated FX API |
-| Non-listed mutual funds, by ISIN | **Hard** | Almost no free provider covers them |
-
-Things to be clear about:
-
-1. **True real time costs money.** Second-by-second data is licensed by the exchanges and
-   sold at a premium. Free tiers give **15-minute delayed** prices, or the previous
-   close. For tracking a long-term portfolio that is entirely sufficient — and it has to
-   be decided now, because chasing the exact second burns months of work for nothing.
-2. **Free tiers have request limits** (on the order of tens per minute or a few hundred
-   per day). Hence: cache in the database, batch symbols into one request, and refresh
-   only when it adds information — not on every UI recomposition.
-3. **If my "S&P 500 fund" is a traditional index fund** (the typical Vanguard or iShares
-   product bought through a bank or roboadvisor, identified by ISIN rather than a
-   ticker), its NAV is published once a day and is not in the free APIs. Options, best
-   first: (a) track the equivalent ETF instead, whose price is accessible and moves
-   nearly identically; (b) enter the NAV manually now and then; (c) scrape a financial
-   website, which is fragile and breaks silently. **Never make scraping plan A.**
-4. **Mandatory design:** a `PriceProvider` interface with swappable implementations, so we
-   can change provider when one changes its pricing or kills its free tier. No coupling
-   to a specific API.
-5. Provider candidates to evaluate in Phase 4: **Finnhub**, **Twelve Data**, **Financial
-   Modeling Prep**, **EODHD**. Compare European market coverage, free tier limits and
-   terms of use — Yahoo Finance's unofficial API is popular but unsupported and its usage
-   sits in a grey area, so it is not chosen as the foundation.
+**Verdict: not built, by choice (D25).** Listed stocks and ETFs are easy to price from a paid
+API, but the free tiers are delayed, rate-limited and thin on European venues, and the owner's
+non-listed funds are in none of them. Paying for a provider was declined on 2026-09-21. Prices are
+typed instead, with their date. No provider was built; the price table keeps each quote's date and
+where it came from, so one could be added if a free provider covering European venues turns up.
 
 ### 5.2 Reading movements from notifications
 
@@ -456,8 +427,8 @@ This order is designed to put something useful in my hands as early as possible.
 | **0. Foundations** | Environment and skeleton | Android Studio working, GitHub repo wired up, a project that builds and installs on the phone, green CI, base theme and navigation |
 | **1. Core** | Record money | Room schema, accounts, categories, income/expense entry and editing, transaction list, correct balances |
 | **2. Analytics** | Understand money | Reports screen with spending by category, income vs expenses, spending by weekday, period selector |
-| **3. Accounts and recurring** | Organize money and automate the fixed parts | Transfers, account detail, currencies, export/import, biometric lock, recurring rules and subscriptions screen |
-| **4. Investments** | Track net worth | Manual portfolio → `PriceProvider` integration → P&L and background refresh |
+| **3. Accounts and recurring** | Organize money and automate the fixed parts | Transfers, account detail, export/import, recurring rules and subscriptions screen. A fingerprint lock was built and then removed (D31); one currency only (D2) |
+| **4. Investments** | Track net worth | Portfolio with typed prices, P&L, closed positions (prices are not fetched: D25) |
 | **5. Automation** | Less manual work | Uncategorized inbox, budgets, and notification capture (experimental) |
 | **6. Polish** | Make it a pleasure to use | Widget, animations, Baseline Profile, accessibility, performance measurement |
 
@@ -485,25 +456,5 @@ The strategy is detailed in [`../CLAUDE.md`](../CLAUDE.md) §7. In short:
 
 ## 8. Open decisions
 
-- [x] ~~Final app and package name.~~ → **Cents**, `io.github.anderescaray.cents`
-- [x] ~~Subcategory model: real hierarchy or flat tags?~~ → **Flat** (`DECISIONS.md` D3). The
-      `parentId` column stays in the schema, unused.
-- [x] ~~Market data provider.~~ → **Twelve Data** (D13), for European coverage on the free tier,
-      behind the `PriceProvider` interface §5.1 requires. Waiting on an API key, which only the
-      owner can create.
-- [x] ~~Track the index fund by its ISIN, or by the equivalent ETF?~~ → **The equivalent ETF**
-      (D14). The ISIN goes in the holding's note; the tracking difference is the price of the
-      portfolio refreshing itself.
-- [x] ~~Is SQLCipher worth it, given the biometric lock already exists?~~ → **No** (D16). The
-      device is already encrypted and no other app can read these files; the biometric lock is
-      the protection that gets built. *(The lock itself was removed on 2026-10-05, D31; the
-      device's encryption and lock screen are still why SQLCipher stays out.)*
-- [x] ~~Backup strategy: manual to a file, or automatic to the user's Google Drive?~~ → **Both,
-      manual first** (D15): a file the owner owns, then automatic backup as a later branch with
-      its own answers about encryption and restores.
-- [x] ~~What happens when the provider quotes a price in a currency the holding does not use?~~
-      → **It is not asked to** (D18). A holding tracks the euro-denominated listing of the
-      instrument — Nvidia is `NVD` in Frankfurt, in euros — which is what a European platform
-      sells you in the first place. No rate, no conversion, and the app's number matches the
-      broker's because it is the same quote. §4.5's conversion returns only if an instrument
-      with no euro listing is ever held.
+Questions only the owner can settle, and every answer so far, are in
+[`../DECISIONS.md`](../DECISIONS.md).

@@ -23,16 +23,21 @@ Then read these, in this order, before writing any code:
 3. **§2 to §4 below**, then the backlog,
    [`docs/next-improvements.md`](docs/next-improvements.md), when choosing what to build.
 
-## 2. Where things stand (2026-10-18)
+## 2. Where things stand (2026-10-19)
 
-- **`main`** is at `8dd2a78` (#141), with **#140** (archiving a group), **Room v13** and **1140
-  JVM tests**. PRD phases 1 to 5 are built, with prices typed by hand (D25). From Phase 6,
-  accessibility is built (#96); the widget, the Baseline Profile and Macrobenchmark are not. What
-  the app does is in [`README.md`](README.md#what-it-does).
+- **`main`** is at `c0857d6` (#143), with **Room v13** and **1140 JVM tests**. PRD phases 1 to 5
+  are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
+  widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
+  [`README.md`](README.md#what-it-does).
+- **Latest merges:** #143, Home's first-account message names a bank account or cash rather than a
+  card; #142, Walks 23 to 25 and 27 to 29 passed, Ruralvía closed as not a bug, and what backlog
+  items 1, 6, 7, 9 and 11 settled moved to [`docs/PRD.md`](docs/PRD.md) §4.2 and §4.8.
 - **The Pixel runs `8dd2a78`**, installed 2026-10-18 over the build before, every row kept: the
-  migrations from v10 to v13 ran on the owner's data and Cents opened.
-- **Walked on 2026-10-18 and correct:** Walks 23 to 25 and 27 to 29. Backlog items 1, 6, 7, 9 and
-  11 are ticked, and what they settled moved to [`docs/PRD.md`](docs/PRD.md) §4.2 and §4.8.
+  migrations from v10 to v13 ran on the owner's data and Cents opened. #143 is a string change, so
+  it can wait for the next install.
+- **[`docs/device-check.md`](docs/device-check.md) is one checklist by feature**, step codes such as
+  H3 and K6, every label checked against the English strings. The walks it replaced are in git;
+  their codes still appear in `FEEDBACK.md`'s *Fixed* table.
 - **Ruralvía was not a bug** (`FEEDBACK.md`): it was already chosen, so *Add an app* left it out,
   and Cents had no notification access. Capture now runs on the phone for the first time.
 - **No question is open in `DECISIONS.md`.**
@@ -43,23 +48,25 @@ Then read these, in this order, before writing any code:
 
 The owner says when each one starts.
 
-1. **Fixes from Walks 26 and 30**, if they turn anything up. Walk 26 is capture on real Ruralvía
+1. **Fixes from K6–K10 and G2–G4**, if they turn anything up. K6–K10 is capture on real Ruralvía
    notifications, so it is the likelier of the two to.
-2. **`docs/device-check-by-feature`**: rewrite [`docs/device-check.md`](docs/device-check.md) as a
-   checklist by feature, for the current UI. Today it is a log of 30 walks, most of them written
-   for screens the rework replaced. Then the rest of [`docs/PRD.md`](docs/PRD.md): its vision and
-   §4.8 still speak of an iOS-flavoured look, which ADR 0003 replaced.
-3. **Phase 6's remainder** (the widget, a Baseline Profile, Macrobenchmark), or a new request: the
-   owner's choice.
+2. **Phase 6's remainder** (the widget, a Baseline Profile, Macrobenchmark), or a request from
+   the backlog's *Requested, not yet placed*: the owner's choice.
 
 ## 4. Waiting on the owner
 
-- **Walk 26** (w1–w5, capture matching a subscription) and **Walk 30** (g1–g3, archiving a group)
-  on the build now on the Pixel. Notes go in `FEEDBACK.md`, or to the agent by step number.
-- **This session's docs PR** (`docs/session-2026-10-18`), to review and merge.
-- **What comes after §3's item 2.**
-- **Local branches** that are merged and can be deleted when the owner says so: every
-  `docs/session-*` except this one, `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
+- **K6–K10** (capture matching a subscription) and **G2–G4** (archiving a group) in
+  [`docs/device-check.md`](docs/device-check.md), on the build now on the Pixel. Notes go in
+  `FEEDBACK.md`, or to the agent by step code.
+- **This session's docs PR** (`docs/device-check-by-feature`), to review and merge: the checklist
+  and the PRD rewrite that were pushed to #142's branch after it had merged, and so never reached
+  `main`.
+- **What comes after item 1** (§3).
+- **Branches** that are merged or superseded and can be deleted when the owner says so. On
+  GitHub: `docs/session-2026-10-18` (#142; its two later commits are this PR),
+  `docs/next-improvements` (#110, its later plan notes long rewritten) and `feat/groups-screens`
+  (#87). Locally: every `docs/session-*`,
+  `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
   `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux` and
   `fix/correction-undo-test-race`, plus the worktree `C:\dev\cents-docs-plan`.
 - **Always the owner's:** using the app to judge whether it feels right; anything needing a

@@ -32,8 +32,8 @@ session can build it without the original conversation. **The build order is
   in Walk 22.
 - [x] 11. Only three account types: cash, bank and broker. #136, checked in Walk 28
   (2026-10-18). Now in `docs/PRD.md` §4.2.
-- [ ] 12. Capture recognises a subscription's charge instead of recording it twice (2026-10-12,
-  `DECISIONS.md` D35). **Merged in #131.** Phone check: `docs/device-check.md` K6–K10.
+- [x] 12. Capture recognises a subscription's charge instead of recording it twice (`DECISIONS.md`
+  D35). #131, checked on 2026-10-19 (K6–K10). Now in `docs/PRD.md` §4.6.
 
 ## 8. Group visibility without deletion
 
@@ -64,72 +64,10 @@ What was settled while building, each a line the owner can change:
   *(archived)*: a forgotten dinner can still be put in the June trip. Only a new movement leaves
   them out.
 
-## 12. Capture recognises a subscription's charge
-
-**Request (2026-10-12, `DECISIONS.md` D35):** a payment that a subscription already records is
-counted twice today, once by the rule and once by the notification, and the extra one is deleted
-by hand (D29 left matching for later). Capture recognises the subscription's charge instead.
-
-**Merged in #131** (2026-10-12). This section goes once K6–K10 pass. The owner kept the
-defaults changed while building, on 2026-10-12.
-
-- **A fixed subscription's charge adds nothing.** A captured payment that matches it is not
-  saved, and the capture notification says *Matched Netflix, nothing added*, with **Undo**.
-- **A variable subscription's bill takes the captured amount**, even when it differs from the
-  estimate. The bill is answered as if the amount had been typed on the pending screen, and the
-  notification says so, with Undo.
-- **What matches:** a charge of an active subscription dated within **3 days either side** of the
-  day the notification arrived, in the **same account**, of the **same kind**. A postponed charge
-  is dated the day it was moved to (D28). Income matches too: a salary is a subscription.
-- **Undo puts it back as though nothing had matched:** the payment is saved as an ordinary
-  captured movement, and a charge the match wrote waits again, postponement included. It works
-  with the app closed. **Changed while building:** that holds while the rule stands where the
-  match left it. Once the rule has written a later occurrence, the charge stays, because taking
-  it then would lose that occurrence for good.
-- **Nothing else changes.** A capture that matches nothing is saved as today, the same-minute rule
-  (D29) still runs first, and what a subscription wrote stays an ordinary movement (rule 8).
-
-What D35 left open, each with the default the branch builds. A line the owner changes is an
-instruction.
-
-- **A fixed subscription matches only at its own amount.** Only a variable one was asked to take
-  a different figure, so a different amount is a different payment, and it is saved.
-- **A variable subscription matches only while its bill is waiting.** Once answered, the bill is a
-  movement like any other. While it waits, the first capture of its kind in its account inside the
-  window fills it, whatever that payment was for, and Undo is the way back. If that proves too
-  eager on the phone, requiring the subscription's name in the notification's text is the way to
-  narrow it.
-- **Early counts too.** A charge notified before its day, or before the subscription has written
-  it (it writes when the app opens), still matches. **Changed while building:** every charge that
-  has fallen due is written first, as opening the app would, and a charge still to come is written
-  by the match at once, dated its own day, for a fixed subscription as for a variable one. Left
-  for the rule, a charge whose rule was stopped or moved before its day would leave the payment
-  recorded nowhere.
-- **Only when the match is announced.** *(Added while building.)* With *Notify after capture* off,
-  or the app's notifications blocked, the payment is saved as an ordinary capture: a wrong match
-  nobody saw could not be undone. Settings › Capture says so under the switch.
-- **One capture per charge.** Once a charge has matched, another payment inside its window is
-  saved as usual, because paying twice does happen.
-- **Several candidates:** the charge nearest in date wins.
-- **A variable bill keeps its own date**, as answering it by hand does. Only the amount comes from
-  the notification.
-
-How it is built:
-
-- `CaptureMatcher`, called from `RoomCaptureRecorder` after the same-minute check and inside its
-  lock, matches in one database transaction. The catch-up, answering a bill, postponing and
-  editing a rule read the rule inside their own, so no charge is written twice.
-- Undo is the notification's only action, a broadcast to `CaptureUndoReceiver`.
-- A match is stored in `capture_matches`, Room v11, with its migration test, and backups carry it.
-
 ## Acceptance for what is still to build
 
 - **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
   and totals. Editing an old movement keeps its group, and reactivating the group restores it.
-- **Capture and subscriptions:** a notified Netflix charge leaves one movement, not two, whether
-  the notification comes before or after the subscription writes it. A notified electricity
-  payment fills in the waiting bill. Undo, from the notification with the app closed, leaves the
-  payment saved as an ordinary capture.
 - **Every item:** migration and backup round-trip tests for anything stored, the gates in
   [`docs/testing.md`](testing.md), and a walk on the phone. A green JVM suite does not show that a
   gesture, a keyboard or the system language behaves on a device.

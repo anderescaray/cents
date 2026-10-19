@@ -342,8 +342,8 @@ counting on the features.
 **Verdict: not built, by choice (D25).** Listed stocks and ETFs are easy to price from a paid
 API, but the free tiers are delayed, rate-limited and thin on European venues, and the owner's
 non-listed funds are in none of them. Paying for a provider was declined on 2026-09-21. Prices are
-typed instead, with their date. A `PriceProvider` interface and a quote cache stay in the code,
-because they cost nothing if a free provider covering European venues ever turns up.
+typed instead, with their date. No provider was built; the price table keeps each quote's date and
+where it came from, so one could be added if a free provider covering European venues turns up.
 
 ### 5.2 Reading movements from notifications
 

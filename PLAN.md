@@ -23,17 +23,21 @@ Then read these, in this order, before writing any code:
 3. **§2 to §4 below**, then the backlog,
    [`docs/next-improvements.md`](docs/next-improvements.md), when choosing what to build.
 
-## 2. Where things stand (2026-10-18)
+## 2. Where things stand (2026-10-19)
 
-- **`main`** is at `8dd2a78` (#141), with **#140** (archiving a group), **Room v13** and **1140
-  JVM tests**. PRD phases 1 to 5 are built, with prices typed by hand (D25). From Phase 6,
-  accessibility is built (#96); the widget, the Baseline Profile and Macrobenchmark are not. What
-  the app does is in [`README.md`](README.md#what-it-does).
+- **`main`** is at `c0857d6` (#143), with **Room v13** and **1140 JVM tests**. PRD phases 1 to 5
+  are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
+  widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
+  [`README.md`](README.md#what-it-does).
+- **Latest merges:** #143, Home's first-account message names a bank account or cash rather than a
+  card; #142, Walks 23 to 25 and 27 to 29 passed, Ruralvía closed as not a bug, and what backlog
+  items 1, 6, 7, 9 and 11 settled moved to [`docs/PRD.md`](docs/PRD.md) §4.2 and §4.8.
 - **The Pixel runs `8dd2a78`**, installed 2026-10-18 over the build before, every row kept: the
-  migrations from v10 to v13 ran on the owner's data and Cents opened.
-- **Walked on 2026-10-18 and correct:** Walks 23 to 25 and 27 to 29, the last walks in the old
-  format. Backlog items 1, 6, 7, 9 and 11 are ticked, and what they settled moved to
-  [`docs/PRD.md`](docs/PRD.md) §4.2 and §4.8.
+  migrations from v10 to v13 ran on the owner's data and Cents opened. #143 is a string change, so
+  it can wait for the next install.
+- **[`docs/device-check.md`](docs/device-check.md) is one checklist by feature**, step codes such as
+  H3 and K6, every label checked against the English strings. The walks it replaced are in git;
+  their codes still appear in `FEEDBACK.md`'s *Fixed* table.
 - **Ruralvía was not a bug** (`FEEDBACK.md`): it was already chosen, so *Add an app* left it out,
   and Cents had no notification access. Capture now runs on the phone for the first time.
 - **No question is open in `DECISIONS.md`.**
@@ -54,15 +58,17 @@ The owner says when each one starts.
 - **K6–K10** (capture matching a subscription) and **G2–G4** (archiving a group) in
   [`docs/device-check.md`](docs/device-check.md), on the build now on the Pixel. Notes go in
   `FEEDBACK.md`, or to the agent by step code.
-- **This session's docs PR** (`docs/session-2026-10-18`, #142), to review and merge. It also
-  rewrote `docs/device-check.md` as one checklist by feature and brought `docs/PRD.md` level with
-  the decisions since it was written.
+- **This session's docs PR** (`docs/device-check-by-feature`), to review and merge: the checklist
+  and the PRD rewrite that were pushed to #142's branch after it had merged, and so never reached
+  `main`.
 - **What comes after item 1** (§3).
-- **Local branches** that are merged and can be deleted when the owner says so: every
-  `docs/session-*` except this one, `docs/professional-docs`,
-  `docs/drive-client-and-walk-2026-09-24`, `fix/capture-safety-and-feedback`,
-  `fix/transaction-entry-ux` and `fix/correction-undo-test-race`, plus the worktree
-  `C:\dev\cents-docs-plan`.
+- **Branches** that are merged or superseded and can be deleted when the owner says so. On
+  GitHub: `docs/session-2026-10-18` (#142; its two later commits are this PR),
+  `docs/next-improvements` (#110, its later plan notes long rewritten) and `feat/groups-screens`
+  (#87). Locally: every `docs/session-*`,
+  `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
+  `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux` and
+  `fix/correction-undo-test-race`, plus the worktree `C:\dev\cents-docs-plan`.
 - **Always the owner's:** using the app to judge whether it feels right; anything needing a
   device setting, an unlock or a permission dialog; and reviewing and merging every PR. The agent
   may install, launch, read logcat and take screenshots, and nothing more on the phone.

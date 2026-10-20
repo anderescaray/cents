@@ -1,9 +1,10 @@
 package io.github.anderescaray.cents.baselineprofile
 
+import android.graphics.Rect
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 
@@ -33,8 +34,14 @@ private const val SEED_TIMEOUT_MS = 30_000L
 private const val SEED_POLL_MS = 250L
 private const val UI_TIMEOUT_MS = 5_000L
 
-/** A fifth of the screen width, kept clear on each side of a fling. */
+/** A fifth of the list's height, kept clear at each end of a fling. */
 private const val GESTURE_MARGIN_FRACTION = 5
+
+/** How many times a list is looked up again before the journey gives up. */
+private const val LOOKUP_ATTEMPTS = 5
+
+/** Few steps make a fast swipe, which the list takes as a fling. */
+private const val FLING_STEPS = 5
 
 private var seeded = false
 
@@ -66,7 +73,8 @@ fun seedOnce() {
 /** Waits until the tab capsule is on screen, which is when Home has drawn. */
 fun MacrobenchmarkScope.waitForHome() {
     check(device.wait(Until.hasObject(By.res(TAB_TAG_PREFIX + "HOME")), UI_TIMEOUT_MS)) {
-        "Home did not appear"
+        // Most often the phone locked itself: then this names the system UI rather than the app.
+        "Home did not appear; ${device.currentPackageName} was in front"
     }
 }
 
@@ -76,15 +84,43 @@ fun MacrobenchmarkScope.openTab(key: String) {
     device.waitForIdle()
 }
 
-/** Flings the screen's list down twice and back up once. */
+/**
+ * Flings the screen's list down twice and back up once.
+ *
+ * By coordinates, from the list's bounds read once, rather than through `UiObject2.fling`, which
+ * keeps reading a node that Compose replaces while the list moves and then fails as stale.
+ */
 fun MacrobenchmarkScope.scrollDownAndUp() {
-    val list = checkNotNull(device.wait(Until.findObject(By.scrollable(true)), UI_TIMEOUT_MS)) { "Nothing to scroll" }
-    // Keep clear of the system's gesture area at the edges.
-    list.setGestureMargin(device.displayWidth / GESTURE_MARGIN_FRACTION)
+    val bounds = screenListBounds()
+    // Keep clear of the edges, where the system's own gestures are.
+    val margin = bounds.height() / GESTURE_MARGIN_FRACTION
+    val x = bounds.centerX()
+    val top = bounds.top + margin
+    val bottom = bounds.bottom - margin
     repeat(2) {
-        list.fling(Direction.DOWN)
+        device.swipe(x, bottom, x, top, FLING_STEPS)
         device.waitForIdle()
     }
-    list.fling(Direction.UP)
+    device.swipe(x, top, x, bottom, FLING_STEPS)
     device.waitForIdle()
+}
+
+/**
+ * The bounds of the screen's main list: the largest thing on it that scrolls, rather than a row
+ * of chips.
+ *
+ * Read again if the node goes stale on the way, which it does while a tab change is still fading
+ * the old screen out.
+ */
+private fun MacrobenchmarkScope.screenListBounds(): Rect {
+    repeat(LOOKUP_ATTEMPTS) {
+        device.wait(Until.hasObject(By.scrollable(true)), UI_TIMEOUT_MS)
+        try {
+            val bounds = device.findObjects(By.scrollable(true)).map { it.visibleBounds }
+            return checkNotNull(bounds.maxByOrNull { it.width() * it.height() }) { "Nothing to scroll" }
+        } catch (_: StaleObjectException) {
+            device.waitForIdle()
+        }
+    }
+    error("The list kept changing under the lookup")
 }

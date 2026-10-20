@@ -33,9 +33,12 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = true
-            }
+            // Through isMinifyEnabled rather than `optimization`: the baseline profile plugin turns
+            // minifying off for the profile's build through this one, and `optimization` would
+            // override it, leaving a profile of R8's renamed classes that matches nothing.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         // The two builds the baseline profile plugin adds for `:baselineprofile`, signed with the
         // debug key so they install. See the variants below for the rest of what sets them apart.

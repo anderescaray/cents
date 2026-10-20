@@ -16,6 +16,8 @@ android {
         minSdk = 28
         targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // The id the benchmark builds install under (app/build.gradle.kts), never the owner's.
+        testInstrumentationRunnerArguments["targetAppId"] = "io.github.anderescaray.cents.benchmark"
     }
 
     compileOptions {

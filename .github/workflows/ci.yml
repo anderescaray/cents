@@ -40,6 +40,10 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug
 
+      # R8 runs only on release, so a missing keep rule that breaks the build shows here first.
+      - name: Assemble release APK (R8)
+        run: ./gradlew assembleRelease
+
       - name: Upload reports on failure
         if: failure()
         uses: actions/upload-artifact@v4

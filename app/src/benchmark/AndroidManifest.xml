@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Only in the builds the benchmarks run (benchmarkRelease and nonMinifiedRelease, see
+  app/build.gradle.kts); never in debug or release. Exported so that the benchmark, which runs as
+  the shell, can start it with `am start`.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name=".benchmark.SeedActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Cents" />
+    </application>
+
+</manifest>

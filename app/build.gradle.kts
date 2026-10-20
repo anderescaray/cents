@@ -4,7 +4,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.androidx.baselineprofile)
 }
+
+/**
+ * The builds the benchmarks install: `benchmarkRelease` measures, `nonMinifiedRelease` generates
+ * the baseline profile. Both install under their own application id, so a benchmark never
+ * touches the owner's Cents or its data, and both carry `src/benchmark`, which fills them with an
+ * invented ledger before anything is measured.
+ */
+val benchmarkBuildTypes = setOf("benchmarkRelease", "nonMinifiedRelease")
 
 android {
     namespace = "io.github.anderescaray.cents"
@@ -24,9 +33,17 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            // Through isMinifyEnabled rather than `optimization`: the baseline profile plugin turns
+            // minifying off for the profile's build through this one, and `optimization` would
+            // override it, leaving a profile of R8's renamed classes that matches nothing.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // The two builds the baseline profile plugin adds for `:baselineprofile`, signed with the
+        // debug key so they install. See the variants below for the rest of what sets them apart.
+        configureEach {
+            if (name in benchmarkBuildTypes) signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -40,6 +57,16 @@ android {
         unitTests {
             // Robolectric needs the merged Android resources to run Room on the JVM
             isIncludeAndroidResources = true
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        if (variant.buildType in benchmarkBuildTypes) {
+            variant.applicationId.set("io.github.anderescaray.cents.benchmark")
+            variant.sources.java?.addStaticSourceDirectory("src/benchmark/java")
+            variant.sources.manifests.addStaticManifestFile("src/benchmark/AndroidManifest.xml")
         }
     }
 }
@@ -76,6 +103,10 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.okhttp)
     implementation(libs.vico.compose)
+    // Installs the baseline profile on devices that do not get it from Play, which is every one
+    // this app is on: it is sideloaded.
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
     testImplementation(libs.junit)
     testImplementation(libs.mockwebserver)
     testImplementation(libs.androidx.work.testing)

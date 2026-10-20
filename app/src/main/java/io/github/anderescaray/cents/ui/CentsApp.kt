@@ -14,6 +14,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -98,7 +100,9 @@ fun CentsApp(
             )
         }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    // Test tags are exposed as resource ids so that the benchmarks, which drive the app from
+    // outside its process, can find a tab without depending on the phone's language.
+    Column(modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) {
         Box(modifier = Modifier.weight(1f)) {
             CentsNavHost(navController = navController)
         }

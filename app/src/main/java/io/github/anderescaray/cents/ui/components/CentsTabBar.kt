@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -109,6 +110,7 @@ private fun TabButton(
         modifier =
             modifier
                 .fillMaxHeight()
+                .testTag(tabTag(item.key))
                 .semantics { this.selected = selected }
                 .clickable(
                     interactionSource = interactionSource,
@@ -177,3 +179,9 @@ private const val TAB_ICON = 24
 private const val ADD_WIDTH = 56
 private const val ADD_HEIGHT = 48
 private const val ADD_ICON = 26
+
+/**
+ * The test tag of one tab, by its key. The benchmarks in `:baselineprofile` find the tabs by it,
+ * as a resource id, because a label changes with the phone's language.
+ */
+internal fun tabTag(key: String): String = "tab_$key"

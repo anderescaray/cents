@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Cents"
 include(":app")
+include(":baselineprofile")

@@ -268,7 +268,20 @@ itself. It leaves me only what a notification cannot know: what the money was fo
   or Netflix, is the same money too (D35, 2026-10-12). A captured payment in the same account, of
   the same kind, within three days either side of a subscription's charge adds nothing new, and a
   variable bill takes its real amount from it, even when it differs. The capture's notification
-  says what it matched, with Undo.
+  says what it matched, with Undo. Settled while building (#131), kept by the owner on 2026-10-12
+  and checked on the phone on 2026-10-19:
+  - A fixed subscription matches only at its own amount; a different amount is another payment.
+    A variable one matches only while its bill waits, and the first capture of its kind in its
+    account inside the window fills it, keeping the bill's own date.
+  - The charge nearest in date wins, and one charge takes one capture: paying twice does happen.
+  - A charge notified early still matches. What has fallen due is written first, as opening the
+    app would, and a charge still to come is written by the match, dated its own day.
+  - Only an announced match happens. With *Notify after capture* off, or the app's notifications
+    blocked, the payment is saved as an ordinary capture, because a wrong match nobody saw could
+    not be undone.
+  - **Undo**, which works with the app closed, saves the payment as an ordinary capture and puts
+    back a charge the match wrote, postponement included, while the subscription still stands
+    where the match left it.
 - **Never** connects to a bank or asks for credentials: it reads the text the phone already
   shows.
 - See the feasibility analysis in §5.2: this is still the feature most likely not to work as

@@ -6,6 +6,7 @@ import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,12 +16,15 @@ import org.junit.runner.RunWith
  * two is what the profile is worth.
  *
  * Run with `./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest` with the phone
- * connected.
+ * connected, after the profile has been generated (see [BaselineProfileGenerator]).
  */
 @RunWith(AndroidJUnit4::class)
 class StartupBenchmark {
     @get:Rule
     val rule = MacrobenchmarkRule()
+
+    @Before
+    fun seed() = seedOnce()
 
     @Test
     fun startupWithoutProfile() = startup(CompilationMode.None())
@@ -35,10 +39,7 @@ class StartupBenchmark {
             compilationMode = compilationMode,
             startupMode = StartupMode.COLD,
             iterations = ITERATIONS,
-            setupBlock = {
-                seedOnce()
-                pressHome()
-            },
+            setupBlock = { pressHome() },
         ) {
             startActivityAndWait()
             waitForHome()

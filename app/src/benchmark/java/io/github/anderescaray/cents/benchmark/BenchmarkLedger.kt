@@ -25,7 +25,8 @@ import kotlin.random.Random
  * through the same restore a backup goes through. Built in code rather than kept as a file, so a
  * change to the backup's shape stops it compiling instead of leaving it quietly out of date.
  *
- * Fixed seed: every run measures the same rows.
+ * Fixed seed, and nothing dated after today: runs on the same day measure the same rows, and the
+ * ledger always ends at today, the way the owner's does.
  *
  * @suppress MagicNumber, LongMethod — this is invented data, and its figures are the point: one
  * constant per amount would hide the ledger behind its own names, and splitting [build] would
@@ -92,7 +93,7 @@ internal object BenchmarkLedger {
             add(BANK, RENT, TransactionKind.EXPENSE, 85_000, month, "Rent", ruleId = RENT_RULE)
             add(BANK, SUBSCRIPTIONS, TransactionKind.EXPENSE, 1_299, month, "Streaming", ruleId = STREAMING_RULE)
 
-            val payday = month.withDayOfMonth(minOf(28, month.lengthOfMonth()))
+            val payday = month.withDayOfMonth(28)
             if (!payday.isAfter(today)) add(BANK, SALARY, TransactionKind.INCOME, 210_000, payday, "Salary")
 
             var day = month
@@ -111,23 +112,20 @@ internal object BenchmarkLedger {
                 }
                 day = day.plusDays(1)
             }
-            add(
-                BANK,
-                UTILITIES,
-                TransactionKind.EXPENSE,
-                random.nextLong(4_000, 11_000),
-                month.plusDays(9),
-                "Electricity",
-            )
-            if (random.nextInt(4) == 0) {
-                add(
-                    BANK,
-                    HEALTH,
-                    TransactionKind.EXPENSE,
-                    random.nextLong(1_500, 8_000),
-                    month.plusDays(15),
-                    "Pharmacy",
+            // Drawn whether or not the day has come, so that a month's figures do not depend on
+            // which day of it the ledger is written.
+            val electricity = random.nextLong(4_000, 11_000)
+            val pharmacy = random.nextLong(1_500, 8_000).takeIf { random.nextInt(4) == 0 }
+            val billDay = month.withDayOfMonth(10)
+            if (!billDay.isAfter(
+                    today,
                 )
+            ) {
+                add(BANK, UTILITIES, TransactionKind.EXPENSE, electricity, billDay, "Electricity")
+            }
+            val pharmacyDay = month.withDayOfMonth(16)
+            if (pharmacy != null && !pharmacyDay.isAfter(today)) {
+                add(BANK, HEALTH, TransactionKind.EXPENSE, pharmacy, pharmacyDay, "Pharmacy")
             }
             month = month.plusMonths(1)
         }

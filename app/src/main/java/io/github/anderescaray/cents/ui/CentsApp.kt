@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +63,7 @@ import io.github.anderescaray.cents.ui.feature.transferform.TransferFormScreen
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.FullScreenForms
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
+import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 @Composable
 fun CentsApp(
@@ -102,7 +104,17 @@ fun CentsApp(
 
     // Test tags are exposed as resource ids so that the benchmarks, which drive the app from
     // outside its process, can find a tab without depending on the phone's language.
-    Column(modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) {
+    // The canvas is painted here, under every screen, and is what shows through anything not
+    // opaque edge to edge: a tab change's cross-fade, a sheet's rounded corners. Without it the
+    // window showed instead, and a tab change flashed white. The window is the canvas too
+    // (themes.xml), for the frames before this one exists.
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(CentsTheme.colors.groupedBackground)
+                .semantics { testTagsAsResourceId = true },
+    ) {
         Box(modifier = Modifier.weight(1f)) {
             CentsNavHost(navController = navController)
         }

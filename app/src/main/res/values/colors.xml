@@ -7,4 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- The window under the app: the canvas, groupedBackground in CentsColors.kt. Before the first
+         frame and behind anything not opaque, the white of the platform theme otherwise showed. -->
+    <color name="canvas">#FFF4F5F9</color>
 </resources>

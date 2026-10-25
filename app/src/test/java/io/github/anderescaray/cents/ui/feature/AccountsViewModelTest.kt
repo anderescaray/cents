@@ -48,7 +48,6 @@ class AccountsViewModelTest {
                 AccountsViewModel(
                     RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
                     RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao()),
-                    FakeMoneyFigures(),
                 ),
             )
     }

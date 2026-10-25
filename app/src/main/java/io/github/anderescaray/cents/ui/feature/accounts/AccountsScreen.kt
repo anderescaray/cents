@@ -36,7 +36,7 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 
 /**
- * What you have: the figures the owner chose, cash and bank apart from what is invested, then the
+ * What you have: every money figure, cash and bank apart from what is invested, then the
  * accounts themselves. Every balance here is computed from the movements that produced it, never stored,
  * so it cannot drift away from the history behind it.
  */
@@ -65,7 +65,7 @@ fun AccountsScreen(
         if (state.showEmptyState) {
             emptyState()
         } else {
-            state.netWorth?.let { netWorth -> figuresSection(netWorth, state.figures, onOpenInvestments) }
+            state.netWorth?.let { netWorth -> figuresSection(netWorth, onOpenInvestments) }
             accountSection(
                 key = "active",
                 headerRes = R.string.accounts_section_header,
@@ -88,10 +88,9 @@ fun AccountsScreen(
         }
 
         // The Invested tile is the way to the portfolio, and it is not drawn without a net worth
-        // (accounts in two currencies), without active accounts, or when the owner switched it
-        // off. The portfolio has no tab of its own any more, so it gets a row instead of becoming
-        // unreachable.
-        if (state.showEmptyState || state.netWorth == null || !state.figures.invested) {
+        // (accounts in two currencies) or without active accounts. The portfolio has no tab of its
+        // own any more, so it gets a row instead of becoming unreachable.
+        if (state.showEmptyState || state.netWorth == null) {
             item(key = "portfolio") {
                 CentsListSection {
                     CentsListRow(
@@ -110,18 +109,18 @@ fun AccountsScreen(
 }
 
 /**
- * The money figures the owner chose (`DECISIONS.md` D34): cash and bank, invested, and their
- * total, each on or off in Settings. The Invested tile leads to the portfolio.
+ * Cash and bank, invested, and their total, all three whatever Settings says: the switches are for
+ * Home, and Wallet is where the whole picture lives (`DECISIONS.md` D37). The Invested tile leads
+ * to the portfolio.
  */
 private fun LazyListScope.figuresSection(
     netWorth: NetWorth,
-    figures: MoneyFigures,
     onOpenInvestments: () -> Unit,
 ) {
     item(key = "figures") {
         MoneyFiguresBlock(
             netWorth = netWorth,
-            figures = figures,
+            figures = MoneyFigures.ALL,
             totalStyle = CentsTheme.typography.display,
             onOpenInvestments = onOpenInvestments,
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
@@ -140,8 +139,8 @@ private fun totalFooter(state: AccountsUiState): String? {
     return when {
         state.active.isEmpty() -> null
 
-        // The figures above say what there is, normal money and invested apart, and adding the
-        // brokers into one sum here is what the owner asked not to see (`DECISIONS.md` D34).
+        // The figures above already say what there is, normal money and invested apart and the
+        // two together, so a sum here would be a fourth figure saying one of them again.
         total != null && state.netWorth != null -> null
 
         total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))

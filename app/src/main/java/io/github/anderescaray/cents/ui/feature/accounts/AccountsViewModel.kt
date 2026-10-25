@@ -5,10 +5,8 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Money
-import io.github.anderescaray.cents.domain.model.MoneyFigures
 import io.github.anderescaray.cents.domain.model.NetWorth
 import io.github.anderescaray.cents.domain.repository.AccountRepository
-import io.github.anderescaray.cents.domain.repository.MoneyFiguresRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.usecase.netWorthOf
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,8 +23,6 @@ data class AccountsUiState(
      * (rule 2). The tab then falls back to [total], which is still true.
      */
     val netWorth: NetWorth? = null,
-    /** Which of those figures the owner chose to see (`DECISIONS.md` D34). */
-    val figures: MoneyFigures = MoneyFigures(),
     val isLoading: Boolean = true,
 ) {
     val showEmptyState: Boolean get() = !isLoading && active.isEmpty()
@@ -54,7 +50,6 @@ class AccountsViewModel
     constructor(
         accountRepository: AccountRepository,
         portfolioRepository: PortfolioRepository,
-        figuresRepository: MoneyFiguresRepository,
     ) : ViewModel() {
         /**
          * The same delete question the editor asks, reachable here by swiping a row.
@@ -76,15 +71,13 @@ class AccountsViewModel
             combine(
                 accountRepository.observeAccountsWithBalances(includeArchived = true),
                 portfolioRepository.observePortfolio(),
-                figuresRepository.observe(),
-            ) { accounts, portfolio, figures ->
+            ) { accounts, portfolio ->
                 val active = accounts.filterNot { it.account.archived }
                 val archived = accounts.filter { it.account.archived }
                 AccountsUiState(
                     active = active,
                     archived = archived,
                     netWorth = netWorthOf(accounts, portfolio),
-                    figures = figures,
                     isLoading = false,
                 )
             }.stateIn(

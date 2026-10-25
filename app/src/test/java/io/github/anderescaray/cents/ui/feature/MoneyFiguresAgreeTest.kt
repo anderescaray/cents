@@ -70,7 +70,7 @@ class MoneyFiguresAgreeTest {
         database = createTestDatabase()
         val accounts = RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock)
         val portfolio = RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao())
-        wallet = viewModels.keep(AccountsViewModel(accounts, portfolio, figures))
+        wallet = viewModels.keep(AccountsViewModel(accounts, portfolio))
         home =
             viewModels.keep(
                 HomeViewModel(
@@ -157,7 +157,7 @@ class MoneyFiguresAgreeTest {
         }
 
     @Test
-    fun `the choice made in Settings reaches both screens`() =
+    fun `the choice made in Settings reaches Home`() =
         runTest {
             database.accountDao().insert(account(name = "Checking", openingBalanceMinor = 100_000))
             val chosen = MoneyFigures(normal = false, invested = false, total = true)
@@ -166,10 +166,6 @@ class MoneyFiguresAgreeTest {
             figures.set(MoneyFigure.INVESTED, on = false)
             figures.set(MoneyFigure.TOTAL, on = true)
 
-            wallet.uiState.test {
-                awaitStateThat { it.figures == chosen }
-                cancelAndIgnoreRemainingEvents()
-            }
             home.uiState.test {
                 awaitStateThat { it.figures == chosen }
                 cancelAndIgnoreRemainingEvents()

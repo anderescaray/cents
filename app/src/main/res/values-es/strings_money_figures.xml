@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Normal money and invested money, apart, on Wallet and at the top of Home (DECISIONS.md D34). -->
+    <!-- Normal money and invested money, apart, on Wallet and at the top of Home (DECISIONS.md D34, D37). -->
     <string name="money_normal">Efectivo y banco</string>
-    <string name="settings_figures_header">Cartera e Inicio</string>
-    <string name="settings_figures_footer">Las cifras de arriba en Cartera y en Inicio. Invertido es lo que tienen tus brókers, efectivo y posiciones a su último precio. Sin ninguna activada, ninguna pantalla muestra cifras.</string>
+    <string name="settings_figures_header">Inicio</string>
+    <string name="settings_figures_footer">Las cifras de arriba en Inicio. Invertido es lo que tienen tus brókers, efectivo y posiciones a su último precio. Sin ninguna activada, Inicio no muestra ninguna. Cartera siempre muestra las tres.</string>
 </resources>

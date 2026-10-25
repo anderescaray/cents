@@ -44,12 +44,6 @@ import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
 import io.github.anderescaray.cents.ui.feature.inbox.InboxViewModel
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
-import io.github.anderescaray.cents.ui.util.formatLocale
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-
-/** The day under the month: *Wednesday, 1 October*, written the phone's way. */
-private const val DAY_PATTERN = "EEEE, d MMMM"
 
 private const val STATUS_SCRIM_ALPHA = 0.94f
 
@@ -143,18 +137,10 @@ private fun HomeList(
         contentPadding = PaddingValues(top = topInset + CentsDimens.spacingS, bottom = CentsDimens.spacingXl),
         verticalArrangement = Arrangement.spacedBy(CentsDimens.sectionSpacing),
     ) {
+        // Named like every other tab. The month and the day belong to the month's card, which is
+        // what they date, rather than heading a screen that is mostly about recording.
         item(key = "header") {
-            val locale = formatLocale()
-            ScreenHeader(
-                title =
-                    state.today.month
-                        .getDisplayName(TextStyle.FULL_STANDALONE, locale)
-                        .replaceFirstChar { it.titlecase(locale) },
-                subtitle =
-                    state.today
-                        .format(DateTimeFormatter.ofPattern(DAY_PATTERN, locale))
-                        .replaceFirstChar { it.titlecase(locale) },
-            ) {
+            ScreenHeader(title = stringResource(R.string.tab_home)) {
                 RoundIconButton(
                     iconRes = R.drawable.ic_tab_settings,
                     contentDescription = stringResource(R.string.tab_settings),

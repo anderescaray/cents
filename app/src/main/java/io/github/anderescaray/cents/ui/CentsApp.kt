@@ -77,6 +77,10 @@ fun CentsApp(
     val backStack by navController.currentBackStack.collectAsState()
     val currentTab = backStack.selectedTab()
     val onForm = backStack.lastOrNull()?.destination?.let { top -> FullScreenForms.any { top.hasRoute(it) } } == true
+    // Swiping changes tab only on a tab's own screen: on anything pushed above it, a sideways
+    // swipe would leave a half-finished form or a detail without going back through it.
+    val top = backStack.lastOrNull()?.destination
+    val onTabRoot = currentTab != null && top?.hasRoute(currentTab.destination::class) == true
 
     // Before anything is drawn from the database: whatever repeats has to be in it first, or
     // the list opens a frame short of the rent.
@@ -115,9 +119,11 @@ fun CentsApp(
                 .background(CentsTheme.colors.groupedBackground)
                 .semantics { testTagsAsResourceId = true },
     ) {
-        Box(modifier = Modifier.weight(1f)) {
-            CentsNavHost(navController = navController)
-        }
+        SwipeableTabs(
+            navController = navController,
+            swipeFrom = currentTab.takeIf { onTabRoot },
+            modifier = Modifier.weight(1f),
+        ) { slideTabs -> CentsNavHost(navController = navController, slideTabs = slideTabs) }
 
         // Not under a form: its keypad or its own button is where the capsule would be.
         AnimatedVisibility(
@@ -160,14 +166,20 @@ private fun OpenPendingFromNotification(
     }
 }
 
-/** The navigation stack: pushes slide, tab changes fade, and the movement forms rise. */
+/**
+ * The navigation stack: pushes slide, tab changes fade (or slide, when [slideTabs] says the change
+ * came from a swipe), and the movement forms rise.
+ */
 @Composable
-private fun CentsNavHost(navController: NavHostController) {
+private fun CentsNavHost(
+    navController: NavHostController,
+    slideTabs: () -> Boolean,
+) {
     NavHost(
         navController = navController,
         startDestination = Destination.Home,
-        enterTransition = { arriving() },
-        exitTransition = { leaving() },
+        enterTransition = { arriving(slideTabs = slideTabs()) },
+        exitTransition = { leaving(slideTabs = slideTabs()) },
         popEnterTransition = { arriving(BACKWARDS) },
         popExitTransition = { leaving(BACKWARDS) },
     ) {

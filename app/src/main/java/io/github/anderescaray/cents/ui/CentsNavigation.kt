@@ -153,6 +153,7 @@ private fun NavDestination.isSheet(): Boolean = SheetForms.any { hasRoute(it) }
  */
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.arriving(
     direction: AnimatedContentTransitionScope.SlideDirection = travelDirection(),
+    slideTabs: Boolean = false,
 ): EnterTransition =
     when {
         targetState.destination.isSheet() && direction != BACKWARDS -> {
@@ -164,6 +165,11 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.arriving(
 
         initialState.destination.isSheet() && direction == BACKWARDS -> {
             EnterTransition.None
+        }
+
+        // A swipe slides the tabs the way the finger went; a tap on the capsule fades.
+        isTabSwitch() && slideTabs -> {
+            slideIntoContainer(direction, animationSpec = tween(PUSH_DURATION_MS, easing = EaseOutExpo))
         }
 
         isTabSwitch() -> {
@@ -178,6 +184,7 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.arriving(
 /** The mirror of [arriving], for the screen being left behind. */
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.leaving(
     direction: AnimatedContentTransitionScope.SlideDirection = travelDirection(),
+    slideTabs: Boolean = false,
 ): ExitTransition =
     when {
         // The screen under a rising sheet stays where it is, the way a sheet covers it.
@@ -190,6 +197,10 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.leaving(
                 AnimatedContentTransitionScope.SlideDirection.Down,
                 animationSpec = tween(SHEET_FALL_MS),
             )
+        }
+
+        isTabSwitch() && slideTabs -> {
+            slideOutOfContainer(direction, animationSpec = tween(PUSH_DURATION_MS, easing = EaseOutExpo))
         }
 
         // The tab left stays opaque while the new one fades in on top of it. Fading both at

@@ -22,7 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isUnspecified
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
@@ -86,9 +88,10 @@ fun <T> CentsSegmentedControl(
 
 /**
  * One line at the size it was set: a label that does not fit shrinks a step at a time until it
- * does, rather than wrapping and being cut by the track. Spanish needs it most — *Trimestre* is
- * half again *Quarter*, in a fifth of the width. With a large system font the owner asked for big
- * words, so there it wraps and the control grows instead.
+ * does, rather than wrapping and being cut by the track. Spanish needs it most: *Trimestre* in a
+ * fifth of the width. Should one still not fit at the smallest step, it ends in an ellipsis rather
+ * than being cut without a sign. With a large system font the owner asked for big words, so there
+ * it wraps and the control grows instead.
  */
 @Composable
 private fun SegmentLabel(
@@ -106,8 +109,9 @@ private fun SegmentLabel(
         style = style,
         maxLines = if (largeFont) Int.MAX_VALUE else 1,
         softWrap = largeFont,
+        overflow = TextOverflow.Ellipsis,
         autoSize =
-            if (largeFont) {
+            if (largeFont || style.fontSize.isUnspecified) {
                 null
             } else {
                 TextAutoSize.StepBased(minFontSize = style.fontSize * MIN_LABEL_SHARE, maxFontSize = style.fontSize)

@@ -2,12 +2,15 @@ package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,10 +42,25 @@ class SegmentLabelFitTest {
         }
 
         assertEquals("Trimestre is as tall as Mes, one line", height("Mes"), height("Trimestre"), 1f)
+        // One line could still be one cut line: the whole word has to be laid out, not ellipsised.
+        val laidOut = layout("Trimestre")
+        assertFalse("Trimestre fits without being cut", laidOut.hasVisualOverflow)
+        assertFalse("Trimestre is not ellipsised", laidOut.isLineEllipsized(0))
     }
 
     private fun height(label: String): Float =
         composeRule.onNodeWithText(label).getUnclippedBoundsInRoot().let { (it.bottom - it.top).value }
+
+    private fun layout(label: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule
+            .onNodeWithText(label)
+            .fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult]
+            .action
+            ?.invoke(results)
+        return results.single()
+    }
 }
 
 /** A common phone's width, less Reports' two side margins. */

@@ -5,7 +5,6 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -193,8 +192,10 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.leaving(
             )
         }
 
+        // The tab left stays opaque while the new one fades in on top of it. Fading both at
+        // once dimmed every card halfway through, a blink between two screens that are both lit.
         isTabSwitch() -> {
-            fadeOut(tween(TAB_FADE_MS))
+            ExitTransition.KeepUntilTransitionsFinished
         }
 
         else -> {

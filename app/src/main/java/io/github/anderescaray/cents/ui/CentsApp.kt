@@ -104,8 +104,10 @@ fun CentsApp(
 
     // Test tags are exposed as resource ids so that the benchmarks, which drive the app from
     // outside its process, can find a tab without depending on the phone's language.
-    // The canvas is painted here, under every screen: a tab change cross-fades two screens, and
-    // halfway through both are half transparent, so without it the window's white flashed through.
+    // The canvas is painted here, under every screen, and is what shows through anything not
+    // opaque edge to edge: a tab change's cross-fade, a sheet's rounded corners. Without it the
+    // window showed instead, and a tab change flashed white. The window is the canvas too
+    // (themes.xml), for the frames before this one exists.
     Column(
         modifier =
             Modifier

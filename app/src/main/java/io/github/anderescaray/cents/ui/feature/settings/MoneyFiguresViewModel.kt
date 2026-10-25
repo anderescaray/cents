@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Settings' *Wallet and Home* switches: which money figures those two screens show (D34). */
+/** Settings' *Home* switches: which money figures the top of Home shows (D34, D37). */
 @HiltViewModel
 class MoneyFiguresViewModel
     @Inject

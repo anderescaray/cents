@@ -27,9 +27,9 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
 
 /**
- * The money figures the owner chose (`DECISIONS.md` D34), drawn the same way on Wallet and at the
- * top of Home: the total as a card, then cash and bank beside what is invested, then what they
- * leave out. Nothing at all when none is chosen.
+ * The money figures, drawn the same way on Wallet and at the top of Home: the total as a card,
+ * then cash and bank beside what is invested, then what they leave out. Nothing at all when none
+ * is chosen. Home passes the owner's choice (`DECISIONS.md` D34); Wallet passes every figure (D37).
  *
  * [totalStyle] and [onOpenInvestments] are the differences between the two screens. Wallet leads
  * with the total and its Invested tile opens the portfolio; on Home the total stays smaller than

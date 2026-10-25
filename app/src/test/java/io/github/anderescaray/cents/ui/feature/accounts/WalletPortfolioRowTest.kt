@@ -11,8 +11,9 @@ import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomPortfolioRepository
-import io.github.anderescaray.cents.domain.model.MoneyFigures
-import io.github.anderescaray.cents.ui.feature.FakeMoneyFigures
+import io.github.anderescaray.cents.ui.components.INVESTED_FIGURE_TAG
+import io.github.anderescaray.cents.ui.components.NORMAL_FIGURE_TAG
+import io.github.anderescaray.cents.ui.components.TOTAL_FIGURE_TAG
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -28,9 +29,10 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 /**
- * The portfolio has no tab since #109, and the Invested tile is drawn only beside a net worth, and
- * only when the owner has it on. With every account archived there is no net worth, and with the
- * tile off there is no tile: either way the portfolio must still be one tap away.
+ * The portfolio has no tab since #109, and the Invested tile is drawn only beside a net worth. With
+ * every account archived there is no net worth, so a row takes the tile's place; otherwise the
+ * tile is always there, because Wallet shows every figure whatever Home is set to
+ * (`DECISIONS.md` D37). Either way the portfolio is one tap away.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
@@ -55,38 +57,8 @@ class WalletPortfolioRowTest {
     fun `with every account archived, the portfolio is still reachable`() {
         runBlocking { database.accountDao().insert(account(name = "Broker", archived = true)) }
 
-        assertEquals(1, openPortfolioFromRow(MoneyFigures()))
-    }
-
-    @Test
-    fun `with Invested switched off, the portfolio is still reachable`() {
-        runBlocking { database.accountDao().insert(account(name = "Checking")) }
-
-        assertEquals(1, openPortfolioFromRow(MoneyFigures(normal = true, invested = false, total = true)))
-    }
-
-    /** Puts Wallet on screen with [figures] chosen, taps the portfolio row, and counts the taps. */
-    private fun openPortfolioFromRow(figures: MoneyFigures): Int {
         var opened = 0
-        composeRule.setContent {
-            CentsTheme {
-                AccountsScreen(
-                    onNewAccount = {},
-                    onOpenAccount = {},
-                    onOpenInvestments = { opened++ },
-                    viewModel =
-                        AccountsViewModel(
-                            RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
-                            RoomPortfolioRepository(
-                                database.holdingDao(),
-                                database.tradeDao(),
-                                database.priceQuoteDao(),
-                            ),
-                            FakeMoneyFigures(figures),
-                        ),
-                )
-            }
-        }
+        showWallet { opened++ }
 
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule.onAllNodes(hasTestTag(PORTFOLIO_ROW_TAG)).fetchSemanticsNodes().isNotEmpty() ||
@@ -95,6 +67,44 @@ class WalletPortfolioRowTest {
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(PORTFOLIO_ROW_TAG))
         composeRule.onNodeWithTag(PORTFOLIO_ROW_TAG).performClick()
 
-        return opened
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun `with an active account, Wallet shows every figure and Invested opens the portfolio`() {
+        runBlocking { database.accountDao().insert(account(name = "Checking")) }
+        var opened = 0
+        showWallet { opened++ }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodes(hasTestTag(INVESTED_FIGURE_TAG)).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(NORMAL_FIGURE_TAG).assertExists()
+        composeRule.onNodeWithTag(TOTAL_FIGURE_TAG).assertExists()
+        composeRule.onNodeWithTag(INVESTED_FIGURE_TAG).performClick()
+
+        assertEquals(1, opened)
+    }
+
+    /** Puts Wallet on screen, calling [onOpenInvestments] when the portfolio is opened. */
+    private fun showWallet(onOpenInvestments: () -> Unit) {
+        composeRule.setContent {
+            CentsTheme {
+                AccountsScreen(
+                    onNewAccount = {},
+                    onOpenAccount = {},
+                    onOpenInvestments = onOpenInvestments,
+                    viewModel =
+                        AccountsViewModel(
+                            RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock),
+                            RoomPortfolioRepository(
+                                database.holdingDao(),
+                                database.tradeDao(),
+                                database.priceQuoteDao(),
+                            ),
+                        ),
+                )
+            }
+        }
     }
 }

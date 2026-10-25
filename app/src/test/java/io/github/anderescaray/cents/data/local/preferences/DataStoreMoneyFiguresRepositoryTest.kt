@@ -19,7 +19,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 
-/** Which money figures Wallet and Home show, on a real DataStore file (`DECISIONS.md` D34). */
+/** Which money figures Home shows, on a real DataStore file (`DECISIONS.md` D34). */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class DataStoreMoneyFiguresRepositoryTest {

@@ -19,8 +19,8 @@ import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSwitch
 
 /**
- * Which money figures Wallet and the top of Home show (`DECISIONS.md` D34): cash and bank,
- * invested, and their total, each its own switch. One choice for both screens.
+ * Which money figures the top of Home shows (`DECISIONS.md` D34): cash and bank, invested, and
+ * their total, each its own switch. Wallet always shows all three (`DECISIONS.md` D37).
  */
 @Composable
 internal fun MoneyFiguresSection(

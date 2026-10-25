@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -161,7 +162,13 @@ private fun LazyListScope.archivedCategories(
             categories.forEachIndexed { index, category ->
                 CentsListRow(
                     title = category.name,
-                    leading = { ColorDot(Color(category.colorArgb)) },
+                    leading = {
+                        CategoryBadge(
+                            name = category.name,
+                            colorArgb = category.colorArgb,
+                            emoji = category.emoji,
+                        )
+                    },
                     showChevron = true,
                     showSeparator = index != categories.lastIndex,
                     onClick = { onOpen(category.id, category.kind) },
@@ -254,7 +261,7 @@ private fun CategoryRow(
             CentsListRow(
                 modifier = rowModifier,
                 title = category.name,
-                leading = { ColorDot(Color(category.colorArgb)) },
+                leading = { CategoryMark(category) },
                 trailing = {
                     ReorderHandle(
                         modifier =
@@ -326,14 +333,8 @@ private fun displacement(
 }
 
 @Composable
-private fun ColorDot(color: Color) {
-    Box(
-        modifier =
-            Modifier
-                .size(DOT_SIZE.dp)
-                .clip(CircleShape)
-                .background(color),
-    )
+private fun CategoryMark(category: Category) {
+    CategoryBadge(name = category.name, colorArgb = category.colorArgb, emoji = category.emoji)
 }
 
 @Composable
@@ -346,6 +347,5 @@ private fun ReorderHandle(modifier: Modifier = Modifier) {
     )
 }
 
-private const val DOT_SIZE = 12
 private const val HANDLE_SIZE = 24
 internal const val ADD_CATEGORY_TAG = "addCategory"

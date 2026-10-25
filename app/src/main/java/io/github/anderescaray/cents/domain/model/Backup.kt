@@ -73,6 +73,8 @@ data class BackupCategory(
     val parentId: Long?,
     val archived: Boolean,
     val sortOrder: Int,
+    /** Absent from backups written before emojis, which read as none. */
+    val emoji: String? = null,
 )
 
 data class BackupTransaction(

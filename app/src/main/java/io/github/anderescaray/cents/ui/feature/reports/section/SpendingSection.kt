@@ -220,7 +220,7 @@ private fun CategoryRow(
         title = slice.name ?: stringResource(R.string.reports_uncategorized),
         subtitle = stringResource(R.string.reports_share, (slice.share * PERCENT).toInt()),
         value = MoneyFormatter.format(slice.total),
-        leading = { CategoryBadge(name = slice.name, colorArgb = slice.colorArgb) },
+        leading = { CategoryBadge(name = slice.name, colorArgb = slice.colorArgb, emoji = slice.emoji) },
         showChevron = true,
         showSeparator = !last,
         onClick = onClick,

@@ -78,6 +78,7 @@ fun BackupCategory.toEntity(createdAt: Instant) =
         name = name,
         kind = enumOrDefault(kind, CategoryKind.EXPENSE),
         colorArgb = colorArgb,
+        iconKey = emoji,
         parentId = parentId,
         archived = archived,
         sortOrder = sortOrder,

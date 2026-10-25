@@ -72,7 +72,14 @@ internal fun ChoiceRows(
             label = stringResource(R.string.field_category),
             value = category?.name ?: stringResource(R.string.form_category_none),
             valueIsNone = category == null,
-            leading = { CategoryBadge(name = category?.name, colorArgb = category?.colorArgb, size = CHOICE_BADGE) },
+            leading = {
+                CategoryBadge(
+                    name = category?.name,
+                    colorArgb = category?.colorArgb,
+                    size = CHOICE_BADGE,
+                    emoji = category?.emoji,
+                )
+            },
             onClick = onCategory,
             modifier = Modifier.testTag(CATEGORY_ROW_TAG),
         )
@@ -219,7 +226,7 @@ internal fun NoteField(
 }
 
 /**
- * Every category of this kind, one under the other. Choosing one files the movement there and
+ * Every category of this kind, three to a row. Choosing one files the movement there and
  * closes the sheet; choosing the one already chosen keeps it. Leaving the movement uncategorized
  * is its own row, so it is never done by accident, and a new category is one more.
  */
@@ -232,7 +239,9 @@ internal fun CategorySheet(
 ) {
     val selected = state.selectedCategoryId
     val choices =
-        remember(state.categories) { state.categories.map { PickerChoice(it.id, it.name, colorArgb = it.colorArgb) } }
+        remember(state.categories) {
+            state.categories.map { PickerChoice(it.id, it.name, colorArgb = it.colorArgb, emoji = it.emoji) }
+        }
     val clearLabel = stringResource(R.string.form_category_clear)
     val newLabel = stringResource(R.string.form_category_new)
     CentsPickerSheet(
@@ -244,6 +253,7 @@ internal fun CategorySheet(
             onCloseSheet()
         },
         onDismiss = onCloseSheet,
+        grid = true,
         footer =
             if (state.categories.isEmpty()) {
                 stringResource(R.string.field_category_empty_footer)

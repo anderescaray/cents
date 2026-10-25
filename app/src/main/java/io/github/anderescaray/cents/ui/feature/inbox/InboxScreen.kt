@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
@@ -169,12 +170,21 @@ private fun CategoryChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
     ) {
-        Box(
-            Modifier
-                .size(DOT_SIZE.dp)
-                .clip(CircleShape)
-                .background(Color(category.colorArgb)),
-        )
+        if (category.emoji != null) {
+            CategoryBadge(
+                name = category.name,
+                colorArgb = category.colorArgb,
+                emoji = category.emoji,
+                size = EMOJI_BADGE.dp,
+            )
+        } else {
+            Box(
+                Modifier
+                    .size(DOT_SIZE.dp)
+                    .clip(CircleShape)
+                    .background(Color(category.colorArgb)),
+            )
+        }
         Text(text = category.name, style = CentsTheme.typography.subhead, color = CentsTheme.colors.label)
     }
 }
@@ -183,3 +193,4 @@ internal fun inboxChipsTag(transactionId: Long) = "inboxChips-$transactionId"
 
 private const val CHIP_RADIUS = 16
 private const val DOT_SIZE = 10
+private const val EMOJI_BADGE = 22

@@ -17,6 +17,7 @@ data class CategorySpending(
     val total: Money,
     val transactionCount: Int,
     val share: Float,
+    val emoji: String? = null,
 )
 
 /**

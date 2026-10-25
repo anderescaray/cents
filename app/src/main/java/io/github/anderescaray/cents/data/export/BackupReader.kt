@@ -156,6 +156,7 @@ object BackupReader {
             parentId = row.long("parentId"),
             archived = row.boolean("archived"),
             sortOrder = row.requireLong("sortOrder").toInt(),
+            emoji = row.string("emoji"),
         )
 
     private fun transaction(row: JsonObject) =

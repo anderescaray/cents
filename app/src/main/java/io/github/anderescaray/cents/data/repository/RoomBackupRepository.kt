@@ -95,6 +95,7 @@ class RoomBackupRepository
                     parentId = it.parentId,
                     archived = it.archived,
                     sortOrder = it.sortOrder,
+                    emoji = it.iconKey,
                 )
             }
 

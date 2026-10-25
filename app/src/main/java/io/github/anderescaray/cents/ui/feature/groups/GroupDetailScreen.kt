@@ -22,12 +22,12 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.GroupSummary
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.tappable
-import io.github.anderescaray.cents.ui.feature.reports.Swatch
 import io.github.anderescaray.cents.ui.feature.reports.section.SpendingDonut
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -199,7 +199,7 @@ private fun LazyListScope.breakdown(
                     title = slice.name ?: stringResource(R.string.reports_uncategorized),
                     subtitle = stringResource(R.string.reports_share, (slice.share * PERCENT).toInt()),
                     value = MoneyFormatter.format(slice.total),
-                    leading = { Swatch(slice.colorArgb?.let { Color(it) } ?: CentsTheme.colors.tertiaryLabel) },
+                    leading = { CategoryBadge(name = slice.name, colorArgb = slice.colorArgb, emoji = slice.emoji) },
                     showChevron = true,
                     showSeparator = index != slices.lastIndex,
                     onClick = { onShow(slice) },

@@ -54,6 +54,7 @@ class RoomGroupRepository
                         categoryId = row.categoryId,
                         name = row.categoryName,
                         colorArgb = row.categoryColorArgb,
+                        emoji = row.categoryEmoji,
                         total = Money(row.totalMinor, currency),
                         transactionCount = row.transactionCount,
                         // A zero total means there are no rows, so no slice is divided by it.

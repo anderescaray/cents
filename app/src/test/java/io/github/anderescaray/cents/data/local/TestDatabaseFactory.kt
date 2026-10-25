@@ -75,10 +75,12 @@ fun category(
     parentId: Long? = null,
     archived: Boolean = false,
     sortOrder: Int = 0,
+    emoji: String? = null,
 ) = CategoryEntity(
     name = name,
     kind = kind,
     colorArgb = 0xFFEF6C00.toInt(),
+    iconKey = emoji,
     parentId = parentId,
     archived = archived,
     sortOrder = sortOrder,

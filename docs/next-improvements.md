@@ -24,8 +24,8 @@ session can build it without the original conversation. **The build order is
   the top of Home. #138, checked in Walk 29 (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [x] 7. Set an account's current balance, choosing the historical effect each time. #112, #120
   and #121, checked in Walks 23 and 24 (2026-10-18). Now in `docs/PRD.md` §4.2.
-- [ ] 8. Hide/archive groups from new-movement selectors without deleting them. **Merged in
-  #140**, with Room v13. Phone check: `docs/device-check.md` G2–G4.
+- [x] 8. Hide/archive groups from new-movement selectors without deleting them. #140, checked
+  on the phone (G2–G4, 2026-10-25). Now in `docs/PRD.md` §4.9.
 - [x] 9. Exclude broker accounts from new manual income/expense selection, but not transfers.
   #117 and #133 (D32), checked in Walks 22 and 27 (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [x] 10. Offer only broker accounts when choosing where a new investment is held. #117, checked
@@ -34,40 +34,34 @@ session can build it without the original conversation. **The build order is
   (2026-10-18). Now in `docs/PRD.md` §4.2.
 - [x] 12. Capture recognises a subscription's charge instead of recording it twice (`DECISIONS.md`
   D35). #131, checked on 2026-10-19 (K6–K10). Now in `docs/PRD.md` §4.6.
+- [ ] 13. The figure switches in Settings govern Home only; Wallet always shows every figure
+  (`DECISIONS.md` D37).
+- [ ] 14. Clearing every filter from the top of the Filters screen, not only from its foot.
 
-## 8. Group visibility without deletion
+## 13. Figure switches for Home only
 
-**Request:** an old trip, such as June 2026, should not keep appearing when recording movements in
-December, but its history must remain available.
+**Request (2026-10-25):** turning off Cash and bank, Invested or Net worth in Settings should take
+it off Home, and nothing else. Wallet is where the owner goes for the whole picture, so it always
+shows all three.
 
-**Merged in #140** (2026-10-18). This section goes once G2–G4 pass.
+- Wallet shows Cash and bank, Invested and Net worth whatever the switches say. Invested still
+  opens the portfolio.
+- Home follows the switches exactly as it does today, all three off included.
+- The Settings section and its footer say *Home*, not *Wallet and Home*, in both languages.
+- The stored switches keep their values; nothing migrates.
 
-- Add a reversible **Show when adding movements** control, or equivalent **Archive / Reactivate**
-  actions, for a group.
-- Hide inactive/archived groups from new-movement choices, without deleting the group or changing
-  any of its existing movements, totals, reports or budget effects.
-- Keep archived groups accessible from group management and historical searches/filters, with a
-  clear way to reactivate them.
-- When editing an old movement, retain and display its already-assigned archived group. Saving
-  a note or amount must not silently remove that group because it is absent from new-entry choices.
-- This is a manual availability control, not automatic date-based archiving. Group dates remain
-  hints for ordering unless the owner separately requests a different rule.
-- Persist the flag with the group and carry it in backups. Existing groups and older backups
-  should default to available. Ship the Room migration and round-trip tests with the feature.
+## 14. Clear all filters from the top
 
-What was settled while building, each a line the owner can change:
+**Request (2026-10-25):** on Movements › Filters, *Show everything again* sits at the foot of the
+form, so clearing filters means scrolling past every section.
 
-- **Archive and Reactivate are in the group's editor**, beside Delete, and archiving saves whatever
-  else was changed on the form. Archived groups are listed apart, below the others, and a group's
-  own screen says it is archived and how to bring it back.
-- **Editing a movement already recorded offers every group**, archived ones last and marked
-  *(archived)*: a forgotten dinner can still be put in the June trip. Only a new movement leaves
-  them out.
+- The way to clear every filter is reachable without scrolling, at the top of the Filters screen,
+  and does the same as the button at the foot: every filter and the search go.
+- It shows only while something is narrowing the list, like the *Show everything* row on the list
+  itself.
 
 ## Acceptance for what is still to build
 
-- **Groups:** archiving a June trip hides it from December's choices but keeps June's movements
-  and totals. Editing an old movement keeps its group, and reactivating the group restores it.
 - **Every item:** migration and backup round-trip tests for anything stored, the gates in
   [`docs/testing.md`](testing.md), and a walk on the phone. A green JVM suite does not show that a
   gesture, a keyboard or the system language behaves on a device.
@@ -85,10 +79,11 @@ Real requests the owner has not put in the build order yet.
   a *Saved* mode (#101). The Spanish *Balance* label reads as an account balance and should
   change.
 - **Delete one Drive backup at a time** (2026-10-01), from *Restore from Drive*, with a
-  confirmation. Today only retention removes copies.
+  confirmation. Today only retention removes copies. This adds a delete to each copy in the list;
+  the daily backup and restore stay exactly as they are.
 - **Resizable Reports cards** (D4). Reordering and hiding are built (#109).
-- **PRD Phase 6:** a home-screen widget, and the release measurements `CLAUDE.md` §5 asks for
-  before shipping: R8, a Baseline Profile, and Macrobenchmark on the Pixel.
+- **A home-screen widget**, the last of PRD Phase 6. R8, the Baseline Profile and Macrobenchmark
+  are built (#146).
 
 ## Engineering follow-ups
 

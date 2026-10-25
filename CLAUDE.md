@@ -47,6 +47,7 @@ investment portfolio with prices pulled from the internet.
 | Build | Gradle KTS + version catalog (`gradle/libs.versions.toml`) | Single source of versions |
 | Code quality | detekt + ktlint (via Spotless) | Enforced in CI |
 | Tests | JUnit + MockK + Turbine + in-memory Room (on the JVM via Robolectric) + Compose UI Test, plus `mockwebserver3` and `work-testing` | Robolectric lets DAO and migration tests run in CI, which has no device. **MockWebServer** checks the real HTTP the Drive client sends — bodies, bearer headers, paging, error mapping — without a Google account; **work-testing** runs the real backup worker, its `@EntryPoint` and its schedule on the JVM. Both test-only |
+| Release performance | `androidx.baselineprofile` plugin and `benchmark-macro-junit4` (**1.5.0**), `uiautomator` (**2.4.0**), `profileinstaller` (**1.4.1**) | Since #146, for §5: the `:baselineprofile` module generates the Baseline Profile and measures cold startup and scrolling with Macrobenchmark, driving the app from outside its process with UI Automator. 1.5.0 is the first stable line for AGP 9. Those two are test-module only and run on the phone, never in CI (`docs/testing.md`). **profileinstaller** ships in the app, because it is what puts the profile in place on a sideloaded install, which is every install of this one |
 | CI | GitHub Actions | build + tests + lint on every PR |
 
 **minSdk 26** (Android 8.0) — gives `java.time` without desugaring and covers the vast

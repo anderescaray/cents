@@ -25,10 +25,10 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-Nothing is open. One check is still to come, on the build installed 2026-10-18 (`8dd2a78`),
-with the steps in [`docs/device-check.md`](docs/device-check.md):
+Nothing is open, and no check is waiting.
 
-- **G2–G4**, archiving a group (#140).
+**Checked by 2026-10-25 and correct:** G2–G4, archiving a group (#140), on the build installed
+2026-10-18 (`8dd2a78`). Every confirmed request so far has now been checked on the phone.
 
 **Checked on 2026-10-19 and correct:** capture from notifications, the owner reported, which
 covers K6–K10, capture recognising a subscription's charge (#131).
@@ -37,7 +37,8 @@ covers K6–K10, capture recognising a subscription's charge (#131).
 (a1–a2) and 29 (f1–f3). On b1 the owner asked for nothing more to change. Walk 22 passed on
 2026-10-09. Walk 21's notes are not coming: Walks 23 and 24 checked again what #120 changed there.
 
-Whatever G2–G4 turns up lands here, and it becomes the next branch.
+The two requests made with that report on 2026-10-25 are changes rather than faults, so they are
+backlog items 13 and 14 in [`docs/next-improvements.md`](docs/next-improvements.md).
 
 ---
 

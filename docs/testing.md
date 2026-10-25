@@ -22,6 +22,31 @@ can check goes in [`device-check.md`](device-check.md).
 - **On Windows**, if Spotless fails reading `app/build/spotless-clean`, retry with
   `--no-parallel --max-workers=1`.
 
+## Benchmarks and the Baseline Profile
+
+The `:baselineprofile` module (#146) runs on the connected phone only, never in CI. It installs
+`benchmarkRelease`, an R8 build under the id `io.github.anderescaray.cents.benchmark`, so a run
+never touches the owner's Cents or its data. Each test first seeds it with an invented two-year
+ledger through the real backup restore (`app/src/benchmark`, `SeedActivity`).
+
+```bash
+adb shell svc power stayon usb                                   # keep the screen on while plugged in
+./gradlew :app:generateBaselineProfile                           # rewrites app/src/release/generated/baselineProfiles
+./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest  # startup and scrolling, with and without the profile
+adb shell svc power stayon false                                 # put the phone back as it was
+```
+
+- **Unlock the phone first, and keep it on.** Every failed run so far failed only because the
+  phone locked. `stayon usb` needs the owner's say-so, which was given on 2026-10-20.
+- **Commit the regenerated profile** after a change to startup or the tabs. It is a source file,
+  and a stale one is quietly worse than none.
+- **Results** are in `baselineprofile/build/outputs/connected_android_test_additional_output/`.
+  Read the medians, not one run: this phone is fast, so the profile's gain is small (about 7 % on
+  a cold start on 2026-10-20, in #146).
+- **A crash on the first frame of a release build is R8**, not the profile. Navigation finds an
+  enum route argument by name, so `app/proguard-rules.pro` keeps `domain.model`'s enums. A new
+  enum argument elsewhere needs the same rule.
+
 ## Where tests go
 
 | What | How | Example |

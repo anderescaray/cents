@@ -135,8 +135,9 @@ internal fun NavHostController.openMovementsList() {
 
 /**
  * Whether this is a change of tab rather than a push inside one: both ends belong to a tab, and
- * not the same one. Those cross-fade — the capsule has already shown where you went, and a slide
- * on top of that would be two motions for one tap.
+ * not the same one. A tap on the capsule cross-fades — the capsule has already shown where you
+ * went, and a slide on top of that would be two motions for one tap. A swipe slides, because
+ * there the slide is the finger's own motion carried on.
  */
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean {
     val from = initialState.destination.owningTab()
@@ -148,8 +149,9 @@ private fun NavDestination.isSheet(): Boolean = SheetForms.any { hasRoute(it) }
 
 /**
  * What a screen arriving looks like: a sheet rising for the movement forms, a fade for a change
- * of tab, and a push otherwise. Named rather than written inline four times, because the pop pair
- * differs from the push pair by one word and that is exactly the kind of thing that drifts.
+ * of tab (a slide when [slideTabs] says it was swiped), and a push otherwise. Named rather than
+ * written inline four times, because the pop pair differs from the push pair by one word and that
+ * is exactly the kind of thing that drifts.
  */
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.arriving(
     direction: AnimatedContentTransitionScope.SlideDirection = travelDirection(),

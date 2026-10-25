@@ -76,10 +76,10 @@ fun CentsApp(
 ) {
     val backStack by navController.currentBackStack.collectAsState()
     val currentTab = backStack.selectedTab()
-    val onForm = backStack.lastOrNull()?.destination?.let { top -> FullScreenForms.any { top.hasRoute(it) } } == true
+    val top = backStack.lastOrNull()?.destination
+    val onForm = top?.let { FullScreenForms.any { route -> it.hasRoute(route) } } == true
     // Swiping changes tab only on a tab's own screen: on anything pushed above it, a sideways
     // swipe would leave a half-finished form or a detail without going back through it.
-    val top = backStack.lastOrNull()?.destination
     val onTabRoot = currentTab != null && top?.hasRoute(currentTab.destination::class) == true
 
     // Before anything is drawn from the database: whatever repeats has to be in it first, or
@@ -180,8 +180,9 @@ private fun CentsNavHost(
         startDestination = Destination.Home,
         enterTransition = { arriving(slideTabs = slideTabs()) },
         exitTransition = { leaving(slideTabs = slideTabs()) },
-        popEnterTransition = { arriving(BACKWARDS) },
-        popExitTransition = { leaving(BACKWARDS) },
+        // A swipe back to Home is a pop (switchToTab pops to it), and slides like any other swipe.
+        popEnterTransition = { arriving(BACKWARDS, slideTabs = slideTabs()) },
+        popExitTransition = { leaving(BACKWARDS, slideTabs = slideTabs()) },
     ) {
         composable<Destination.Home> {
             HomeScreen(

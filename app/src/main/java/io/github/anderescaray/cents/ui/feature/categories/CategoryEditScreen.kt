@@ -22,7 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +43,7 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsColorPicker
+import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListScreen
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
@@ -146,33 +150,28 @@ private fun CategoryForm(
 
 /**
  * The emoji drawn on the category's colour: one of the common ones in a tap, or any other from
- * the keyboard's own emoji picker. The colour section stays underneath, because the ring and the
- * bars are drawn in the colour whatever the emoji is.
+ * the full picker, every emoji the phone has, by group and with a search. The colour section stays
+ * underneath, because the ring and the bars are drawn in the colour whatever the emoji is.
  */
 @Composable
 private fun EmojiSection(
     state: CategoryEditUiState,
     onChoose: (String?) -> Unit,
 ) {
+    var picking by rememberSaveable { mutableStateOf(false) }
     CentsListSection(
         header = stringResource(R.string.category_emoji_header),
         footer = stringResource(R.string.category_emoji_footer),
     ) {
-        Row(
-            modifier = Modifier.padding(start = CentsDimens.rowHorizontalPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CategoryBadge(name = state.name.ifBlank { null }, colorArgb = state.colorArgb, emoji = state.emoji)
-            Box(modifier = Modifier.weight(1f)) {
-                CentsTextField(
-                    value = state.emoji.orEmpty(),
-                    onValueChange = onChoose,
-                    placeholder = stringResource(R.string.category_emoji_placeholder),
-                    modifier = Modifier.testTag(EMOJI_FIELD_TAG),
-                    showSeparator = true,
-                )
-            }
-        }
+        CentsListRow(
+            title = stringResource(R.string.category_emoji_all),
+            leading = {
+                CategoryBadge(name = state.name.ifBlank { null }, colorArgb = state.colorArgb, emoji = state.emoji)
+            },
+            showChevron = true,
+            onClick = { picking = true },
+            modifier = Modifier.testTag(ALL_EMOJIS_TAG),
+        )
         Column(
             modifier = Modifier.padding(CentsDimens.rowHorizontalPadding),
             verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
@@ -189,6 +188,15 @@ private fun EmojiSection(
                 onClick = { onChoose(null) },
             )
         }
+    }
+    if (picking) {
+        EmojiPickerSheet(
+            onPick = { emoji ->
+                onChoose(emoji)
+                picking = false
+            },
+            onDismiss = { picking = false },
+        )
     }
 }
 
@@ -299,4 +307,4 @@ private const val EMOJI_CELL = 44
 private const val SELECTED_EMOJI_BORDER = 2
 private const val SELECTED_EMOJI_ALPHA = 0.1f
 
-internal const val EMOJI_FIELD_TAG = "categoryEmoji"
+internal const val ALL_EMOJIS_TAG = "allEmojis"

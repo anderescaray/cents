@@ -45,8 +45,13 @@ import io.github.anderescaray.cents.ui.feature.inbox.inboxChipsTag
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
+import io.github.anderescaray.cents.ui.util.formatLocale
 import io.github.anderescaray.cents.ui.util.relativeLabel
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+/** Under the month's heading: *Saturday, 25 October*, written the phone's way. */
+private const val DAY_PATTERN = "EEEE, d MMMM"
 
 // The cards Home is made of: a waiting movement, the bills waiting for a figure, and the month.
 
@@ -192,6 +197,15 @@ internal fun MonthCard(
             style = CentsTheme.typography.title3,
             color = CentsTheme.colors.label,
             modifier = Modifier.semantics { heading() },
+        )
+        val locale = formatLocale()
+        Text(
+            text =
+                state.today
+                    .format(DateTimeFormatter.ofPattern(DAY_PATTERN, locale))
+                    .replaceFirstChar { it.titlecase(locale) },
+            style = CentsTheme.typography.subhead,
+            color = CentsTheme.colors.secondaryLabel,
         )
         if (state.summary != null) {
             Spacer(Modifier.height(CentsDimens.spacingM))

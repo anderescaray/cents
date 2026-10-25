@@ -310,15 +310,18 @@ private fun LazyListScope.amountSection(
 }
 
 /**
- * First on the form, so clearing never means scrolling past seven sections to find it (backlog
- * item 14). Like every other change here, it waits for Apply.
+ * First on the form, so clearing never means scrolling past every section to find it. Like every
+ * other change here, it waits for Apply. It is red while anything narrows the list, search text
+ * included, and the footer appears only when there is search text to lose, as on the list.
  */
 private fun LazyListScope.clearSection(
     state: TransactionFiltersUiState,
     viewModel: TransactionFiltersViewModel,
 ) {
     item(key = "clear") {
-        CentsListSection(footer = stringResource(R.string.filters_clear_footer)) {
+        CentsListSection(
+            footer = stringResource(R.string.filters_clear_footer).takeIf { state.draft.query.isNotBlank() },
+        ) {
             CentsActionRow(
                 label = stringResource(R.string.filters_clear),
                 onClick = viewModel::clear,

@@ -66,8 +66,8 @@ data class TransactionFiltersUiState(
     val today: LocalDate = LocalDate.now(),
     val openPicker: DateBound? = null,
 ) {
-    /** Nothing is narrowing the list, so there is nothing for Clear to do. */
-    val isPristine: Boolean get() = draft.activeCount == 0
+    /** Nothing is narrowing the list, search text included, so there is nothing for Clear to do. */
+    val isPristine: Boolean get() = !draft.isNarrowed
 }
 
 /**

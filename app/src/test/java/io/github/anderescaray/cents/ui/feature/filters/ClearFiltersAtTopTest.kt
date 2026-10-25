@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomGroupRepository
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.feature.ViewModelKeeper
 import io.github.anderescaray.cents.ui.filter.TransactionFilterStore
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.After
@@ -28,7 +29,7 @@ import java.time.ZoneOffset
 
 /**
  * Clearing every filter is the first thing on the Filters screen, so it is reached without
- * scrolling (backlog item 14), and it still clears the search and waits for Apply.
+ * scrolling, and it still clears the search and waits for Apply.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
@@ -39,6 +40,7 @@ class ClearFiltersAtTopTest {
     private lateinit var database: CentsDatabase
     private val clock = Clock.fixed(Instant.parse("2026-10-25T10:00:00Z"), ZoneOffset.UTC)
     private val filters = TransactionFilterStore()
+    private val viewModels = ViewModelKeeper()
 
     @Before
     fun setUp() {
@@ -47,6 +49,7 @@ class ClearFiltersAtTopTest {
 
     @After
     fun tearDown() {
+        viewModels.cancelAll()
         database.close()
     }
 
@@ -60,19 +63,21 @@ class ClearFiltersAtTopTest {
                 TransactionFiltersScreen(
                     onDone = { done++ },
                     viewModel =
-                        TransactionFiltersViewModel(
-                            filters = filters,
-                            accountRepository =
-                                RoomAccountRepository(
-                                    database.accountDao(),
-                                    database.transactionDao(),
-                                    database,
-                                    clock,
-                                ),
-                            categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
-                            groupRepository =
-                                RoomGroupRepository(database.groupDao(), database.transactionDao(), clock),
-                            clock = clock,
+                        viewModels.keep(
+                            TransactionFiltersViewModel(
+                                filters = filters,
+                                accountRepository =
+                                    RoomAccountRepository(
+                                        database.accountDao(),
+                                        database.transactionDao(),
+                                        database,
+                                        clock,
+                                    ),
+                                categoryRepository = RoomCategoryRepository(database.categoryDao(), database, clock),
+                                groupRepository =
+                                    RoomGroupRepository(database.groupDao(), database.transactionDao(), clock),
+                                clock = clock,
+                            ),
                         ),
                 )
             }

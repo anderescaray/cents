@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,14 +73,15 @@ fun TransactionFiltersScreen(
             contentPadding =
                 PaddingValues(
                     top = CentsDimens.spacingL,
-                    // The last row here is an action. Without the navigation-bar inset it
-                    // sits under the gesture bar, where it is hard to tap and easy to miss.
+                    // Without the navigation-bar inset the amount fields, last on the form,
+                    // sit under the gesture bar, where they are hard to tap.
                     bottom =
                         CentsDimens.sectionSpacing +
                             WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
                 ),
             verticalArrangement = Arrangement.spacedBy(CentsDimens.sectionSpacing),
         ) {
+            clearSection(state, viewModel)
             kindSection(state, viewModel)
             dateSection(state, viewModel)
             weekdaySection(state, viewModel)
@@ -87,7 +89,6 @@ fun TransactionFiltersScreen(
             categorySection(state, viewModel)
             groupSection(state, viewModel)
             amountSection(state, viewModel)
-            clearSection(state, viewModel)
         }
     }
 
@@ -308,6 +309,10 @@ private fun LazyListScope.amountSection(
     }
 }
 
+/**
+ * First on the form, so clearing never means scrolling past seven sections to find it (backlog
+ * item 14). Like every other change here, it waits for Apply.
+ */
 private fun LazyListScope.clearSection(
     state: TransactionFiltersUiState,
     viewModel: TransactionFiltersViewModel,
@@ -318,7 +323,10 @@ private fun LazyListScope.clearSection(
                 label = stringResource(R.string.filters_clear),
                 onClick = viewModel::clear,
                 destructive = !state.isPristine,
+                modifier = Modifier.testTag(CLEAR_ALL_FILTERS_TAG),
             )
         }
     }
 }
+
+internal const val CLEAR_ALL_FILTERS_TAG = "clearAllFilters"

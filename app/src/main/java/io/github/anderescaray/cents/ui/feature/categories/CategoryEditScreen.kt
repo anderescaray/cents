@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -150,7 +151,7 @@ private fun CategoryForm(
 
 /**
  * The emoji drawn on the category's colour: one of the common ones in a tap, or any other from
- * the full picker, every emoji the phone has, by group and with a search. The colour section stays
+ * the full picker, every emoji the phone has, by group. The colour section stays
  * underneath, because the ring and the bars are drawn in the colour whatever the emoji is.
  */
 @Composable
@@ -159,6 +160,7 @@ private fun EmojiSection(
     onChoose: (String?) -> Unit,
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
+    val focus = LocalFocusManager.current
     CentsListSection(
         header = stringResource(R.string.category_emoji_header),
         footer = stringResource(R.string.category_emoji_footer),
@@ -169,7 +171,11 @@ private fun EmojiSection(
                 CategoryBadge(name = state.name.ifBlank { null }, colorArgb = state.colorArgb, emoji = state.emoji)
             },
             showChevron = true,
-            onClick = { picking = true },
+            onClick = {
+                // The name's keyboard would otherwise stay up over the bottom of the picker.
+                focus.clearFocus()
+                picking = true
+            },
             modifier = Modifier.testTag(ALL_EMOJIS_TAG),
         )
         Column(
@@ -271,8 +277,8 @@ private fun CategoryActions(
 internal const val NAME_FIELD_TAG = "categoryName"
 
 /**
- * The emojis a money app's categories are most often about, four rows of six; anything else comes
- * from the keyboard.
+ * The emojis a money app's categories are most often about, four rows of six, one tap
+ * each; anything else comes from the full picker.
  */
 private val SuggestedEmojis =
     listOf(

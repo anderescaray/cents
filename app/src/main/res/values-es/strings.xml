@@ -176,7 +176,7 @@
     <string name="reports_period_month">Mes</string>
     <string name="reports_period_quarter">Trimestre</string>
     <string name="reports_period_year">Año</string>
-    <string name="reports_period_custom">Personalizado</string>
+    <string name="reports_period_custom">Fechas</string>
     <string name="reports_range_from">Desde</string>
     <string name="reports_range_to">Hasta</string>
     <string name="reports_spending_header">A dónde fue el dinero</string>

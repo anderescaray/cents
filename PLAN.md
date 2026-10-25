@@ -25,40 +25,35 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-25)
 
-- **`main`** is at `3b9924c` (#146), with **Room v13** and **1140 JVM tests**. PRD phases 1 to 5
-  are built, with prices typed by hand (D25). From Phase 6, accessibility (#96), R8, the Baseline
-  Profile and Macrobenchmark (#146) are built; the widget is not. What the app does is in
-  [`README.md`](README.md#what-it-does).
-- **Latest merges:** #146, R8 on release (3.5 MB), a committed Baseline Profile and the
-  `:baselineprofile` module, measured on the Pixel on 2026-10-20 (a cold start of 162 ms with the
-  profile, 175 ms without); #145 and #144, documentation.
-- **Every confirmed request is checked on the phone**, item 8 (archiving a group, G2–G4) last,
-  reported on 2026-10-25.
-- **Two new requests** (2026-10-25), backlog items 13 and 14: the figure switches in Settings
-  govern Home only, Wallet always showing everything (D37, amending D34); and clearing every
-  filter from the top of the Filters screen.
-- **The Pixel runs `8dd2a78`**, installed 2026-10-18. #143 and #146 are not on it yet.
+- **`main`** is at `4baaa94` (#149), with **Room v13** and **1141 JVM tests**. PRD phases 1 to 5
+  are built, with prices typed by hand (D25). Phase 6 is done as far as it is wanted:
+  accessibility (#96), R8, the Baseline Profile and Macrobenchmark (#146); the widget was dropped
+  (D38). What the app does is in [`README.md`](README.md#what-it-does).
+- **Latest merges (2026-10-25):** #149, *Show everything again* first on the Filters screen
+  (item 14); #148, the figure switches govern Home only and Wallet always shows all three (item
+  13, D37); #147, documentation.
+- **Dropped by the owner (D38):** the home-screen widget, and hiding a tab.
+- **The Pixel runs `8dd2a78`**, installed 2026-10-18. #143, #146, #148 and #149 are not on it.
 - **No question is open in `DECISIONS.md`.**
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
 ## 3. Next, in order
 
-1. **Item 13**, the figure switches for Home only (`fix/figures-home-only`).
-2. **Item 14**, clearing every filter from the top (`feat/clear-filters-at-top`). Disjoint from
-   item 13, so the two can run side by side.
-3. **Then the owner's choice** from the backlog's *Requested, not yet placed*: the widget, hiding
-   a tab, the savings card on Reports, deleting one Drive backup, resizable Reports cards.
+1. **UI and UX improvements**, the owner's choice on 2026-10-25. What exactly is being scoped
+   with the owner; it becomes backlog items before any branch starts. The look stays ADR 0003's.
+2. **Then, from the backlog's *Requested, not yet placed*:** the savings card on Reports,
+   deleting one Drive backup, resizable Reports cards.
 
 ## 4. Waiting on the owner
 
-- **This session's docs PR** (`docs/baseline-profile-and-groups-checked`), to review and merge.
-- **Items 13 and 14 on the phone** once merged and installed: Settings, then Home and Wallet;
-  Movements › Filters.
-- **What comes after them** (§3, item 3).
+- **This session's docs PR** (`docs/home-only-figures-and-scope`), to review and merge.
+- **A4 and M2 on the phone**, items 13 and 14, once a new build is installed.
+- **What the UI and UX work should cover** (§3, item 1).
 - **Branches** that are merged or superseded and can be deleted when the owner says so. On
   GitHub: `docs/session-2026-10-18` (#142), `docs/next-improvements` (#110) and
-  `feat/groups-screens` (#87). Locally: `feat/baseline-profile` (#146), every
+  `feat/groups-screens` (#87). Locally: `feat/baseline-profile`, `fix/figures-home-only`,
+  `feat/clear-filters-at-top`, `docs/baseline-profile-and-groups-checked`, every
   `docs/session-*`, `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
   `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux` and
   `fix/correction-undo-test-race`, plus the worktree `C:\dev\cents-docs-plan`.

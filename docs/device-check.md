@@ -119,6 +119,8 @@ on Movements or on the account's own screen. Undo brings it back unchanged, with
 - The round **filter** button sits beside **+**, apart from the title even when it collapses. With a
   filter on, it turns blue with a count.
 - **Filters › This month › Between two dates** shows **From** and **To** underneath.
+- **Show everything again** is the first row of Filters, red while anything narrows the list. It
+  clears every filter and the search, once **Apply** is tapped.
 - A filtered list shows **Matches**, with a count and totals, and **Show everything** clears every
   filter and the search in one tap. When nothing matches, it says so.
 - **Income** and **Expenses** never list a transfer leg or the cash of a trade.
@@ -178,9 +180,9 @@ holdings at the typed prices. On Wallet, Invested opens the portfolio; on Home i
 
 ### A4 · You choose what shows
 
-Settings › **Wallet and Home**: switch **Net worth** on and **Invested** off. Both screens follow,
-and Wallet keeps a row to the portfolio. All three off: no figure. Leave Settings and come back:
-the switches stayed.
+Settings › **Home**: switch **Net worth** on and **Invested** off. Home follows; Wallet still shows
+all three, and Invested there opens the portfolio. All three off: no figure on Home, all three on
+Wallet. Leave Settings and come back: the switches stayed.
 
 ### A5 · Deleting an account asks a real question
 

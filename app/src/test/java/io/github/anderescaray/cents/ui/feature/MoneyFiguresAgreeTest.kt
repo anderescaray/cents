@@ -49,8 +49,9 @@ import java.time.ZoneOffset
 
 /**
  * Wallet and the top of Home show the same figures, from the same formula, after every kind of
- * change that moves money (backlog item 6): an expense, an income, a transfer to a broker, a
- * purchase, a typed price and a balance correction.
+ * change that moves money: an expense, an income, a transfer to a broker, a purchase, a typed
+ * price and a balance correction. The switches in Settings reach Home; Wallet does not read them
+ * (`DECISIONS.md` D37).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)

@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The figures Wallet and Home draw: exactly the ones the owner chose (`DECISIONS.md` D34). */
+/** The figures the block draws: exactly the ones it is given (`DECISIONS.md` D34). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
 class MoneyFiguresBlockTest {

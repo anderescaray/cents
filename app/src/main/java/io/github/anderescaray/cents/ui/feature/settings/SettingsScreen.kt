@@ -40,7 +40,7 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
  * Settings, opened from Home's header: what organises the money (categories, subscriptions,
- * groups, capture) in one card, which money figures Wallet and Home show, then the data — Drive,
+ * groups, capture) in one card, which money figures Home shows, then the data — Drive,
  * export and restore — and last, the language the app is shown in.
  */
 @Composable

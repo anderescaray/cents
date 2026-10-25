@@ -88,7 +88,7 @@ fun AccountsScreen(
         }
 
         // The Invested tile is the way to the portfolio, and it is not drawn without a net worth
-        // (accounts in two currencies) or without active accounts. The portfolio has no tab of its
+        // (accounts, or prices, in more than one currency) or without active accounts. The portfolio has no tab of its
         // own any more, so it gets a row instead of becoming unreachable.
         if (state.showEmptyState || state.netWorth == null) {
             item(key = "portfolio") {
@@ -139,8 +139,9 @@ private fun totalFooter(state: AccountsUiState): String? {
     return when {
         state.active.isEmpty() -> null
 
-        // The figures above already say what there is, normal money and invested apart and the
-        // two together, so a sum here would be a fourth figure saying one of them again.
+        // The figures above say what there is, normal money and invested apart, and adding the
+        // brokers' cash into one sum of the accounts here is what the owner asked not to see
+        // (`DECISIONS.md` D34). It is not one of those figures: holdings are not in it.
         total != null && state.netWorth != null -> null
 
         total != null -> stringResource(R.string.accounts_total, MoneyFormatter.format(total))

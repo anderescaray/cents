@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.BreakIterator
 import javax.inject.Inject
 
 data class CategoryEditUiState(
@@ -140,13 +139,10 @@ class CategoryEditViewModel
             form.update { it.copy(colorArgb = colorArgb) }
         }
 
-        /**
-         * Keeps one emoji of whatever was typed or tapped, and ignores a letter or a digit; blank
-         * clears it. The old emoji is taken out first, so the new one wins wherever the caret was.
-         */
-        fun setEmoji(typed: String?) {
+        /** An emoji chosen from the suggestions or the full picker, or null to go back to the letter. */
+        fun setEmoji(emoji: String?) {
             edited = true
-            form.update { it.copy(emoji = nextEmoji(current = it.emoji, typed = typed)) }
+            form.update { it.copy(emoji = emoji) }
         }
 
         fun save() {
@@ -216,40 +212,3 @@ class CategoryEditViewModel
         private suspend fun nextSortOrder(kind: CategoryKind): Int =
             categoriesOfKind(kind).maxOfOrNull { it.sortOrder + 1 } ?: 0
     }
-
-/**
- * What the emoji field holds after [typed]: nothing when it was emptied, the one emoji added to
- * [current] wherever it went in, and [current] unchanged when what was added is not an emoji.
- */
-internal fun nextEmoji(
-    current: String?,
-    typed: String?,
-): String? {
-    if (typed.isNullOrBlank()) return null
-    val added = current?.let { typed.replaceFirst(it, "") }?.takeIf { it.isNotBlank() } ?: typed
-    return singleEmoji(added)?.takeIf { it.isEmoji() } ?: current
-}
-
-/**
- * Whether this one character is a picture rather than writing: an emoji is a symbol, where a
- * letter, a digit or a full stop is not, and those would sit on the badge as a stray glyph.
- */
-private fun String.isEmoji(): Boolean =
-    codePoints().anyMatch {
-        Character.getType(it) == Character.OTHER_SYMBOL.toInt()
-    }
-
-/**
- * The last character a person would count as one — an emoji with its skin tone or its joined
- * family is several code points, and cutting it by length would leave half of one — or null when
- * nothing is left. The last rather than the first, so typing a second emoji replaces the first.
- */
-internal fun singleEmoji(typed: String): String? {
-    val text = typed.trim()
-    if (text.isEmpty()) return null
-    val breaks = BreakIterator.getCharacterInstance()
-    breaks.setText(text)
-    val end = breaks.last()
-    val start = breaks.previous()
-    return text.substring(start, end)
-}

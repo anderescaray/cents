@@ -115,6 +115,28 @@ fun CentsPickerSheet(
     actions: List<PickerAction> = emptyList(),
     grid: Boolean = false,
 ) {
+    CentsSheet(title = title, onDismiss = onDismiss) {
+        SheetChoices(
+            choices = choices,
+            selectedId = selectedId,
+            onChoose = onChoose,
+            footer = footer,
+            actions = actions,
+            grid = grid,
+        )
+    }
+}
+
+/**
+ * The sheet itself, for any content: it rises over the screen with a grabber, *Cancel* and a
+ * title, and tapping the dimmed area above it, dragging it down, *Cancel* and back all close it.
+ */
+@Composable
+fun CentsSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
+) {
     Dialog(
         onDismissRequest = onDismiss,
         // The whole window, edge to edge, so the sheet can reach the bottom of the screen and the
@@ -133,14 +155,7 @@ fun CentsPickerSheet(
         ) {
             SheetSurface(maxHeight = maxHeight, onDismiss = onDismiss) {
                 SheetBar(title = title, onCancel = onDismiss)
-                SheetChoices(
-                    choices = choices,
-                    selectedId = selectedId,
-                    onChoose = onChoose,
-                    footer = footer,
-                    actions = actions,
-                    grid = grid,
-                )
+                content()
             }
         }
     }

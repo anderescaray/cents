@@ -88,6 +88,37 @@ class RestoreTest {
         }
 
     @Test
+    fun `a category comes back with its emoji, and a file from before emojis reads as none`() =
+        runTest {
+            database.categoryDao().insert(category(name = "Groceries", emoji = "🛒"))
+            database.categoryDao().insert(category(name = "Rent"))
+            val text = BackupWriter.toJson(backups.snapshot())
+            // A file written before emojis has no such key at all, not a null.
+            val older = text.replace(Regex(""",?\s*"emoji"\s*:\s*(null|"[^"]*")"""), "")
+
+            wipe()
+            backups.restore(readable(text))
+            val restored =
+                database
+                    .categoryDao()
+                    .observeAll()
+                    .first()
+                    .associate { it.name to it.iconKey }
+            assertEquals("🛒", restored["Groceries"])
+            assertNull(restored["Rent"])
+
+            wipe()
+            backups.restore(readable(older))
+            assertTrue(
+                database
+                    .categoryDao()
+                    .observeAll()
+                    .first()
+                    .all { it.iconKey == null },
+            )
+        }
+
+    @Test
     fun `a movement comes back in its group`() =
         runTest {
             populate()

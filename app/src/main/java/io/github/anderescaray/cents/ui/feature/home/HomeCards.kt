@@ -145,6 +145,7 @@ internal fun InboxChoices(
             CentsChip(
                 label = category.name,
                 colorArgb = category.colorArgb,
+                emoji = category.emoji,
                 onClick = { onCategorize(transaction.id, category.id) },
             )
         }
@@ -268,7 +269,7 @@ internal fun CategoryRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM),
     ) {
-        CategoryBadge(name = slice.name ?: "?", colorArgb = slice.colorArgb)
+        CategoryBadge(name = slice.name ?: "?", colorArgb = slice.colorArgb, emoji = slice.emoji)
         Column(Modifier.weight(1f)) {
             Text(
                 text = slice.name ?: stringResource(R.string.transactions_uncategorized),

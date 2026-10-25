@@ -67,6 +67,7 @@ fun CategoryEntity.toDomain(): Category =
         parentId = parentId,
         archived = archived,
         sortOrder = sortOrder,
+        emoji = iconKey,
     )
 
 fun Category.toEntity(createdAt: Instant): CategoryEntity =
@@ -75,6 +76,8 @@ fun Category.toEntity(createdAt: Instant): CategoryEntity =
         name = name,
         kind = kind,
         colorArgb = colorArgb,
+        // The emoji lives in iconKey, a column that was there unused since the first schema.
+        iconKey = emoji,
         parentId = parentId,
         archived = archived,
         sortOrder = sortOrder,
@@ -135,6 +138,7 @@ fun TransactionWithNames.toDomain(): TransactionDetails =
         accountName = accountName,
         categoryName = categoryName,
         categoryColorArgb = categoryColorArgb,
+        categoryEmoji = categoryEmoji,
         counterpartAccountName = counterpartAccountName,
         tradeSymbol = tradeSymbol,
         tradeHoldingId = tradeHoldingId,

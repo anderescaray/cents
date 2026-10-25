@@ -169,12 +169,16 @@ private fun CategoryChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
     ) {
-        Box(
-            Modifier
-                .size(DOT_SIZE.dp)
-                .clip(CircleShape)
-                .background(Color(category.colorArgb)),
-        )
+        if (category.emoji != null) {
+            Text(text = category.emoji, style = CentsTheme.typography.subhead)
+        } else {
+            Box(
+                Modifier
+                    .size(DOT_SIZE.dp)
+                    .clip(CircleShape)
+                    .background(Color(category.colorArgb)),
+            )
+        }
         Text(text = category.name, style = CentsTheme.typography.subhead, color = CentsTheme.colors.label)
     }
 }

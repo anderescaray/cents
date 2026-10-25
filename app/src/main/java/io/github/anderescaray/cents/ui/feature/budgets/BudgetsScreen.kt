@@ -128,7 +128,9 @@ internal fun BudgetRow(
                     stringResource(R.string.budget_row_left, MoneyFormatter.format(row.remaining))
                 },
             valueColor = if (row.status == BudgetStatus.UNDER) CentsTheme.colors.label else tint,
-            leading = { CategoryBadge(name = row.category.name, colorArgb = row.category.colorArgb) },
+            leading = {
+                CategoryBadge(name = row.category.name, colorArgb = row.category.colorArgb, emoji = row.category.emoji)
+            },
             showChevron = true,
             showSeparator = false,
             onClick = onClick,

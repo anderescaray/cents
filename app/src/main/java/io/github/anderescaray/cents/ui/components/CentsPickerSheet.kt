@@ -3,6 +3,8 @@ package io.github.anderescaray.cents.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
@@ -10,6 +12,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +24,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,8 +52,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -67,6 +76,8 @@ data class PickerChoice(
     val colorArgb: Int? = null,
     /** A glyph instead of the letter, for a choice that is a thing rather than a category. */
     val iconRes: Int? = null,
+    /** A category's emoji, drawn on its colour instead of the letter. */
+    val emoji: String? = null,
 )
 
 /**
@@ -83,7 +94,9 @@ data class PickerAction(
 /**
  * A sheet that rises over a form to choose one thing from a list that may be long: every category,
  * every account. One under the other, each name in full, the chosen one ticked, and a search field
- * once the list is long enough to need one — never a strip of chips scrolled sideways.
+ * once the list is long enough to need one — never a strip of chips scrolled sideways. With
+ * `grid`, three to a row instead, each a large badge over its name: for categories, whose emoji
+ * and colour are recognised faster than a name is read.
  *
  * Choosing calls [onChoose] and nothing else: the caller applies it and closes the sheet, so one
  * tap is the whole gesture. Tapping outside, dragging the grabber down, *Cancel* and back all
@@ -98,6 +111,7 @@ fun CentsPickerSheet(
     onDismiss: () -> Unit,
     footer: String? = null,
     actions: List<PickerAction> = emptyList(),
+    grid: Boolean = false,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -123,6 +137,7 @@ fun CentsPickerSheet(
                     onChoose = onChoose,
                     footer = footer,
                     actions = actions,
+                    grid = grid,
                 )
             }
         }
@@ -222,6 +237,7 @@ private fun SheetChoices(
     onChoose: (Long) -> Unit,
     footer: String?,
     actions: List<PickerAction>,
+    grid: Boolean,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val searchable = choices.size > SEARCH_FROM
@@ -237,6 +253,11 @@ private fun SheetChoices(
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin, vertical = CentsDimens.spacingS),
         )
     }
+    val noMatches = shown.isEmpty() && searchable && query.isNotBlank()
+    if (grid) {
+        SheetGrid(shown, selectedId, onChoose, footer, actions, if (noMatches) query else null)
+        return
+    }
     LazyColumn(modifier = Modifier.testTag(PICKER_LIST_TAG)) {
         itemsIndexed(shown, key = { _, choice -> choice.id }) { index, choice ->
             CentsListRow(
@@ -247,41 +268,115 @@ private fun SheetChoices(
                 showSeparator = index != shown.lastIndex || actions.isNotEmpty(),
             )
         }
-        if (shown.isEmpty() && searchable && query.isNotBlank()) {
-            item(key = "noMatches") {
-                Text(
-                    text = stringResource(R.string.picker_no_matches, query.trim()),
-                    style = CentsTheme.typography.footnote,
-                    color = CentsTheme.colors.secondaryLabel,
-                    modifier = Modifier.padding(CentsDimens.screenMargin),
-                )
-            }
+        if (noMatches) {
+            item(key = "noMatches") { SheetNote(stringResource(R.string.picker_no_matches, query.trim())) }
         }
         itemsIndexed(actions, key = { _, action -> "action:" + action.label }) { index, action ->
-            CentsListRow(
-                title = action.label,
-                leading = {
-                    if (action.iconRes != null) {
-                        IconBadge(iconRes = action.iconRes, color = CentsTheme.colors.accent)
-                    } else {
-                        CategoryBadge(name = null, colorArgb = null)
-                    }
-                },
-                onClick = action.onClick,
-                showSeparator = index != actions.lastIndex,
-            )
+            ActionRow(action, showSeparator = index != actions.lastIndex)
         }
         if (footer != null) {
-            item(key = "footer") {
-                Text(
-                    text = footer,
-                    style = CentsTheme.typography.footnote,
-                    color = CentsTheme.colors.secondaryLabel,
-                    modifier = Modifier.padding(CentsDimens.screenMargin),
-                )
-            }
+            item(key = "footer") { SheetNote(footer) }
         }
     }
+}
+
+/**
+ * Three to a row, the chosen one ringed in the accent; the other actions stay full rows underneath.
+ * [noMatchesFor] is the search text when it matched nothing.
+ */
+@Composable
+private fun SheetGrid(
+    shown: List<PickerChoice>,
+    selectedId: Long?,
+    onChoose: (Long) -> Unit,
+    footer: String?,
+    actions: List<PickerAction>,
+    noMatchesFor: String?,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(GRID_COLUMNS),
+        modifier = Modifier.testTag(PICKER_LIST_TAG),
+        contentPadding = PaddingValues(horizontal = CentsDimens.spacingS, vertical = CentsDimens.spacingS),
+    ) {
+        items(shown, key = { it.id }) { choice ->
+            GridTile(choice = choice, selected = choice.id == selectedId, onClick = { onChoose(choice.id) })
+        }
+        if (noMatchesFor != null) {
+            item(key = "noMatches", span = { GridItemSpan(maxLineSpan) }) {
+                SheetNote(stringResource(R.string.picker_no_matches, noMatchesFor.trim()))
+            }
+        }
+        actions.forEachIndexed { index, action ->
+            item(key = "action:" + action.label, span = { GridItemSpan(maxLineSpan) }) {
+                ActionRow(action, showSeparator = index != actions.lastIndex)
+            }
+        }
+        if (footer != null) {
+            item(key = "footer", span = { GridItemSpan(maxLineSpan) }) { SheetNote(footer) }
+        }
+    }
+}
+
+@Composable
+private fun GridTile(
+    choice: PickerChoice,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(TILE_RADIUS.dp)
+    val accent = CentsTheme.colors.accent
+    Column(
+        modifier =
+            Modifier
+                .padding(CentsDimens.spacingXs)
+                .clip(shape)
+                .background(if (selected) accent.copy(alpha = SELECTED_TILE_ALPHA) else Color.Transparent)
+                .border(width = SELECTED_BORDER.dp, color = if (selected) accent else Color.Transparent, shape = shape)
+                .clickable(onClick = onClick)
+                .semantics { this.selected = selected }
+                .padding(vertical = CentsDimens.spacingM, horizontal = CentsDimens.spacingXs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CategoryBadge(name = choice.label, colorArgb = choice.colorArgb, emoji = choice.emoji, size = TILE_BADGE.dp)
+        Text(
+            text = choice.label,
+            style = CentsTheme.typography.footnote,
+            color = CentsTheme.colors.label,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = CentsDimens.spacingS),
+        )
+    }
+}
+
+@Composable
+private fun ActionRow(
+    action: PickerAction,
+    showSeparator: Boolean,
+) {
+    CentsListRow(
+        title = action.label,
+        leading = {
+            if (action.iconRes != null) {
+                IconBadge(iconRes = action.iconRes, color = CentsTheme.colors.accent)
+            } else {
+                CategoryBadge(name = null, colorArgb = null)
+            }
+        },
+        onClick = action.onClick,
+        showSeparator = showSeparator,
+    )
+}
+
+@Composable
+private fun SheetNote(text: String) {
+    Text(
+        text = text,
+        style = CentsTheme.typography.footnote,
+        color = CentsTheme.colors.secondaryLabel,
+        modifier = Modifier.padding(CentsDimens.screenMargin),
+    )
 }
 
 @Composable
@@ -292,7 +387,7 @@ private fun ChoiceBadge(choice: PickerChoice) {
             color = choice.colorArgb?.let(::Color) ?: CentsTheme.colors.accent,
         )
     } else {
-        CategoryBadge(name = choice.label, colorArgb = choice.colorArgb)
+        CategoryBadge(name = choice.label, colorArgb = choice.colorArgb, emoji = choice.emoji)
     }
 }
 
@@ -307,6 +402,11 @@ internal fun List<PickerChoice>.matching(query: String): List<PickerChoice> {
 
 /** More choices than fit on a phone without scrolling is when a search field earns its place. */
 private const val SEARCH_FROM = 7
+private const val GRID_COLUMNS = 3
+private const val TILE_BADGE = 52
+private const val TILE_RADIUS = 16
+private const val SELECTED_BORDER = 2
+private const val SELECTED_TILE_ALPHA = 0.08f
 private const val SHEET_RADIUS = 30
 private const val GRABBER_WIDTH = 40
 private const val GRABBER_HEIGHT = 5

@@ -39,8 +39,9 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 private const val BADGE_TINT_ALPHA = 0.15f
 
 /**
- * A category's mark: a circle in its colour at 15 %, with the first letter of its name in the full
- * colour. Categories carry a colour and no icon, so the letter is what tells two blues apart.
+ * A category's mark: a circle in its colour at 15 %, with its [emoji] on it, or without one the
+ * first letter of its name in the full colour. The colour is there either way, because it is what
+ * the charts draw the category in, and the circle is what ties the two together.
  *
  * [solid] fills the circle and writes the letter in white, for the one thing a screen is about.
  * Null [colorArgb] is the uncategorized mark: grey, with a question mark.
@@ -52,6 +53,7 @@ fun CategoryBadge(
     modifier: Modifier = Modifier,
     size: Dp = CentsDimens.badgeSize,
     solid: Boolean = false,
+    emoji: String? = null,
 ) {
     val color = colorArgb?.let(::Color) ?: CentsTheme.colors.secondaryLabel
     val letter =
@@ -68,17 +70,24 @@ fun CategoryBadge(
                 .background(if (solid) color else color.copy(alpha = BADGE_TINT_ALPHA)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = letter,
-            style =
-                CentsTheme.typography.subhead.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = (size.value * 0.42f).sp,
-                ),
-            color = if (solid) Color.White else color,
-        )
+        if (emoji != null) {
+            Text(text = emoji, style = CentsTheme.typography.body.copy(fontSize = (size.value * EMOJI_SCALE).sp))
+        } else {
+            Text(
+                text = letter,
+                style =
+                    CentsTheme.typography.subhead.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = (size.value * 0.42f).sp,
+                    ),
+                color = if (solid) Color.White else color,
+            )
+        }
     }
 }
+
+/** An emoji fills a little more of the circle than a letter does, being a picture, not a glyph. */
+private const val EMOJI_SCALE = 0.5f
 
 /**
  * A round mark holding one of the app's own glyphs, tinted like a [CategoryBadge]: for a row that
@@ -124,6 +133,8 @@ fun CentsChip(
     /** Shows the category's letter badge before the label. */
     showBadge: Boolean = colorArgb != null,
     iconRes: Int? = null,
+    /** The category's emoji, in its badge instead of the letter. */
+    emoji: String? = null,
 ) {
     val tint = colorArgb?.let(::Color) ?: CentsTheme.colors.accent
     val background by animateColorAsState(
@@ -162,6 +173,7 @@ fun CentsChip(
             showBadge = showBadge,
             iconRes = iconRes,
             tint = tint,
+            emoji = emoji,
         )
         Text(
             text = label,
@@ -182,6 +194,7 @@ private fun ChipLeading(
     showBadge: Boolean,
     iconRes: Int?,
     tint: Color,
+    emoji: String?,
 ) {
     when {
         iconRes != null -> {
@@ -194,7 +207,7 @@ private fun ChipLeading(
         }
 
         showBadge -> {
-            if (selected) {
+            if (selected && emoji == null) {
                 Box(
                     Modifier
                         .size(CHIP_BADGE.dp)
@@ -214,7 +227,7 @@ private fun ChipLeading(
                     )
                 }
             } else {
-                CategoryBadge(name = label, colorArgb = colorArgb, size = CHIP_BADGE.dp)
+                CategoryBadge(name = label, colorArgb = colorArgb, size = CHIP_BADGE.dp, emoji = emoji)
             }
         }
     }

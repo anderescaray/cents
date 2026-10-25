@@ -41,6 +41,7 @@ class RoomSpendingByCategoryRepository
                                     categoryId = row.categoryId,
                                     name = row.categoryName,
                                     colorArgb = row.categoryColorArgb,
+                                    emoji = row.categoryEmoji,
                                     total = Money(row.totalMinor, scope.currency),
                                     transactionCount = row.transactionCount,
                                     // A zero total means there are no rows at all, so this

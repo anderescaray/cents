@@ -72,7 +72,14 @@ internal fun ChoiceRows(
             label = stringResource(R.string.field_category),
             value = category?.name ?: stringResource(R.string.form_category_none),
             valueIsNone = category == null,
-            leading = { CategoryBadge(name = category?.name, colorArgb = category?.colorArgb, size = CHOICE_BADGE) },
+            leading = {
+                CategoryBadge(
+                    name = category?.name,
+                    colorArgb = category?.colorArgb,
+                    size = CHOICE_BADGE,
+                    emoji = category?.emoji,
+                )
+            },
             onClick = onCategory,
             modifier = Modifier.testTag(CATEGORY_ROW_TAG),
         )
@@ -232,7 +239,9 @@ internal fun CategorySheet(
 ) {
     val selected = state.selectedCategoryId
     val choices =
-        remember(state.categories) { state.categories.map { PickerChoice(it.id, it.name, colorArgb = it.colorArgb) } }
+        remember(state.categories) {
+            state.categories.map { PickerChoice(it.id, it.name, colorArgb = it.colorArgb, emoji = it.emoji) }
+        }
     val clearLabel = stringResource(R.string.form_category_clear)
     val newLabel = stringResource(R.string.form_category_new)
     CentsPickerSheet(
@@ -244,6 +253,7 @@ internal fun CategorySheet(
             onCloseSheet()
         },
         onDismiss = onCloseSheet,
+        grid = true,
         footer =
             if (state.categories.isEmpty()) {
                 stringResource(R.string.field_category_empty_footer)

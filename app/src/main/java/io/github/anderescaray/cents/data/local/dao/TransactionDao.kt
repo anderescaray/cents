@@ -237,6 +237,7 @@ interface TransactionDao {
                a.name AS accountName,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
+               c.iconKey AS categoryEmoji,
                CASE
                    WHEN t.transferId IS NULL THEN NULL
                    ELSE (
@@ -316,6 +317,7 @@ interface TransactionDao {
                a.name AS accountName,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
+               c.iconKey AS categoryEmoji,
                CASE
                    WHEN t.transferId IS NULL THEN NULL
                    ELSE (
@@ -410,6 +412,7 @@ interface TransactionDao {
         SELECT t.categoryId AS categoryId,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
+               c.iconKey AS categoryEmoji,
                SUM(t.amountMinor) AS totalMinor,
                COUNT(*) AS transactionCount
         FROM transactions t
@@ -442,6 +445,7 @@ interface TransactionDao {
         SELECT t.categoryId AS categoryId,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
+               c.iconKey AS categoryEmoji,
                SUM(t.amountMinor) AS totalMinor,
                COUNT(*) AS transactionCount
         FROM transactions t
@@ -661,6 +665,7 @@ interface TransactionDao {
         SELECT t.categoryId AS categoryId,
                c.name AS categoryName,
                c.colorArgb AS categoryColorArgb,
+               c.iconKey AS categoryEmoji,
                COALESCE(SUM(CASE WHEN t.kind = c.kind THEN t.amountMinor ELSE -t.amountMinor END), 0) AS totalMinor,
                COUNT(*) AS transactionCount
         FROM transactions t
@@ -798,6 +803,8 @@ data class TransactionWithNames(
     val accountName: String,
     val categoryName: String?,
     val categoryColorArgb: Int?,
+    /** The category's emoji, kept in its `iconKey` column; null shows its letter. */
+    val categoryEmoji: String?,
     /**
      * The other end of the transfer, and null for an ordinary movement.
      *
@@ -840,6 +847,7 @@ data class CategoryTotal(
     val categoryId: Long?,
     val categoryName: String?,
     val categoryColorArgb: Int?,
+    val categoryEmoji: String?,
     val totalMinor: Long,
     val transactionCount: Int,
 )

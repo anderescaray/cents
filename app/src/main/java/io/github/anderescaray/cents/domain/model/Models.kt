@@ -29,6 +29,11 @@ data class Category(
     val parentId: Long?,
     val archived: Boolean,
     val sortOrder: Int,
+    /**
+     * One emoji drawn on the category's colour, or null for its first letter. The colour stays
+     * either way: it is what the ring and the bars are drawn in.
+     */
+    val emoji: String? = null,
 )
 
 /** One income or expense. The amount is always positive; [kind] carries the direction. */
@@ -88,6 +93,7 @@ data class TransactionDetails(
     val accountName: String,
     val categoryName: String?,
     val categoryColorArgb: Int?,
+    val categoryEmoji: String? = null,
     /** Where the money went, or came from, when this is a transfer leg. Null otherwise. */
     val counterpartAccountName: String? = null,
     /** What was bought or sold, when this is the cash of a trade. Null otherwise. */

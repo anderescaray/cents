@@ -130,7 +130,12 @@ fun TransactionDetails.MovementBadge(modifier: Modifier = Modifier) {
         }
 
         else -> {
-            CategoryBadge(name = categoryName, colorArgb = categoryColorArgb, modifier = modifier)
+            CategoryBadge(
+                name = categoryName,
+                colorArgb = categoryColorArgb,
+                modifier = modifier,
+                emoji = categoryEmoji,
+            )
         }
     }
 }

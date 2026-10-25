@@ -112,6 +112,7 @@ object BackupWriter {
             "parentId" to row.parentId.orNull(),
             "archived" to JsonPrimitive(row.archived),
             "sortOrder" to JsonPrimitive(row.sortOrder),
+            "emoji" to row.emoji.orNull(),
         )
 
     private fun transactionJson(row: BackupTransaction) =

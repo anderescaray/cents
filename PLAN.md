@@ -23,43 +23,43 @@ Then read these, in this order, before writing any code:
 3. **§2 to §4 below**, then the backlog,
    [`docs/next-improvements.md`](docs/next-improvements.md), when choosing what to build.
 
-## 2. Where things stand (2026-10-19)
+## 2. Where things stand (2026-10-25)
 
-- **`main`** is at `fbe642c` (#144), with **Room v13** and **1140 JVM tests**. PRD phases 1 to 5
-  are built, with prices typed by hand (D25). From Phase 6, accessibility is built (#96); the
-  widget, the Baseline Profile and Macrobenchmark are not. What the app does is in
+- **`main`** is at `3b9924c` (#146), with **Room v13** and **1140 JVM tests**. PRD phases 1 to 5
+  are built, with prices typed by hand (D25). From Phase 6, accessibility (#96), R8, the Baseline
+  Profile and Macrobenchmark (#146) are built; the widget is not. What the app does is in
   [`README.md`](README.md#what-it-does).
-- **Latest merges:** #144, [`docs/device-check.md`](docs/device-check.md) as one checklist by
-  feature (step codes such as H3 and K6) and [`docs/PRD.md`](docs/PRD.md) level with the
-  decisions; #143, Home's first-account message names a bank account or cash rather than a card;
-  #142, Walks 23 to 25 and 27 to 29 passed and Ruralvía closed as not a bug.
-- **Capture works on the phone** (2026-10-19), including recognising a subscription's charge
-  (K6–K10). Backlog item 12 is ticked and what it settled is in `docs/PRD.md` §4.6. Every
-  confirmed request is now checked except item 8, archiving a group (G2–G4).
-- **The Pixel runs `8dd2a78`**, installed 2026-10-18 over the build before, every row kept. #143 is
-  a string change, so it can wait for the next install.
+- **Latest merges:** #146, R8 on release (3.5 MB), a committed Baseline Profile and the
+  `:baselineprofile` module, measured on the Pixel on 2026-10-20 (a cold start of 162 ms with the
+  profile, 175 ms without); #145 and #144, documentation.
+- **Every confirmed request is checked on the phone**, item 8 (archiving a group, G2–G4) last,
+  reported on 2026-10-25.
+- **Two new requests** (2026-10-25), backlog items 13 and 14: the figure switches in Settings
+  govern Home only, Wallet always showing everything (D37, amending D34); and clearing every
+  filter from the top of the Filters screen.
+- **The Pixel runs `8dd2a78`**, installed 2026-10-18. #143 and #146 are not on it yet.
 - **No question is open in `DECISIONS.md`.**
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
 ## 3. Next, in order
 
-The owner says when each one starts.
-
-1. **A fix from G2–G4**, if archiving a group turns anything up.
-2. **Phase 6's remainder** (the widget, a Baseline Profile, Macrobenchmark), or a request from
-   the backlog's *Requested, not yet placed*: the owner's choice. It does not wait on G2–G4.
+1. **Item 13**, the figure switches for Home only (`fix/figures-home-only`).
+2. **Item 14**, clearing every filter from the top (`feat/clear-filters-at-top`). Disjoint from
+   item 13, so the two can run side by side.
+3. **Then the owner's choice** from the backlog's *Requested, not yet placed*: the widget, hiding
+   a tab, the savings card on Reports, deleting one Drive backup, resizable Reports cards.
 
 ## 4. Waiting on the owner
 
-- **G2–G4** (archiving a group) in [`docs/device-check.md`](docs/device-check.md), on the build now
-  on the Pixel. Notes go in `FEEDBACK.md`, or to the agent by step code.
-- **This session's docs PR** (`docs/capture-checked`), to review and merge.
-- **What comes next** (§3, item 2).
+- **This session's docs PR** (`docs/baseline-profile-and-groups-checked`), to review and merge.
+- **Items 13 and 14 on the phone** once merged and installed: Settings, then Home and Wallet;
+  Movements › Filters.
+- **What comes after them** (§3, item 3).
 - **Branches** that are merged or superseded and can be deleted when the owner says so. On
-  GitHub: `docs/session-2026-10-18` (#142 and #144), `docs/next-improvements` (#110, its later plan
-  notes long rewritten) and `feat/groups-screens` (#87). Locally: every `docs/session-*`,
-  `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
+  GitHub: `docs/session-2026-10-18` (#142), `docs/next-improvements` (#110) and
+  `feat/groups-screens` (#87). Locally: `feat/baseline-profile` (#146), every
+  `docs/session-*`, `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
   `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux` and
   `fix/correction-undo-test-race`, plus the worktree `C:\dev\cents-docs-plan`.
 - **Always the owner's:** using the app to judge whether it feels right; anything needing a

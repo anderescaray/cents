@@ -140,10 +140,13 @@ class CategoryEditViewModel
             form.update { it.copy(colorArgb = colorArgb) }
         }
 
-        /** Keeps one emoji of whatever was typed or tapped; blank clears it. */
+        /**
+         * Keeps one emoji of whatever was typed or tapped, and ignores a letter or a digit; blank
+         * clears it. The old emoji is taken out first, so the new one wins wherever the caret was.
+         */
         fun setEmoji(typed: String?) {
             edited = true
-            form.update { it.copy(emoji = typed?.let(::singleEmoji)) }
+            form.update { it.copy(emoji = nextEmoji(current = it.emoji, typed = typed)) }
         }
 
         fun save() {
@@ -212,6 +215,28 @@ class CategoryEditViewModel
         /** New categories land at the end of the list they belong to. */
         private suspend fun nextSortOrder(kind: CategoryKind): Int =
             categoriesOfKind(kind).maxOfOrNull { it.sortOrder + 1 } ?: 0
+    }
+
+/**
+ * What the emoji field holds after [typed]: nothing when it was emptied, the one emoji added to
+ * [current] wherever it went in, and [current] unchanged when what was added is not an emoji.
+ */
+internal fun nextEmoji(
+    current: String?,
+    typed: String?,
+): String? {
+    if (typed.isNullOrBlank()) return null
+    val added = current?.let { typed.replaceFirst(it, "") }?.takeIf { it.isNotBlank() } ?: typed
+    return singleEmoji(added)?.takeIf { it.isEmoji() } ?: current
+}
+
+/**
+ * Whether this one character is a picture rather than writing: an emoji is a symbol, where a
+ * letter, a digit or a full stop is not, and those would sit on the badge as a stray glyph.
+ */
+private fun String.isEmoji(): Boolean =
+    codePoints().anyMatch {
+        Character.getType(it) == Character.OTHER_SYMBOL.toInt()
     }
 
 /**

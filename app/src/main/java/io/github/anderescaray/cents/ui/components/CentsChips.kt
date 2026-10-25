@@ -207,7 +207,7 @@ private fun ChipLeading(
         }
 
         showBadge -> {
-            if (selected && emoji == null) {
+            if (selected) {
                 Box(
                     Modifier
                         .size(CHIP_BADGE.dp)
@@ -217,11 +217,12 @@ private fun ChipLeading(
                 ) {
                     Text(
                         text =
-                            label
+                            emoji ?: label
                                 .trim()
                                 .firstOrNull()
                                 ?.uppercaseChar()
-                                ?.toString() ?: "",
+                                ?.toString()
+                                .orEmpty(),
                         style = CentsTheme.typography.caption1.copy(fontWeight = FontWeight.Bold),
                         color = Color.White,
                     )

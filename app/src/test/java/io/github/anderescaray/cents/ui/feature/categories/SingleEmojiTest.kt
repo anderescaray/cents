@@ -24,6 +24,20 @@ class SingleEmojiTest {
     }
 
     @Test
+    fun `a letter or a digit is not taken for an emoji`() {
+        assertEquals("🛒", nextEmoji(current = "🛒", typed = "🛒d"))
+        assertNull(nextEmoji(current = null, typed = "Food"))
+        assertNull(nextEmoji(current = null, typed = "7"))
+    }
+
+    @Test
+    fun `a new emoji wins wherever the caret put it`() {
+        assertEquals("🍔", nextEmoji(current = "🍕", typed = "🍔🍕"))
+        assertEquals("🍔", nextEmoji(current = "🍕", typed = "🍕🍔"))
+        assertNull(nextEmoji(current = "🍕", typed = ""))
+    }
+
+    @Test
     fun `nothing left clears it`() {
         assertNull(singleEmoji(""))
         assertNull(singleEmoji("  "))

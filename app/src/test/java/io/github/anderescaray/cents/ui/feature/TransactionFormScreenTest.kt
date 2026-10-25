@@ -163,10 +163,24 @@ class TransactionFormScreenTest {
     fun `a long list of categories can be searched, accents aside`() {
         runBlocking {
             database.accountDao().insert(account())
-            listOf("Café", "Groceries", "Rent", "Fuel", "Gym", "Books", "Gifts", "Taxes")
-                .forEach { database.categoryDao().insert(category(name = it)) }
+            // More than the grid shows before it offers a search field.
+            listOf(
+                "Café",
+                "Groceries",
+                "Rent",
+                "Fuel",
+                "Gym",
+                "Books",
+                "Gifts",
+                "Taxes",
+                "Pets",
+                "Phone",
+                "Travel",
+                "Health",
+                "Clothes",
+            ).forEach { database.categoryDao().insert(category(name = it)) }
         }
-        showForm { it.categories.size == 8 }
+        showForm { it.categories.size == 13 }
         composeRule.onNodeWithTag(CATEGORY_ROW_TAG).performClick()
 
         composeRule.onNodeWithTag(SEARCH_FIELD_TAG).performTextInput("cafe")

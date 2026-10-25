@@ -8,6 +8,7 @@ data class TrendChoice(
     val id: Long,
     val name: String,
     val colorArgb: Int,
+    val emoji: String? = null,
 )
 
 /**

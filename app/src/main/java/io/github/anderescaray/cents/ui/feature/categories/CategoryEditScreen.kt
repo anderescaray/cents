@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -29,8 +30,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -162,13 +163,15 @@ private fun EmojiSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CategoryBadge(name = state.name.ifBlank { null }, colorArgb = state.colorArgb, emoji = state.emoji)
-            CentsTextField(
-                value = state.emoji.orEmpty(),
-                onValueChange = onChoose,
-                placeholder = stringResource(R.string.category_emoji_placeholder),
-                modifier = Modifier.weight(1f).testTag(EMOJI_FIELD_TAG),
-                showSeparator = true,
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                CentsTextField(
+                    value = state.emoji.orEmpty(),
+                    onValueChange = onChoose,
+                    placeholder = stringResource(R.string.category_emoji_placeholder),
+                    modifier = Modifier.testTag(EMOJI_FIELD_TAG),
+                    showSeparator = true,
+                )
+            }
         }
         Column(
             modifier = Modifier.padding(CentsDimens.rowHorizontalPadding),
@@ -207,11 +210,8 @@ private fun EmojiCell(
                     width = SELECTED_EMOJI_BORDER.dp,
                     color = if (selected) CentsTheme.colors.accent else Color.Transparent,
                     shape = CircleShape,
-                ).clickable(onClickLabel = label) { onChoose(emoji) }
-                .semantics {
-                    contentDescription = label
-                    this.selected = selected
-                },
+                ).selectable(selected = selected, role = Role.RadioButton, onClick = { onChoose(emoji) })
+                .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         Text(text = emoji, style = CentsTheme.typography.title3)

@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -51,6 +52,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -240,7 +242,8 @@ private fun SheetChoices(
     grid: Boolean,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val searchable = choices.size > SEARCH_FROM
+    // A grid shows three times as many without scrolling, so it waits longer for a search field.
+    val searchable = choices.size > if (grid) GRID_SEARCH_FROM else SEARCH_FROM
     // A field that is not on screen does not filter: a list that shrank under the threshold while
     // something was typed would otherwise stay narrowed with nothing left to clear it from.
     val shown = remember(choices, query, searchable) { if (searchable) choices.matching(query) else choices }
@@ -332,8 +335,7 @@ private fun GridTile(
                 .clip(shape)
                 .background(if (selected) accent.copy(alpha = SELECTED_TILE_ALPHA) else Color.Transparent)
                 .border(width = SELECTED_BORDER.dp, color = if (selected) accent else Color.Transparent, shape = shape)
-                .clickable(onClick = onClick)
-                .semantics { this.selected = selected }
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
                 .padding(vertical = CentsDimens.spacingM, horizontal = CentsDimens.spacingXs),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -402,6 +404,7 @@ internal fun List<PickerChoice>.matching(query: String): List<PickerChoice> {
 
 /** More choices than fit on a phone without scrolling is when a search field earns its place. */
 private const val SEARCH_FROM = 7
+private const val GRID_SEARCH_FROM = 12
 private const val GRID_COLUMNS = 3
 private const val TILE_BADGE = 52
 private const val TILE_RADIUS = 16

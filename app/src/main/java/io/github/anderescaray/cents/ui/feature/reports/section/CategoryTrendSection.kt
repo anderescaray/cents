@@ -35,6 +35,7 @@ import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.model.TrendChoice
 import io.github.anderescaray.cents.domain.repository.reports.CategoryTrendRepository
+import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.feature.reports.AmountRow
@@ -42,7 +43,6 @@ import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.ReportActions
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
-import io.github.anderescaray.cents.ui.feature.reports.Swatch
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.formatLocale
@@ -107,7 +107,7 @@ data class CategoryTrendSection(
                 CentsListRow(
                     title = selected.name,
                     subtitle = stringResource(R.string.reports_trend_pick),
-                    leading = { Swatch(Color(selected.colorArgb)) },
+                    leading = { TrendBadge(selected) },
                     showChevron = true,
                     onClick = { picking = !picking },
                 )
@@ -206,9 +206,14 @@ private fun ChoiceRow(
     CentsListRow(
         title = choice.name,
         selected = selected,
-        leading = { Swatch(Color(choice.colorArgb)) },
+        leading = { TrendBadge(choice) },
         onClick = onClick,
     )
+}
+
+@Composable
+private fun TrendBadge(choice: TrendChoice) {
+    CategoryBadge(name = choice.name, colorArgb = choice.colorArgb, emoji = choice.emoji)
 }
 
 /**

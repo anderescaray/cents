@@ -226,7 +226,7 @@ internal fun NoteField(
 }
 
 /**
- * Every category of this kind, one under the other. Choosing one files the movement there and
+ * Every category of this kind, three to a row. Choosing one files the movement there and
  * closes the sheet; choosing the one already chosen keeps it. Leaving the movement uncategorized
  * is its own row, so it is never done by accident, and a new category is one more.
  */

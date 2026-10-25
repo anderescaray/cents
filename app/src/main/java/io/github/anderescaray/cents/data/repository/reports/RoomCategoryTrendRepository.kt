@@ -61,6 +61,7 @@ class RoomCategoryTrendRepository
                                 id = row.categoryId ?: return@mapNotNull null,
                                 name = row.categoryName ?: return@mapNotNull null,
                                 colorArgb = row.categoryColorArgb ?: return@mapNotNull null,
+                                emoji = row.categoryEmoji,
                             )
                         }
                     // A chosen category that has nothing in this span is not an error and not

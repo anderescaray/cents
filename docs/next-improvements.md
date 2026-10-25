@@ -35,30 +35,9 @@ session can build it without the original conversation. **The build order is
 - [x] 12. Capture recognises a subscription's charge instead of recording it twice (`DECISIONS.md`
   D35). #131, checked on 2026-10-19 (K6–K10). Now in `docs/PRD.md` §4.6.
 - [ ] 13. The figure switches in Settings govern Home only; Wallet always shows every figure
-  (`DECISIONS.md` D37).
+  (`DECISIONS.md` D37). **Merged in #148.** Phone check: `docs/device-check.md` A4.
 - [ ] 14. Clearing every filter from the top of the Filters screen, not only from its foot.
-
-## 13. Figure switches for Home only
-
-**Request (2026-10-25):** turning off Cash and bank, Invested or Net worth in Settings should take
-it off Home, and nothing else. Wallet is where the owner goes for the whole picture, so it always
-shows all three.
-
-- Wallet shows Cash and bank, Invested and Net worth whatever the switches say. Invested still
-  opens the portfolio.
-- Home follows the switches exactly as it does today, all three off included.
-- The Settings section and its footer say *Home*, not *Wallet and Home*, in both languages.
-- The stored switches keep their values; nothing migrates.
-
-## 14. Clear all filters from the top
-
-**Request (2026-10-25):** on Movements › Filters, *Show everything again* sits at the foot of the
-form, so clearing filters means scrolling past every section.
-
-- The way to clear every filter is reachable without scrolling, at the top of the Filters screen,
-  and does the same as the button at the foot: every filter and the search go.
-- It shows only while something is narrowing the list, like the *Show everything* row on the list
-  itself.
+  **Merged in #149.** Phone check: `docs/device-check.md` M2.
 
 ## Acceptance for what is still to build
 
@@ -70,9 +49,6 @@ form, so clearing filters means scrolling past every section.
 
 Real requests the owner has not put in the build order yet.
 
-- **Hide a rarely used tab** (2026-09-25). For example Wallet, which is opened rarely once the
-  accounts exist. Nothing may become unreachable: a hidden tab needs another way in, such as a
-  row in Settings. At least one tab stays visible, and hiding is undone the same way it was done.
 - **What was saved or overspent, as a card on Reports** (2026-09-27). It would lead with one
   figure in words, *You saved 312,40 €*, possibly with a savings rate (*no income yet* rather
   than 0 %). Today Home leads with the month's figure, and Reports' income-and-expenses card has
@@ -82,12 +58,14 @@ Real requests the owner has not put in the build order yet.
   confirmation. Today only retention removes copies. This adds a delete to each copy in the list;
   the daily backup and restore stay exactly as they are.
 - **Resizable Reports cards** (D4). Reordering and hiding are built (#109).
-- **A home-screen widget**, the last of PRD Phase 6. R8, the Baseline Profile and Macrobenchmark
-  are built (#146).
 
 ## Engineering follow-ups
 
 No owner request behind these; take one when it is next to related work.
+
+- **Regenerate the Baseline Profile** on the next phone run (`docs/testing.md`). #148 changed
+  `AccountsViewModel`'s constructor, so one rule in the committed profile names a method that no
+  longer exists.
 
 - **`CaptureViewModel.moveTo` finds the app through the derived `uiState.value`**, where
   `requestStop` uses `editingPackage`. It cannot fail on the phone. Reading `editingPackage` would

@@ -153,11 +153,10 @@ Priority: **P0** = required for the app to be worth using · **P1** = important 
     yet* shows only when nothing at all has a value.
   - **Net worth:** the two together.
 
-  Settings › *Wallet and Home* switches each one on or off, for both screens. By default the two
-  parts show and the total does not; with none on, neither screen shows a figure. On Wallet,
-  Invested opens the portfolio, and a row to it stays when Invested is off; on Home the figures
-  lead nowhere. *Changing (D37, backlog item 13): the switches will govern Home only, and Wallet
-  will always show all three.* A transfer from a bank to a broker moves money from one figure to the other.
+  Settings › *Home* switches each one on or off for the top of Home (D37). By default the two
+  parts show and the total does not; with none on, Home shows no figure. **Wallet always shows all
+  three**, and its Invested opens the portfolio; a row to the portfolio takes its place only when
+  there is no net worth to show. On Home the figures lead nowhere. A transfer from a bank to a broker moves money from one figure to the other.
 
 ### 4.3 Analytics and charts — P0
 
@@ -299,7 +298,7 @@ itself. It leaves me only what a notification cannot know: what the money was fo
 
 ### 4.8 Polish — P2
 
-Light/dark theme, a home screen widget for quick expense entry, an app icon shortcut,
+Light/dark theme, an app icon shortcut,
 screen transition animations, and accessibility support (TalkBack, font scaling).
 
 *Dynamic color (Material You) was dropped:* an accent that follows the wallpaper would
@@ -444,7 +443,7 @@ This order is designed to put something useful in my hands as early as possible.
 | **3. Accounts and recurring** | Organize money and automate the fixed parts | Transfers, account detail, export/import, recurring rules and subscriptions screen. A fingerprint lock was built and then removed (D31); one currency only (D2) |
 | **4. Investments** | Track net worth | Portfolio with typed prices, P&L, closed positions (prices are not fetched: D25) |
 | **5. Automation** | Less manual work | Uncategorized inbox, budgets, and notification capture (experimental) |
-| **6. Polish** | Make it a pleasure to use | Widget, animations, Baseline Profile, accessibility, performance measurement. Built: accessibility (#96), and R8, the Baseline Profile and Macrobenchmark (#146). Not built: the widget |
+| **6. Polish** | Make it a pleasure to use | Widget, animations, Baseline Profile, accessibility, performance measurement. Built: accessibility (#96), and R8, the Baseline Profile and Macrobenchmark (#146). The home-screen widget was dropped on 2026-10-25 (D38): Home's own expense and income buttons are the quick entry |
 
 **Groups (§4.9)** were added on 2026-09-25, after the phases were set. They belong to none of
 them and depend on nothing unbuilt, so they are built whenever the owner picks them.

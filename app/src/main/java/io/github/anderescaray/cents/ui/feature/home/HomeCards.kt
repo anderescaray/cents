@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,13 +46,9 @@ import io.github.anderescaray.cents.ui.feature.inbox.inboxChipsTag
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
-import io.github.anderescaray.cents.ui.util.formatLocale
 import io.github.anderescaray.cents.ui.util.relativeLabel
+import io.github.anderescaray.cents.ui.util.weekdayDayMonth
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-
-/** Under the month's heading: *Saturday, 25 October*, written the phone's way. */
-private const val DAY_PATTERN = "EEEE, d MMMM"
 
 // The cards Home is made of: a waiting movement, the bills waiting for a figure, and the month.
 
@@ -192,21 +189,20 @@ internal fun MonthCard(
 ) {
     val spending = state.spending
     CentsCard(modifier = modifier.padding(horizontal = CentsDimens.screenMargin)) {
-        Text(
-            text = stringResource(R.string.home_this_month),
-            style = CentsTheme.typography.title3,
-            color = CentsTheme.colors.label,
-            modifier = Modifier.semantics { heading() },
-        )
-        val locale = formatLocale()
-        Text(
-            text =
-                state.today
-                    .format(DateTimeFormatter.ofPattern(DAY_PATTERN, locale))
-                    .replaceFirstChar { it.titlecase(locale) },
-            style = CentsTheme.typography.subhead,
-            color = CentsTheme.colors.secondaryLabel,
-        )
+        // One heading for TalkBack, the date read with the title it dates.
+        Column(modifier = Modifier.semantics(mergeDescendants = true) { heading() }) {
+            Text(
+                text = stringResource(R.string.home_this_month),
+                style = CentsTheme.typography.title3,
+                color = CentsTheme.colors.label,
+            )
+            val today = state.today
+            Text(
+                text = remember(today) { today.weekdayDayMonth() },
+                style = CentsTheme.typography.subhead,
+                color = CentsTheme.colors.secondaryLabel,
+            )
+        }
         if (state.summary != null) {
             Spacer(Modifier.height(CentsDimens.spacingM))
             MonthTotals(state)

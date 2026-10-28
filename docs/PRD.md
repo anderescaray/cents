@@ -100,8 +100,11 @@ Priority: **P0** = required for the app to be worth using · **P1** = important 
 ### 4.1 Transactions and categories — P0
 
 - Add, edit and delete income and expenses.
-- Create, edit, archive and reorder my own categories, with color and icon. Optional
-  subcategories (e.g. `Car > Fuel`).
+- Create, edit, archive and reorder my own categories, each with a colour and, optionally, an
+  emoji drawn on it (#153): 24 one-tap suggestions, or any emoji the phone has from Android's own
+  picker (#155). Without an emoji, the badge shows the name's first letter. The charts still use
+  the colour. Optional subcategories (e.g. `Car > Fuel`).
+- In the movement form, the category sheet is a grid, three to a row (#153).
 - **The app ships with no categories.** It does not propose a starting set and does not
   invent a taxonomy: on a fresh install the list is empty and every category in it is one I
   created, for income and for expenses separately. This is design principle 3 taken
@@ -299,7 +302,9 @@ itself. It leaves me only what a notification cannot know: what the money was fo
 ### 4.8 Polish — P2
 
 Light/dark theme, an app icon shortcut,
-screen transition animations, and accessibility support (TalkBack, font scaling).
+screen transition animations, and accessibility support (TalkBack, font scaling). On a tab's own
+screen, a sideways swipe moves to the tab beside it (#154). A row that swipes keeps its swipe,
+and a swipe from the edge stays Android's back gesture.
 
 *Dynamic color (Material You) was dropped:* an accent that follows the wallpaper would
 break design principle 5. The palette is fixed, with a proper dark variant.
@@ -342,8 +347,13 @@ none of those categories can say what the trip cost. A group can.
   requires of subscriptions. It asks for confirmation first.
 - **An old group can be archived instead** (#140), so a June trip is not offered in December.
   Archive and Reactivate are in the group's editor. An archived group keeps its movements and
-  totals, is listed apart under *Archived*, and is still offered in Filters and when editing a
-  movement already recorded, marked *(archived)*. Only a new movement leaves it out.
+  totals, is listed apart under *Archived*, and is still offered in Filters, marked *(archived)*.
+  **In the movement form's group sheet, archived groups wait behind a small *Archived groups*
+  row** (#157), for a new movement and a recorded or captured one alike. The archived group a
+  movement is already in stays in the list.
+- **A group can be made from the movement form** (#157): the group sheet ends in *New group*,
+  which opens the group's editor and comes back with the new group chosen. The Group chip is
+  always on the form, so the first group can be made there too.
 
 ## 5. Feasibility analysis
 

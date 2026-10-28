@@ -23,40 +23,40 @@ Then read these, in this order, before writing any code:
 3. **§2 to §4 below**, then the backlog,
    [`docs/next-improvements.md`](docs/next-improvements.md), when choosing what to build.
 
-## 2. Where things stand (2026-10-25)
+## 2. Where things stand (2026-10-28)
 
-- **`main`** is at `4baaa94` (#149), with **Room v13** and **1141 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `f80a26c` (#157), with **Room v13** and **1149 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). Phase 6 is done as far as it is wanted:
   accessibility (#96), R8, the Baseline Profile and Macrobenchmark (#146); the widget was dropped
   (D38). What the app does is in [`README.md`](README.md#what-it-does).
-- **Latest merges (2026-10-25):** #149, *Show everything again* first on the Filters screen
-  (item 14); #148, the figure switches govern Home only and Wallet always shows all three (item
-  13, D37); #147, documentation.
-- **Dropped by the owner (D38):** the home-screen widget, and hiding a tab.
-- **The Pixel runs `8dd2a78`**, installed 2026-10-18. #143, #146, #148 and #149 are not on it.
+- **Merged since #150, the UI and UX work the owner asked for on 2026-10-25 and 2026-10-28:**
+  #151 (no white flash on a tab change), #152 (the date in *This month*), #153 and #155 (an emoji
+  per category, a three-to-a-row category sheet, 24 colours, Android's emoji picker), #154
+  (swiping between tabs), #156 (Spanish segment labels on one line), #157 (archived groups behind
+  a row, and *New group* in the movement form). Backlog items 15 to 19.
+- **The Pixel runs `ce9e715`** (#157's branch, the same code as `main`), installed 2026-10-28.
 - **No question is open in `DECISIONS.md`.**
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
 ## 3. Next, in order
 
-1. **UI and UX improvements**, the owner's choice on 2026-10-25. What exactly is being scoped
-   with the owner; it becomes backlog items before any branch starts. The look stays ADR 0003's.
-2. **Then, from the backlog's *Requested, not yet placed*:** the savings card on Reports,
+1. **Whatever the owner finds on the phone** in #151–#157 (`FEEDBACK.md`).
+2. **Regenerate the Baseline Profile** (`docs/testing.md`): #152–#157 changed Home, the
+   category sheet and the navigation it was recorded on.
+3. **More UI polish, the owner's direction of 2026-10-25** (a little more impressive, still
+   basic; built, then judged on the phone). The next candidate is a haptic on save.
+4. **Then, from the backlog's *Requested, not yet placed*:** the savings card on Reports,
    deleting one Drive backup, resizable Reports cards.
 
 ## 4. Waiting on the owner
 
-- **This session's docs PR** (`docs/home-only-figures-and-scope`), to review and merge.
-- **A4 and M2 on the phone**, items 13 and 14, once a new build is installed.
-- **What the UI and UX work should cover** (§3, item 1).
-- **Branches** that are merged or superseded and can be deleted when the owner says so. On
-  GitHub: `docs/session-2026-10-18` (#142), `docs/next-improvements` (#110) and
-  `feat/groups-screens` (#87). Locally: `feat/baseline-profile`, `fix/figures-home-only`,
-  `feat/clear-filters-at-top`, `docs/baseline-profile-and-groups-checked`, every
-  `docs/session-*`, `docs/professional-docs`, `docs/drive-client-and-walk-2026-09-24`,
-  `fix/capture-safety-and-feedback`, `fix/transaction-entry-ux` and
-  `fix/correction-undo-test-race`, plus the worktree `C:\dev\cents-docs-plan`.
+- **This session's docs PR** (`docs/group-picker-and-plan`), to review and merge.
+- **Checks on the phone:** H5, H7, H8, C1, R3, G1, G2 and X2 for items 15 to 19, and A4 and M2
+  for items 13 and 14 (`docs/device-check.md`).
+- **Branches** that are merged or superseded and can be deleted when the owner says so: on
+  GitHub, every branch whose PR is merged (`git branch -r --merged origin/main` lists only some,
+  because `main` squash-merges); locally, the same, plus the worktree `C:\dev\cents-docs-plan`.
 - **Always the owner's:** using the app to judge whether it feels right; anything needing a
   device setting, an unlock or a permission dialog; and reviewing and merging every PR. The agent
   may install, launch, read logcat and take screenshots, and nothing more on the phone.

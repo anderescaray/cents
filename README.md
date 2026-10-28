@@ -14,8 +14,8 @@ and what comes next, is in [`PLAN.md`](PLAN.md).
 ## What it does
 
 - **Record a movement in a few taps.** The amount goes in on a keypad, and the category and the
-  account are picked from a list. The last account used is the default. Nothing is seeded:
-  every category and account is one the owner made.
+  account are picked from a sheet. The last account used is the default. Nothing is seeded:
+  every category and account is one the owner made. A category has a colour and an emoji.
 - **Accounts** with balances computed from their movements, never stored. A balance can be set
   to what the bank shows, either as a correction from today or as a new opening balance.
   Deleting an account asks what becomes of its movements.
@@ -40,8 +40,9 @@ and what comes next, is in [`PLAN.md`](PLAN.md).
   - Reminders come before a charge.
   - An occurrence can be postponed by up to 14 days.
   - The screen shows what is still committed this month.
-- **Groups**: what an occasion (a trip, a move, a job) cost or earned, across categories. An old
-  one can be archived: kept, with its history, but not offered for new movements.
+- **Groups**: what an occasion (a trip, a move, a job) cost or earned, across categories. A new
+  one can be made while recording a movement. An old one can be archived: kept, with its history,
+  and kept apart under *Archived groups* when recording.
 - **Investments:**
   - holdings in stocks, ETFs, index funds and crypto;
   - purchases that spend the account's cash;

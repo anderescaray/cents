@@ -77,8 +77,8 @@ A movement that already exists opens without the keypad.
 
 ### H5 · Category and account from a sheet
 
-The **Category** row opens a sheet with only the movement's kind of category, the chosen one
-ticked, and **No category** and **New category** at its foot. With more than seven, it has a
+The **Category** row opens a grid, three to a row, with only the movement's kind of category, the
+chosen one ringed, and **No category** and **New category** at its foot. With more than seven, it has a
 search (*cafe* finds *Café*). **New category** (and **New account** in the account sheet) comes
 back with the new one chosen. A new movement starts on the account last used, never on nothing.
 
@@ -96,13 +96,15 @@ Tapping the movement itself opens the form.
 
 ### H7 · What the month comes to
 
-Home leads with *Left this month* in green or *Overspent this month* in red: income less expenses,
-with no transfer, trade or balance correction in it.
+Home is titled *Home*, and today's date (*Saturday, 25 October*) sits under *This month*. It leads
+with *Left this month* in green or *Overspent this month* in red: income less expenses, with no
+transfer, trade or balance correction in it.
 
 ### H8 · The tabs keep their place
 
 Home › Settings › another tab › **Home**: Settings is still open. Tap **Home** again: back to
-Home's top. After swiping Cents away and reopening, everything is still there.
+Home's top. After swiping Cents away and reopening, everything is still there. Switching quickly
+between tabs, in light and dark, never flashes white.
 
 ---
 
@@ -146,8 +148,9 @@ of a month, *This month* starts again from zero. A custom range on Reports stays
 
 ### C1 · Yours to make, order and archive
 
-Settings › Categories: create an expense and an income category with a colour, drag one by its
-grip to reorder it, and come back: the order stayed. Delete one that classifies a movement: it is
+Settings › Categories: create an expense and an income category with a colour, give one 🛒 and the
+other ⚽ from **All emojis**, drag one by its grip to reorder it, and come back: the order stayed,
+and the emojis show on their colours in Movements, Home and Reports. Delete one that classifies a movement: it is
 archived instead, and the app says so; its movements keep it.
 
 > **Wrong looks like** the drag not picking up, or a category with movements deleted outright.
@@ -273,7 +276,8 @@ to it, adding up to the row.
 
 ### R3 · The period and the account re-ask everything
 
-**Week · Month · Quarter · Year · Custom**, and an **Account** picker (only with two accounts):
+**Week · Month · Quarter · Year · Custom** (in Spanish *Semana · Mes · Trimestre · Año · Fechas*,
+each on one line), and an **Account** picker (only with two accounts):
 every card follows together. Custom opens on the period being looked at, and an inverted range is
 straightened. A drill-down with one account chosen shows only that account.
 
@@ -386,16 +390,18 @@ Settings › Groups. A test group, *Walk trip*, with a 1,00 € expense and an i
 
 ### G1 · Recording into it
 
-With a group, the movement form has a **Group** chip, never filled in for you. The group's row says
+The movement form has a **Group** chip, never filled in for you. Its sheet ends in **New group**:
+make *Walk trip* there, and the form comes back with it chosen. The group's row says
 *Cost you …* or *Earned you …*: expenses less income. Its screen shows *Came in*, *Went out*, the
 dates, a ring and the movements; a slice opens them in Movements. Reports and budgets are unchanged.
 
-### G2 · Archived, it is no longer offered
+### G2 · Archived, it waits behind a quiet row
 
 The group › Edit › **Archive group**. It moves under **Archived**, still with its totals, and its
-screen says it is archived. A new movement does not offer it (with no other group, no Group chip).
+screen says it is archived. In a new movement's group sheet, and in a captured one's, it is not
+listed: a small grey **Archived groups** row is, and tapping it shows the group.
 
-> **Wrong looks like** the group offered for a new movement, or its total changing.
+> **Wrong looks like** the group listed before the row is tapped, or its total changing.
 
 ### G3 · An old movement keeps it
 
@@ -594,7 +600,9 @@ colour from the wallpaper, no lock screen of Cents' own (D31).
 ### X2 · Swipes
 
 A row swiped past 60 % asks to delete it; short of that it springs back. Dragging a category by its
-grip still reorders, and swiping the body does not steal it.
+grip still reorders, and swiping the body does not steal it. On a tab's own screen, a sideways
+swipe slides to the tab beside it, and nothing happens past Home or Wallet; on a form, a detail
+screen or Settings it does nothing, and a swipe from the edge is still Android's back.
 
 ### X3 · TalkBack
 

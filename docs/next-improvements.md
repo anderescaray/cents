@@ -38,6 +38,15 @@ session can build it without the original conversation. **The build order is
   (`DECISIONS.md` D37). **Merged in #148.** Phone check: `docs/device-check.md` A4.
 - [ ] 14. Clearing every filter from the top of the Filters screen, not only from its foot.
   **Merged in #149.** Phone check: `docs/device-check.md` M2.
+- [ ] 15. The month and the day in the *This month* card, not at the top of Home (2026-10-25).
+  **Merged in #152.** Phone check: H7.
+- [ ] 16. An emoji for each category, any the phone has, a three-to-a-row category sheet, and
+  more colours (2026-10-25). **Merged in #153 and #155.** Phone check: H5, C1.
+- [ ] 17. Swiping sideways between tabs (2026-10-25). **Merged in #154.** Phone check: X2.
+- [ ] 18. Archived groups kept behind an *Archived groups* row when choosing a movement's group,
+  captured movements included (2026-10-28). **Merged in #157.** Phone check: G2.
+- [ ] 19. Making a new group while choosing one, not only in Settings (2026-10-28). **Merged in
+  #157.** Phone check: G1.
 
 ## Acceptance for what is still to build
 

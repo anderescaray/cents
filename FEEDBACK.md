@@ -9,7 +9,6 @@ It is the mirror of [`DECISIONS.md`](DECISIONS.md):
 
 | File | Direction | Holds |
 |---|---|---|
-| 2026-10-18 | **Ruralvía was not in Settings › Capture › Add an app** | Not a bug. Ruralvía was already chosen, with an account, so it was on Capture's own list and not under *Add an app*, which offers only apps not yet chosen; and Cents had no notification access, so nothing was captured. #134 changed how the list names apps, which this did not need. |
 | [`DECISIONS.md`](DECISIONS.md) | agent → owner | Questions only you can answer |
 | **`FEEDBACK.md`** | **owner → agent** | **Things you saw go wrong, and things you want changed** |
 
@@ -25,7 +24,9 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-Nothing is open, and no check is waiting.
+Nothing is open. **Waiting on a check:** the build installed 2026-10-28 (`ce9e715`) carries
+#151–#157. What to look at is H5, H7, H8, C1, R3, G1, G2 and X2 in
+[`docs/device-check.md`](docs/device-check.md), plus A4 and M2 from #148 and #149.
 
 **Checked by 2026-10-25 and correct:** G2–G4, archiving a group (#140), on the build installed
 2026-10-18 (`8dd2a78`). Every confirmed request so far has now been checked on the phone.
@@ -58,6 +59,10 @@ is still outstanding.
 
 | Date | What was wrong | What was done |
 |---|---|---|
+| 2026-10-28 | **Filing a captured movement listed archived groups** in the group sheet | A captured movement opens as one already recorded, and those were offered every group. Archived groups now wait behind a small *Archived groups* row for every movement, and the sheet gained *New group*. #157 |
+| 2026-10-25 | **In Spanish, Reports' period words were cut** (*Trimestre*, *Personalizado*) | Segment labels stay on one line, shrinking to 65 % at most, except with a large system font; *Personalizado* became *Fechas*. #156 |
+| 2026-10-25 | **Changing tab flashed white** | Mid-fade, the window's white showed through. The canvas is painted under every screen. #151 |
+| 2026-10-18 | **Ruralvía was not in Settings › Capture › Add an app** | Not a bug. Ruralvía was already chosen, with an account, so it was on Capture's own list and not under *Add an app*, which offers only apps not yet chosen; and Cents had no notification access, so nothing was captured. #134 changed how the list names apps, which this did not need. |
 | 2026-10-01 | **The whole UI**: the bubbles, the iOS look, budgets in Settings; wanted a Home that records and files in a few taps, after the film | The rework, D30 and ADR 0003 accepted with amendments. `feat/ui-rework` |
 | 2026-10-01 | **Wallet: the amount and *Delete* overlapped, and the account row was red** | Rows were made transparent for the cards, which let the swipe's red layer show through. Rows are opaque again. `feat/ui-rework` |
 | 2026-10-01 | **Lines between the cards after Income → back**, and **hard corners on *This month*** | The cards' fade drew into a layer clipped to the card, cutting the soft shadow into straight edges, and replayed on every return; a size animation clipped it too. The fade multiplies alpha instead and plays once per visit; the size animation is gone. `feat/ui-rework` |

@@ -286,6 +286,32 @@ class RuleFormViewModelTest {
         }
 
     @Test
+    fun `a new reminder starts on the day before, and the stepper and chips set it`() =
+        runTest {
+            val viewModel = form()
+            viewModel.setMode(RuleMode.CONFIRM)
+            viewModel.startAddingReminder()
+
+            viewModel.uiState.test {
+                assertEquals(-1, awaitStateThat { it.addingReminder }.reminderOffset)
+                viewModel.stepReminderDays(-1)
+                assertEquals(0, awaitStateThat { it.reminderDays == 0 }.reminderOffset)
+                // Never below on the day: nothing changes, so nothing new is emitted.
+                viewModel.stepReminderDays(-1)
+                assertEquals(0, viewModel.uiState.value.reminderDays)
+                viewModel.chooseReminder(3)
+                val after = awaitStateThat { it.reminderDays == 3 }
+                assertEquals(3, after.reminderOffset)
+                assertFalse(after.reminderBefore)
+                viewModel.chooseReminder(-7)
+                assertEquals(-7, awaitStateThat { it.reminderDays == 7 }.reminderOffset)
+                viewModel.confirmReminder()
+                assertEquals(listOf(-7), awaitStateThat { !it.addingReminder }.reminders.map { it.offsetDays })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `switching to a fixed amount turns an after into a before`() =
         runTest {
             val viewModel = form()

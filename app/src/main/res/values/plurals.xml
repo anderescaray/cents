@@ -71,6 +71,10 @@
         <item quantity="one">yesterday</item>
         <item quantity="other">%1$d days ago</item>
     </plurals>
+    <plurals name="reminder_stepper_days">
+        <item quantity="one">1 day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
     <plurals name="reminder_days_before">
         <item quantity="one">The day before</item>
         <item quantity="other">%1$d days before</item>

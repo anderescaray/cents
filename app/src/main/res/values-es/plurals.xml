@@ -71,6 +71,10 @@
         <item quantity="one">ayer</item>
         <item quantity="other">hace %1$d días</item>
     </plurals>
+    <plurals name="reminder_stepper_days">
+        <item quantity="one">1 día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
     <plurals name="reminder_days_before">
         <item quantity="one">El día antes</item>
         <item quantity="other">%1$d días antes</item>

@@ -29,7 +29,7 @@
     <string name="capture_apps_footer_picker">Aparecen las apps con icono en la pantalla de inicio y las que tienen ahora una notificación a la vista. Las ya elegidas no. Si falta la app de tu banco, vuelve mientras se vea una notificación suya.</string>
     <string name="capture_choose_account_message">¿En qué cuenta entran sus pagos?</string>
     <string name="capture_words_add_placeholder">Una palabra o una frase</string>
-    <string name="capture_words_add">Añadir</string>
+    <string name="capture_words_add">Añadir palabra</string>
     <string name="capture_words_duplicate">Ya está en la lista</string>
     <string name="capture_words_list_footer">Toca una palabra para quitarla. Mayúsculas y tildes dan igual, y solo cuentan palabras enteras: «cargo» no coincide con «encargo».</string>
     <string name="capture_words_empty_expense">Sin palabras, así que nada se registra como gasto.</string>

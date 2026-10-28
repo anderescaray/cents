@@ -276,8 +276,9 @@ class RuleFormViewModel
                 it.copy(mode = mode, reminders = kept.distinctBy(Reminder::offsetDays))
             }
 
+        /** Opens on *the day before*, the reminder most often wanted, so one tap can add it. */
         fun startAddingReminder() =
-            form.update { it.copy(addingReminder = true, reminderDaysInput = "", reminderBefore = true) }
+            form.update { it.copy(addingReminder = true, reminderDaysInput = "1", reminderBefore = true) }
 
         fun cancelAddingReminder() = form.update { it.copy(addingReminder = false) }
 
@@ -287,6 +288,22 @@ class RuleFormViewModel
             }
 
         fun setReminderBefore(before: Boolean) = form.update { it.copy(reminderBefore = before) }
+
+        /** The stepper: one day more or fewer, never below *on the day* or past a year. */
+        fun stepReminderDays(delta: Int) =
+            form.update {
+                val days = ((it.reminderDays ?: 0) + delta).coerceIn(0, MAX_REMINDER_DAYS)
+                it.copy(reminderDaysInput = days.toString())
+            }
+
+        /** A suggestion chip: the days and the side at once, signed the way a reminder is stored. */
+        fun chooseReminder(offsetDays: Int) =
+            form.update {
+                it.copy(
+                    reminderDaysInput = kotlin.math.abs(offsetDays).toString(),
+                    reminderBefore = offsetDays <= 0,
+                )
+            }
 
         fun confirmReminder() =
             form.update { state ->

@@ -6,28 +6,43 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.Reminder
+import io.github.anderescaray.cents.ui.components.CentsButton
+import io.github.anderescaray.cents.ui.components.CentsChip
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.CentsSheet
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
-import io.github.anderescaray.cents.ui.components.CentsTextField
+import io.github.anderescaray.cents.ui.components.IconBadge
+import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.notifications.notificationsAllowed
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -76,17 +91,13 @@ internal fun LazyListScope.remindersSection(
                 }
             }
 
-            if (state.addingReminder) {
-                NewReminderRows(state, viewModel)
-            } else {
-                CentsListRow(
-                    title = stringResource(R.string.rule_reminders_add),
-                    value = if (state.reminders.isEmpty()) stringResource(R.string.rule_reminders_none) else null,
-                    showChevron = true,
-                    showSeparator = false,
-                    onClick = viewModel::startAddingReminder,
-                )
-            }
+            CentsListRow(
+                title = stringResource(R.string.rule_reminders_add),
+                leading = { IconBadge(iconRes = R.drawable.ic_plus, color = CentsTheme.colors.accent) },
+                showSeparator = false,
+                onClick = viewModel::startAddingReminder,
+                modifier = Modifier.testTag(ADD_REMINDER_TAG),
+            )
         }
     }
 }
@@ -109,53 +120,123 @@ internal fun reminderLabel(reminder: Reminder): String =
     }
 
 /**
- * Typing a new one: how many days, and which side of the date.
- *
- * Inline rather than in a dialog, so the reminders already set stay visible while another is
- * added — *three days before* reads differently when you can see that *on the day* is already
- * there.
+ * A new reminder, in a sheet: the usual ones as chips, a stepper for any other number of days,
+ * *Before* or *After* for a bill that asks for its amount, and one button. The reminders already
+ * set are left out of the suggestions, since the same notification twice is no use.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun NewReminderRows(
+internal fun NewReminderSheet(
     state: RuleFormUiState,
     viewModel: RuleFormViewModel,
 ) {
-    CentsListRow(
-        title = stringResource(R.string.reminder_new_days),
-        trailing = {
-            CentsTextField(
-                value = state.reminderDaysInput,
-                onValueChange = viewModel::setReminderDays,
-                placeholder = stringResource(R.string.reminder_new_days_placeholder),
-                numeric = true,
-            )
-        },
-    )
+    val suggestions = state.reminderSuggestions
+    CentsSheet(title = stringResource(R.string.reminder_sheet_title), onDismiss = viewModel::cancelAddingReminder) {
+        Column(
+            modifier =
+                Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(CentsDimens.screenMargin),
+            verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingL),
+        ) {
+            if (suggestions.isNotEmpty()) {
+                SheetLabel(stringResource(R.string.reminder_suggestions))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
+                    verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
+                ) {
+                    suggestions.forEach { offset ->
+                        CentsChip(
+                            label = reminderLabel(Reminder(offsetDays = offset)),
+                            selected = offset == state.reminderOffset,
+                            onClick = { viewModel.chooseReminder(offset) },
+                        )
+                    }
+                }
+            }
 
-    // Zero days is "on the day", where the side of the date means nothing; and a fixed amount is
-    // only ever announced beforehand.
-    if (state.asksForAmount && state.reminderDays != 0) {
-        val before = stringResource(R.string.reminder_before)
-        val after = stringResource(R.string.reminder_after)
-        Box(modifier = Modifier.padding(CentsDimens.rowHorizontalPadding)) {
-            CentsSegmentedControl(
-                options = listOf(true, false),
-                selected = state.reminderBefore,
-                onSelect = viewModel::setReminderBefore,
-                label = { option -> if (option) before else after },
+            SheetLabel(stringResource(R.string.reminder_custom))
+            DaysStepper(state = state, onStep = viewModel::stepReminderDays)
+            // Zero days is "on the day", where the side of the date means nothing; and a fixed
+            // amount is only ever announced beforehand.
+            if (state.asksForAmount && state.reminderDays != 0) {
+                val before = stringResource(R.string.reminder_before)
+                val after = stringResource(R.string.reminder_after)
+                CentsSegmentedControl(
+                    options = listOf(true, false),
+                    selected = state.reminderBefore,
+                    onSelect = viewModel::setReminderBefore,
+                    label = { option -> if (option) before else after },
+                )
+            }
+
+            CentsButton(
+                text = stringResource(R.string.reminder_confirm),
+                onClick = viewModel::confirmReminder,
+                enabled = state.canAddReminder,
+                modifier = Modifier.fillMaxWidth().testTag(CONFIRM_REMINDER_TAG),
             )
+            // Under the button, so nothing above it moves when it appears.
+            if (state.reminderIsDuplicate) {
+                Text(
+                    text = stringResource(R.string.reminder_duplicate),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.secondaryLabel,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
-
-    CentsListRow(
-        title = stringResource(R.string.action_add),
-        subtitle = if (state.reminderIsDuplicate) stringResource(R.string.reminder_duplicate) else null,
-        value = state.reminderOffset?.let { reminderLabel(Reminder(offsetDays = it)) },
-        valueColor = CentsTheme.colors.secondaryLabel,
-        showSeparator = false,
-        onClick = if (state.canAddReminder) viewModel::confirmReminder else viewModel::cancelAddingReminder,
-    )
 }
+
+@Composable
+private fun SheetLabel(text: String) {
+    Text(text = text, style = CentsTheme.typography.footnote, color = CentsTheme.colors.secondaryLabel)
+}
+
+/**
+ * The reminder read on one line, *3 days before* or *On the day*, with a round button either side
+ * of it; each greys out at its limit.
+ */
+@Composable
+private fun DaysStepper(
+    state: RuleFormUiState,
+    onStep: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM),
+    ) {
+        RoundIconButton(
+            iconRes = R.drawable.ic_minus,
+            contentDescription = stringResource(R.string.reminder_fewer_days),
+            onClick = { onStep(-1) },
+            tint = CentsTheme.colors.accent,
+            enabled = state.reminderDays > 0,
+        )
+        Text(
+            text = reminderLabel(Reminder(offsetDays = state.reminderOffset)),
+            style = CentsTheme.typography.title3,
+            color = CentsTheme.colors.label,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier.weight(1f).testTag(REMINDER_DAYS_TAG),
+        )
+        RoundIconButton(
+            iconRes = R.drawable.ic_plus,
+            contentDescription = stringResource(R.string.reminder_more_days),
+            onClick = { onStep(1) },
+            tint = CentsTheme.colors.accent,
+            enabled = state.reminderDays < MAX_REMINDER_DAYS,
+        )
+    }
+}
+
+internal const val ADD_REMINDER_TAG = "addReminder"
+internal const val CONFIRM_REMINDER_TAG = "confirmReminder"
+internal const val REMINDER_DAYS_TAG = "reminderDays"
 
 /**
  * Says so when the reminders are being written down and thrown away.

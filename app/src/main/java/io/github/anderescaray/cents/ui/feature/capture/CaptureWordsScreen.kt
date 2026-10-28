@@ -1,5 +1,8 @@
 package io.github.anderescaray.cents.ui.feature.capture
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
@@ -15,6 +18,7 @@ import io.github.anderescaray.cents.domain.model.CaptureWordList
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsAlert
 import io.github.anderescaray.cents.ui.components.CentsBackButton
+import io.github.anderescaray.cents.ui.components.CentsButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
@@ -110,21 +114,36 @@ private fun LazyListScope.addSection(
     state: CaptureWordsUiState,
     actions: CaptureWordsActions,
 ) {
+    // The field in its card and, under it, a filled button: an action, not one more word in a list.
     item(key = "add") {
-        CentsListSection {
-            CentsTextField(
-                value = state.draft,
-                onValueChange = actions.onDraftChange,
-                placeholder = stringResource(R.string.capture_words_add_placeholder),
-                showSeparator = true,
-                modifier = Modifier.testTag(WORD_FIELD_TAG),
+        Column(verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
+            CentsListSection {
+                CentsTextField(
+                    value = state.draft,
+                    onValueChange = actions.onDraftChange,
+                    placeholder = stringResource(R.string.capture_words_add_placeholder),
+                    modifier = Modifier.testTag(WORD_FIELD_TAG),
+                )
+            }
+            CentsButton(
+                text = stringResource(R.string.capture_words_add),
+                onClick = actions.onAdd,
+                enabled = state.canAdd,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CentsDimens.screenMargin)
+                        .testTag(WORD_ADD_TAG),
             )
-            CentsListRow(
-                title = stringResource(R.string.capture_words_add),
-                subtitle = if (state.draftIsDuplicate) stringResource(R.string.capture_words_duplicate) else null,
-                showSeparator = false,
-                onClick = actions.onAdd.takeIf { state.canAdd },
-            )
+            // Under the button, so it does not jump while the word is being typed.
+            if (state.draftIsDuplicate) {
+                Text(
+                    text = stringResource(R.string.capture_words_duplicate),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.secondaryLabel,
+                    modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+                )
+            }
         }
     }
 }
@@ -203,3 +222,4 @@ private fun WordAlerts(
 
 internal const val WORD_FIELD_TAG = "captureWordField"
 internal const val WORD_ROW_TAG = "captureWord"
+internal const val WORD_ADD_TAG = "captureWordAdd"

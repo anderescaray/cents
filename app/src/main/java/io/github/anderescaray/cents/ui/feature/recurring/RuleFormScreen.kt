@@ -111,12 +111,13 @@ fun RuleFormScreen(
     RuleDialogs(state = state, viewModel = viewModel)
 }
 
-/** The calendar, and the question asked before a rule stops. */
+/** The calendar, the new reminder, and the question asked before a rule stops. */
 @Composable
 private fun RuleDialogs(
     state: RuleFormUiState,
     viewModel: RuleFormViewModel,
 ) {
+    if (state.addingReminder) NewReminderSheet(state, viewModel)
     if (state.pickingFrequency) {
         FrequencySheet(
             selected = state.frequency,

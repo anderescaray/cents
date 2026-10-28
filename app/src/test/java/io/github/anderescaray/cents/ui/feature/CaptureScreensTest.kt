@@ -2,6 +2,8 @@ package io.github.anderescaray.cents.ui.feature
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollAction
@@ -31,6 +33,7 @@ import io.github.anderescaray.cents.ui.feature.capture.CaptureWordsUiState
 import io.github.anderescaray.cents.ui.feature.capture.IGNORE_WORDS_ROW_TAG
 import io.github.anderescaray.cents.ui.feature.capture.TRY_RESULT_TAG
 import io.github.anderescaray.cents.ui.feature.capture.TRY_ROW_TAG
+import io.github.anderescaray.cents.ui.feature.capture.WORD_ADD_TAG
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -199,6 +202,27 @@ class CaptureScreensTest {
         composeRule.onNodeWithText("Remove").performClick()
 
         assertEquals(1, removed)
+    }
+
+    @Test
+    fun `a word is added with its own button, which waits for something new to add`() {
+        val state =
+            mutableStateOf(
+                CaptureWordsUiState(list = CaptureWordList.EXPENSE, words = listOf("pago"), isLoading = false),
+            )
+        var added = 0
+        composeRule.setContent {
+            CentsTheme { CaptureWordsContent(state = state.value, actions = CaptureWordsActions(onAdd = { added++ })) }
+        }
+
+        composeRule.onNodeWithTag(WORD_ADD_TAG).assertIsNotEnabled()
+        state.value = state.value.copy(draft = "pago")
+        composeRule.onNodeWithText("Already in the list").assertExists()
+        composeRule.onNodeWithTag(WORD_ADD_TAG).assertIsNotEnabled()
+
+        state.value = state.value.copy(draft = "bizum")
+        composeRule.onNodeWithTag(WORD_ADD_TAG).assertIsEnabled().performClick()
+        assertEquals(1, added)
     }
 
     @Test

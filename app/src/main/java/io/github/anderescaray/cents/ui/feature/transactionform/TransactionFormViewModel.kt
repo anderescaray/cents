@@ -67,8 +67,9 @@ data class TransactionFormUiState(
      * the list is sorted when the groups or the date change and not on every keypad digit.
      *
      * An archived group is left out, so the June trip does not come up in December — except the
-     * one this movement is already in, last and said to be archived, so a dinner from the June
-     * trip keeps its trip. The rest wait in [archivedGroups].
+     * one this movement is already in, said to be archived and after the active groups its date
+     * fits as well, so a dinner from the June trip keeps its trip. The rest wait in
+     * [archivedGroups].
      */
     val offeredGroups: List<Group> = emptyList(),
     /**
@@ -375,12 +376,16 @@ class TransactionFormViewModel
             categoriesBeforeMaking = allCategories.map { it.id }.toSet()
         }
 
-        /** The same for a group, which is chosen whatever the movement is. */
+        /**
+         * The same for a group, which is chosen whatever the movement is. Not before the groups
+         * have arrived: an empty snapshot would take the first group there is for the new one.
+         */
         fun makingGroup() {
             groupsBeforeMaking =
                 form.value.groups
                     .map { it.id }
                     .toSet()
+                    .takeIf { groupsLoaded }
         }
 
         fun selectAccount(id: Long) =
@@ -397,10 +402,20 @@ class TransactionFormViewModel
         fun clearCategory() = form.update { it.copy(selectedCategoryId = null) }
 
         /** Tapping the group already chosen takes the movement back out of it. */
-        fun selectGroup(id: Long) =
+        fun selectGroup(id: Long) {
+            // Any choice settles the question, so a group that turns up later (the editor was
+            // left without saving, and one came from elsewhere) is not taken for the one made.
+            groupsBeforeMaking = null
             form.update {
                 it.copy(selectedGroupId = id.takeIf { chosen -> chosen != it.selectedGroupId }).withOfferedGroups()
             }
+        }
+
+        /** *No group*. */
+        fun clearGroup() {
+            groupsBeforeMaking = null
+            form.update { it.copy(selectedGroupId = null).withOfferedGroups() }
+        }
 
         fun openDatePicker() = form.update { it.copy(pickingDate = true) }
 

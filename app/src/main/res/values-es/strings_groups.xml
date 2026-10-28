@@ -48,12 +48,12 @@
     <string name="transaction_row_in_group">%1$s · %2$s</string>
     <string name="restore_confirm_incoming_extra">Trae además %1$d presupuestos y %2$d grupos.</string>
     <string name="restore_confirm_replaces_extra">También elimina los %1$d presupuestos y %2$d grupos que hay ahora.</string>
-    <!-- Archiving a group: kept, with its history, but not offered for new movements. -->
+    <!-- Archiving a group: kept, with its history, but set apart when recording a movement. -->
     <string name="group_archive">Archivar grupo</string>
     <string name="group_reactivate">Reactivar grupo</string>
     <string name="group_archive_footer">Al anotar un movimiento, un grupo archivado espera en Grupos archivados en vez de en la lista. Sus movimientos, totales e informes se quedan tal cual, y Filtros lo sigue encontrando.</string>
-    <string name="group_archived_footer">Archivado: no se ofrece para movimientos nuevos. Reactívalo para volver a elegirlo.</string>
+    <string name="group_archived_footer">Archivado: espera en Grupos archivados al anotar un movimiento. Reactívalo para que vuelva a la lista con los demás.</string>
     <string name="groups_archived_header">Archivados</string>
-    <string name="groups_archived_footer">No se ofrecen para movimientos nuevos. Sus movimientos y totales se conservan.</string>
-    <string name="group_archived_note">Archivado: no se ofrece para movimientos nuevos. Editar › Reactivar grupo lo devuelve.</string>
+    <string name="groups_archived_footer">Esperan en Grupos archivados al anotar un movimiento. Sus movimientos y totales se conservan.</string>
+    <string name="group_archived_note">Archivado: espera en Grupos archivados al anotar un movimiento. Editar › Reactivar grupo lo devuelve a la lista.</string>
 </resources>

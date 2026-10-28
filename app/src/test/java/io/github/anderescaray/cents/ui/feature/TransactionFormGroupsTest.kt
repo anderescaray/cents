@@ -223,6 +223,23 @@ class TransactionFormGroupsTest {
         }
 
     @Test
+    fun `a group chosen after leaving the editor unsaved is not replaced by one that turns up later`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val wedding = database.groupDao().insert(group(name = "Wedding"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() && it.groups.isNotEmpty() }
+                viewModel.makingGroup()
+                viewModel.selectGroup(wedding)
+                database.groupDao().insert(group(name = "Restored trip"))
+
+                assertEquals(wedding, awaitStateThat { it.groups.size == 2 }.selectedGroupId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `a group deleted while the form is open is let go`() =
         runTest {
             database.accountDao().insert(account(name = "Checking"))

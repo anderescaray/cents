@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -85,11 +86,15 @@ data class PickerChoice(
 /**
  * A row under the choices that does something else: *New category*, *No category*. Without an
  * [iconRes] it carries the grey question mark that stands for *uncategorized* everywhere else.
+ *
+ * [quiet] is a row for the rare case, in small grey type and with no badge, so it does not read as
+ * one of the answers: *Archived groups*, which opens the rest of the list.
  */
 @Immutable
 data class PickerAction(
     val label: String,
     val iconRes: Int?,
+    val quiet: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -372,6 +377,25 @@ private fun ActionRow(
     action: PickerAction,
     showSeparator: Boolean,
 ) {
+    if (action.quiet) {
+        // Small grey type, but still the 48 dp a finger needs.
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button, onClick = action.onClick)
+                    .defaultMinSize(minHeight = QUIET_ROW_HEIGHT.dp)
+                    .padding(horizontal = CentsDimens.screenMargin),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = action.label,
+                style = CentsTheme.typography.footnote,
+                color = CentsTheme.colors.secondaryLabel,
+            )
+        }
+        return
+    }
     CentsListRow(
         title = action.label,
         leading = {
@@ -432,5 +456,6 @@ private const val GRABBER_ALPHA = 0.6f
 private const val DRAG_TO_CLOSE = 96
 private const val RISE_DAMPING = 0.86f
 private const val RISE_STIFFNESS = 174f
+private const val QUIET_ROW_HEIGHT = 48
 
 internal const val PICKER_LIST_TAG = "pickerList"

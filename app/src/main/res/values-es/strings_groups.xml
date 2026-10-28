@@ -41,6 +41,8 @@
     <string name="group_delete_message">Sus movimientos se quedan tal cual, en sus meses y sus categorías. Solo dejan de pertenecer a un grupo.</string>
     <string name="field_group">Grupo</string>
     <string name="field_group_footer">Opcional: un viaje, una mudanza, un trabajo. Tócalo otra vez para sacar el movimiento.</string>
+    <string name="form_group_new">Nuevo grupo</string>
+    <string name="form_archived_groups">Grupos archivados</string>
     <string name="filters_group_header">Grupo</string>
     <string name="filters_all_groups">Todos los grupos</string>
     <string name="transaction_row_in_group">%1$s · %2$s</string>
@@ -49,7 +51,7 @@
     <!-- Archiving a group: kept, with its history, but not offered for new movements. -->
     <string name="group_archive">Archivar grupo</string>
     <string name="group_reactivate">Reactivar grupo</string>
-    <string name="group_archive_footer">Un grupo archivado no se ofrece al anotar un movimiento. Sus movimientos, totales e informes se quedan tal cual, y Filtros lo sigue encontrando.</string>
+    <string name="group_archive_footer">Al anotar un movimiento, un grupo archivado espera en Grupos archivados en vez de en la lista. Sus movimientos, totales e informes se quedan tal cual, y Filtros lo sigue encontrando.</string>
     <string name="group_archived_footer">Archivado: no se ofrece para movimientos nuevos. Reactívalo para volver a elegirlo.</string>
     <string name="groups_archived_header">Archivados</string>
     <string name="groups_archived_footer">No se ofrecen para movimientos nuevos. Sus movimientos y totales se conservan.</string>

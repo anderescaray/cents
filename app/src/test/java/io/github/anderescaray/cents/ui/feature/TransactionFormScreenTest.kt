@@ -19,6 +19,7 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
+import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomCategoryRepository
 import io.github.anderescaray.cents.data.repository.RoomGroupRepository
@@ -74,6 +75,7 @@ class TransactionFormScreenTest {
     private val viewModels = ViewModelKeeper()
     private val clock = Clock.fixed(Instant.parse("2026-10-07T10:00:00Z"), ZoneOffset.UTC)
     private var accountsCreated = 0
+    private var groupsCreated = 0
 
     @Before
     fun setUp() {
@@ -246,6 +248,27 @@ class TransactionFormScreenTest {
         composeRule.onAllNodesWithText("Cancel").assertCountEquals(1)
     }
 
+    @Test
+    fun `archived groups wait behind a quiet row, and a new group can be made from the sheet`() {
+        runBlocking {
+            database.accountDao().insert(account())
+            database.groupDao().insert(group(name = "Wedding"))
+            database.groupDao().insert(group(name = "June trip", archived = true))
+        }
+        showForm { it.groups.size == 2 }
+
+        composeRule.onNodeWithText("Group").performClick()
+
+        composeRule.onNodeWithText("Wedding").assertExists()
+        composeRule.onNodeWithText("June trip", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Archived groups").performClick()
+        composeRule.onNodeWithText("June trip", substring = true).assertExists()
+        composeRule.onNodeWithText("Archived groups").assertDoesNotExist()
+
+        composeRule.onNodeWithText("New group").performClick()
+        assertEquals(1, groupsCreated)
+    }
+
     /** The keypad, found by its delete key: a bare digit would also find a day in the calendar. */
     private fun keypad() = composeRule.onNodeWithContentDescription("Delete")
 
@@ -270,6 +293,7 @@ class TransactionFormScreenTest {
                     onDone = {},
                     onCreateCategory = {},
                     onCreateAccount = { accountsCreated++ },
+                    onCreateGroup = { groupsCreated++ },
                     onSwitchToTransfer = {},
                     viewModel = form,
                 )

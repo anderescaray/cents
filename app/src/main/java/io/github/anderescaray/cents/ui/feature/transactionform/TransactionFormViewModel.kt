@@ -66,12 +66,16 @@ data class TransactionFormUiState(
      * (D27): a movement joins a group only when the owner taps it. Held rather than derived, so
      * the list is sorted when the groups or the date change and not on every keypad digit.
      *
-     * An archived group is not offered for a **new** movement: the June trip does not come up in
-     * December. Editing a movement already recorded offers every group, archived ones last and
-     * said to be archived, so a dinner from the June trip keeps its trip and a forgotten one can
-     * still be put in it.
+     * An archived group is left out, so the June trip does not come up in December — except the
+     * one this movement is already in, last and said to be archived, so a dinner from the June
+     * trip keeps its trip. The rest wait in [archivedGroups].
      */
     val offeredGroups: List<Group> = emptyList(),
+    /**
+     * The archived groups not already in [offeredGroups], by name. The picker keeps them behind
+     * one quiet *Archived groups* row, so a forgotten dinner can still be put in its trip.
+     */
+    val archivedGroups: List<Group> = emptyList(),
     val date: LocalDate = LocalDate.now(),
     val today: LocalDate = LocalDate.now(),
     val note: String = "",
@@ -182,6 +186,7 @@ class TransactionFormViewModel
          */
         private var accountsBeforeMaking: Set<Long>? = null
         private var categoriesBeforeMaking: Set<Long>? = null
+        private var groupsBeforeMaking: Set<Long>? = null
 
         /** Until the categories have actually arrived, an empty list means "not yet". */
         private var categoriesLoaded = false
@@ -233,18 +238,18 @@ class TransactionFormViewModel
             viewModelScope.launch {
                 groupRepository.observeGroups().collect { groups ->
                     groupsLoaded = true
+                    val madeGroup = groupsBeforeMaking?.let { before -> groups.firstOrNull { it.id !in before } }
+                    if (madeGroup != null) groupsBeforeMaking = null
                     form.update { state ->
                         state
                             .copy(
                                 groups = groups,
-                                // A group deleted while this form was open is no longer on offer, nor
-                                // one archived while a new movement was being recorded. Pruned only
-                                // once the real list is known, for the reason the category is: the
-                                // movement and the groups load independently.
+                                // A group deleted while this form was open is no longer on offer.
+                                // Pruned only once the real list is known, for the reason the
+                                // category is: the movement and the groups load independently.
                                 selectedGroupId =
-                                    state.selectedGroupId?.takeIf { id ->
-                                        groups.any { it.id == id && it.offeredFor(state.isEditing) }
-                                    },
+                                    madeGroup?.id
+                                        ?: state.selectedGroupId?.takeIf { id -> groups.any { it.id == id } },
                             ).withOfferedGroups()
                     }
                 }
@@ -370,6 +375,14 @@ class TransactionFormViewModel
             categoriesBeforeMaking = allCategories.map { it.id }.toSet()
         }
 
+        /** The same for a group, which is chosen whatever the movement is. */
+        fun makingGroup() {
+            groupsBeforeMaking =
+                form.value.groups
+                    .map { it.id }
+                    .toSet()
+        }
+
         fun selectAccount(id: Long) =
             form.update { state ->
                 // Choosing an account is choosing a currency: it is the same decision.
@@ -385,7 +398,9 @@ class TransactionFormViewModel
 
         /** Tapping the group already chosen takes the movement back out of it. */
         fun selectGroup(id: Long) =
-            form.update { it.copy(selectedGroupId = id.takeIf { chosen -> chosen != it.selectedGroupId }) }
+            form.update {
+                it.copy(selectedGroupId = id.takeIf { chosen -> chosen != it.selectedGroupId }).withOfferedGroups()
+            }
 
         fun openDatePicker() = form.update { it.copy(pickingDate = true) }
 
@@ -477,13 +492,10 @@ internal fun TransactionKind.toCategoryKind(): CategoryKind =
         TransactionKind.EXPENSE -> CategoryKind.EXPENSE
     }
 
-private fun TransactionFormUiState.withOfferedGroups(): TransactionFormUiState =
-    copy(
-        offeredGroups =
-            groups
-                .filter { it.offeredFor(isEditing) }
-                .sortedWith(compareByDescending<Group> { it.covers(date) }.thenBy { it.archived }),
+private fun TransactionFormUiState.withOfferedGroups(): TransactionFormUiState {
+    val (offered, archived) = groups.partition { !it.archived || it.id == selectedGroupId }
+    return copy(
+        offeredGroups = offered.sortedWith(compareByDescending<Group> { it.covers(date) }.thenBy { it.archived }),
+        archivedGroups = archived,
     )
-
-/** Every group for a movement already recorded; only the ones not archived for a new one. */
-private fun Group.offeredFor(editing: Boolean): Boolean = editing || !archived
+}

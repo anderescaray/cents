@@ -43,9 +43,9 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 /**
- * The movement form and archived groups (`docs/next-improvements.md`): an archived group is not
- * offered for a new movement, and a movement already recorded keeps its group and can still be put
- * in one.
+ * The movement form and groups (`docs/next-improvements.md`): an archived group is kept apart, behind
+ * the picker's *Archived groups* row, for a new movement and a recorded one alike; a movement already
+ * in one keeps it; and a group made from the form is chosen on the way back.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -85,6 +85,7 @@ class TransactionFormGroupsTest {
             viewModel.uiState.test {
                 val state = awaitStateThat { it.groups.size == 2 }
                 assertEquals(listOf("Wedding"), state.offeredGroups.map { it.name })
+                assertEquals(listOf("June trip"), state.archivedGroups.map { it.name })
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -125,8 +126,9 @@ class TransactionFormGroupsTest {
             val editor = formFor(id)
             editor.uiState.test {
                 val loaded = awaitStateThat { it.isEditing && it.groups.size == 2 && it.selectedGroupId == june }
-                // Every group for a movement already recorded, the archived one last.
+                // The archived group it is already in stays offered, last.
                 assertEquals(listOf("Wedding", "June trip"), loaded.offeredGroups.map { it.name })
+                assertTrue(loaded.archivedGroups.isEmpty())
                 editor.setDate(LocalDate.of(2026, 6, 13))
                 awaitStateThat { it.date == LocalDate.of(2026, 6, 13) && it.offeredGroups.any { g -> g.id == june } }
                 editor.setNote("Dinner")
@@ -141,7 +143,7 @@ class TransactionFormGroupsTest {
         }
 
     @Test
-    fun `a movement already recorded can be put in an archived group`() =
+    fun `a captured movement is not offered archived groups up front, but can still be put in one`() =
         runTest {
             val accountId = database.accountDao().insert(account(name = "Checking"))
             val june =
@@ -169,9 +171,12 @@ class TransactionFormGroupsTest {
             val editor = formFor(id)
             editor.uiState.test {
                 val loaded = awaitStateThat { it.isEditing && it.groups.isNotEmpty() }
-                assertEquals(listOf("June trip"), loaded.offeredGroups.map { it.name })
+                assertTrue(loaded.offeredGroups.isEmpty())
+                assertEquals(listOf("June trip"), loaded.archivedGroups.map { it.name })
                 editor.selectGroup(june)
-                awaitStateThat { it.selectedGroupId == june }
+                val chosen = awaitStateThat { it.selectedGroupId == june }
+                assertEquals(listOf("June trip"), chosen.offeredGroups.map { it.name })
+                assertTrue(chosen.archivedGroups.isEmpty())
                 editor.save()
                 assertTrue(awaitStateThat { it.finished }.finished)
                 cancelAndIgnoreRemainingEvents()
@@ -181,7 +186,7 @@ class TransactionFormGroupsTest {
         }
 
     @Test
-    fun `a group archived while a new movement is being recorded is let go`() =
+    fun `a group archived while a new movement is being recorded stays chosen`() =
         runTest {
             database.accountDao().insert(account(name = "Checking"))
             val wedding = database.groupDao().insert(group(name = "Wedding"))
@@ -193,9 +198,44 @@ class TransactionFormGroupsTest {
 
                 database.groupDao().update(database.groupDao().findById(wedding)!!.copy(archived = true))
 
+                // The owner chose it, and the archived ones can be chosen now, so it is not undone.
                 val after = awaitStateThat { it.groups.single().archived }
-                assertNull(after.selectedGroupId)
-                assertTrue(after.offeredGroups.isEmpty())
+                assertEquals(wedding, after.selectedGroupId)
+                assertEquals(listOf(wedding), after.offeredGroups.map { it.id })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a group made from the form is chosen when the owner comes back`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            database.groupDao().insert(group(name = "Wedding"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() && it.groups.isNotEmpty() }
+                viewModel.makingGroup()
+                val lisbon = database.groupDao().insert(group(name = "Lisbon trip"))
+
+                assertEquals(lisbon, awaitStateThat { it.groups.size == 2 }.selectedGroupId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `a group deleted while the form is open is let go`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val wedding = database.groupDao().insert(group(name = "Wedding"))
+
+            viewModel.uiState.test {
+                awaitStateThat { it.accounts.isNotEmpty() && it.groups.isNotEmpty() }
+                viewModel.selectGroup(wedding)
+                awaitStateThat { it.selectedGroupId == wedding }
+
+                database.groupDao().deleteById(wedding)
+
+                assertNull(awaitStateThat { it.groups.isEmpty() }.selectedGroupId)
                 cancelAndIgnoreRemainingEvents()
             }
         }

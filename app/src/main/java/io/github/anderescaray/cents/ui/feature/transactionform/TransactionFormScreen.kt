@@ -72,6 +72,7 @@ fun TransactionFormScreen(
     onDone: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
     onCreateAccount: () -> Unit,
+    onCreateGroup: () -> Unit,
     onSwitchToTransfer: (String) -> Unit,
     viewModel: TransactionFormViewModel = hiltViewModel(),
 ) {
@@ -130,6 +131,7 @@ fun TransactionFormScreen(
         onCloseSheet = { sheet = null },
         onCreateCategory = onCreateCategory,
         onCreateAccount = onCreateAccount,
+        onCreateGroup = onCreateGroup,
     )
 }
 
@@ -356,6 +358,7 @@ private fun FormDialogs(
     onCloseSheet: () -> Unit,
     onCreateCategory: (CategoryKind) -> Unit,
     onCreateAccount: () -> Unit,
+    onCreateGroup: () -> Unit,
 ) {
     if (state.pickingDate) {
         CentsDatePicker(
@@ -369,7 +372,7 @@ private fun FormDialogs(
     when (sheet) {
         FormSheet.CATEGORY -> CategorySheet(state, viewModel, onCreateCategory, onCloseSheet)
         FormSheet.ACCOUNT -> AccountSheet(state, viewModel, onCreateAccount, onCloseSheet)
-        FormSheet.GROUP -> GroupSheet(state, viewModel, onCloseSheet)
+        FormSheet.GROUP -> GroupSheet(state, viewModel, onCreateGroup, onCloseSheet)
         null -> Unit
     }
 

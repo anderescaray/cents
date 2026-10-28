@@ -112,6 +112,7 @@ private fun SheetAction(action: CentsSheetAction) {
         when {
             !action.enabled -> CentsTheme.colors.tertiaryLabel
             action.destructive -> CentsTheme.colors.destructiveText
+            action.quiet -> CentsTheme.colors.secondaryLabel
             else -> CentsTheme.colors.accentText
         }
 
@@ -120,17 +121,17 @@ private fun SheetAction(action: CentsSheetAction) {
             Modifier
                 .fillMaxWidth()
                 .clickable(enabled = action.enabled, role = Role.Button, onClick = action.onClick)
-                .defaultMinSize(minHeight = SHEET_ROW_HEIGHT.dp)
+                .defaultMinSize(minHeight = if (action.quiet) QUIET_ROW_HEIGHT.dp else SHEET_ROW_HEIGHT.dp)
                 .padding(
                     horizontal = CentsDimens.spacingL,
-                    vertical = CentsDimens.spacingM,
+                    vertical = if (action.quiet) CentsDimens.spacingS else CentsDimens.spacingM,
                 ),
         verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingXs),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = action.label,
-            style = CentsTheme.typography.headline,
+            style = if (action.quiet) CentsTheme.typography.footnote else CentsTheme.typography.headline,
             color = color,
             textAlign = TextAlign.Center,
         )
@@ -158,3 +159,6 @@ private fun Separator() {
 
 private const val SHEET_RADIUS = 22
 private const val SHEET_ROW_HEIGHT = 57
+
+/** Small, but still the 48 dp a finger needs. */
+private const val QUIET_ROW_HEIGHT = 48

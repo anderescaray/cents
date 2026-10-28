@@ -41,6 +41,8 @@
     <string name="group_delete_message">Its movements stay exactly where they are, in their months and their categories. They only stop belonging to a group.</string>
     <string name="field_group">Group</string>
     <string name="field_group_footer">Optional: a trip, a move, a job. Tap it again to take the movement out.</string>
+    <string name="form_group_new">New group</string>
+    <string name="form_archived_groups">Archived groups</string>
     <string name="filters_group_header">Group</string>
     <string name="filters_all_groups">All groups</string>
     <string name="transaction_row_in_group">%1$s · %2$s</string>
@@ -49,7 +51,7 @@
     <!-- Archiving a group: kept, with its history, but not offered for new movements. -->
     <string name="group_archive">Archive group</string>
     <string name="group_reactivate">Reactivate group</string>
-    <string name="group_archive_footer">An archived group is not offered when you record a movement. Its movements, totals and reports stay exactly as they are, and Filters still finds it.</string>
+    <string name="group_archive_footer">When you record a movement, an archived group waits under Archived groups instead of in the list. Its movements, totals and reports stay exactly as they are, and Filters still finds it.</string>
     <string name="group_archived_footer">Archived: not offered for new movements. Reactivate it to pick it again.</string>
     <string name="groups_archived_header">Archived</string>
     <string name="groups_archived_footer">Not offered for new movements. Their movements and totals are kept.</string>

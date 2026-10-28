@@ -51,7 +51,8 @@ Then read these, in this order, before writing any code:
 
 ## 4. Waiting on the owner
 
-- **This session's docs PR** (`docs/group-picker-and-plan`), to review and merge.
+- **#159**, the fixes from #157's review (the group sheet scrolls, the archived notes), to
+  review, merge and install. Then this session's docs PR, #158.
 - **Checks on the phone:** H5, H7, H8, C1, R3, G1, G2 and X2 for items 15 to 19, and A4 and M2
   for items 13 and 14 (`docs/device-check.md`).
 - **Branches** that are merged or superseded and can be deleted when the owner says so: on

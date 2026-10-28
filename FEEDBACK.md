@@ -24,8 +24,8 @@ and what was actually done — so this file stays short and the history stays so
 
 ## Open
 
-Nothing is open. **Waiting on a check:** the build installed 2026-10-28 (`ce9e715`) carries
-#151–#157. What to look at is H5, H7, H8, C1, R3, G1, G2 and X2 in
+Nothing is open. **Waiting on a check:** the build installed 2026-10-28 (`4416198`) carries
+#151–#160; #160 is already liked. What to look at is H5, H7, H8, C1, R3, G1, G2 and X2 in
 [`docs/device-check.md`](docs/device-check.md), plus A4 and M2 from #148 and #149.
 
 **Checked by 2026-10-25 and correct:** G2–G4, archiving a group (#140), on the build installed
@@ -59,6 +59,8 @@ is still outstanding.
 
 | Date | What was wrong | What was done |
 |---|---|---|
+| 2026-10-28 | **Capture's *Add* looked like one more word** in the list | A filled *Add word* button under the field, grey until there is something new to add. #160, liked on the phone the same day |
+| 2026-10-28 | **Reminders looked unfinished, and *days* was written vertically** | A text field squeezed the row's title to one letter per line. Reminders are now chosen in a sheet: suggestions as chips, a stepper that names the reminder, one button. #160, liked on the phone the same day |
 | 2026-10-28 | **Filing a captured movement listed archived groups** in the group sheet | A captured movement opens as one already recorded, and those were offered every group. Archived groups now wait behind a small *Archived groups* row for every movement, and the sheet gained *New group*. #157 |
 | 2026-10-25 | **In Spanish, Reports' period words were cut** (*Trimestre*, *Personalizado*) | Segment labels stay on one line, shrinking to 65 % at most, except with a large system font; *Personalizado* became *Fechas*. #156 |
 | 2026-10-25 | **Changing tab flashed white** | Mid-fade, the window's white showed through. The canvas is painted under every screen. #151 |

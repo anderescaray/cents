@@ -47,6 +47,48 @@ session can build it without the original conversation. **The build order is
   captured movements included (2026-10-28). **Merged in #157.** Phone check: G2.
 - [ ] 19. Making a new group while choosing one, not only in Settings (2026-10-28). **Merged in
   #157.** Phone check: G1.
+- [x] 20. A distinct, filled *Add word* button in capture's word lists (2026-10-28). #160, checked
+  on the phone 2026-10-28.
+- [x] 21. Subscription reminders chosen in a sheet, with suggestions and a stepper, not a typed
+  field (2026-10-28). #160, checked on the phone 2026-10-28. Now in `docs/PRD.md` §4.4.
+- [ ] 22. **Next.** A variable bill is filled only by a payment that names it, and asks otherwise
+  (`DECISIONS.md` D39). Details below.
+
+## 22 · A variable bill knows who it is paid to (D39)
+
+**Why.** Today a bill marked *Ask me the amount* takes any payment of its kind in its account
+within 3 days of its date (`CaptureMatcher.kt`). Groceries paid the day before the electricity is
+due become the electricity bill, and the real bill is then saved as an ordinary capture. Balances
+stay right, but the categories are swapped.
+
+**What to build:**
+
+- **Words to recognise it by.** The subscription form of a variable bill gets a *Recognise it by*
+  section, edited the way capture's word lists are (#160's *Add word* button, rows to remove). A
+  new variable bill starts with its own name as its one word.
+- **A match needs a word.** The capture notification's text must contain one of the bill's words,
+  on top of what D35 already asks: same account, kind and currency, within 3 days, the bill still
+  waiting. Then it fills the bill as today, announced, with Undo.
+- **No word, but the date and account fit: ask.** The payment is saved as an ordinary capture,
+  and its notification asks *Is this the Electricity bill?* with **Yes** and **No**. **Yes** fills
+  the bill with that payment and removes the ordinary movement, exactly as a match would, Undo
+  included. **No** leaves it as it is.
+- **Fixed subscriptions are unchanged:** they already need their exact amount.
+
+**Defaults, to change only if the owner says so:**
+
+- Words match the way capture's do: ignoring case and accents, anywhere in the text.
+- Nothing is asked when *Notify after capture* is off or Cents' notifications are blocked, for
+  K9's reason: a question nobody sees cannot be answered. The payment is saved as usual.
+- With several bills fitting, the question is about the nearest in date, as a match is.
+- **Yes** on a bill answered by hand in the meantime fills nothing, and the notification says
+  the bill was already filled.
+- The words are stored per subscription (Room v14, with its migration and test) and travel in the
+  backup. A file written before them gives each variable bill its own name as its word.
+
+**Done when:** the migration and backup round-trip tests pass; `CaptureMatcher` tests cover a
+payment with a word (filled), without one (asked, nothing filled), Yes, No, and Yes after the bill
+was answered; and K8 and a new K11 in `docs/device-check.md` pass on the phone.
 
 ## Acceptance for what is still to build
 

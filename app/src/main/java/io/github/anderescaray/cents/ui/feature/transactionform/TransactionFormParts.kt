@@ -16,7 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
+import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsChip
@@ -182,21 +187,20 @@ internal fun DetailChips(
             onClick = onDate,
             modifier = Modifier.testTag(DATE_CHIP_TAG),
         )
-        if (state.offeredGroups.isNotEmpty()) {
-            CentsChip(
-                label =
-                    state.groups.firstOrNull { it.id == state.selectedGroupId }?.let {
-                        archivedName(
-                            it.name,
-                            it.archived,
-                        )
-                    }
-                        ?: stringResource(R.string.field_group),
-                iconRes = R.drawable.ic_tab_home,
-                selected = state.selectedGroupId != null,
-                onClick = onGroup,
-            )
-        }
+        // Always there, even before the first group exists: the sheet is where one is made.
+        CentsChip(
+            label =
+                state.groups.firstOrNull { it.id == state.selectedGroupId }?.let {
+                    archivedName(
+                        it.name,
+                        it.archived,
+                    )
+                }
+                    ?: stringResource(R.string.field_group),
+            iconRes = R.drawable.ic_tab_home,
+            selected = state.selectedGroupId != null,
+            onClick = onGroup,
+        )
     }
 }
 
@@ -326,30 +330,58 @@ internal fun AccountSheet(
     )
 }
 
-/** The groups this movement's date fits, and *No group* when it is in one already. */
+/**
+ * The groups this movement's date fits first, then the rest. Archived ones wait behind a quiet
+ * *Archived groups* row, so the June trip does not come up in December but a forgotten dinner can
+ * still be put in it. *New group* makes one, chosen on the way back as a new category is.
+ */
 @Composable
 internal fun GroupSheet(
     state: TransactionFormUiState,
     viewModel: TransactionFormViewModel,
+    onCreateGroup: () -> Unit,
     onCloseSheet: () -> Unit,
 ) {
     val selected = state.selectedGroupId
+    var showArchived by rememberSaveable { mutableStateOf(false) }
+    val choose = { group: Group, label: String ->
+        CentsSheetAction(
+            label = label,
+            onClick = {
+                if (group.id != selected) viewModel.selectGroup(group.id)
+                onCloseSheet()
+            },
+        )
+    }
     CentsActionSheet(
         title = stringResource(R.string.field_group),
         message = stringResource(R.string.field_group_footer),
         actions =
             buildList {
-                state.offeredGroups.forEach { group ->
-                    add(
-                        CentsSheetAction(
-                            label = archivedName(group.name, group.archived),
-                            onClick = {
-                                if (group.id != selected) viewModel.selectGroup(group.id)
-                                onCloseSheet()
-                            },
-                        ),
-                    )
+                state.offeredGroups.forEach { add(choose(it, archivedName(it.name, it.archived))) }
+                if (state.archivedGroups.isNotEmpty()) {
+                    if (showArchived) {
+                        state.archivedGroups.forEach { add(choose(it, archivedName(it.name, it.archived))) }
+                    } else {
+                        add(
+                            CentsSheetAction(
+                                label = stringResource(R.string.form_archived_groups),
+                                onClick = { showArchived = true },
+                                quiet = true,
+                            ),
+                        )
+                    }
                 }
+                add(
+                    CentsSheetAction(
+                        label = stringResource(R.string.form_group_new),
+                        onClick = {
+                            onCloseSheet()
+                            viewModel.makingGroup()
+                            onCreateGroup()
+                        },
+                    ),
+                )
                 if (selected != null) {
                     add(
                         CentsSheetAction(

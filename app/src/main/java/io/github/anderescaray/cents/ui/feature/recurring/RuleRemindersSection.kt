@@ -99,7 +99,6 @@ internal fun LazyListScope.remindersSection(
                 modifier = Modifier.testTag(ADD_REMINDER_TAG),
             )
         }
-        if (state.addingReminder) NewReminderSheet(state, viewModel)
     }
 }
 
@@ -127,15 +126,11 @@ internal fun reminderLabel(reminder: Reminder): String =
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun NewReminderSheet(
+internal fun NewReminderSheet(
     state: RuleFormUiState,
     viewModel: RuleFormViewModel,
 ) {
-    val suggestions =
-        remember(state.asksForAmount, state.reminders) {
-            val taken = state.reminders.map { it.offsetDays }.toSet()
-            (if (state.asksForAmount) VARIABLE_SUGGESTIONS else FIXED_SUGGESTIONS).filterNot { it in taken }
-        }
+    val suggestions = state.reminderSuggestions
     CentsSheet(title = stringResource(R.string.reminder_sheet_title), onDismiss = viewModel::cancelAddingReminder) {
         Column(
             modifier =
@@ -161,7 +156,7 @@ private fun NewReminderSheet(
             }
 
             SheetLabel(stringResource(R.string.reminder_custom))
-            DaysStepper(days = state.reminderDays ?: 0, onStep = viewModel::stepReminderDays)
+            DaysStepper(state = state, onStep = viewModel::stepReminderDays)
             // Zero days is "on the day", where the side of the date means nothing; and a fixed
             // amount is only ever announced beforehand.
             if (state.asksForAmount && state.reminderDays != 0) {
@@ -175,33 +170,24 @@ private fun NewReminderSheet(
                 )
             }
 
-            ReminderSummary(state)
             CentsButton(
                 text = stringResource(R.string.reminder_confirm),
                 onClick = viewModel::confirmReminder,
                 enabled = state.canAddReminder,
                 modifier = Modifier.fillMaxWidth().testTag(CONFIRM_REMINDER_TAG),
             )
+            // Under the button, so nothing above it moves when it appears.
+            if (state.reminderIsDuplicate) {
+                Text(
+                    text = stringResource(R.string.reminder_duplicate),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.secondaryLabel,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
-}
-
-/** What the button will add, in words, or why it cannot. */
-@Composable
-private fun ReminderSummary(state: RuleFormUiState) {
-    val offset = state.reminderOffset
-    Text(
-        text =
-            when {
-                state.reminderIsDuplicate -> stringResource(R.string.reminder_duplicate)
-                offset != null -> reminderLabel(Reminder(offsetDays = offset))
-                else -> ""
-            },
-        style = CentsTheme.typography.subhead,
-        color = CentsTheme.colors.secondaryLabel,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
 
 @Composable
@@ -209,44 +195,44 @@ private fun SheetLabel(text: String) {
     Text(text = text, style = CentsTheme.typography.footnote, color = CentsTheme.colors.secondaryLabel)
 }
 
-/** The number read on one line, with a round button either side of it. */
+/**
+ * The reminder read on one line, *3 days before* or *On the day*, with a round button either side
+ * of it; each greys out at its limit.
+ */
 @Composable
 private fun DaysStepper(
-    days: Int,
+    state: RuleFormUiState,
     onStep: (Int) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM),
     ) {
         RoundIconButton(
             iconRes = R.drawable.ic_minus,
             contentDescription = stringResource(R.string.reminder_fewer_days),
             onClick = { onStep(-1) },
             tint = CentsTheme.colors.accent,
+            enabled = state.reminderDays > 0,
         )
         Text(
-            text = pluralStringResource(R.plurals.reminder_stepper_days, days, days),
-            style = CentsTheme.typography.title2,
+            text = reminderLabel(Reminder(offsetDays = state.reminderOffset)),
+            style = CentsTheme.typography.title3,
             color = CentsTheme.colors.label,
+            textAlign = TextAlign.Center,
             maxLines = 1,
-            modifier = Modifier.testTag(REMINDER_DAYS_TAG),
+            modifier = Modifier.weight(1f).testTag(REMINDER_DAYS_TAG),
         )
         RoundIconButton(
             iconRes = R.drawable.ic_plus,
             contentDescription = stringResource(R.string.reminder_more_days),
             onClick = { onStep(1) },
             tint = CentsTheme.colors.accent,
+            enabled = state.reminderDays < MAX_REMINDER_DAYS,
         )
     }
 }
-
-/** On the day, the day before, three days and a week before: what people set. */
-private val FIXED_SUGGESTIONS = listOf(0, -1, -3, -7)
-
-/** A bill that asks also wants the nudge after the date, when it has still not been opened. */
-private val VARIABLE_SUGGESTIONS = listOf(-1, 0, 1, 3)
 
 internal const val ADD_REMINDER_TAG = "addReminder"
 internal const val CONFIRM_REMINDER_TAG = "confirmReminder"

@@ -64,7 +64,8 @@ data class RuleFormUiState(
     /** The nudges this rule carries, soonest first. Held here until the rule is saved. */
     val reminders: List<Reminder> = emptyList(),
     val addingReminder: Boolean = false,
-    val reminderDaysInput: String = "",
+    /** The new reminder's days from the date, 0 to [MAX_REMINDER_DAYS]; its side is [reminderBefore]. */
+    val reminderDays: Int = 1,
     val reminderBefore: Boolean = true,
     /** Set once it is known that stopping is the honest form of deleting (PRD §4.4). */
     val generatedCount: Int = 0,
@@ -82,17 +83,25 @@ data class RuleFormUiState(
     /** Whether the amount is one the owner will have to supply each time. */
     val asksForAmount: Boolean get() = mode == RuleMode.CONFIRM
 
-    val reminderDays: Int? get() = reminderDaysInput.toIntOrNull()?.takeIf { it in 0..MAX_REMINDER_DAYS }
-
-    /** What the reminder being typed would come to, signed the way it is stored. */
-    val reminderOffset: Int?
-        get() = reminderDays?.let { days -> if (days == 0 || !reminderBefore) days else -days }
+    /** What the reminder being chosen would come to, signed the way it is stored. */
+    val reminderOffset: Int
+        get() = if (reminderDays == 0 || !reminderBefore) reminderDays else -reminderDays
 
     /** The same reminder twice is the same notification twice. */
-    val reminderIsDuplicate: Boolean
-        get() = reminderOffset != null && reminders.any { it.offsetDays == reminderOffset }
+    val reminderIsDuplicate: Boolean get() = reminders.any { it.offsetDays == reminderOffset }
 
-    val canAddReminder: Boolean get() = reminderOffset != null && !reminderIsDuplicate
+    val canAddReminder: Boolean get() = !reminderIsDuplicate
+
+    /**
+     * The usual reminders, as one-tap suggestions, less the ones already set. A fixed amount is
+     * only ever announced beforehand; a bill that asks also wants the nudge after the date, when
+     * it has still not been opened.
+     */
+    val reminderSuggestions: List<Int>
+        get() {
+            val taken = reminders.mapTo(HashSet()) { it.offsetDays }
+            return (if (asksForAmount) VARIABLE_SUGGESTIONS else FIXED_SUGGESTIONS).filterNot { it in taken }
+        }
 
     /** Whether the rule has ever produced a movement. */
     val hasHistory: Boolean get() = generatedCount > 0
@@ -119,9 +128,13 @@ data class RuleFormUiState(
                 !saving
 }
 
-/** Nobody is reminded about something a thousand days away, and three digits is the field. */
-private const val MAX_REMINDER_DIGITS = 3
-private const val MAX_REMINDER_DAYS = 365
+/** Nobody is reminded about something more than a year away. */
+internal const val MAX_REMINDER_DAYS = 365
+
+/** The day before, on the day, three days and a week before: what people set, likeliest first. */
+private val FIXED_SUGGESTIONS = listOf(-1, 0, -3, -7)
+
+private val VARIABLE_SUGGESTIONS = listOf(-1, 0, 1, 3)
 
 /**
  * Defining something that repeats.
@@ -276,45 +289,38 @@ class RuleFormViewModel
                 it.copy(mode = mode, reminders = kept.distinctBy(Reminder::offsetDays))
             }
 
-        /** Opens on *the day before*, the reminder most often wanted, so one tap can add it. */
+        /**
+         * Opens on the first suggestion not yet set — *the day before*, usually — so one tap adds
+         * it. With every suggestion taken, on the day before all the same, for the stepper to move.
+         */
         fun startAddingReminder() =
-            form.update { it.copy(addingReminder = true, reminderDaysInput = "1", reminderBefore = true) }
+            form.update {
+                val offset = it.reminderSuggestions.firstOrNull() ?: -1
+                it.copy(addingReminder = true).withReminder(offset)
+            }
 
         fun cancelAddingReminder() = form.update { it.copy(addingReminder = false) }
-
-        fun setReminderDays(typed: String) =
-            form.update {
-                it.copy(reminderDaysInput = typed.filter(Char::isDigit).take(MAX_REMINDER_DIGITS))
-            }
 
         fun setReminderBefore(before: Boolean) = form.update { it.copy(reminderBefore = before) }
 
         /** The stepper: one day more or fewer, never below *on the day* or past a year. */
         fun stepReminderDays(delta: Int) =
             form.update {
-                val days = ((it.reminderDays ?: 0) + delta).coerceIn(0, MAX_REMINDER_DAYS)
-                it.copy(reminderDaysInput = days.toString())
+                it.copy(reminderDays = (it.reminderDays + delta).coerceIn(0, MAX_REMINDER_DAYS))
             }
 
         /** A suggestion chip: the days and the side at once, signed the way a reminder is stored. */
-        fun chooseReminder(offsetDays: Int) =
-            form.update {
-                it.copy(
-                    reminderDaysInput = kotlin.math.abs(offsetDays).toString(),
-                    reminderBefore = offsetDays <= 0,
-                )
-            }
+        fun chooseReminder(offsetDays: Int) = form.update { it.withReminder(offsetDays) }
 
         fun confirmReminder() =
             form.update { state ->
-                val offset = state.reminderOffset
-                if (!state.canAddReminder || offset == null) {
+                if (!state.canAddReminder) {
                     state
                 } else {
                     state.copy(
-                        reminders = (state.reminders + Reminder(offsetDays = offset)).sortedBy { it.offsetDays },
+                        reminders =
+                            (state.reminders + Reminder(offsetDays = state.reminderOffset)).sortedBy { it.offsetDays },
                         addingReminder = false,
-                        reminderDaysInput = "",
                     )
                 }
             }
@@ -429,3 +435,7 @@ private fun TransactionKind.toCategoryKind(): CategoryKind =
         TransactionKind.INCOME -> CategoryKind.INCOME
         TransactionKind.EXPENSE -> CategoryKind.EXPENSE
     }
+
+/** A reminder as days and a side, from the signed offset it is stored as. */
+private fun RuleFormUiState.withReminder(offsetDays: Int): RuleFormUiState =
+    copy(reminderDays = kotlin.math.abs(offsetDays).coerceAtMost(MAX_REMINDER_DAYS), reminderBefore = offsetDays <= 0)

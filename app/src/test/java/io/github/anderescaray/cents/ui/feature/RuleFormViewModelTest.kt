@@ -247,10 +247,10 @@ class RuleFormViewModelTest {
             viewModel.type("11.99")
 
             viewModel.startAddingReminder()
-            viewModel.setReminderDays("3")
+            viewModel.chooseReminder(-3)
             viewModel.confirmReminder()
             viewModel.startAddingReminder()
-            viewModel.setReminderDays("0")
+            viewModel.chooseReminder(0)
             viewModel.confirmReminder()
 
             save(viewModel)
@@ -270,13 +270,13 @@ class RuleFormViewModelTest {
         runTest {
             val viewModel = form()
             viewModel.startAddingReminder()
-            viewModel.setReminderDays("3")
+            viewModel.chooseReminder(-3)
             viewModel.confirmReminder()
             viewModel.startAddingReminder()
-            viewModel.setReminderDays("3")
+            viewModel.chooseReminder(-3)
 
             viewModel.uiState.test {
-                val state = awaitStateThat { it.reminderDaysInput == "3" && it.reminders.size == 1 }
+                val state = awaitStateThat { it.addingReminder && it.reminderDays == 3 && it.reminders.size == 1 }
 
                 // The same notification twice is how somebody turns notifications off.
                 assertTrue(state.reminderIsDuplicate)
@@ -312,12 +312,33 @@ class RuleFormViewModelTest {
         }
 
     @Test
+    fun `the sheet opens on the first suggestion not set yet`() =
+        runTest {
+            val viewModel = form()
+            viewModel.startAddingReminder()
+            viewModel.confirmReminder()
+            viewModel.startAddingReminder()
+
+            // A fixed amount suggests the day before, on the day, 3 and 7 days before; the day
+            // before was the first and is now taken, so on the day is next.
+            viewModel.uiState.test {
+                val state = awaitStateThat { it.addingReminder && it.reminders.size == 1 }
+                assertEquals(listOf(-1), state.reminders.map { it.offsetDays })
+                assertEquals(0, state.reminderOffset)
+                assertEquals(listOf(0, -3, -7), state.reminderSuggestions)
+                assertTrue(state.canAddReminder)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `switching to a fixed amount turns an after into a before`() =
         runTest {
             val viewModel = form()
             viewModel.setMode(RuleMode.CONFIRM)
             viewModel.startAddingReminder()
-            viewModel.setReminderDays("2")
+            // It opens on the day before; one step up is two days, then after rather than before.
+            viewModel.stepReminderDays(1)
             viewModel.setReminderBefore(false)
             viewModel.confirmReminder()
 

@@ -368,8 +368,6 @@
     <string name="rule_reminders_footer_variable">Cents cannot know what this one costs, so it asks. A reminder after the date is the one that catches a bill you have not opened yet.</string>
     <string name="rule_reminders_blocked">Notifications are turned off for Cents, so these are written down and never shown. Tap to turn them on.</string>
     <string name="rule_reminders_blocked_settings">Notifications are turned off for Cents in your phone’s settings, so these are written down and never shown.</string>
-    <string name="reminder_new_title">Remind me</string>
-    <string name="reminder_new_when">When</string>
     <string name="reminder_before">Before</string>
     <string name="reminder_after">After</string>
     <string name="reminder_on_the_day">On the day</string>

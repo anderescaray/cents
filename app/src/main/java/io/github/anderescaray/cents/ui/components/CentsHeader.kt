@@ -98,10 +98,12 @@ fun RoundIconButton(
     modifier: Modifier = Modifier,
     tint: Color = CentsTheme.colors.label,
     filled: Boolean = false,
+    /** False greys the glyph and takes the button out of reach, for one at its limit. */
+    enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val scale = rememberPressScale(pressed)
+    val scale = rememberPressScale(pressed && enabled)
     Box(
         modifier =
             modifier
@@ -118,6 +120,7 @@ fun RoundIconButton(
                 ).clickable(
                     interactionSource = interactionSource,
                     indication = null,
+                    enabled = enabled,
                     role = Role.Button,
                     onClick = onClick,
                 ),
@@ -126,7 +129,12 @@ fun RoundIconButton(
         Icon(
             painter = painterResource(iconRes),
             contentDescription = null,
-            tint = if (filled) CentsTheme.colors.onAccent else tint,
+            tint =
+                when {
+                    !enabled -> CentsTheme.colors.tertiaryLabel
+                    filled -> CentsTheme.colors.onAccent
+                    else -> tint
+                },
             modifier = Modifier.size(ROUND_ICON.dp),
         )
     }

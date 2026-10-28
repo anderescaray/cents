@@ -365,8 +365,6 @@
     <string name="rule_reminders_footer_variable">Cents no puede saber lo que cuesta esta, así que pregunta. Un aviso después de la fecha es el que pilla un recibo que aún no has abierto.</string>
     <string name="rule_reminders_blocked">Las notificaciones de Cents están desactivadas, así que estos avisos se guardan y no se muestran nunca. Pulsa para activarlas.</string>
     <string name="rule_reminders_blocked_settings">Las notificaciones de Cents están desactivadas en los ajustes del móvil, así que estos avisos se guardan y no se muestran nunca.</string>
-    <string name="reminder_new_title">Avísame</string>
-    <string name="reminder_new_when">Cuándo</string>
     <string name="reminder_before">Antes</string>
     <string name="reminder_after">Después</string>
     <string name="reminder_on_the_day">El mismo día</string>

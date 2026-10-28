@@ -117,9 +117,7 @@ private fun LazyListScope.addSection(
     // The field in its card and, under it, a filled button: an action, not one more word in a list.
     item(key = "add") {
         Column(verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
-            CentsListSection(
-                footer = if (state.draftIsDuplicate) stringResource(R.string.capture_words_duplicate) else null,
-            ) {
+            CentsListSection {
                 CentsTextField(
                     value = state.draft,
                     onValueChange = actions.onDraftChange,
@@ -137,6 +135,15 @@ private fun LazyListScope.addSection(
                         .padding(horizontal = CentsDimens.screenMargin)
                         .testTag(WORD_ADD_TAG),
             )
+            // Under the button, so it does not jump while the word is being typed.
+            if (state.draftIsDuplicate) {
+                Text(
+                    text = stringResource(R.string.capture_words_duplicate),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.secondaryLabel,
+                    modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
+                )
+            }
         }
     }
 }

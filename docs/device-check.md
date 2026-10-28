@@ -368,7 +368,10 @@ waits. **Skip** asks first and records nothing, not a zero.
 
 ### S6 · Reminders
 
-Add a reminder 3 days before and one on the day; the phone asks to send notifications. Both stay
+**Add a reminder** opens a sheet on *The day before*. Tap **Add reminder**, then add *On the
+day* from its chip and *5 days before* with the stepper; the phone asks to send notifications. A
+second sheet does not suggest what is already set, and the stepper's − greys out on *On the
+day*. Both stay
 after saving. **After** is offered only on one that asks for its amount, and its notification opens the pending
 amounts. One arrives on its day for a subscription a few days away, never for a stopped one.
 
@@ -510,7 +513,9 @@ bank and Wallet both announce it. With **Notify after capture** off, it is recor
 ### K5 · The words
 
 Each app has its own **Expense words** and **Income words**; editing one app's leaves the other's
-alone. A word already there is refused; **Restore the default words** puts back a removed one.
+alone. A new word goes in with the filled **Add word** button, grey until there is one to add; a word
+already there is refused, said under the button. **Restore the default words** puts back a
+removed one.
 **Ignore words** holds *saldo* and *balance*.
 
 ### K6 · A subscription's charge counts once

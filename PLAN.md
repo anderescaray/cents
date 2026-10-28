@@ -25,34 +25,36 @@ Then read these, in this order, before writing any code:
 
 ## 2. Where things stand (2026-10-28)
 
-- **`main`** is at `f80a26c` (#157), with **Room v13** and **1149 JVM tests**. PRD phases 1 to 5
+- **`main`** is at `969500f` (#160), with **Room v13** and **1155 JVM tests**. PRD phases 1 to 5
   are built, with prices typed by hand (D25). Phase 6 is done as far as it is wanted:
   accessibility (#96), R8, the Baseline Profile and Macrobenchmark (#146); the widget was dropped
   (D38). What the app does is in [`README.md`](README.md#what-it-does).
-- **Merged since #150, the UI and UX work the owner asked for on 2026-10-25 and 2026-10-28:**
-  #151 (no white flash on a tab change), #152 (the date in *This month*), #153 and #155 (an emoji
-  per category, a three-to-a-row category sheet, 24 colours, Android's emoji picker), #154
-  (swiping between tabs), #156 (Spanish segment labels on one line), #157 (archived groups behind
-  a row, and *New group* in the movement form). Backlog items 15 to 19.
-- **The Pixel runs `ce9e715`** (#157's branch, the same code as `main`), installed 2026-10-28.
-- **No question is open in `DECISIONS.md`.**
+- **Merged on 2026-10-25 and 2026-10-28,** the UI and UX work the owner asked for: #151–#157
+  (backlog items 15 to 19), #159 (the group sheet scrolls, after #157's review) and #160 (a
+  filled *Add word* button, and reminders chosen in a sheet; items 20 and 21, liked on the phone).
+- **The Pixel runs `4416198`**, #160's branch, the same code as `main`, installed 2026-10-28.
+- **D39 was answered on 2026-10-28** and is not built yet: §3, item 1.
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
 ## 3. Next, in order
 
-1. **Whatever the owner finds on the phone** in #151–#157 (`FEEDBACK.md`).
-2. **Regenerate the Baseline Profile** (`docs/testing.md`): #152–#157 changed Home, the
-   category sheet and the navigation it was recorded on.
-3. **More UI polish, the owner's direction of 2026-10-25** (a little more impressive, still
+1. **A variable bill knows who it is paid to** (D39, the owner's plan for 2026-10-29): words to
+   recognise each variable bill by, and a *Yes / No* question when the date fits but no word
+   does. Everything needed to build it, defaults included, is backlog item 22 in
+   [`docs/next-improvements.md`](docs/next-improvements.md). It changes the schema (Room v14), so it
+   is done serially, on one branch.
+2. **Whatever the owner finds on the phone** in #151–#157 (`FEEDBACK.md`).
+3. **Regenerate the Baseline Profile** (`docs/testing.md`): Home, the category sheet, the
+   navigation and the reminder sheet have changed since it was recorded.
+4. **More UI polish**, the owner's direction of 2026-10-25 (a little more impressive, still
    basic; built, then judged on the phone). The next candidate is a haptic on save.
-4. **Then, from the backlog's *Requested, not yet placed*:** the savings card on Reports,
+5. **Then, from the backlog's *Requested, not yet placed*:** the savings card on Reports,
    deleting one Drive backup, resizable Reports cards.
 
 ## 4. Waiting on the owner
 
-- **#159**, the fixes from #157's review (the group sheet scrolls, the archived notes), to
-  review, merge and install. Then this session's docs PR, #158.
+- **This session's docs PR** (`docs/variable-bill-words-next`), to review and merge.
 - **Checks on the phone:** H5, H7, H8, C1, R3, G1, G2 and X2 for items 15 to 19, and A4 and M2
   for items 13 and 14 (`docs/device-check.md`).
 - **Branches** that are merged or superseded and can be deleted when the owner says so: on

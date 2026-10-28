@@ -196,7 +196,9 @@ anything.
     (electricity, water).
 - Works identically for income: a salary is just a recurring rule.
 - Optional end date, and a start date to cover free trial periods.
-- Optional reminder a few days before the charge.
+- Optional reminders, as many as wanted, chosen in a sheet (#160): suggestions as chips (the day
+  before, on the day, 3 and 7 days before; for a bill that asks, also 1 and 3 days after) and a
+  stepper for any other number of days.
 - **Subscriptions screen:** every active rule, and above all **what they cost per month
   and per year in total**, plus what share of my income goes to fixed charges. That
   aggregate figure is what makes the feature worth building; a plain list adds nothing.

@@ -286,7 +286,7 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
             // more empty screen between the owner and their first category.
             onCreateCategory = { kind -> navController.navigate(Destination.CategoryEdit(kind = kind)) },
             onCreateAccount = { navController.navigate(Destination.AccountEdit()) },
-            onCreateGroup = { navController.navigate(Destination.GroupEdit()) },
+            onCreateGroup = { navController.navigate(Destination.GroupEdit()) { launchSingleTop = true } },
             onSwitchToTransfer = { amount ->
                 navController.switchForm<Destination.TransactionForm>(
                     Destination.TransferForm(amountInput = amount),

@@ -35,7 +35,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategoryKind
-import io.github.anderescaray.cents.domain.model.Group
 import io.github.anderescaray.cents.ui.components.CategoryBadge
 import io.github.anderescaray.cents.ui.components.CentsActionSheet
 import io.github.anderescaray.cents.ui.components.CentsChip
@@ -331,9 +330,11 @@ internal fun AccountSheet(
 }
 
 /**
- * The groups this movement's date fits first, then the rest. Archived ones wait behind a quiet
- * *Archived groups* row, so the June trip does not come up in December but a forgotten dinner can
- * still be put in it. *New group* makes one, chosen on the way back as a new category is.
+ * The groups this movement's date fits first, then the rest, the chosen one ticked; tapping it
+ * again takes the movement out. Archived ones wait behind a quiet *Archived groups* row, so the
+ * June trip does not come up in December but a forgotten dinner can still be put in it. *New
+ * group* makes one, chosen on the way back as a new category is. A scrolling sheet, because the
+ * list is the owner's and can be long.
  */
 @Composable
 internal fun GroupSheet(
@@ -342,60 +343,47 @@ internal fun GroupSheet(
     onCreateGroup: () -> Unit,
     onCloseSheet: () -> Unit,
 ) {
-    val selected = state.selectedGroupId
     var showArchived by rememberSaveable { mutableStateOf(false) }
-    val choose = { group: Group, label: String ->
-        CentsSheetAction(
-            label = label,
-            onClick = {
-                if (group.id != selected) viewModel.selectGroup(group.id)
-                onCloseSheet()
-            },
-        )
-    }
-    CentsActionSheet(
+    val listed = if (showArchived) state.offeredGroups + state.archivedGroups else state.offeredGroups
+    val labels = listed.map { archivedName(it.name, it.archived) }
+    val choices =
+        remember(listed, labels) {
+            listed.zip(labels) { group, label -> PickerChoice(group.id, label, iconRes = R.drawable.ic_tab_home) }
+        }
+    val archivedLabel = stringResource(R.string.form_archived_groups)
+    val newLabel = stringResource(R.string.form_group_new)
+    val noGroupLabel = stringResource(R.string.form_no_group)
+    CentsPickerSheet(
         title = stringResource(R.string.field_group),
-        message = stringResource(R.string.field_group_footer),
+        choices = choices,
+        selectedId = state.selectedGroupId,
+        onChoose = { id ->
+            viewModel.selectGroup(id)
+            onCloseSheet()
+        },
+        onDismiss = onCloseSheet,
+        footer = stringResource(R.string.field_group_footer),
         actions =
             buildList {
-                state.offeredGroups.forEach { add(choose(it, archivedName(it.name, it.archived))) }
-                if (state.archivedGroups.isNotEmpty()) {
-                    if (showArchived) {
-                        state.archivedGroups.forEach { add(choose(it, archivedName(it.name, it.archived))) }
-                    } else {
-                        add(
-                            CentsSheetAction(
-                                label = stringResource(R.string.form_archived_groups),
-                                onClick = { showArchived = true },
-                                quiet = true,
-                            ),
-                        )
-                    }
+                if (state.archivedGroups.isNotEmpty() && !showArchived) {
+                    add(PickerAction(label = archivedLabel, iconRes = null, quiet = true) { showArchived = true })
                 }
-                add(
-                    CentsSheetAction(
-                        label = stringResource(R.string.form_group_new),
-                        onClick = {
-                            onCloseSheet()
-                            viewModel.makingGroup()
-                            onCreateGroup()
-                        },
-                    ),
-                )
-                if (selected != null) {
+                if (state.selectedGroupId != null) {
                     add(
-                        CentsSheetAction(
-                            label = stringResource(R.string.form_no_group),
-                            onClick = {
-                                viewModel.selectGroup(selected)
-                                onCloseSheet()
-                            },
-                        ),
+                        PickerAction(label = noGroupLabel, iconRes = null) {
+                            viewModel.clearGroup()
+                            onCloseSheet()
+                        },
                     )
                 }
+                add(
+                    PickerAction(label = newLabel, iconRes = R.drawable.ic_plus) {
+                        onCloseSheet()
+                        viewModel.makingGroup()
+                        onCreateGroup()
+                    },
+                )
             },
-        cancelLabel = stringResource(R.string.action_cancel),
-        onDismiss = onCloseSheet,
     )
 }
 

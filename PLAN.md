@@ -50,7 +50,7 @@ Then read these, in this order, before writing any code:
 4. **More UI polish**, the owner's direction of 2026-10-25 (a little more impressive, still
    basic; built, then judged on the phone). The next candidate is a haptic on save.
 5. **Then, from the backlog's *Requested, not yet placed*:** the savings card on Reports,
-   deleting one Drive backup, resizable Reports cards, the add-budget button always there, and
+   deleting one Drive backup, resizable Reports cards, a general budget for no one category, and
    Settings reachable from every tab, with the filters beside it (both added 2026-10-31).
 
 ## 4. Waiting on the owner

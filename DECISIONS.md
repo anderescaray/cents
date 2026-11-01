@@ -165,7 +165,9 @@ everything else, **each with the default that is being built**. Change any line 
 session changes the app.
 
 - **Monthly only, one limit per expense category.** No weekly budgets, no budget across several
-  categories, and none on income. *Default: as written.*
+  categories, and none on income. *Default: as written.* **Amended 2026-10-31 by the owner:** one
+  more, the **general budget**, on no category: every expense of the month, uncategorized included,
+  and every expense subscription still due; at most one, listed first. Built in #164.
 - **What counts as spent:** that category's expenses this month. Transfers and a trade's cash have
   no category, so they never count. *Default: as written.*
 - **What counts as committed:** subscriptions in that category still due before the month ends,

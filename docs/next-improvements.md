@@ -52,7 +52,15 @@ session can build it without the original conversation. **The build order is
 - [x] 21. Subscription reminders chosen in a sheet, with suggestions and a stepper, not a typed
   field (2026-10-28). #160, checked on the phone 2026-10-28. Now in `docs/PRD.md` §4.4.
 - [ ] 22. **Next.** A variable bill is filled only by a payment that names it, and asks otherwise
-  (`DECISIONS.md` D39). Details below.
+  (`DECISIONS.md` D39). Details below. Its schema change is **Room v15**: v14 is item 23's.
+- [ ] 23. A general budget, over the month's spending as a whole, beside the per-category ones
+  (2026-10-31, amends `DECISIONS.md` D26). **Built in #164, not merged.** It counts every expense of
+  the month, uncategorized included, and every expense subscription still due; transfers and trades
+  stay out; there is at most one, listed first in Budgets and on the Reports card. Room v14.
+- [ ] 24. Settings reachable from every tab, the same round button at the right of each header,
+  with the filters beside it on Movements and Customize beside it on Reports (2026-10-31). **Built
+  in #163, not merged.** It opens in Home's stack from any tab, so there is only ever one Settings
+  (#163 explains why).
 
 ## 22 · A variable bill knows who it is paid to (D39)
 

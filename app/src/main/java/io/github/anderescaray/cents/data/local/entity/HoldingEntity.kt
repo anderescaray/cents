@@ -8,15 +8,13 @@ import io.github.anderescaray.cents.domain.model.AssetClass
 import java.time.Instant
 
 /**
- * Something held inside an account: a stock, an ETF, an index fund or a crypto asset.
+ * An asset held in an account: a type and the owner's own name for it (`DECISIONS.md` D40).
  *
- * The quantity is deliberately **not** a column here, for the same reason an account's balance
- * is not one: it is the sum of the trades behind it, and a stored copy drifts away from them
- * the first time a trade is edited.
+ * Neither what it is worth nor what it cost is a column, for the reason an account's balance is
+ * not one: both are what its trades and typed values add up to, and a stored copy would drift away
+ * from them the first time one is edited.
  *
- * The unique index on `(accountId, symbol)` is what stops the same instrument being held twice
- * in one account. Two rows for NVDA would split one position in half, and every average, total
- * and profit on the screen would be right about each half and wrong about the holding.
+ * The name matches nothing, so two assets may share one: the owner decides what they are.
  */
 @Entity(
     tableName = "holdings",
@@ -30,8 +28,6 @@ import java.time.Instant
     ],
     indices = [
         Index(value = ["accountId"]),
-        Index(value = ["symbol"]),
-        Index(value = ["accountId", "symbol"], unique = true),
     ],
 )
 data class HoldingEntity(
@@ -39,10 +35,8 @@ data class HoldingEntity(
     val id: Long = 0,
     val accountId: Long,
     val assetClass: AssetClass,
-    /** Ticker, ISIN or crypto symbol, upper-cased. What a price is stored against. */
-    val symbol: String,
     val name: String,
-    /** ISO-4217 code of the currency the instrument is priced in. */
+    /** ISO-4217 code: the account's, taken when the asset is created. */
     val currency: String,
     val note: String? = null,
     val createdAt: Instant,

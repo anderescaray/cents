@@ -23,10 +23,6 @@
         <item quantity="one">It holds one investment. A holding cannot be moved to another account, and deleting it would take its recorded trades with it — so remove it from Investments first, then delete this account.</item>
         <item quantity="other">It holds %1$d investments. A holding cannot be moved to another account, and deleting one would take its recorded trades with it — so remove them from Investments first, then delete this account.</item>
     </plurals>
-    <plurals name="investments_total_unpriced">
-        <item quantity="one">One of these has no price yet and is left out of the total.</item>
-        <item quantity="other">%1$d of these have no price yet and are left out of the total.</item>
-    </plurals>
     <plurals name="holding_delete_message_trades">
         <item quantity="one">Its one recorded trade goes with it, and that cannot be undone.</item>
         <item quantity="other">Its %1$d recorded trades go with it, and that cannot be undone.</item>
@@ -38,14 +34,6 @@
     <plurals name="export_done_message">
         <item quantity="one">One row is in the file, wherever you put it. Nothing left the phone.</item>
         <item quantity="other">%1$d rows are in the file, wherever you put it. Nothing left the phone.</item>
-    </plurals>
-    <plurals name="net_worth_unpriced">
-        <item quantity="one">One holding has no price yet, so it is not in these numbers.</item>
-        <item quantity="other">%1$d holdings have no price yet, so they are not in these numbers.</item>
-    </plurals>
-    <plurals name="prices_changed">
-        <item quantity="one">One price will be updated. The rest are left exactly as they are.</item>
-        <item quantity="other">%1$d prices will be updated. The rest are left exactly as they are.</item>
     </plurals>
     <plurals name="account_delete_blocked_by_rules">
         <item quantity="one">One subscription records into it. A subscription has to record somewhere, and this flow cannot move it — open Settings › Subscriptions and delete it there, then delete this account.</item>

@@ -7,7 +7,7 @@ import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
-import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.HoldingValueEntity
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
 import io.github.anderescaray.cents.data.local.entity.TradeEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
@@ -15,8 +15,6 @@ import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Frequency
-import io.github.anderescaray.cents.domain.model.Quantity
-import io.github.anderescaray.cents.domain.model.QuoteSource
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -99,6 +97,8 @@ fun transaction(
     transferId: Long? = null,
     /** Set on the cash a purchase took out of the account, or a sale put back. */
     tradeId: Long? = null,
+    /** True on a sale's result rather than money moving to or from the asset. */
+    tradeResult: Boolean = false,
     /** Set on a movement a recurring rule generated rather than one that was typed. */
     ruleId: Long? = null,
     /** Set on a movement that belongs to an occasion: a trip, a freelance job. */
@@ -113,6 +113,7 @@ fun transaction(
     note = note,
     transferId = transferId,
     tradeId = tradeId,
+    tradeResult = tradeResult,
     ruleId = ruleId,
     groupId = groupId,
     createdAt = FIXED_INSTANT,
@@ -121,15 +122,13 @@ fun transaction(
 
 fun holding(
     accountId: Long,
-    symbol: String = "NVDA",
-    name: String = "NVIDIA",
-    assetClass: AssetClass = AssetClass.STOCK,
+    name: String = "Global index fund",
+    assetClass: AssetClass = AssetClass.INDEX_FUND,
     currency: String = "EUR",
     note: String? = null,
 ) = HoldingEntity(
     accountId = accountId,
     assetClass = assetClass,
-    symbol = symbol,
     name = name,
     currency = currency,
     note = note,
@@ -140,36 +139,31 @@ fun holding(
 fun trade(
     holdingId: Long,
     side: TradeSide = TradeSide.BUY,
-    /** Whole units, which is what most tests want; a fractional one passes the scaled value. */
-    units: Long = 1,
-    quantityScaled: Long = units * Quantity.SCALE,
-    pricePerUnitMinor: Long = 10_000,
-    feeMinor: Long = 0,
+    amountMinor: Long = 10_000,
+    sellsAll: Boolean = false,
     currency: String = "EUR",
     date: LocalDate = LocalDate.of(2026, 8, 18),
 ) = TradeEntity(
     holdingId = holdingId,
     side = side,
-    quantityScaled = quantityScaled,
-    pricePerUnitMinor = pricePerUnitMinor,
-    feeMinor = feeMinor,
+    amountMinor = amountMinor,
+    sellsAll = sellsAll,
     currency = currency,
     date = date,
     createdAt = FIXED_INSTANT,
 )
 
-fun quote(
-    symbol: String = "NVDA",
-    priceMinor: Long = 12_000,
+fun holdingValue(
+    holdingId: Long,
+    valueMinor: Long = 12_000,
+    date: LocalDate = LocalDate.of(2026, 8, 25),
     currency: String = "EUR",
-    asOf: Instant = FIXED_INSTANT,
-    source: QuoteSource = QuoteSource.MANUAL,
-) = PriceQuoteEntity(
-    symbol = symbol,
-    priceMinor = priceMinor,
+) = HoldingValueEntity(
+    holdingId = holdingId,
+    date = date,
+    valueMinor = valueMinor,
     currency = currency,
-    asOf = asOf,
-    source = source,
+    createdAt = FIXED_INSTANT,
 )
 
 fun recurringRule(
@@ -226,4 +220,40 @@ fun group(
     endDate = endDate,
     createdAt = Instant.parse("2026-09-25T10:00:00Z"),
     archived = archived,
+)
+
+/** The real writer of a trade's cash, over the test database. */
+fun tradeCashWriter(
+    database: CentsDatabase,
+    clock: java.time.Clock = java.time.Clock.fixed(FIXED_INSTANT, java.time.ZoneOffset.UTC),
+) = io.github.anderescaray.cents.data.repository.TradeCashWriter(
+    database.holdingDao(),
+    database.tradeDao(),
+    database.holdingValueDao(),
+    database.transactionDao(),
+    clock,
+)
+
+/** The backup repository as the app builds it, over the test database. */
+fun backupRepository(
+    database: CentsDatabase,
+    clock: java.time.Clock,
+) = io.github.anderescaray.cents.data.repository
+    .RoomBackupRepository(database, clock, tradeCashWriter(database, clock))
+
+/** The portfolio read model as the app builds it, over the test database. */
+fun portfolioRepository(
+    database: CentsDatabase,
+    clock: java.time.Clock = java.time.Clock.fixed(FIXED_INSTANT, java.time.ZoneOffset.UTC),
+) = io.github.anderescaray.cents.data.repository.RoomPortfolioRepository(
+    database.holdingDao(),
+    database.tradeDao(),
+    database.holdingValueDao(),
+    database.transactionDao(),
+    io.github.anderescaray.cents.data.repository.RoomAccountRepository(
+        database.accountDao(),
+        database.transactionDao(),
+        database,
+        clock,
+    ),
 )

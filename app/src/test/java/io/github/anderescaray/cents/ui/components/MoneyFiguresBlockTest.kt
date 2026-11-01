@@ -49,35 +49,9 @@ class MoneyFiguresBlockTest {
     }
 
     @Test
-    fun `an unpriced holding is said, not shown as zero`() {
-        show(MoneyFigures(normal = true, invested = true, total = true), WORTH.copy(invested = null, unpricedCount = 2))
+    fun `money in an archived account is said`() {
+        show(MoneyFigures(), WORTH.copy(inArchivedAccounts = Money(2_000, "EUR")))
 
-        composeRule
-            .onNodeWithText(
-                "2 holdings have no price yet, so they are not in these numbers.",
-            ).assertIsDisplayed()
-    }
-
-    @Test
-    fun `with only cash and bank on, an unpriced holding is not mentioned`() {
-        show(
-            MoneyFigures(normal = true, invested = false, total = false),
-            WORTH.copy(invested = null, unpricedCount = 2),
-        )
-
-        composeRule
-            .onNodeWithText("2 holdings have no price yet, so they are not in these numbers.")
-            .assertDoesNotExist()
-    }
-
-    @Test
-    fun `an unpriced holding and money in an archived account are both said`() {
-        show(
-            MoneyFigures(),
-            WORTH.copy(unpricedCount = 1, inArchivedAccounts = Money(2_000, "EUR")),
-        )
-
-        composeRule.onNodeWithText("One holding has no price yet, so it is not in these numbers.").assertIsDisplayed()
         composeRule
             .onNodeWithText("sits in archived accounts and is not counted above.", substring = true)
             .assertIsDisplayed()
@@ -104,7 +78,6 @@ class MoneyFiguresBlockTest {
                 currency = "EUR",
                 normal = Money(60_000, "EUR"),
                 invested = Money(40_000, "EUR"),
-                unpricedCount = 0,
                 inArchivedAccounts = Money.zero("EUR"),
             )
     }

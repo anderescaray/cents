@@ -232,8 +232,7 @@
 
     <!-- Lo que una operacion hizo con el efectivo de su cuenta -->
     <string name="trade_row">Inversión</string>
-    <string name="trade_row_bought">Compra de %1$s</string>
-    <string name="trade_row_sold">Venta de %1$s</string>
+    <string name="trade_row_result">Resultado de %1$s</string>
 
     <!-- Exportar: un archivo que es tuyo -->
     <string name="export_title">Exporta tus datos</string>
@@ -268,20 +267,7 @@
     <string name="restore_failed_message">El archivo se leía bien pero la escritura ha fallado, así que no se ha cambiado nada. Sigues teniendo todo lo que tenías.</string>
 
     <!-- Todos los precios en una pantalla (D20) -->
-    <string name="prices_action">Precios</string>
-    <string name="prices_title">Actualizar precios</string>
-    <string name="prices_header">Cuánto valen</string>
-    <string name="prices_as_of">Precios a fecha de</string>
-    <string name="prices_date_footer">El día en que estos precios eran ciertos — el día que los leas, que no siempre es hoy.</string>
-    <string name="prices_current">%1$s el %2$s</string>
-    <string name="prices_placeholder">Sin precio</string>
-    <string name="prices_empty_title">Nada que valorar</string>
-    <string name="prices_empty_footer">Los precios son por unidad, de lo que todavía tienes. Una posición que has vendido no tiene cantidad, así que no hay nada sobre lo que poner un precio.</string>
     <!-- Describir una operación por los euros que entraron, como la vende el bróker -->
-    <string name="trade_basis_units">Participaciones</string>
-    <string name="trade_basis_amount">Importe</string>
-    <string name="trade_field_amount_placeholder">Cuánto pusiste</string>
-    <string name="trade_amount_units">Son %1$s participaciones a este precio.</string>
 
     <!-- Lo que se repite (PRD 4.4) -->
     <string name="settings_subscriptions">Suscripciones</string>

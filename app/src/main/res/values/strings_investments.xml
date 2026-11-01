@@ -1,96 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The investments section's own strings.
+    The investments section's own strings (DECISIONS.md D40).
 
     A file of its own, the way each report view has one: a resource file per feature is one more
     thing a feature adds instead of a place several of them collide.
 -->
 <resources>
-    <!-- The portfolio -->
-    <string name="investments_empty_title">Nothing held yet</string>
-    <string name="investments_empty_message">Add what you hold — a stock, an ETF, an index fund or a crypto asset — and record what you paid for it.</string>
-    <string name="investments_empty_no_account">An investment needs an account to live in. Create one in Accounts first, then come back.</string>
-    <string name="investments_add">Add a holding</string>
-    <string name="investments_total_value">Value: %1$s</string>
-    <string name="investments_total_cost">Cost: %1$s</string>
-    <string name="investments_total_profit">Profit: %1$s</string>
+    <!-- Kinds of asset -->
     <string name="investments_class_stock">Stocks</string>
     <string name="investments_class_etf">ETFs</string>
     <string name="investments_class_index_fund">Index funds</string>
     <string name="investments_class_crypto">Crypto</string>
-    <string name="investments_no_price">No price yet</string>
-    <string name="investments_units">%1$s units</string>
 
-    <!-- One holding -->
-    <string name="holding_price_header">Price</string>
-    <string name="holding_price_row">Last price</string>
-    <string name="holding_price_set">Set a price</string>
-    <string name="holding_price_asof">As of %1$s</string>
-    <string name="holding_price_manual_footer">Typed by you. Prices come from the internet in a later version; until then this is the number every total on this screen is built from.</string>
-    <string name="holding_position_header">Position</string>
-    <string name="holding_position_quantity">Quantity</string>
-    <string name="holding_position_average">Average cost</string>
-    <string name="holding_position_cost">What it cost</string>
-    <string name="holding_position_value">What it is worth</string>
-    <string name="holding_position_unrealised">Profit if sold now</string>
-    <string name="holding_position_realised">Profit already taken</string>
-    <string name="holding_position_closed">Nothing held. Every unit bought has been sold.</string>
-    <string name="holding_trades_header">Trades</string>
-    <string name="holding_trades_empty">No trades recorded. Add the purchase that started this holding.</string>
-    <string name="holding_add_trade">Record a trade</string>
-    <string name="holding_edit">Edit this holding</string>
-    <string name="holding_trade_buy">Bought %1$s</string>
-    <string name="holding_trade_sell">Sold %1$s</string>
-    <string name="holding_trade_at">at %1$s each</string>
+    <!-- Invested: every broker account -->
+    <string name="investments_total">Total</string>
+    <string name="investments_put_in">Put in</string>
+    <string name="investments_worth">Worth now</string>
+    <string name="investments_profit">Profit and loss</string>
+    <string name="investments_realised">From closed operations</string>
+    <string name="investments_cash">Cash</string>
+    <string name="investments_invested">Invested</string>
+    <string name="investments_accounts_header">Broker accounts</string>
+    <string name="investments_account_subtitle">Cash %1$s · Invested %2$s</string>
+    <string name="investments_other_currency">Accounts in another currency are listed but not added to these figures.</string>
+    <string name="investments_empty_title">No broker account yet</string>
+    <string name="investments_empty_message">Investments live in broker accounts. Create one, put money in it, and record what you buy.</string>
+    <string name="investments_create_broker">Create a broker account</string>
+    <string name="investments_add">Add an asset</string>
 
-    <!-- The price dialog -->
-    <string name="price_dialog_title">Last known price</string>
-    <string name="price_dialog_message">What one unit is worth, and when that was true.</string>
-    <string name="price_dialog_placeholder">Price per unit</string>
-    <string name="price_dialog_date">Price date</string>
+    <!-- Charts -->
+    <string name="chart_header">Over time</string>
+    <string name="chart_scale_week">Weeks</string>
+    <string name="chart_scale_month">Months</string>
+    <string name="chart_scale_year">Years</string>
+    <string name="chart_empty">The chart starts once there are two weeks to draw.</string>
 
-    <!-- The holding editor -->
-    <string name="holding_new_title">New holding</string>
-    <string name="holding_edit_title">Holding</string>
-    <string name="holding_field_symbol">Symbol</string>
-    <string name="holding_field_symbol_placeholder">NVD.DE, VWCE.DE, BTC</string>
-    <string name="holding_field_symbol_footer">The ticker as your platform writes it, including the market — NVD.DE is Nvidia in Frankfurt, priced in euros, while NVDA is the New York listing priced in dollars. Use the one you actually bought, and the price here will match the one you see there.</string>
-    <string name="holding_field_name">Name</string>
-    <string name="holding_field_name_placeholder">NVIDIA</string>
-    <string name="holding_field_class">Kind</string>
+    <!-- One broker account -->
+    <string name="account_assets_header">Assets</string>
+    <string name="account_assets_empty">Nothing bought yet: what is in this account is cash.</string>
+    <string name="account_update_values">Update values</string>
+    <string name="account_closed_header">Closed operations</string>
+    <string name="account_closed_empty">Nothing sold yet.</string>
+    <string name="account_closed_total">Together: %1$s</string>
+    <string name="account_sale_row">%1$s · received %2$s</string>
+    <string name="account_movements">Account movements</string>
+    <string name="account_movements_footer">Money in and out, interest and dividends, and the account\'s name and balance.</string>
+
+    <!-- One asset -->
+    <string name="asset_no_value">No value typed yet: it is worth what was paid.</string>
+    <string name="asset_last_value">Last value typed on %1$s.</string>
+    <string name="asset_closed">Sold. What it made is in the account\'s closed operations.</string>
+    <string name="asset_update_value">Update value</string>
+    <string name="asset_buy_more">Buy more</string>
+    <string name="asset_sell">Sell</string>
+    <string name="asset_edit">Name and type</string>
+    <string name="asset_history_header">History</string>
+    <string name="asset_history_buy">Bought</string>
+    <string name="asset_history_sell">Sold</string>
+    <string name="asset_history_sell_all">Sold everything</string>
+    <string name="asset_history_value">Value</string>
+    <string name="asset_history_result">%1$s · result %2$s</string>
+    <string name="asset_value_delete_title">Delete this value?</string>
+    <string name="asset_value_delete_message">The chart goes back to the value before it. This cannot be undone.</string>
+
+    <!-- The asset form -->
+    <string name="holding_new_title">New asset</string>
+    <string name="holding_edit_title">Asset</string>
+    <string name="holding_field_class">Type</string>
+    <string name="holding_field_name_placeholder">Name, as you call it</string>
     <string name="holding_field_account">Account</string>
-    <string name="holding_field_account_footer">Which account this is held in. It is the account you transfer money into before buying.</string>
-    <string name="holding_field_note">Note</string>
-    <string name="holding_field_note_placeholder">Optional</string>
-    <string name="holding_duplicate">That account already holds %1$s. Open it instead of adding a second row for the same thing.</string>
-    <string name="holding_delete">Delete this holding</string>
+    <string name="holding_field_note_placeholder">Anything worth remembering</string>
+    <string name="holding_first_purchase_header">First purchase</string>
+    <string name="holding_first_purchase_footer">It comes out of the account\'s cash. More can be bought later.</string>
+    <string name="holding_needs_broker">An asset lives in a broker account. Create one first.</string>
+    <string name="holding_delete">Delete this asset</string>
     <string name="holding_delete_title">Delete %1$s?</string>
-    <string name="holding_delete_message">It holds no trades, so it can be removed for good.</string>
+    <string name="holding_save_failed_message">The asset could not be saved. Nothing was changed.</string>
 
-    <!-- The trade form -->
-    <string name="trade_new_title">New trade</string>
-    <string name="trade_edit_title">Trade</string>
-    <string name="trade_side_buy">Buy</string>
-    <string name="trade_side_sell">Sell</string>
-    <string name="trade_field_quantity">Quantity</string>
-    <string name="trade_field_quantity_placeholder">How many units</string>
-    <string name="trade_field_price">Price per unit</string>
-    <string name="trade_field_fee">Fee</string>
+    <!-- Purchases and sales -->
+    <string name="trade_buy_title">Purchase</string>
+    <string name="trade_sell_title">Sale</string>
+    <string name="trade_field_amount_buy">Amount paid</string>
+    <string name="trade_field_amount_sell">Amount received</string>
     <string name="trade_field_date">Date</string>
-    <string name="trade_total_buy">This purchase cost %1$s, the fee included.</string>
-    <string name="trade_total_sell">This sale returned %1$s, the fee taken off.</string>
-    <string name="trade_too_much">You only hold %1$s. A sale cannot take out more than went in.</string>
-    <string name="trade_delete">Delete this trade</string>
-    <string name="trade_delete_title">Delete this trade?</string>
-    <string name="trade_delete_message">The position and its average cost are recalculated without it.</string>
-    <string name="holding_save_failed_message">That account already holds this symbol. Open the holding that is there instead of adding a second row for the same thing.</string>
-    <string name="trade_save_failed_message">The holding this trade belongs to is no longer there. Nothing was recorded.</string>
-    <string name="trade_side_correction">Correct</string>
-    <string name="trade_correction_title">Correct what you hold</string>
-    <string name="trade_field_actually_held">How many you actually hold</string>
-    <string name="trade_correction_footer">Type what you really hold and it becomes the truth from this date on — no money moves, and nothing already recorded is deleted. The app currently thinks it is %1$s.</string>
-    <string name="holding_trade_correction">Corrected to %1$s</string>
-    <string name="price_basis_per_unit">Per unit</string>
-    <string name="price_basis_total">Total value</string>
-    <string name="price_field_total">What the whole lot is worth</string>
+    <string name="trade_sells_all">Sell everything</string>
+    <string name="trade_sells_all_footer">Empties the asset and takes all of its cost, whatever its last value said. Selling as much as it is worth does the same.</string>
+    <string name="trade_result_preview">This sale makes %1$s.</string>
+    <string name="trade_delete">Delete this operation</string>
+    <string name="trade_delete_title">Delete this operation?</string>
+    <string name="trade_delete_message">The money it moved in the account goes with it. This cannot be undone.</string>
+    <string name="trade_save_failed_message">The operation could not be saved. Nothing was changed.</string>
+
+    <!-- The week's values -->
+    <string name="values_title">Values</string>
+    <string name="values_footer">What each asset is worth now, all of it. One left empty keeps its last value.</string>
+    <string name="values_placeholder">Worth now</string>
+    <string name="values_current">Worth %1$s until now.</string>
+    <string name="values_change">%1$s on the %2$s it was worth.</string>
+    <string name="values_save_failed_message">The values could not be saved. Nothing was changed.</string>
 </resources>

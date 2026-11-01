@@ -56,8 +56,9 @@ data class Transaction(
     /**
      * The trade this is the cash of, and null for an ordinary movement.
      *
-     * Money that went into a holding or came back out of one. Like a transfer leg it moves a
-     * balance and no report: buying 400 € of shares is the same money in a different shape.
+     * Money that went into an asset or came back out of one, or what a sale made or lost. Like a
+     * transfer leg it moves a balance and no report: buying 400 € of an asset is the same money in
+     * a different shape, and a sale's result is kept out of reports by the owner's choice (D40).
      */
     val tradeId: Long? = null,
     /**
@@ -96,10 +97,12 @@ data class TransactionDetails(
     val categoryEmoji: String? = null,
     /** Where the money went, or came from, when this is a transfer leg. Null otherwise. */
     val counterpartAccountName: String? = null,
-    /** What was bought or sold, when this is the cash of a trade. Null otherwise. */
-    val tradeSymbol: String? = null,
-    /** Which holding that trade belongs to, so the row can open it. */
+    /** The asset sold, when this is a sale's result. Null otherwise. */
+    val tradeAssetName: String? = null,
+    /** Which asset that trade belongs to, so the row can open it. */
     val tradeHoldingId: Long? = null,
+    /** True when this is what a sale made or lost, the one trade row the lists show. */
+    val tradeResult: Boolean = false,
     /** The group it belongs to, for the row to say so. Null for most movements. */
     val groupName: String? = null,
 )

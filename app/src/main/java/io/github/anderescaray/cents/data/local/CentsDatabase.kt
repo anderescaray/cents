@@ -12,7 +12,7 @@ import io.github.anderescaray.cents.data.local.dao.CaptureMatchDao
 import io.github.anderescaray.cents.data.local.dao.CategoryDao
 import io.github.anderescaray.cents.data.local.dao.GroupDao
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
-import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
+import io.github.anderescaray.cents.data.local.dao.HoldingValueDao
 import io.github.anderescaray.cents.data.local.dao.RecurringRuleDao
 import io.github.anderescaray.cents.data.local.dao.RulePostponementDao
 import io.github.anderescaray.cents.data.local.dao.RuleReminderDao
@@ -25,7 +25,7 @@ import io.github.anderescaray.cents.data.local.entity.CaptureMatchEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
-import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.HoldingValueEntity
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
@@ -44,7 +44,7 @@ import io.github.anderescaray.cents.data.local.entity.TransactionEntity
         TransactionEntity::class,
         HoldingEntity::class,
         TradeEntity::class,
-        PriceQuoteEntity::class,
+        HoldingValueEntity::class,
         RecurringRuleEntity::class,
         RuleReminderEntity::class,
         BudgetEntity::class,
@@ -68,7 +68,7 @@ abstract class CentsDatabase : RoomDatabase() {
 
     abstract fun tradeDao(): TradeDao
 
-    abstract fun priceQuoteDao(): PriceQuoteDao
+    abstract fun holdingValueDao(): HoldingValueDao
 
     abstract fun recurringRuleDao(): RecurringRuleDao
 
@@ -94,9 +94,11 @@ abstract class CentsDatabase : RoomDatabase() {
          * (2026-09-25) added `movement_groups` and `transactions.groupId`; v9 (2026-09-25) added
          * `rule_postponements`; v10 (2026-10-05) added `balance_adjustments`; v11 (2026-10-12)
          * added `capture_matches`; v12 (2026-10-15) turned every Card, Savings and Other account
-         * into a Bank one; v13 (2026-10-18) added `movement_groups.archived`. See `Migrations.kt`.
+         * into a Bank one; v13 (2026-10-18) added `movement_groups.archived`; v14 (2026-11-01) made
+         * `budgets.categoryId` nullable for the general budget; v15 (2026-11-01) rebuilt investments
+         * as amounts and typed values (D40). See `Migrations.kt` and `InvestmentsMigration.kt`.
          */
-        const val VERSION = 14
+        const val VERSION = 15
         const val NAME = "cents.db"
     }
 }

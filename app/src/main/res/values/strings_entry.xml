@@ -13,6 +13,4 @@
     <string name="form_account_brokers_footer">Broker accounts take incomes only, such as a dividend: what leaves them goes as a transfer or a trade.</string>
 
     <!-- The holding form, where only a broker account is offered -->
-    <string name="holding_account_new_broker">New broker account</string>
-    <string name="holding_account_none_footer">A holding lives in a broker account, and there is none yet. Make one, then move money into it with a transfer.</string>
 </resources>

@@ -4,8 +4,7 @@ package io.github.anderescaray.cents.ui.util
  * The rules for a decimal number while it is still being typed, with the number of decimals
  * left to the caller.
  *
- * This is [AmountEntry]'s loop, lifted out when a second kind of number arrived: a quantity of
- * shares or crypto, which needs eight decimals rather than two ([QuantityEntry]). The rules
+ * This is [AmountEntry]'s loop, lifted out when a second kind of number needed it. The rules
  * themselves are not negotiable and are argued for in [AmountEntry] — a digit past the limit is
  * refused rather than rounded away, a second separator does nothing, a leading separator reads
  * as `0.`, and delete removes exactly one character.

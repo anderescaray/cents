@@ -37,7 +37,9 @@ import java.time.LocalDate
  *   than "every report query except the two you have to reason about".
  * - **Included** — [observeBalanceBefore], [observeDailyNet] and `AccountDao`'s balances.
  * - **Shown** — the list queries. Both kinds are things that happened and have to be visible,
- *   findable and openable; it is the *totals* they must stay out of.
+ *   findable and openable; it is the *totals* they must stay out of. Of a trade's cash, only a
+ *   sale's result is listed: a purchase, and the cost a sale returns, move money between the
+ *   account's cash and its assets, and are read on the investment screens (`DECISIONS.md` D40).
  */
 @Dao
 @Suppress("TooManyFunctions")
@@ -120,18 +122,54 @@ interface TransactionDao {
     suspend fun deleteTransfer(transferId: Long): Int
 
     /**
-     * The cash a trade moved, if it moved any.
-     *
-     * A correction moves none, so it has no row — and a purchase recorded before this column
-     * existed has none either. Both read as null here, which is the same answer: the account's
-     * balance was never touched by that trade.
+     * The cash a trade wrote: a purchase's one row, or a sale's two, the cost it returned and its
+     * result ([TransactionEntity.tradeResult]).
      */
-    @Query("SELECT * FROM transactions WHERE tradeId = :tradeId LIMIT 1")
-    suspend fun findTradeCash(tradeId: Long): TransactionEntity?
+    @Query("SELECT * FROM transactions WHERE tradeId = :tradeId ORDER BY id")
+    suspend fun tradeCash(tradeId: Long): List<TransactionEntity>
 
-    /** Removes it, for a trade that is being deleted or that has stopped moving money. */
+    /** The cash of every trade against one asset, so it can be written again in one go. */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE tradeId IN (SELECT id FROM trades WHERE holdingId = :holdingId)
+        ORDER BY id
+        """,
+    )
+    suspend fun cashForHolding(holdingId: Long): List<TransactionEntity>
+
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>): Int
+
+    /** Removes it, for a trade that is being deleted. */
     @Query("DELETE FROM transactions WHERE tradeId = :tradeId")
     suspend fun deleteTradeCash(tradeId: Long): Int
+
+    /**
+     * What each day did to each broker account's cash, signed, corrections included: the cash
+     * half of the investment charts. The other half is the assets' own values.
+     */
+    @Query(
+        """
+        SELECT m.accountId AS accountId, m.date AS date, SUM(m.signedMinor) AS netMinor
+        FROM (
+            SELECT t.accountId AS accountId, t.date AS date,
+                   CASE t.kind WHEN 'INCOME' THEN t.amountMinor WHEN 'EXPENSE' THEN -t.amountMinor ELSE 0 END
+                       AS signedMinor
+            FROM transactions t
+            INNER JOIN accounts a ON a.id = t.accountId
+            WHERE a.type = 'BROKER'
+            UNION ALL
+            SELECT b.accountId AS accountId, b.date AS date, b.amountMinor AS signedMinor
+            FROM balance_adjustments b
+            INNER JOIN accounts a ON a.id = b.accountId
+            WHERE a.type = 'BROKER'
+        ) m
+        GROUP BY m.accountId, m.date
+        ORDER BY m.date
+        """,
+    )
+    fun observeBrokerCashByDay(): Flow<List<AccountDayNet>>
 
     /**
      * The cash of every trade against one holding, for a holding being deleted whole.
@@ -232,7 +270,7 @@ interface TransactionDao {
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
                t.date AS date, t.note AS note,
-               t.transferId AS transferId, t.tradeId AS tradeId,
+               t.transferId AS transferId, t.tradeId AS tradeId, t.tradeResult AS tradeResult,
                t.groupId AS groupId, g.name AS groupName,
                a.name AS accountName,
                c.name AS categoryName,
@@ -251,12 +289,12 @@ interface TransactionDao {
                CASE
                    WHEN t.tradeId IS NULL THEN NULL
                    ELSE (
-                       SELECT h.symbol
+                       SELECT h.name
                        FROM trades tr
                        INNER JOIN holdings h ON h.id = tr.holdingId
                        WHERE tr.id = t.tradeId
                    )
-               END AS tradeSymbol,
+               END AS tradeAssetName,
                CASE
                    WHEN t.tradeId IS NULL THEN NULL
                    ELSE (SELECT tr.holdingId FROM trades tr WHERE tr.id = t.tradeId)
@@ -266,6 +304,7 @@ interface TransactionDao {
         LEFT JOIN categories c ON c.id = t.categoryId
         LEFT JOIN movement_groups g ON g.id = t.groupId
         WHERE (:accountId IS NULL OR t.accountId = :accountId)
+          AND (t.tradeId IS NULL OR t.tradeResult = 1)
           AND (:categoryId IS NULL OR t.categoryId = :categoryId)
           AND (
             :uncategorized = 0
@@ -312,7 +351,7 @@ interface TransactionDao {
         SELECT t.id AS id, t.accountId AS accountId, t.categoryId AS categoryId,
                t.kind AS kind, t.amountMinor AS amountMinor, t.currency AS currency,
                t.date AS date, t.note AS note,
-               t.transferId AS transferId, t.tradeId AS tradeId,
+               t.transferId AS transferId, t.tradeId AS tradeId, t.tradeResult AS tradeResult,
                t.groupId AS groupId, g.name AS groupName,
                a.name AS accountName,
                c.name AS categoryName,
@@ -331,12 +370,12 @@ interface TransactionDao {
                CASE
                    WHEN t.tradeId IS NULL THEN NULL
                    ELSE (
-                       SELECT h.symbol
+                       SELECT h.name
                        FROM trades tr
                        INNER JOIN holdings h ON h.id = tr.holdingId
                        WHERE tr.id = t.tradeId
                    )
-               END AS tradeSymbol,
+               END AS tradeAssetName,
                CASE
                    WHEN t.tradeId IS NULL THEN NULL
                    ELSE (SELECT tr.holdingId FROM trades tr WHERE tr.id = t.tradeId)
@@ -346,6 +385,7 @@ interface TransactionDao {
         LEFT JOIN categories c ON c.id = t.categoryId
         LEFT JOIN movement_groups g ON g.id = t.groupId
         WHERE t.accountId = :accountId
+          AND (t.tradeId IS NULL OR t.tradeResult = 1)
         ORDER BY t.date DESC, t.id DESC
         """,
     )
@@ -823,8 +863,17 @@ data class TransactionWithNames(
      * `tradeId IS NULL`, so the movements that are not trades — nearly all of them — pay
      * nothing, and the ones that are look up a row by primary key.
      */
-    val tradeSymbol: String?,
+    val tradeAssetName: String?,
     val tradeHoldingId: Long?,
+    /** True when the row is a sale's result, the one part of a trade the lists show. */
+    val tradeResult: Boolean = false,
+)
+
+/** One day's signed change to one account's cash, as SQL returns it. */
+data class AccountDayNet(
+    val accountId: Long,
+    val date: LocalDate,
+    val netMinor: Long,
 )
 
 /** Income and expense totals for a period, summed in SQL. */

@@ -3,11 +3,13 @@ package io.github.anderescaray.cents.ui.feature.accounts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.NetWorth
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
+import io.github.anderescaray.cents.domain.usecase.liveBalances
 import io.github.anderescaray.cents.domain.usecase.netWorthOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,13 @@ data class AccountsUiState(
     val isLoading: Boolean = true,
 ) {
     val showEmptyState: Boolean get() = !isLoading && active.isEmpty()
+
+    /** The active brokers, which open on their investments rather than their movements (D40). */
+    val brokerIds: Set<Long> get() =
+        active
+            .filter { it.account.type == AccountType.BROKER }
+            .map { it.account.id }
+            .toSet()
 
     /**
      * The sum of every active account, and null when they do not share a currency.
@@ -70,14 +79,15 @@ class AccountsViewModel
         val uiState: StateFlow<AccountsUiState> =
             combine(
                 accountRepository.observeAccountsWithBalances(includeArchived = true),
-                portfolioRepository.observePortfolio(),
-            ) { accounts, portfolio ->
-                val active = accounts.filterNot { it.account.archived }
-                val archived = accounts.filter { it.account.archived }
+                portfolioRepository.observePositions(),
+            ) { accounts, positions ->
+                // A broker shows its live total, cash plus what its assets are worth now (D40);
+                // the net worth is worked out from the cash, so nothing is counted twice.
+                val live = liveBalances(accounts, positions)
                 AccountsUiState(
-                    active = active,
-                    archived = archived,
-                    netWorth = netWorthOf(accounts, portfolio),
+                    active = live.filterNot { it.account.archived },
+                    archived = live.filter { it.account.archived },
+                    netWorth = netWorthOf(accounts, positions),
                     isLoading = false,
                 )
             }.stateIn(

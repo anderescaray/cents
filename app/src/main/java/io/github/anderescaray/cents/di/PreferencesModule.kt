@@ -14,10 +14,12 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.local.preferences.DataStoreCaptureSettingsRepository
+import io.github.anderescaray.cents.data.local.preferences.DataStoreChartScaleRepository
 import io.github.anderescaray.cents.data.local.preferences.DataStoreEntryDefaultsRepository
 import io.github.anderescaray.cents.data.local.preferences.DataStoreMoneyFiguresRepository
 import io.github.anderescaray.cents.data.local.preferences.DataStoreReportLayoutRepository
 import io.github.anderescaray.cents.domain.repository.CaptureSettingsRepository
+import io.github.anderescaray.cents.domain.repository.ChartScaleRepository
 import io.github.anderescaray.cents.domain.repository.EntryDefaultsRepository
 import io.github.anderescaray.cents.domain.repository.MoneyFiguresRepository
 import io.github.anderescaray.cents.domain.repository.ReportLayoutRepository
@@ -44,6 +46,9 @@ abstract class PreferencesModule {
 
     @Binds
     abstract fun bindMoneyFiguresRepository(impl: DataStoreMoneyFiguresRepository): MoneyFiguresRepository
+
+    @Binds
+    abstract fun bindChartScaleRepository(impl: DataStoreChartScaleRepository): ChartScaleRepository
 
     companion object {
         private const val PREFERENCES_NAME = "cents.preferences"

@@ -24,7 +24,11 @@ data class Backup(
     val transactions: List<BackupTransaction>,
     val holdings: List<BackupHolding>,
     val trades: List<BackupTrade>,
-    val quotes: List<BackupQuote>,
+    /**
+     * The values typed for each asset. Empty in a file from before D40 (v14 and earlier), whose
+     * holdings, trades and prices the reader has already turned into amounts and values.
+     */
+    val values: List<BackupHoldingValue> = emptyList(),
     /**
      * The subscriptions, salaries and rent that record themselves. Empty in a file written before
      * a backup carried them, which a restore then reads as *there were none*.
@@ -50,7 +54,7 @@ data class Backup(
     val rowCount: Int
         get() =
             accounts.size + categories.size + transactions.size +
-                holdings.size + trades.size + quotes.size + rules.size + reminders.size + budgets.size + groups.size +
+                holdings.size + trades.size + values.size + rules.size + reminders.size + budgets.size + groups.size +
                 postponements.size + adjustments.size + captureMatches.size
 }
 
@@ -93,13 +97,14 @@ data class BackupTransaction(
     val ruleId: Long? = null,
     /** The occasion it belongs to (PRD §4.9); absent in a file written before groups existed. */
     val groupId: Long? = null,
+    /** A sale's result rather than money moving to or from its asset (D40); absent before v15. */
+    val tradeResult: Boolean = false,
 )
 
 data class BackupHolding(
     val id: Long,
     val accountId: Long,
     val assetClass: String,
-    val symbol: String,
     val name: String,
     val currency: String,
     val note: String?,
@@ -109,22 +114,19 @@ data class BackupTrade(
     val id: Long,
     val holdingId: Long,
     val side: String,
-    /** Hundred-millionths of a unit, exactly as [Quantity] keeps it. */
-    val quantityScaled: Long,
-    val pricePerUnitMinor: Long,
-    val feeMinor: Long,
+    val amountMinor: Long,
+    val sellsAll: Boolean,
     val currency: String,
     val date: Long,
     val note: String?,
 )
 
-data class BackupQuote(
-    val symbol: String,
-    val priceMinor: Long,
+data class BackupHoldingValue(
+    val holdingId: Long,
+    /** Epoch day. */
+    val date: Long,
+    val valueMinor: Long,
     val currency: String,
-    /** Epoch millis: a quote is an instant, not a day. */
-    val asOf: Long,
-    val source: String,
 )
 
 /**

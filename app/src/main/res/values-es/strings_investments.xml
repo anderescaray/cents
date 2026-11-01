@@ -1,90 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- La cartera -->
-    <string name="investments_empty_title">Todavía no tienes nada</string>
-    <string name="investments_empty_message">Añade lo que tengas — una acción, un ETF, un fondo indexado o un activo cripto — y registra lo que pagaste por ello.</string>
-    <string name="investments_empty_no_account">Una inversión necesita una cuenta donde vivir. Crea una en Cuentas y vuelve aquí.</string>
-    <string name="investments_add">Añadir una posición</string>
-    <string name="investments_total_value">Valor: %1$s</string>
-    <string name="investments_total_cost">Coste: %1$s</string>
-    <string name="investments_total_profit">Ganancia: %1$s</string>
+    <!-- Tipos de activo -->
     <string name="investments_class_stock">Acciones</string>
     <string name="investments_class_etf">ETF</string>
     <string name="investments_class_index_fund">Fondos indexados</string>
     <string name="investments_class_crypto">Cripto</string>
-    <string name="investments_no_price">Sin precio todavía</string>
-    <string name="investments_units">%1$s unidades</string>
 
-    <!-- Una posición -->
-    <string name="holding_price_header">Precio</string>
-    <string name="holding_price_row">Último precio</string>
-    <string name="holding_price_set">Poner un precio</string>
-    <string name="holding_price_asof">A fecha de %1$s</string>
-    <string name="holding_price_manual_footer">Escrito por ti. Los precios vendrán de internet en una versión posterior; hasta entonces, es el número del que salen todos los totales de esta pantalla.</string>
-    <string name="holding_position_header">Posición</string>
-    <string name="holding_position_quantity">Cantidad</string>
-    <string name="holding_position_average">Coste medio</string>
-    <string name="holding_position_cost">Lo que costó</string>
-    <string name="holding_position_value">Lo que vale</string>
-    <string name="holding_position_unrealised">Ganancia si vendieras ahora</string>
-    <string name="holding_position_realised">Ganancia ya realizada</string>
-    <string name="holding_position_closed">No queda nada. Todas las unidades compradas se han vendido.</string>
-    <string name="holding_trades_header">Operaciones</string>
-    <string name="holding_trades_empty">No hay operaciones. Añade la compra con la que empezó esta posición.</string>
-    <string name="holding_add_trade">Registrar una operación</string>
-    <string name="holding_edit">Editar esta posición</string>
-    <string name="holding_trade_buy">Compra de %1$s</string>
-    <string name="holding_trade_sell">Venta de %1$s</string>
-    <string name="holding_trade_at">a %1$s cada una</string>
+    <!-- Invertido: todas las cuentas bróker -->
+    <string name="investments_total">Total</string>
+    <string name="investments_put_in">Aportado</string>
+    <string name="investments_worth">Vale ahora</string>
+    <string name="investments_profit">Pérdidas y ganancias</string>
+    <string name="investments_realised">De operaciones cerradas</string>
+    <string name="investments_cash">Líquido</string>
+    <string name="investments_invested">Invertido</string>
+    <string name="investments_accounts_header">Cuentas bróker</string>
+    <string name="investments_account_subtitle">Líquido %1$s · Invertido %2$s</string>
+    <string name="investments_other_currency">Las cuentas en otra moneda salen en la lista, pero no se suman a estas cifras.</string>
+    <string name="investments_empty_title">Todavía no hay ninguna cuenta bróker</string>
+    <string name="investments_empty_message">Las inversiones viven en cuentas bróker. Crea una, mete dinero y apunta lo que compres.</string>
+    <string name="investments_create_broker">Crear una cuenta bróker</string>
+    <string name="investments_add">Añadir un activo</string>
 
-    <!-- El diálogo de precio -->
-    <string name="price_dialog_title">Último precio conocido</string>
-    <string name="price_dialog_message">Lo que vale una unidad, y cuándo era cierto.</string>
-    <string name="price_dialog_placeholder">Precio por unidad</string>
-    <string name="price_dialog_date">Fecha del precio</string>
+    <!-- Gráficas -->
+    <string name="chart_header">Evolución</string>
+    <string name="chart_scale_week">Semanas</string>
+    <string name="chart_scale_month">Meses</string>
+    <string name="chart_scale_year">Años</string>
+    <string name="chart_empty">La gráfica empieza cuando hay dos semanas que dibujar.</string>
 
-    <!-- El editor de posiciones -->
-    <string name="holding_new_title">Nueva posición</string>
-    <string name="holding_edit_title">Posición</string>
-    <string name="holding_field_symbol">Símbolo</string>
-    <string name="holding_field_symbol_placeholder">NVD.DE, VWCE.DE, BTC</string>
-    <string name="holding_field_symbol_footer">El ticker tal y como lo escribe tu plataforma, con su mercado — NVD.DE es Nvidia en Fráncfort, en euros, mientras que NVDA es la cotización de Nueva York en dólares. Usa el que compraste de verdad y el precio de aquí coincidirá con el que ves allí.</string>
-    <string name="holding_field_name">Nombre</string>
-    <string name="holding_field_name_placeholder">NVIDIA</string>
+    <!-- Una cuenta bróker -->
+    <string name="account_assets_header">Activos</string>
+    <string name="account_assets_empty">Todavía no has comprado nada: lo que hay en esta cuenta es líquido.</string>
+    <string name="account_update_values">Actualizar valores</string>
+    <string name="account_closed_header">Operaciones cerradas</string>
+    <string name="account_closed_empty">Todavía no has vendido nada.</string>
+    <string name="account_closed_total">En total: %1$s</string>
+    <string name="account_sale_row">%1$s · recibido %2$s</string>
+    <string name="account_movements">Movimientos de la cuenta</string>
+    <string name="account_movements_footer">Entradas y salidas de dinero, intereses y dividendos, y el nombre y el saldo de la cuenta.</string>
+
+    <!-- Un activo -->
+    <string name="asset_no_value">Todavía no has puesto ningún valor: vale lo que pagaste.</string>
+    <string name="asset_last_value">Último valor puesto el %1$s.</string>
+    <string name="asset_closed">Vendido. Lo que ganó o perdió está en las operaciones cerradas de la cuenta.</string>
+    <string name="asset_update_value">Actualizar valor</string>
+    <string name="asset_buy_more">Comprar más</string>
+    <string name="asset_sell">Vender</string>
+    <string name="asset_edit">Nombre y tipo</string>
+    <string name="asset_history_header">Historial</string>
+    <string name="asset_history_buy">Compra</string>
+    <string name="asset_history_sell">Venta</string>
+    <string name="asset_history_sell_all">Venta de todo</string>
+    <string name="asset_history_value">Valor</string>
+    <string name="asset_history_result">%1$s · resultado %2$s</string>
+    <string name="asset_value_delete_title">¿Borrar este valor?</string>
+    <string name="asset_value_delete_message">La gráfica vuelve al valor anterior. No se puede deshacer.</string>
+
+    <!-- El formulario del activo -->
+    <string name="holding_new_title">Nuevo activo</string>
+    <string name="holding_edit_title">Activo</string>
     <string name="holding_field_class">Tipo</string>
+    <string name="holding_field_name_placeholder">Nombre, como tú lo llames</string>
     <string name="holding_field_account">Cuenta</string>
-    <string name="holding_field_account_footer">En qué cuenta está. Es la cuenta a la que transfieres dinero antes de comprar.</string>
-    <string name="holding_field_note">Nota</string>
-    <string name="holding_field_note_placeholder">Opcional</string>
-    <string name="holding_duplicate">Esa cuenta ya tiene %1$s. Ábrela en vez de añadir otra fila para lo mismo.</string>
-    <string name="holding_delete">Eliminar esta posición</string>
-    <string name="holding_delete_title">¿Eliminar %1$s?</string>
-    <string name="holding_delete_message">No tiene operaciones, así que se puede eliminar del todo.</string>
+    <string name="holding_field_note_placeholder">Lo que quieras recordar</string>
+    <string name="holding_first_purchase_header">Primera compra</string>
+    <string name="holding_first_purchase_footer">Sale del líquido de la cuenta. Luego puedes comprar más.</string>
+    <string name="holding_needs_broker">Un activo vive en una cuenta bróker. Crea una primero.</string>
+    <string name="holding_delete">Borrar este activo</string>
+    <string name="holding_delete_title">¿Borrar %1$s?</string>
+    <string name="holding_save_failed_message">No se ha podido guardar el activo. No ha cambiado nada.</string>
 
-    <!-- El formulario de operación -->
-    <string name="trade_new_title">Nueva operación</string>
-    <string name="trade_edit_title">Operación</string>
-    <string name="trade_side_buy">Compra</string>
-    <string name="trade_side_sell">Venta</string>
-    <string name="trade_field_quantity">Cantidad</string>
-    <string name="trade_field_quantity_placeholder">Cuántas unidades</string>
-    <string name="trade_field_price">Precio por unidad</string>
-    <string name="trade_field_fee">Comisión</string>
+    <!-- Compras y ventas -->
+    <string name="trade_buy_title">Compra</string>
+    <string name="trade_sell_title">Venta</string>
+    <string name="trade_field_amount_buy">Importe pagado</string>
+    <string name="trade_field_amount_sell">Importe recibido</string>
     <string name="trade_field_date">Fecha</string>
-    <string name="trade_total_buy">Esta compra costó %1$s, comisión incluida.</string>
-    <string name="trade_total_sell">Esta venta devolvió %1$s, ya descontada la comisión.</string>
-    <string name="trade_too_much">Solo tienes %1$s. Una venta no puede sacar más de lo que entró.</string>
-    <string name="trade_delete">Eliminar esta operación</string>
-    <string name="trade_delete_title">¿Eliminar esta operación?</string>
-    <string name="trade_delete_message">La posición y su coste medio se recalculan sin ella.</string>
-    <string name="holding_save_failed_message">Esa cuenta ya tiene ese símbolo. Abre la posición que ya está en vez de añadir otra fila para lo mismo.</string>
-    <string name="trade_save_failed_message">La posición a la que pertenece esta operación ya no está. No se ha registrado nada.</string>
-    <string name="trade_side_correction">Corregir</string>
-    <string name="trade_correction_title">Corregir lo que tienes</string>
-    <string name="trade_field_actually_held">Cuántas tienes en realidad</string>
-    <string name="trade_correction_footer">Escribe lo que tienes de verdad y pasa a ser la verdad desde esta fecha — no se mueve dinero y no se borra nada de lo ya registrado. Ahora mismo la app cree que son %1$s.</string>
-    <string name="holding_trade_correction">Corregido a %1$s</string>
-    <string name="price_basis_per_unit">Por unidad</string>
-    <string name="price_basis_total">Valor total</string>
-    <string name="price_field_total">Lo que vale todo junto</string>
+    <string name="trade_sells_all">Vender todo</string>
+    <string name="trade_sells_all_footer">Vacía el activo y se lleva todo su coste, diga lo que diga su último valor. Vender tanto como vale hace lo mismo.</string>
+    <string name="trade_result_preview">Esta venta da %1$s.</string>
+    <string name="trade_delete">Borrar esta operación</string>
+    <string name="trade_delete_title">¿Borrar esta operación?</string>
+    <string name="trade_delete_message">El dinero que movió en la cuenta se va con ella. No se puede deshacer.</string>
+    <string name="trade_save_failed_message">No se ha podido guardar la operación. No ha cambiado nada.</string>
+
+    <!-- Los valores de la semana -->
+    <string name="values_title">Valores</string>
+    <string name="values_footer">Lo que vale ahora cada activo, entero. El que dejes vacío conserva su último valor.</string>
+    <string name="values_placeholder">Vale ahora</string>
+    <string name="values_current">Valía %1$s hasta ahora.</string>
+    <string name="values_change">%1$s sobre los %2$s que valía.</string>
+    <string name="values_save_failed_message">No se han podido guardar los valores. No ha cambiado nada.</string>
 </resources>

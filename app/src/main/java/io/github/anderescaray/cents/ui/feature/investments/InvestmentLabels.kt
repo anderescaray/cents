@@ -8,6 +8,7 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.formatLocale
 import java.text.NumberFormat
 import java.util.Locale
@@ -68,3 +69,13 @@ fun formatReturn(
 
 /** The typographic minus sign, which is what iOS uses in numbers. */
 private const val MINUS = "−"
+
+/** A gain written with its sign, and its percentage beside it when there is one to give. */
+fun profitText(
+    profit: Money,
+    ratio: Double?,
+): String =
+    buildString {
+        append(MoneyFormatter.formatSigned(profit))
+        ratio?.let { append(" · ").append(formatReturn(it)) }
+    }

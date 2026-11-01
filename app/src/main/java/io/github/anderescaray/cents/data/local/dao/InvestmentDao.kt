@@ -5,23 +5,22 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import androidx.room.Upsert
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
-import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.HoldingValueEntity
 import io.github.anderescaray.cents.data.local.entity.TradeEntity
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 /**
- * Holdings and the trades behind them.
+ * Assets, their trades and their typed values.
  *
- * There is no query here that computes a position. A cost basis is a fold over the trades in
- * order rather than a sum — a sale removes cost at the average paid, not at the price it sold
- * for — so it lives in `positionFrom` in the domain layer, where the reasoning is written down.
- * What SQLite does here is what it is good at: return the rows, in order, as flows.
+ * There is no query here that computes what an asset is worth or cost. A sale removes cost in
+ * proportion to what the asset was worth just before it, which is a fold over everything in order
+ * (`positionOf`); what SQLite does here is what it is good at: return the rows, as flows.
  */
 @Dao
 interface HoldingDao {
-    @Query("SELECT * FROM holdings ORDER BY name")
+    @Query("SELECT * FROM holdings ORDER BY name COLLATE NOCASE, id")
     fun observeAll(): Flow<List<HoldingEntity>>
 
     @Query("SELECT * FROM holdings WHERE id = :id")
@@ -30,12 +29,8 @@ interface HoldingDao {
     @Query("SELECT * FROM holdings WHERE id = :id")
     suspend fun findById(id: Long): HoldingEntity?
 
-    /** The row that would collide with the unique index, so an editor can say so first. */
-    @Query("SELECT * FROM holdings WHERE accountId = :accountId AND symbol = :symbol LIMIT 1")
-    suspend fun findBySymbol(
-        accountId: Long,
-        symbol: String,
-    ): HoldingEntity?
+    @Query("SELECT * FROM holdings ORDER BY id")
+    suspend fun all(): List<HoldingEntity>
 
     @Query("SELECT COUNT(*) FROM trades WHERE holdingId = :id")
     suspend fun countTrades(id: Long): Int
@@ -47,18 +42,21 @@ interface HoldingDao {
     suspend fun update(holding: HoldingEntity)
 
     /**
-     * Deletes the holding and every trade recorded against it, in one database transaction.
+     * Deletes the asset with its values and trades, in one database transaction.
      *
-     * The foreign key is `RESTRICT`, so this is the only way a holding with history goes: the
-     * trades have to be removed first, deliberately, and the two deletions have to succeed or
-     * fail together. It is reached only through a confirmation that names how many trades go
-     * with it, and nothing undoes it — the same bargain account deletion strikes (D7).
+     * The foreign keys are `RESTRICT`, so this is the only way an asset with history goes: what
+     * points at it is removed first, deliberately, and the deletions succeed or fail together. The
+     * cash its trades wrote has to go before this, because it points at the trades.
      */
     @Transaction
-    suspend fun deleteWithTrades(id: Long) {
+    suspend fun deleteWithHistory(id: Long) {
+        deleteValuesOf(id)
         deleteTradesOf(id)
         deleteById(id)
     }
+
+    @Query("DELETE FROM holding_values WHERE holdingId = :id")
+    suspend fun deleteValuesOf(id: Long)
 
     @Query("DELETE FROM trades WHERE holdingId = :id")
     suspend fun deleteTradesOf(id: Long)
@@ -66,7 +64,7 @@ interface HoldingDao {
     @Query("DELETE FROM holdings WHERE id = :id")
     suspend fun deleteById(id: Long)
 
-    /** Every holding. Only a restore does this, and only after the trades against them. */
+    /** Every asset. Only a restore does this, and only after what points at them. */
     @Query("DELETE FROM holdings")
     suspend fun deleteAll()
 }
@@ -76,8 +74,8 @@ interface TradeDao {
     @Query("SELECT * FROM trades ORDER BY date, id")
     fun observeAll(): Flow<List<TradeEntity>>
 
-    @Query("SELECT * FROM trades WHERE holdingId = :holdingId ORDER BY date DESC, id DESC")
-    fun observeForHolding(holdingId: Long): Flow<List<TradeEntity>>
+    @Query("SELECT * FROM trades WHERE holdingId = :holdingId ORDER BY date, id")
+    suspend fun forHolding(holdingId: Long): List<TradeEntity>
 
     @Query("SELECT * FROM trades WHERE id = :id")
     suspend fun findById(id: Long): TradeEntity?
@@ -97,21 +95,45 @@ interface TradeDao {
 }
 
 @Dao
-interface PriceQuoteDao {
-    @Query("SELECT * FROM price_quotes")
-    fun observeAll(): Flow<List<PriceQuoteEntity>>
+interface HoldingValueDao {
+    @Query("SELECT * FROM holding_values ORDER BY date, id")
+    fun observeAll(): Flow<List<HoldingValueEntity>>
 
-    @Query("SELECT * FROM price_quotes WHERE symbol = :symbol")
-    fun observeBySymbol(symbol: String): Flow<PriceQuoteEntity?>
+    @Query("SELECT * FROM holding_values WHERE holdingId = :holdingId ORDER BY date, id")
+    suspend fun forHolding(holdingId: Long): List<HoldingValueEntity>
 
-    /** One price per symbol, replaced rather than appended: this is a cache, not a history. */
-    @Upsert
-    suspend fun upsert(quote: PriceQuoteEntity)
+    @Query("SELECT * FROM holding_values ORDER BY holdingId, date")
+    suspend fun all(): List<HoldingValueEntity>
 
-    /** Every quote. Nothing points at these, so they can go whenever. */
-    @Query("DELETE FROM price_quotes")
+    @Query("SELECT * FROM holding_values WHERE id = :id")
+    suspend fun findById(id: Long): HoldingValueEntity?
+
+    @Query("SELECT * FROM holding_values WHERE holdingId = :holdingId AND date = :date")
+    suspend fun findOn(
+        holdingId: Long,
+        date: LocalDate,
+    ): HoldingValueEntity?
+
+    @Insert
+    suspend fun insert(value: HoldingValueEntity): Long
+
+    @Update
+    suspend fun update(value: HoldingValueEntity)
+
+    /**
+     * The value for its asset and day: a second one the same day replaces the first, keeping its
+     * id, which is what the unique index asks and what the owner means by typing it again.
+     */
+    @Transaction
+    suspend fun save(value: HoldingValueEntity) {
+        val existing = findOn(value.holdingId, value.date)
+        if (existing == null) insert(value) else update(value.copy(id = existing.id, createdAt = existing.createdAt))
+    }
+
+    @Query("DELETE FROM holding_values WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    /** Every value. Nothing points at these, so they can go whenever. */
+    @Query("DELETE FROM holding_values")
     suspend fun deleteAll()
-
-    @Query("DELETE FROM price_quotes WHERE symbol = :symbol")
-    suspend fun deleteBySymbol(symbol: String)
 }

@@ -12,6 +12,7 @@ import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
 import io.github.anderescaray.cents.data.repository.RoomTransferRepository
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -385,13 +386,27 @@ class TransactionsViewModelTest {
         }
 
     @Test
-    fun `the cash of a share purchase is on a filtered list but not in its totals`() =
+    fun `a sale's result is on a filtered list but not in its totals, and a purchase is on neither`() =
         runTest {
             val id = database.accountDao().insert(account(name = "Broker"))
             movement(accountId = id, date = LocalDate.of(2026, 8, 3), minor = 5_000)
             val bought = LocalDate.of(2026, 8, 4)
-            val tradeId = database.tradeDao().insert(trade(database.holdingDao().insert(holding(id)), date = bought))
-            database.transactionDao().insert(transaction(id, amountMinor = 40_000, date = bought, tradeId = tradeId))
+            val sold = LocalDate.of(2026, 8, 5)
+            val holdingId = database.holdingDao().insert(holding(id))
+            val buy = database.tradeDao().insert(trade(holdingId, date = bought))
+            val sale = database.tradeDao().insert(trade(holdingId, side = TradeSide.SELL, date = sold))
+            // The purchase moves cash into the asset (D40), so no list shows it.
+            database.transactionDao().insert(transaction(id, amountMinor = 40_000, date = bought, tradeId = buy))
+            database.transactionDao().insert(
+                transaction(
+                    id,
+                    kind = TransactionKind.INCOME,
+                    amountMinor = 3_000,
+                    date = sold,
+                    tradeId = sale,
+                    tradeResult = true,
+                ),
+            )
 
             viewModel.uiState.test {
                 awaitStateThat { it.days.size == 2 }
@@ -403,8 +418,8 @@ class TransactionsViewModelTest {
                     ),
                 )
 
-                // Both rows are listed, because the purchase happened; only the 50 € is
-                // spending, which is what the income-and-expenses column for August says too.
+                // The result is listed, because the sale happened; only the 50 € is spending,
+                // and the result is no income, which is what the owner chose (D40).
                 val narrowed = awaitStateThat { it.isNarrowed && it.matchCount == 2 }
                 assertEquals(Money(5_000, "EUR"), narrowed.matchSummary?.expenses)
                 assertEquals(Money(0, "EUR"), narrowed.matchSummary?.income)

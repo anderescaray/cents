@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.data.export.DocumentWriter
 import io.github.anderescaray.cents.data.export.ExportFormat
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.backupRepository
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomBackupRepository
@@ -149,7 +150,7 @@ class ExportViewModelTest {
     private fun exporter(): ExportViewModel =
         viewModels.keep(
             ExportViewModel(
-                RoomBackupRepository(database, clock),
+                backupRepository(database, clock),
                 writer,
                 clock,
             ),

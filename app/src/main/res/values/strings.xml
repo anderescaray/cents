@@ -235,8 +235,7 @@
 
     <!-- What a trade did to the cash in its account -->
     <string name="trade_row">Investment</string>
-    <string name="trade_row_bought">Bought %1$s</string>
-    <string name="trade_row_sold">Sold %1$s</string>
+    <string name="trade_row_result">Result on %1$s</string>
 
     <!-- Exporting: a file the owner keeps -->
     <string name="export_title">Export your data</string>
@@ -271,20 +270,7 @@
     <string name="restore_failed_message">The file was readable but writing it failed, so nothing was changed. Everything you had is still here.</string>
 
     <!-- Every price on one screen (D20: no free provider carries these listings) -->
-    <string name="prices_action">Prices</string>
-    <string name="prices_title">Update prices</string>
-    <string name="prices_header">What they are worth</string>
-    <string name="prices_as_of">Prices as of</string>
-    <string name="prices_date_footer">The day these prices were true — the day you read them, which is not always today.</string>
-    <string name="prices_current">%1$s on %2$s</string>
-    <string name="prices_placeholder">No price yet</string>
-    <string name="prices_empty_title">Nothing to price</string>
-    <string name="prices_empty_footer">Prices are per unit, for what you still hold. A position you have sold has no quantity, so there is nothing for a price to be about.</string>
     <!-- Describing a trade by the euros that went in, the way a broker sells it -->
-    <string name="trade_basis_units">Units</string>
-    <string name="trade_basis_amount">Amount</string>
-    <string name="trade_field_amount_placeholder">How much you put in</string>
-    <string name="trade_amount_units">That is %1$s units at this price.</string>
 
     <!-- Things that repeat (PRD 4.4) -->
     <string name="settings_subscriptions">Subscriptions</string>

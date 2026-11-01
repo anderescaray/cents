@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.export.BackupReader
 import io.github.anderescaray.cents.data.export.BackupWriter
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.backupRepository
 import io.github.anderescaray.cents.data.local.budget
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
@@ -12,13 +13,15 @@ import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.local.holding
-import io.github.anderescaray.cents.data.local.quote
+import io.github.anderescaray.cents.data.local.holdingValue
 import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.trade
+import io.github.anderescaray.cents.data.local.tradeCashWriter
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceChange
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -54,7 +57,7 @@ class RestoreTest {
     @Before
     fun setUp() {
         database = createTestDatabase()
-        backups = RoomBackupRepository(database, clock)
+        backups = backupRepository(database, clock)
     }
 
     @After
@@ -80,7 +83,7 @@ class RestoreTest {
             assertEquals(original.transactions, restored.transactions)
             assertEquals(original.holdings, restored.holdings)
             assertEquals(original.trades, restored.trades)
-            assertEquals(original.quotes, restored.quotes)
+            assertEquals(original.values, restored.values)
             assertEquals(original.rules, restored.rules)
             assertEquals(original.reminders, restored.reminders)
             assertEquals(original.budgets, restored.budgets)
@@ -307,7 +310,7 @@ class RestoreTest {
             // under somebody else's account, and every balance in the app would be wrong in a
             // way nothing on screen would show.
             assertTrue(movements.all { accounts.containsKey(it.accountId) })
-            assertEquals("Checking", accounts.getValue(movements.first().accountId).name)
+            assertEquals("Checking", accounts.getValue(movements.single { it.tradeId == null }.accountId).name)
         }
 
     @Test
@@ -608,9 +611,14 @@ class RestoreTest {
         database.transactionDao().insert(
             transaction(checking, categoryId = groceries, amountMinor = 2_550, note = "Weekly shop"),
         )
-        val holdingId = database.holdingDao().insert(holding(broker, symbol = "NVD.DE"))
+        val holdingId = database.holdingDao().insert(holding(broker))
         database.tradeDao().insert(trade(holdingId))
-        database.priceQuoteDao().upsert(quote(symbol = "NVD.DE"))
+        database.tradeDao().insert(
+            trade(holdingId, side = TradeSide.SELL, amountMinor = 6_000, date = LocalDate.of(2026, 9, 1)),
+        )
+        database.holdingValueDao().insert(holdingValue(holdingId))
+        // The cash the trades move, written the way the app writes it: a restore writes it again.
+        tradeCashWriter(database).rewrite(holdingId)
     }
 
     private suspend fun wipe() {
@@ -622,8 +630,8 @@ class RestoreTest {
         database.ruleReminderDao().deleteAll()
         database.recurringRuleDao().deleteAll()
         database.tradeDao().deleteAll()
+        database.holdingValueDao().deleteAll()
         database.holdingDao().deleteAll()
-        database.priceQuoteDao().deleteAll()
         database.categoryDao().deleteAll()
         database.accountDao().deleteAll()
     }

@@ -232,7 +232,7 @@ class RoomBalanceRepositoryTest {
         runTest {
             val id = seventyEuros(type = AccountType.BROKER)
             val holdingId = database.holdingDao().insert(holding(accountId = id))
-            database.tradeDao().insert(trade(holdingId = holdingId, units = 2))
+            database.tradeDao().insert(trade(holdingId = holdingId, amountMinor = 20_000))
             val tradesBefore = database.tradeDao().observeAll().first()
             val holdingsBefore = database.holdingDao().observeAll().first()
 

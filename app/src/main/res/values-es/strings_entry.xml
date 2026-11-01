@@ -13,6 +13,4 @@
     <string name="form_account_brokers_footer">Las cuentas de bróker solo admiten ingresos, como un dividendo: lo que sale de ellas sale con una transferencia o una operación.</string>
 
     <!-- El formulario de una posición, donde solo se ofrece una cuenta de bróker -->
-    <string name="holding_account_new_broker">Nueva cuenta de bróker</string>
-    <string name="holding_account_none_footer">Una posición vive en una cuenta de bróker y aún no hay ninguna. Crea una y pasa dinero a ella con una transferencia.</string>
 </resources>

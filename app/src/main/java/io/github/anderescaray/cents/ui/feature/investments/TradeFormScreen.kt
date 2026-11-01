@@ -26,21 +26,17 @@ import io.github.anderescaray.cents.ui.components.CentsDatePicker
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsModalBar
-import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.CentsSwitch
 import io.github.anderescaray.cents.ui.components.CentsTextField
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import io.github.anderescaray.cents.ui.util.MoneyFormatter
-import io.github.anderescaray.cents.ui.util.QuantityEntry
 import io.github.anderescaray.cents.ui.util.relativeLabel
 
 /**
- * Recording a purchase or a sale.
- *
- * The footer under the fields says what the trade actually moves, fee included — the one number
- * the owner can check against their broker's confirmation, and the one this screen would
- * otherwise leave them to work out in their head.
+ * A purchase or a sale (`DECISIONS.md` D40): an amount and a date, and for a sale whether it
+ * empties the asset. A new sale says what it will make before it is saved.
  */
 @Composable
 fun TradeFormScreen(
@@ -48,10 +44,8 @@ fun TradeFormScreen(
     viewModel: TradeFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(state.finished) {
-        if (state.finished) onDone()
-    }
+    LaunchedEffect(state.finished) { if (state.finished) onDone() }
+    val selling = state.side == TradeSide.SELL
 
     Column(
         modifier =
@@ -62,29 +56,28 @@ fun TradeFormScreen(
                 .imePadding(),
     ) {
         CentsModalBar(
-            title =
-                stringResource(
-                    when {
-                        state.isCorrection -> R.string.trade_correction_title
-                        state.isNew -> R.string.trade_new_title
-                        else -> R.string.trade_edit_title
-                    },
-                ),
+            title = stringResource(if (selling) R.string.trade_sell_title else R.string.trade_buy_title),
             cancelLabel = stringResource(R.string.action_cancel),
             onCancel = onDone,
             confirmLabel = stringResource(R.string.action_save),
             onConfirm = viewModel::save,
             confirmEnabled = state.canSave,
         )
-
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = CentsDimens.sectionSpacing),
         ) {
-            item(key = "side") { SideControl(state.side, viewModel::onSideChanged) }
             item(key = "fields") { TradeFields(state, viewModel) }
-            item(key = "note") { NoteField(note = state.note, onNoteChanged = viewModel::onNoteChanged) }
-
+            if (selling) item(key = "all") { SellsAll(state, viewModel::onSellsAllChanged) }
+            item(key = "note") {
+                CentsListSection(header = stringResource(R.string.field_note_placeholder)) {
+                    CentsTextField(
+                        value = state.note,
+                        onValueChange = viewModel::onNoteChanged,
+                        placeholder = stringResource(R.string.holding_field_note_placeholder),
+                    )
+                }
+            }
             if (!state.isNew) {
                 item(key = "delete") {
                     CentsActionRow(
@@ -96,7 +89,66 @@ fun TradeFormScreen(
             }
         }
     }
+    TradeFormDialogs(state, viewModel)
+}
 
+@Composable
+private fun TradeFields(
+    state: TradeFormUiState,
+    viewModel: TradeFormViewModel,
+) {
+    val selling = state.side == TradeSide.SELL
+    CentsListSection(
+        footer =
+            state.resultPreview?.let {
+                stringResource(R.string.trade_result_preview, MoneyFormatter.formatSigned(it))
+            },
+    ) {
+        CentsTextField(
+            value = AmountEntry.toTypedText(state.amountInput),
+            onValueChange = viewModel::onAmountTyped,
+            placeholder =
+                stringResource(
+                    if (selling) R.string.trade_field_amount_sell else R.string.trade_field_amount_buy,
+                ),
+            numeric = true,
+            showSeparator = true,
+            modifier = Modifier.testTag(AMOUNT_FIELD_TAG),
+        )
+        CentsListRow(
+            title = stringResource(R.string.trade_field_date),
+            value = state.date.relativeLabel(state.today),
+            showSeparator = false,
+            onClick = viewModel::openDatePicker,
+        )
+    }
+}
+
+@Composable
+private fun SellsAll(
+    state: TradeFormUiState,
+    onChange: (Boolean) -> Unit,
+) {
+    CentsListSection(footer = stringResource(R.string.trade_sells_all_footer)) {
+        CentsListRow(
+            title = stringResource(R.string.trade_sells_all),
+            showSeparator = false,
+            trailing = {
+                CentsSwitch(
+                    checked = state.sellsAll,
+                    onCheckedChange = onChange,
+                    modifier = Modifier.testTag(SELLS_ALL_TAG),
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun TradeFormDialogs(
+    state: TradeFormUiState,
+    viewModel: TradeFormViewModel,
+) {
     if (state.pickingDate) {
         CentsDatePicker(
             selected = state.date,
@@ -105,19 +157,6 @@ fun TradeFormScreen(
             onDismiss = viewModel::dismissDatePicker,
         )
     }
-
-    TradeFormDialogs(state = state, viewModel = viewModel)
-}
-
-/**
- * The date picker and the two alerts. Out of the screen function because they are what it does
- * *after* laying anything out, and reading the layout should not mean scrolling past them.
- */
-@Composable
-private fun TradeFormDialogs(
-    state: TradeFormUiState,
-    viewModel: TradeFormViewModel,
-) {
     if (state.writeFailed) {
         CentsAlert(
             title = stringResource(R.string.delete_failed_title),
@@ -127,7 +166,6 @@ private fun TradeFormDialogs(
             onDismiss = viewModel::dismissWriteFailure,
         )
     }
-
     if (state.deleting) {
         CentsAlert(
             title = stringResource(R.string.trade_delete_title),
@@ -141,150 +179,4 @@ private fun TradeFormDialogs(
     }
 }
 
-@Composable
-private fun SideControl(
-    side: TradeSide,
-    onSelect: (TradeSide) -> Unit,
-) {
-    // The two labels are read here rather than inside the control: what it takes is a plain
-    // function from an option to a string, and a resource lookup is a composable call that
-    // cannot happen inside one.
-    val buy = stringResource(R.string.trade_side_buy)
-    val sell = stringResource(R.string.trade_side_sell)
-    CentsSegmentedControl(
-        options = TradeSide.entries,
-        selected = side,
-        onSelect = onSelect,
-        label = { option -> if (option == TradeSide.BUY) buy else sell },
-        modifier = Modifier.padding(horizontal = CentsDimens.screenMargin, vertical = CentsDimens.spacingM),
-    )
-}
-
-@Composable
-private fun TradeFields(
-    state: TradeFormUiState,
-    viewModel: TradeFormViewModel,
-) {
-    // A correction says how many units are held, so it is never described in euros: the
-    // control is not offered rather than being offered and ignored.
-    if (!state.isCorrection) {
-        QuantityBasisControl(basis = state.quantityBasis, onSelect = viewModel::onQuantityBasisChanged)
-    }
-
-    CentsListSection(footer = footerFor(state)) {
-        if (state.usesAmount) {
-            CentsTextField(
-                value = AmountEntry.toTypedText(state.amountInput),
-                onValueChange = viewModel::onAmountTyped,
-                placeholder = stringResource(R.string.trade_field_amount_placeholder),
-                numeric = true,
-                showSeparator = true,
-            )
-        } else {
-            CentsTextField(
-                value = QuantityEntry.toTypedText(state.quantityInput),
-                onValueChange = viewModel::onQuantityTyped,
-                placeholder = stringResource(R.string.trade_field_quantity_placeholder),
-                numeric = true,
-                showSeparator = true,
-            )
-        }
-        CentsTextField(
-            value = AmountEntry.toTypedText(state.priceInput),
-            onValueChange = viewModel::onPriceTyped,
-            placeholder = stringResource(R.string.trade_field_price),
-            numeric = true,
-            showSeparator = true,
-        )
-        CentsTextField(
-            value = AmountEntry.toTypedText(state.feeInput),
-            onValueChange = viewModel::onFeeTyped,
-            placeholder = stringResource(R.string.trade_field_fee),
-            numeric = true,
-            showSeparator = true,
-        )
-        CentsListRow(
-            title = stringResource(R.string.trade_field_date),
-            value = state.date.relativeLabel(state.today),
-            showSeparator = false,
-            onClick = viewModel::openDatePicker,
-        )
-    }
-}
-
-/**
- * Why the trade was made, or anything else worth remembering about it. Optional, and in a
- * section of its own so it never reads as one of the numbers the trade is made of.
- */
-@Composable
-private fun NoteField(
-    note: String,
-    onNoteChanged: (String) -> Unit,
-) {
-    CentsListSection(header = stringResource(R.string.field_note_placeholder)) {
-        CentsTextField(
-            value = note,
-            onValueChange = onNoteChanged,
-            placeholder = stringResource(R.string.holding_field_note_placeholder),
-            modifier = Modifier.testTag(TRADE_NOTE_FIELD_TAG),
-        )
-    }
-}
-
-/**
- * Units, or the euros that went in.
- *
- * Both describe the same trade, and the app stores units either way — a partial sale reduces
- * units, an average cost divides by units, a price multiplies them. What this changes is which
- * number the owner has to have in front of them, and on a platform that sells you 500 € of
- * something, that number is the euros.
- */
-@Composable
-private fun QuantityBasisControl(
-    basis: QuantityBasis,
-    onSelect: (QuantityBasis) -> Unit,
-) {
-    val units = stringResource(R.string.trade_basis_units)
-    val amount = stringResource(R.string.trade_basis_amount)
-    CentsSegmentedControl(
-        options = QuantityBasis.entries,
-        selected = basis,
-        onSelect = onSelect,
-        label = { option -> if (option == QuantityBasis.UNITS) units else amount },
-        modifier = Modifier.padding(horizontal = CentsDimens.screenMargin),
-    )
-}
-
-/**
- * What the fields add up to — or, when a sale is bigger than the position, why it cannot be
- * saved. The refusal takes the footer rather than appearing beside it: it is the only thing
- * worth reading at that moment.
- */
-@Composable
-private fun footerFor(state: TradeFormUiState): String =
-    when {
-        state.isCorrection -> {
-            stringResource(R.string.trade_correction_footer, QuantityEntry.format(state.heldElsewhere))
-        }
-
-        state.sellsMoreThanHeld -> {
-            stringResource(R.string.trade_too_much, QuantityEntry.format(state.heldElsewhere))
-        }
-
-        // Typing euros, the units are what actually gets stored — and what every later number
-        // is about. Saying so before the save means the owner is agreeing to the record rather
-        // than to the number they typed.
-        state.usesAmount && !state.quantity.isZero -> {
-            stringResource(R.string.trade_amount_units, QuantityEntry.format(state.quantity))
-        }
-
-        state.side == TradeSide.BUY -> {
-            stringResource(R.string.trade_total_buy, MoneyFormatter.format(state.total))
-        }
-
-        else -> {
-            stringResource(R.string.trade_total_sell, MoneyFormatter.format(state.total))
-        }
-    }
-
-internal const val TRADE_NOTE_FIELD_TAG = "tradeNote"
+internal const val SELLS_ALL_TAG = "sellsAll"

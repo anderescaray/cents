@@ -54,21 +54,13 @@ fun TransactionDetails.movementTitle(): String =
     }
 
 /**
- * What a trade's cash row is called.
- *
- * The direction comes from the row rather than from the trade, and the two cannot disagree: an
- * expense is money that left, which is a purchase — and the one odd case, a sale whose fee
- * swallowed its proceeds, is money that left too. Calling that one a purchase is closer to what
- * the account felt than calling it a sale that took money out.
+ * What a trade's row is called. The only one the lists show is a sale's result (D40), named by
+ * the asset it was made on; the direction is in the amount.
  */
 @Composable
 private fun TransactionDetails.tradeTitle(): String {
-    val symbol = tradeSymbol ?: return stringResource(R.string.trade_row)
-    return if (transaction.kind == TransactionKind.EXPENSE) {
-        stringResource(R.string.trade_row_bought, symbol)
-    } else {
-        stringResource(R.string.trade_row_sold, symbol)
-    }
+    val name = tradeAssetName ?: return stringResource(R.string.trade_row)
+    return stringResource(R.string.trade_row_result, name)
 }
 
 /**
@@ -82,8 +74,15 @@ private fun TransactionDetails.tradeTitle(): String {
 @Composable
 fun TransactionDetails.movementValueColor(): Color =
     when {
+        // What a sale made reads as a gain, though no report counts it (D40).
+        tradeResult && transaction.kind == TransactionKind.INCOME -> CentsTheme.colors.positiveText
+
+        tradeResult -> CentsTheme.colors.label
+
         transaction.movesNoIncomeOrExpense -> CentsTheme.colors.secondaryLabel
+
         transaction.kind == TransactionKind.INCOME -> CentsTheme.colors.positiveText
+
         else -> CentsTheme.colors.label
     }
 

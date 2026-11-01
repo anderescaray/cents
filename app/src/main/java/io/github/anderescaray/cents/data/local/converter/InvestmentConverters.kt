@@ -2,7 +2,6 @@ package io.github.anderescaray.cents.data.local.converter
 
 import androidx.room.TypeConverter
 import io.github.anderescaray.cents.domain.model.AssetClass
-import io.github.anderescaray.cents.domain.model.QuoteSource
 import io.github.anderescaray.cents.domain.model.TradeSide
 
 /**
@@ -27,10 +26,4 @@ class InvestmentConverters {
 
     @TypeConverter
     fun nameToTradeSide(value: String?): TradeSide? = value?.let(TradeSide::valueOf)
-
-    @TypeConverter
-    fun quoteSourceToName(value: QuoteSource?): String? = value?.name
-
-    @TypeConverter
-    fun nameToQuoteSource(value: String?): QuoteSource? = value?.let(QuoteSource::valueOf)
 }

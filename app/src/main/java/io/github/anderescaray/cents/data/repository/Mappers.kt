@@ -140,8 +140,9 @@ fun TransactionWithNames.toDomain(): TransactionDetails =
         categoryColorArgb = categoryColorArgb,
         categoryEmoji = categoryEmoji,
         counterpartAccountName = counterpartAccountName,
-        tradeSymbol = tradeSymbol,
+        tradeAssetName = tradeAssetName,
         tradeHoldingId = tradeHoldingId,
+        tradeResult = tradeResult,
         groupName = groupName,
     )
 

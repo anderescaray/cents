@@ -2,13 +2,14 @@ package io.github.anderescaray.cents.data.repository
 
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.backupRepository
 import io.github.anderescaray.cents.data.local.budget
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.group
 import io.github.anderescaray.cents.data.local.holding
-import io.github.anderescaray.cents.data.local.quote
+import io.github.anderescaray.cents.data.local.holdingValue
 import io.github.anderescaray.cents.data.local.recurringRule
 import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.local.transaction
@@ -43,7 +44,7 @@ class RoomBackupRepositoryTest {
     @Before
     fun setUp() {
         database = createTestDatabase()
-        backups = RoomBackupRepository(database, clock)
+        backups = backupRepository(database, clock)
     }
 
     @After
@@ -59,9 +60,9 @@ class RoomBackupRepositoryTest {
             database.transactionDao().insert(
                 transaction(accountId, categoryId = categoryId, amountMinor = 2_550),
             )
-            val holdingId = database.holdingDao().insert(holding(accountId, symbol = "NVD.DE"))
+            val holdingId = database.holdingDao().insert(holding(accountId))
             database.tradeDao().insert(trade(holdingId))
-            database.priceQuoteDao().upsert(quote(symbol = "NVD.DE"))
+            database.holdingValueDao().insert(holdingValue(holdingId))
             val ruleId = database.recurringRuleDao().insert(recurringRule(accountId))
             database.ruleReminderDao().insert(RuleReminderEntity(ruleId = ruleId, offsetDays = -3))
             database.budgetDao().insert(budget(categoryId, amountMinor = 40_000))
@@ -74,7 +75,7 @@ class RoomBackupRepositoryTest {
             assertEquals(1, backup.transactions.size)
             assertEquals(1, backup.holdings.size)
             assertEquals(1, backup.trades.size)
-            assertEquals(1, backup.quotes.size)
+            assertEquals(1, backup.values.size)
             assertEquals(1, backup.rules.size)
             assertEquals(1, backup.reminders.size)
             assertEquals(1, backup.budgets.size)

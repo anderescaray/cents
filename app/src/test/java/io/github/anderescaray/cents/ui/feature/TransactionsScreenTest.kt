@@ -159,7 +159,7 @@ class TransactionsScreenTest {
     }
 
     @Test
-    fun `the filters sit on the right after the add button, clear of the title`() {
+    fun `the filters sit on the right, clear of the title, and there is no add button`() {
         setContent(unfiltered())
 
         val filters = composeRule.onNodeWithTag(FILTERS_BUTTON_TAG)
@@ -168,10 +168,10 @@ class TransactionsScreenTest {
 
         val title = composeRule.onNodeWithText("Transactions").getUnclippedBoundsInRoot()
         val button = filters.getUnclippedBoundsInRoot()
-        val add = composeRule.onNodeWithContentDescription("New transaction").getUnclippedBoundsInRoot()
         // `docs/next-improvements.md` §2: the title and the action no longer share a corner.
         assertTrue("the button is clear of the title", button.bottom <= title.top || button.left >= title.right)
-        assertTrue("and it stands with the add button, after it", add.right <= button.left)
+        // The capsule's add button is the one way to add, on this tab as on every other.
+        composeRule.onNodeWithContentDescription("New transaction").assertDoesNotExist()
     }
 
     @Test
@@ -296,7 +296,6 @@ class TransactionsScreenTest {
             CentsTheme {
                 TransactionsList(
                     state = state,
-                    onAddTransaction = {},
                     onOpenTransaction = { openedMovements += it },
                     onOpenTransfer = { openedTransfers += it },
                     onOpenTrade = { holdingId, tradeId -> openedTrades += holdingId to tradeId },

@@ -240,9 +240,6 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
         TransactionsScreen(
             // Single top: during the push animation a second tap would otherwise stack a
             // second copy of the form behind the first.
-            onAddTransaction = {
-                navController.navigate(Destination.TransactionForm()) { launchSingleTop = true }
-            },
             onOpenTransaction = { id ->
                 navController.navigate(Destination.TransactionForm(transactionId = id)) {
                     launchSingleTop = true

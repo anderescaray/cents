@@ -98,6 +98,8 @@ fun RoundIconButton(
     modifier: Modifier = Modifier,
     tint: Color = CentsTheme.colors.label,
     filled: Boolean = false,
+    /** A flat fill of its own instead of the white card, as Settings' button has. */
+    background: Color? = null,
     /** False greys the glyph and takes the button out of reach, for one at its limit. */
     enabled: Boolean = true,
 ) {
@@ -114,6 +116,8 @@ fun RoundIconButton(
                 .then(
                     if (filled) {
                         Modifier.clip(CircleShape).background(CentsTheme.colors.accent)
+                    } else if (background != null) {
+                        Modifier.clip(CircleShape).background(background)
                     } else {
                         Modifier.cardSurface(CircleShape)
                     },

@@ -5,11 +5,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
  * The way to Settings, the same on every tab: the last round button in the header, at its right
  * edge. A tab's own buttons, such as the filters, sit to its left, so Settings is found in one
- * place whichever tab is open.
+ * place whichever tab is open. A flat grey of its own, rather than the white of the buttons beside
+ * it, so it is not mistaken for one of them (Reports' Customize, above all).
  */
 @Composable
 fun SettingsButton(
@@ -20,6 +22,7 @@ fun SettingsButton(
         iconRes = R.drawable.ic_tab_settings,
         contentDescription = stringResource(R.string.tab_settings),
         onClick = onClick,
+        background = CentsTheme.colors.settingsButton,
         modifier = modifier.testTag(SETTINGS_BUTTON_TAG),
     )
 }

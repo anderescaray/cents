@@ -49,7 +49,6 @@ import java.time.LocalDate
 
 @Composable
 fun TransactionsScreen(
-    onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
@@ -63,7 +62,6 @@ fun TransactionsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         TransactionsList(
             state = state,
-            onAddTransaction = onAddTransaction,
             onOpenTransaction = onOpenTransaction,
             onOpenTransfer = onOpenTransfer,
             onOpenTrade = onOpenTrade,
@@ -94,7 +92,6 @@ fun TransactionsScreen(
 @Composable
 internal fun TransactionsList(
     state: TransactionsUiState,
-    onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
@@ -109,16 +106,9 @@ internal fun TransactionsList(
         bottomPadding = CentsDimens.sectionSpacing,
         // Every action on the right, as round buttons beside each other: the title keeps the left
         // to itself, expanded or collapsed, in either language and at any text size. Settings is
-        // last, where every tab has it, with the filters beside it.
+        // last, where every tab has it, with the filters beside it. No add button: the capsule's,
+        // in the middle of every tab, already is one.
         trailing = {
-            val addLabel = stringResource(R.string.add_transaction_title)
-            // Read aloud as what it does rather than as "plus": the label is on the button, and
-            // the glyph inside it is kept out of what TalkBack says.
-            RoundIconButton(
-                iconRes = R.drawable.ic_plus,
-                contentDescription = addLabel,
-                onClick = onAddTransaction,
-            )
             FiltersButton(count = state.filter.activeCount, onClick = onOpenFilters)
             SettingsButton(onClick = onOpenSettings)
         },

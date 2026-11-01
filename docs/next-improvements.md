@@ -52,7 +52,15 @@ session can build it without the original conversation. **The build order is
 - [x] 21. Subscription reminders chosen in a sheet, with suggestions and a stepper, not a typed
   field (2026-10-28). #160, checked on the phone 2026-10-28. Now in `docs/PRD.md` §4.4.
 - [ ] 22. **Next.** A variable bill is filled only by a payment that names it, and asks otherwise
-  (`DECISIONS.md` D39). Details below.
+  (`DECISIONS.md` D39). Details below. Its schema change is **Room v15**: v14 is item 23's.
+- [ ] 23. A general budget, over the month's spending as a whole, beside the per-category ones
+  (2026-10-31, amends `DECISIONS.md` D26). **Built in #164, not merged.** It counts every expense of
+  the month, uncategorized included, and every expense subscription still due; transfers and trades
+  stay out; there is at most one, listed first in Budgets and on the Reports card. Room v14.
+- [ ] 24. Settings reachable from every tab, the same round button at the right of each header,
+  with the filters beside it on Movements and Customize beside it on Reports (2026-10-31). **Built
+  in #163, not merged.** It opens in Home's stack from any tab, so there is only ever one Settings
+  (#163 explains why).
 
 ## 22 · A variable bill knows who it is paid to (D39)
 
@@ -109,17 +117,6 @@ Real requests the owner has not put in the build order yet.
   confirmation. Today only retention removes copies. This adds a delete to each copy in the list;
   the daily backup and restore stay exactly as they are.
 - **Resizable Reports cards** (D4). Reordering and hiding are built (#109).
-- **A general budget, for no one category** (2026-10-31): one monthly limit over the month's
-  spending as a whole, beside the per-category ones. Today a budget belongs to exactly one expense
-  category (`budgets.categoryId` is required and unique, `BudgetEntity.kt`), so it needs a schema
-  change with its migration, after D39's Room v14, and backups carry it. To settle when it is
-  placed, each with a proposed default: it counts every expense of the month, uncategorized ones
-  included, and leaves out transfers and trades as category budgets do; there is at most one; it
-  shows first in Budgets and on the Reports card, with what is left, spent and still to come from
-  subscriptions, like the others.
-- **Settings reachable from every tab** (2026-10-31). Today Settings opens only from Home's header.
-  Every tab should reach it the same way, from the same place in its header, and on Movements and
-  Reports the filters button should sit beside it rather than apart.
 
 ## Engineering follow-ups
 

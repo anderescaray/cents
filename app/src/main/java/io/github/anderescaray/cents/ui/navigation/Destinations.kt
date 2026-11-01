@@ -285,9 +285,22 @@ enum class TopLevelTab(
 ) {
     HOME(
         destination = Destination.Home,
-        // Nothing pushed: Settings, and everything behind it, opens from every tab's header, so it
-        // is filed under whichever tab it was opened from (the owner, 2026-10-31).
-        owns = emptyList(),
+        // Settings opens from Home's header, so everything behind it is filed under Home.
+        owns =
+            listOf(
+                Destination.Settings::class,
+                Destination.Categories::class,
+                Destination.Subscriptions::class,
+                Destination.RuleForm::class,
+                Destination.PendingCharges::class,
+                Destination.Groups::class,
+                Destination.GroupDetail::class,
+                Destination.GroupEdit::class,
+                Destination.Capture::class,
+                Destination.CaptureApps::class,
+                Destination.CaptureWords::class,
+                Destination.CaptureTry::class,
+            ),
         labelRes = R.string.tab_home,
         iconRes = R.drawable.ic_tab_home,
     ),

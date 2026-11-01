@@ -4,6 +4,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -109,7 +110,7 @@ class SelectedTabTest {
     }
 
     @Test
-    fun `settings opened from Home leaves you in Home`() {
+    fun `settings and the category list behind it belong to Home, where Settings opens from`() {
         start()
 
         switchTo(TopLevelTab.REPORTS)
@@ -122,15 +123,26 @@ class SelectedTabTest {
     }
 
     @Test
-    fun `settings opened from Reports leaves you in Reports`() {
+    fun `settings opened from another tab opens in Home, and there is only ever one`() {
         start()
 
         switchTo(TopLevelTab.REPORTS)
-        push(Destination.Settings)
-        push(Destination.Categories)
+        openSettings()
+        assertEquals(TopLevelTab.HOME, selected)
+        val first =
+            navController.currentBackStack.value
+                .last()
+                .id
 
-        // Every tab's header opens Settings, so it is filed under the tab it was opened from.
-        assertEquals(TopLevelTab.REPORTS, selected)
+        // Left open with a screen on top, then asked for again from another tab: the same one.
+        push(Destination.Categories)
+        switchTo(TopLevelTab.ACCOUNTS)
+        openSettings()
+
+        val stack = navController.currentBackStack.value
+        assertEquals(TopLevelTab.HOME, selected)
+        assertEquals(first, stack.last().id)
+        assertEquals(1, stack.count { it.destination.hasRoute(Destination.Settings::class) })
     }
 
     @Test
@@ -169,6 +181,11 @@ class SelectedTabTest {
     /** What the tab bar does, saved stacks and all. */
     private fun switchTo(tab: TopLevelTab) {
         composeRule.runOnIdle { navController.switchToTab(tab.destination) }
+        composeRule.waitForIdle()
+    }
+
+    private fun openSettings() {
+        composeRule.runOnIdle { navController.openSettings() }
         composeRule.waitForIdle()
     }
 

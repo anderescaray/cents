@@ -108,8 +108,8 @@ internal fun NavHostController.switchToTab(destination: Destination) {
 /**
  * A tap on the capsule. Another tab switches to it, keeping where it was left; **the tab already
  * open goes back to its first screen**, the way iOS does. Without that, Home could never be got
- * back to once Settings was opened from it: the tab restores its stack, and a second tap did
- * nothing.
+ * back to once Settings, which Home owns, was opened from it: the tab restores its stack, and a
+ * second tap did nothing.
  */
 internal fun NavHostController.selectTab(
     tab: TopLevelTab,

@@ -25,6 +25,11 @@ class TabOwnershipTest {
     }
 
     @Test
+    fun `the category list belongs to Home, where Settings opens from`() {
+        assertEquals(TopLevelTab.HOME, tabOwning(Destination.Categories::class))
+    }
+
+    @Test
     fun `budgets belong to Reports`() {
         assertEquals(TopLevelTab.REPORTS, tabOwning(Destination.Budgets::class))
     }
@@ -41,15 +46,12 @@ class TabOwnershipTest {
         // The movement form opens from the list and from an account, and the transfer form
         // from both of those and from the movement form; the account editor from Accounts,
         // from an account's detail and from the form; the category editor from Settings and
-        // from the form; Settings, and the category list behind it, from every tab's header.
-        // Naming an owner for any of them would pick one of two truths, so the tab the owner
-        // was already in is what stands.
+        // from the form. Naming an owner for any of them would pick one of two
+        // truths, so the tab the owner was already in is what stands.
         assertEquals(null, tabOwning(Destination.TransactionForm::class))
         assertEquals(null, tabOwning(Destination.TransferForm::class))
         assertEquals(null, tabOwning(Destination.AccountEdit::class))
         assertEquals(null, tabOwning(Destination.CategoryEdit::class))
-        assertEquals(null, tabOwning(Destination.Settings::class))
-        assertEquals(null, tabOwning(Destination.Categories::class))
     }
 
     @Test

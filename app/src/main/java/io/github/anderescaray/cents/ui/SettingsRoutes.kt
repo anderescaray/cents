@@ -1,6 +1,5 @@
 package io.github.anderescaray.cents.ui
 
-import androidx.compose.runtime.remember
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -9,21 +8,26 @@ import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 
 /**
- * Settings, pushed inside the tab it was opened from, so back returns there and the capsule stays
- * on that tab. Single top, so a second tap during the slide does not stack a second copy.
+ * Settings, from any tab's header. It lives in Home's stack wherever it is opened from, so there is
+ * only ever one: a restore or a Drive backup running in it is the same screen whichever tab's
+ * button is tapped next, and two of them could not each start one. From another tab this switches
+ * to Home, keeping where that tab was, and the capsule goes with it.
+ *
+ * Home's saved stack may already hold Settings, left open with something on top of it; that one is
+ * returned to rather than a second pushed above it.
  */
 internal fun NavHostController.openSettings() {
-    navigate(Destination.Settings) { launchSingleTop = true }
+    if (currentBackStack.value.selectedTab() != TopLevelTab.HOME) switchToTab(Destination.Home)
+    if (!popBackStack(Destination.Settings, inclusive = false)) {
+        navigate(Destination.Settings) { launchSingleTop = true }
+    }
 }
 
-/** Settings, which every tab's header opens. What lies behind it has its own routes. */
+/** Settings itself. What lies behind it has its own routes. */
 internal fun NavGraphBuilder.settingsRoutes(navController: NavHostController) {
     composable<Destination.Settings> {
-        // The tab underneath, which every tab's header can be: back says where it goes.
-        val from = remember { navController.previousBackStackEntry?.destination?.owningTab() ?: TopLevelTab.HOME }
         SettingsScreen(
             onBack = { navController.popBackStack() },
-            backLabel = from.labelRes,
             onOpenCategories = { navController.navigate(Destination.Categories) },
             onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
             onOpenGroups = { navController.navigate(Destination.Groups) },

@@ -31,17 +31,16 @@ Then read these, in this order, before writing any code:
   the widget was dropped (D38). What the app does is in [`README.md`](README.md#what-it-does).
 - **The Pixel runs #163 and #164** from a local branch merging both, installed 2026-11-01: the
   code `main` now has.
-- **D40, answered on 2026-11-01:** investments are rebuilt. It goes before D39.
+- **D40, answered on 2026-11-01:** investments are rebuilt. **Built in #167, not merged**: Room v15,
+  the Friday reminder included, 1103 JVM tests. `/code-review high` ran on its first commit and all
+  ten findings are fixed; the fixes and the reminder are reviewed by their author only (D6).
 - **One finding of #112's review is left on purpose:** a correction is measured against the
   all-time balance ([`docs/known-limitations.md`](docs/known-limitations.md)).
 
 ## 3. Next, in order
 
-1. **Investments, rebuilt** (D40): broker accounts with their cash and what is invested, assets by
-   type and free name with amounts only, a value typed weekly, charts by week, month or year, sales
-   with their results, and a Friday reminder. Everything needed, defaults included, is backlog
-   item 25 in [`docs/next-improvements.md`](docs/next-improvements.md). It changes the schema,
-   **Room v15**, and comes in more than one PR.
+1. **Investments, rebuilt** (D40, backlog item 25): #167 merged, installed on the Pixel and
+   checked there; its check steps are in the PR until they join `docs/device-check.md`.
 2. **A variable bill knows who it is paid to** (D39), backlog item 22, on **Room v16**.
 3. **Whatever the owner finds on the phone** (`FEEDBACK.md`).
 4. **Regenerate the Baseline Profile** (`docs/testing.md`): Home, the category sheet, the
@@ -52,7 +51,8 @@ Then read these, in this order, before writing any code:
 
 ## 4. Waiting on the owner
 
-- **This docs PR** to review and merge.
+- **This docs PR and #167** to review and merge; #167 to try on the phone first (the Pixel was not
+  connected when it was built).
 - **Checks on the phone:** H5, H7, H8, C1, R3, G1, G2 and X2 for items 15 to 19, A4 and M2 for
   items 13 and 14 (`docs/device-check.md`), and #163's and #164's steps, which are in each PR
   until they join `docs/device-check.md`.

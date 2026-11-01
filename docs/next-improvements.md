@@ -63,7 +63,7 @@ session can build it without the original conversation. **The build order is
   Phone check pending. It opens in Home's stack from any tab, so there is only ever one Settings
   (#163 explains why), and back from it returns to the tab that opened it (owner, 2026-11-01).
 - [ ] 25. **Next.** Investments rebuilt around broker accounts and typed values (`DECISIONS.md`
-  D40, 2026-11-01). Details below. Its schema change is **Room v15**.
+  D40, 2026-11-01). Details below. Its schema change is **Room v15**. **Built in #167, not merged.**
 
 ## 25 · Investments, rebuilt (D40)
 

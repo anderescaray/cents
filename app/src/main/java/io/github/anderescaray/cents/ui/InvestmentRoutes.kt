@@ -1,5 +1,7 @@
 package io.github.anderescaray.cents.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -98,3 +100,14 @@ private fun NavHostController.assetActions() =
             }
         },
     )
+
+/** The Friday reminder lands on Invested, as a reminder asking for a figure lands on its screen. */
+@Composable
+internal fun OpenInvestmentsFromNotification(
+    open: Boolean,
+    navController: NavHostController,
+) {
+    LaunchedEffect(open) {
+        if (open) navController.navigate(Destination.Investments) { launchSingleTop = true }
+    }
+}

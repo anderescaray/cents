@@ -71,4 +71,8 @@
         <item quantity="one">A transfer between the two would have both sides here. Balances and reports are unchanged.</item>
         <item quantity="other">%1$d transfers between the two would have both sides here. Balances and reports are unchanged.</item>
     </plurals>
+    <plurals name="investment_reminder_many">
+        <item quantity="one">One asset has no value yet this week.</item>
+        <item quantity="other">%1$d assets have no value yet this week.</item>
+    </plurals>
 </resources>

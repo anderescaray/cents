@@ -92,4 +92,12 @@
     <string name="values_current">Valía %1$s hasta ahora.</string>
     <string name="values_change">%1$s sobre los %2$s que valía.</string>
     <string name="values_save_failed_message">No se han podido guardar los valores. No ha cambiado nada.</string>
+
+    <!-- El aviso de los viernes -->
+    <string name="investment_reminder_title">Actualiza tus inversiones</string>
+    <string name="investment_reminder_one">%1$s todavía no tiene valor esta semana.</string>
+    <string name="investment_reminder_channel_name">Inversiones</string>
+    <string name="investment_reminder_channel_description">Los viernes, cuando un activo todavía no tiene valor esa semana.</string>
+    <string name="settings_investment_reminder">Avisarme los viernes</string>
+    <string name="settings_investment_reminder_footer">Una notificación el viernes por la mañana si algún activo todavía no tiene valor esa semana. La semana que no pongas ninguno se queda con el último.</string>
 </resources>

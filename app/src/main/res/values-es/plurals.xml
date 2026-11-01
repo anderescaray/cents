@@ -71,4 +71,8 @@
         <item quantity="one">Una transferencia entre las dos tendría ambos lados aquí. Saldos e informes no cambian.</item>
         <item quantity="other">%1$d transferencias entre las dos tendrían ambos lados aquí. Saldos e informes no cambian.</item>
     </plurals>
+    <plurals name="investment_reminder_many">
+        <item quantity="one">Un activo todavía no tiene valor esta semana.</item>
+        <item quantity="other">%1$d activos todavía no tienen valor esta semana.</item>
+    </plurals>
 </resources>

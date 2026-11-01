@@ -10,8 +10,13 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import io.github.anderescaray.cents.domain.repository.InvestmentReminderRepository
+import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.repository.RecurringRuleRepository
+import io.github.anderescaray.cents.domain.usecase.withoutValueThisWeek
+import kotlinx.coroutines.flow.first
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -19,7 +24,7 @@ import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
 /**
- * The daily look at what is coming.
+ * The daily look at what is coming: the subscriptions, and on Fridays the investments.
  *
  * **It asks a question rather than keeping a schedule**, and that is the whole design. Nothing is
  * booked in advance for each reminder: once a day the worker asks *what lands today*, and the
@@ -50,6 +55,12 @@ class ReminderWorker(
         fun notifier(): ReminderNotifier
 
         fun clock(): Clock
+
+        fun portfolio(): PortfolioRepository
+
+        fun investmentReminder(): InvestmentReminderRepository
+
+        fun investmentNotifier(): InvestmentReminderNotifier
     }
 
     override suspend fun doWork(): Result {
@@ -60,9 +71,23 @@ class ReminderWorker(
         if (!notifier.canNotify) return Result.success()
 
         val today = LocalDate.now(deps.clock())
-        return runCatching { deps.repository().dueReminders(today) }
-            .onSuccess { due -> due.forEach(notifier::notify) }
-            .fold(onSuccess = { Result.success() }, onFailure = { Result.retry() })
+        val subscriptions = runCatching { deps.repository().dueReminders(today).forEach(notifier::notify) }
+        val investments = runCatching { remindInvestments(deps, today) }
+        return if (subscriptions.isSuccess && investments.isSuccess) Result.success() else Result.retry()
+    }
+
+    /**
+     * On Fridays, the assets with no value yet this week (`DECISIONS.md` D40), unless the owner
+     * turned the reminder off. Asked the same way the subscriptions are: from what is recorded,
+     * with nothing booked ahead.
+     */
+    private suspend fun remindInvestments(
+        deps: Dependencies,
+        today: LocalDate,
+    ) {
+        if (today.dayOfWeek != DayOfWeek.FRIDAY) return
+        if (!deps.investmentReminder().observeEnabled().first()) return
+        deps.investmentNotifier().notify(withoutValueThisWeek(deps.portfolio().observePositions().first(), today))
     }
 
     companion object {

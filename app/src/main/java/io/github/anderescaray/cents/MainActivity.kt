@@ -16,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.github.anderescaray.cents.ui.CentsApp
 import io.github.anderescaray.cents.ui.capture.CaptureNotifier
 import io.github.anderescaray.cents.ui.language.AppLanguages
+import io.github.anderescaray.cents.ui.notifications.InvestmentReminderNotifier
 import io.github.anderescaray.cents.ui.notifications.ReminderNotifier
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.Today
@@ -35,6 +36,9 @@ class MainActivity : ComponentActivity() {
 
     /** The movement a capture notification was tapped for, the same way. */
     private var openCapturedTransactionId by mutableStateOf<Long?>(null)
+
+    /** True when the Friday reminder was tapped: Invested opens, the same way. */
+    private var openInvestments by mutableStateOf(false)
 
     @Inject
     lateinit var today: Today
@@ -67,6 +71,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         openPending = intent.wantsPending
         openCapturedTransactionId = intent.capturedTransactionId
+        openInvestments = intent.wantsInvestments
     }
 
     override fun onStart() {
@@ -97,12 +102,14 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             openPending = intent.wantsPending
             openCapturedTransactionId = intent.capturedTransactionId
+            openInvestments = intent.wantsInvestments
         }
         enableEdgeToEdge()
         setContent {
             CentsTheme {
                 CentsApp(
                     openPending = openPending,
+                    openInvestments = openInvestments,
                     openCapturedTransactionId = openCapturedTransactionId,
                     onCapturedOpened = {
                         openCapturedTransactionId = null
@@ -118,6 +125,10 @@ class MainActivity : ComponentActivity() {
 /** The flag [ReminderNotifier] sets when the notification was asking for a figure. */
 private val Intent.wantsPending: Boolean
     get() = getBooleanExtra(ReminderNotifier.EXTRA_OPEN_PENDING, false)
+
+/** The flag [InvestmentReminderNotifier] sets on the Friday reminder. */
+private val Intent.wantsInvestments: Boolean
+    get() = getBooleanExtra(InvestmentReminderNotifier.EXTRA_OPEN_INVESTMENTS, false)
 
 /** The movement [CaptureNotifier] names when its notification was tapped, if it was one of those. */
 private val Intent.capturedTransactionId: Long?

@@ -98,4 +98,12 @@
     <string name="values_current">Worth %1$s until now.</string>
     <string name="values_change">%1$s on the %2$s it was worth.</string>
     <string name="values_save_failed_message">The values could not be saved. Nothing was changed.</string>
+
+    <!-- The Friday reminder -->
+    <string name="investment_reminder_title">Update your investments</string>
+    <string name="investment_reminder_one">%1$s has no value yet this week.</string>
+    <string name="investment_reminder_channel_name">Investments</string>
+    <string name="investment_reminder_channel_description">On Fridays, when an asset has no value yet that week.</string>
+    <string name="settings_investment_reminder">Remind me on Fridays</string>
+    <string name="settings_investment_reminder_footer">A notification on Friday morning when an asset has no value yet that week. A week left without one keeps the last value.</string>
 </resources>

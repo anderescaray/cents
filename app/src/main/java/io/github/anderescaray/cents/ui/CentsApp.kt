@@ -71,6 +71,8 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 fun CentsApp(
     /** True when a reminder asking for a figure was tapped: go straight to the screen that takes it. */
     openPending: Boolean = false,
+    /** True when the Friday reminder was tapped: go to Invested. */
+    openInvestments: Boolean = false,
     /** The movement a capture notification was tapped for, opened once and then forgotten. */
     openCapturedTransactionId: Long? = null,
     onCapturedOpened: () -> Unit = {},
@@ -89,6 +91,7 @@ fun CentsApp(
     GenerateDueMovements()
 
     OpenPendingFromNotification(openPending, navController)
+    OpenInvestmentsFromNotification(openInvestments, navController)
     OpenCapturedFromNotification(
         transactionId = openCapturedTransactionId,
         // On top of the movements list, so back from the form shows it among the rest.

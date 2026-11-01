@@ -3,6 +3,7 @@ package io.github.anderescaray.cents.domain.usecase
 import io.github.anderescaray.cents.domain.model.ChartPoint
 import io.github.anderescaray.cents.domain.model.ChartScale
 import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Position
 import io.github.anderescaray.cents.domain.model.divideRoundingHalfUp
 import java.math.BigInteger
 import java.time.DayOfWeek
@@ -73,6 +74,23 @@ private fun yearlyPoints(months: List<ChartPoint>): List<ChartPoint> =
 private fun meanOf(values: List<Money>): Money {
     val sum = values.fold(BigInteger.ZERO) { total, value -> total + BigInteger.valueOf(value.minorUnits) }
     return Money(divideRoundingHalfUp(sum, BigInteger.valueOf(values.size.toLong())), values.first().currency)
+}
+
+/**
+ * The open assets with nothing recorded yet this week, Monday to [today]: what the Friday reminder
+ * asks about (D40). A purchase this week counts, because it is the asset's worth as of then.
+ */
+fun withoutValueThisWeek(
+    positions: List<Position>,
+    today: LocalDate,
+): List<Position> {
+    val monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    return positions.filter { position ->
+        position.isOpen && position.steps
+            .lastOrNull()
+            ?.date
+            ?.isBefore(monday) != false
+    }
 }
 
 private const val DAYS_IN_WEEK = 7L

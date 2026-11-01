@@ -46,6 +46,11 @@ data class CentsColors(
     val barBackground: Color,
     val barSeparator: Color,
     val switchTrackOff: Color,
+    /**
+     * Settings' round button, the same on every tab: a quiet grey of its own, set apart from the
+     * canvas and from the white buttons beside it without calling attention to itself.
+     */
+    val settingsButton: Color,
     /** The soft shadow under a card, in light only: dark lifts a card by its lighter fill. */
     val cardShadow: Color,
     /** The veil over the screen behind a sheet or an alert. */
@@ -76,6 +81,7 @@ val LightColors =
         barBackground = Color(0xFFF4F5F9),
         barSeparator = Color(0x120E1117),
         switchTrackOff = Color(0xFFE3E5EA),
+        settingsButton = Color(0xFFE2E4EA),
         cardShadow = Color(0x1A101828),
         scrim = Color(0x470E1117),
         isDark = false,
@@ -104,6 +110,7 @@ val DarkColors =
         barBackground = Color(0xFF000000),
         barSeparator = Color(0x33FFFFFF),
         switchTrackOff = Color(0xFF39393D),
+        settingsButton = Color(0xFF3A3A3C),
         cardShadow = Color(0x00000000),
         scrim = Color(0x99000000),
         isDark = true,

@@ -110,6 +110,9 @@ internal fun NavHostController.switchToTab(destination: Destination) {
  * open goes back to its first screen**, the way iOS does. Without that, Home could never be got
  * back to once Settings, which Home owns, was opened from it: the tab restores its stack, and a
  * second tap did nothing.
+ *
+ * Leaving Home by hand also lets Settings forget which tab opened it: back from it then goes to
+ * Home, where it was last found, rather than to a tab visited before the trip.
  */
 internal fun NavHostController.selectTab(
     tab: TopLevelTab,
@@ -118,6 +121,7 @@ internal fun NavHostController.selectTab(
     if (tab == current) {
         popBackStack(tab.destination, inclusive = false)
     } else {
+        forgetSettingsOrigin()
         switchToTab(tab.destination)
     }
 }

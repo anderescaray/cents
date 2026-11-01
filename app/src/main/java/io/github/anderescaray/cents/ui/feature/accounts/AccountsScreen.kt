@@ -30,6 +30,7 @@ import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
 import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
 import io.github.anderescaray.cents.ui.components.RoundIconButton
+import io.github.anderescaray.cents.ui.components.SettingsButton
 import io.github.anderescaray.cents.ui.components.arrive
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -45,6 +46,7 @@ fun AccountsScreen(
     onNewAccount: () -> Unit,
     onOpenAccount: (Long) -> Unit,
     onOpenInvestments: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -60,6 +62,7 @@ fun AccountsScreen(
                 onClick = onNewAccount,
                 modifier = Modifier.testTag(ADD_ACCOUNT_TAG),
             )
+            SettingsButton(onClick = onOpenSettings)
         },
     ) {
         if (state.showEmptyState) {

@@ -12,6 +12,8 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -41,6 +43,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.TrendBucket
 import io.github.anderescaray.cents.domain.model.TrendChoice
 import io.github.anderescaray.cents.domain.model.WeekdaySpending
+import io.github.anderescaray.cents.ui.components.SETTINGS_BUTTON_TAG
 import io.github.anderescaray.cents.ui.feature.reports.PeriodPreset
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
@@ -590,6 +593,31 @@ class ReportsScreenTest {
             // The action rather than a tap at its position: scrolled to its heading, the control
             // can sit under the title bar, where a tap would land on the bar's own button.
             .performSemanticsAction(SemanticsActions.OnClick)
+    }
+
+    @Test
+    fun `settings opens from Reports too, and customize is a different button beside it`() {
+        var settings = 0
+        var customize = 0
+        composeRule.setContent {
+            CentsTheme {
+                ReportsScreen(
+                    state = fullState(),
+                    onSelectPreset = {},
+                    onSelectAccount = {},
+                    onSetRange = { _, _ -> },
+                    onDrillDown = {},
+                    onCustomize = { customize++ },
+                    onOpenSettings = { settings++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(SETTINGS_BUTTON_TAG).performClick()
+        composeRule.onNodeWithContentDescription("Customize").performClick()
+
+        assertEquals(1, settings)
+        assertEquals(1, customize)
     }
 
     private fun setContent(

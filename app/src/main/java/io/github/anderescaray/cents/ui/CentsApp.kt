@@ -188,7 +188,7 @@ private fun CentsNavHost(
             HomeScreen(
                 onAdd = { kind -> navController.openNewMovement(kind) },
                 onTransfer = { navController.navigate(Destination.TransferForm()) { launchSingleTop = true } },
-                onOpenSettings = { navController.navigate(Destination.Settings) { launchSingleTop = true } },
+                onOpenSettings = { navController.openSettings() },
                 onOpenInbox = { navController.navigate(Destination.Inbox) { launchSingleTop = true } },
                 onOpenTransaction = { id ->
                     navController.navigate(Destination.TransactionForm(transactionId = id)) { launchSingleTop = true }
@@ -224,20 +224,13 @@ private fun CentsNavHost(
                 onOpenMovements = { navController.openMovementsList() },
                 onOpenBudgets = { navController.navigate(Destination.Budgets) { launchSingleTop = true } },
                 onCustomize = { navController.navigate(Destination.ReportsCustomize) { launchSingleTop = true } },
+                onOpenSettings = { navController.openSettings() },
             )
         }
         composable<Destination.ReportsCustomize> {
             ReportsCustomizeScreen(onBack = { navController.popBackStack() })
         }
-        composable<Destination.Settings> {
-            SettingsScreen(
-                onBack = { navController.popBackStack() },
-                onOpenCategories = { navController.navigate(Destination.Categories) },
-                onOpenSubscriptions = { navController.navigate(Destination.Subscriptions) },
-                onOpenGroups = { navController.navigate(Destination.Groups) },
-                onOpenCapture = { navController.navigate(Destination.Capture) },
-            )
-        }
+        settingsRoutes(navController)
     }
 }
 
@@ -247,9 +240,6 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
         TransactionsScreen(
             // Single top: during the push animation a second tap would otherwise stack a
             // second copy of the form behind the first.
-            onAddTransaction = {
-                navController.navigate(Destination.TransactionForm()) { launchSingleTop = true }
-            },
             onOpenTransaction = { id ->
                 navController.navigate(Destination.TransactionForm(transactionId = id)) {
                     launchSingleTop = true
@@ -274,6 +264,7 @@ private fun NavGraphBuilder.transactionRoutes(navController: NavHostController) 
                 navController.navigate(Destination.TransactionFilters) { launchSingleTop = true }
             },
             onOpenInbox = { navController.navigate(Destination.Inbox) { launchSingleTop = true } },
+            onOpenSettings = { navController.openSettings() },
         )
     }
     composable<Destination.TransactionFilters> {
@@ -336,6 +327,7 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
             onOpenAccount = { id ->
                 navController.navigate(Destination.AccountDetail(id)) { launchSingleTop = true }
             },
+            onOpenSettings = { navController.openSettings() },
         )
     }
     composable<Destination.AccountDetail> {

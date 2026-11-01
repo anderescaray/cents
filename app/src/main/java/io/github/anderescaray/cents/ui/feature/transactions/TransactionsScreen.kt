@@ -35,6 +35,7 @@ import io.github.anderescaray.cents.ui.components.CentsSearchField
 import io.github.anderescaray.cents.ui.components.MovementBadge
 import io.github.anderescaray.cents.ui.components.NOTE_MAX_LINES
 import io.github.anderescaray.cents.ui.components.RoundIconButton
+import io.github.anderescaray.cents.ui.components.SettingsButton
 import io.github.anderescaray.cents.ui.components.UndoBanner
 import io.github.anderescaray.cents.ui.components.movementTitle
 import io.github.anderescaray.cents.ui.components.movementValueColor
@@ -48,12 +49,12 @@ import java.time.LocalDate
 
 @Composable
 fun TransactionsScreen(
-    onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
     onOpenFilters: () -> Unit,
     onOpenInbox: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: TransactionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -61,12 +62,12 @@ fun TransactionsScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         TransactionsList(
             state = state,
-            onAddTransaction = onAddTransaction,
             onOpenTransaction = onOpenTransaction,
             onOpenTransfer = onOpenTransfer,
             onOpenTrade = onOpenTrade,
             onOpenFilters = onOpenFilters,
             onOpenInbox = onOpenInbox,
+            onOpenSettings = onOpenSettings,
             onQueryChange = viewModel::setQuery,
             onClearFilter = viewModel::clearFilter,
         )
@@ -91,7 +92,6 @@ fun TransactionsScreen(
 @Composable
 internal fun TransactionsList(
     state: TransactionsUiState,
-    onAddTransaction: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     onOpenTransfer: (Long) -> Unit,
     onOpenTrade: (Long, Long) -> Unit,
@@ -99,22 +99,18 @@ internal fun TransactionsList(
     onQueryChange: (String) -> Unit,
     onClearFilter: () -> Unit,
     onOpenInbox: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_transactions),
         bottomPadding = CentsDimens.sectionSpacing,
-        // Both actions on the right, as round buttons beside each other: the title keeps the left
-        // to itself, expanded or collapsed, in either language and at any text size.
+        // Every action on the right, as round buttons beside each other: the title keeps the left
+        // to itself, expanded or collapsed, in either language and at any text size. Settings is
+        // last, where every tab has it, with the filters beside it. No add button: the capsule's,
+        // in the middle of every tab, already is one.
         trailing = {
             FiltersButton(count = state.filter.activeCount, onClick = onOpenFilters)
-            val addLabel = stringResource(R.string.add_transaction_title)
-            // Read aloud as what it does rather than as "plus": the label is on the button, and
-            // the glyph inside it is kept out of what TalkBack says.
-            RoundIconButton(
-                iconRes = R.drawable.ic_plus,
-                contentDescription = addLabel,
-                onClick = onAddTransaction,
-            )
+            SettingsButton(onClick = onOpenSettings)
         },
     ) {
         searchField(query = state.query, onQueryChange = onQueryChange)

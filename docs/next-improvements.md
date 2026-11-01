@@ -51,16 +51,72 @@ session can build it without the original conversation. **The build order is
   on the phone 2026-10-28.
 - [x] 21. Subscription reminders chosen in a sheet, with suggestions and a stepper, not a typed
   field (2026-10-28). #160, checked on the phone 2026-10-28. Now in `docs/PRD.md` §4.4.
-- [ ] 22. **Next.** A variable bill is filled only by a payment that names it, and asks otherwise
-  (`DECISIONS.md` D39). Details below. Its schema change is **Room v15**: v14 is item 23's.
+- [ ] 22. A variable bill is filled only by a payment that names it, and asks otherwise
+  (`DECISIONS.md` D39). Details below. **After item 25**, so its schema change is **Room v16**.
 - [ ] 23. A general budget, over the month's spending as a whole, beside the per-category ones
-  (2026-10-31, amends `DECISIONS.md` D26). **Built in #164, not merged.** It counts every expense of
+  (2026-10-31, amends `DECISIONS.md` D26). **Merged in #164.** Phone check pending. It counts every expense of
   the month, uncategorized included, and every expense subscription still due; transfers and trades
   stay out; there is at most one, listed first in Budgets and on the Reports card. Room v14.
 - [ ] 24. Settings reachable from every tab, the same round button at the right of each header,
-  with the filters beside it on Movements and Customize beside it on Reports (2026-10-31). **Built
-  in #163, not merged.** It opens in Home's stack from any tab, so there is only ever one Settings
+  with the filters beside it on Movements and Customize beside it on Reports (2026-10-31). **Merged
+  in #163**, with a grey button of its own and no add button on Movements (owner, 2026-11-01).
+  Phone check pending. It opens in Home's stack from any tab, so there is only ever one Settings
   (#163 explains why), and back from it returns to the tab that opened it (owner, 2026-11-01).
+- [ ] 25. **Next.** Investments rebuilt around broker accounts and typed values (`DECISIONS.md`
+  D40, 2026-11-01). Details below. Its schema change is **Room v15**. **Built in #167, not merged.**
+
+## 25 · Investments, rebuilt (D40)
+
+What the owner asked for on 2026-11-01, and the defaults settled with it. The owner's own answers
+are marked *(owner)*; the rest are defaults the owner can change.
+
+**Screens**
+
+- **Invested** (the tile in Wallet and on Home) opens a list of the broker accounts, each with its
+  live total. Above them, a **total profit and loss** across all of them *(owner)*: what is
+  invested at cost, what it is worth now, the difference, and what closed operations made. A chart
+  of the total over time. With nothing bought yet, each account shows only the cash put in.
+- **A broker account** shows its total, its **cash** and what is **invested**, a chart, its open
+  assets, a way to update every asset's value at once, and the **history of closed operations**,
+  each with its result, and their total *(owner)*.
+- **An asset** shows its value, its cost, the difference, a chart, and its purchases and sales.
+- **Wallet's *My accounts*** shows a broker account's live total: its cash plus the latest value
+  of each open asset.
+
+**Recording**
+
+- An asset is a **type** (stock, ETF, index fund, crypto) and a **free name** that matches nothing
+  *(owner)*. **Amounts only**: no units, no price per unit *(owner)*.
+- A **purchase** is a date and an amount, and spends the account's cash. More can be bought into an
+  asset already held.
+- A **value** is typed **at least weekly** *(owner)*: the asset's whole current worth, with the
+  change since the last one shown as it is typed. A week with none keeps the last value. A purchase
+  adds its amount to the value, and a sale takes its amount out.
+- A **sale** is a date and the amount received, for all of an asset or part of it. Part of it
+  removes cost in the proportion of the value sold. Its **result**, the amount received minus the
+  cost removed, becomes a movement in the account, **kept out of Reports and budgets** *(owner)*.
+  Purchases, and the cost a sale returns to cash, move money inside one account, so they are shown
+  on the investment screens and not in the movement lists.
+- **Interest and dividends** are ordinary income movements into the account, as today *(owner)*.
+
+**Charts**
+
+- By **week, month or year** *(owner)*. A week's point is the value at its end (Monday to Sunday;
+  today for this week). A month is the mean of its weeks, a year the mean of its months *(owner)*.
+- Each chart **reopens at the scale it was left on** *(owner)*, remembered per asset, per account
+  and for the total.
+- An account's chart is its cash plus its assets' values. The total's is every broker account's.
+
+**Reminder**
+
+- A **notification on Fridays** *(owner)*, with a switch in Settings, on by default. It is sent
+  only when an open asset has no value yet that week.
+
+**Existing data**
+
+- Each holding becomes an asset, named by its name or else its symbol. Its purchases become
+  amounts, its sales keep the result they had at the average cost, and its last price becomes a
+  value on its date. Old backups restore the same way.
 
 ## 22 · A variable bill knows who it is paid to (D39)
 

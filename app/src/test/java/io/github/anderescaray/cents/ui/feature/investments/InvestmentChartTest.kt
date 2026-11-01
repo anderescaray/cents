@@ -36,7 +36,12 @@ class InvestmentChartTest {
         composeRule.setContent {
             CentsTheme {
                 InvestmentChart(
-                    points = chartPoints(first, today, scale) { day -> Money(100_000L + day.dayOfYear * 1_000L, "EUR") },
+                    points =
+                        chartPoints(
+                            first,
+                            today,
+                            scale,
+                        ) { day -> Money(100_000L + day.dayOfYear * 1_000L, "EUR") },
                     scale = scale,
                     onScaleChange = { scale = it },
                 )

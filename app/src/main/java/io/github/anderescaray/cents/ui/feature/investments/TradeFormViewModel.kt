@@ -75,7 +75,8 @@ internal fun derived(
 ): TradeFormUiState {
     val held = state.position
     val amount = state.amountMinor
-    if (held == null || state.side != TradeSide.SELL || amount <= 0 && !state.sellsAll) {
+    val nothingToSell = amount <= 0 && !state.sellsAll
+    if (held == null || state.side != TradeSide.SELL || nothingToSell) {
         return state.copy(resultPreview = null, emptiesAgainst = null)
     }
     val others = held.trades.filter { it.id != editedTradeId }

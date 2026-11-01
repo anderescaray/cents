@@ -16,10 +16,12 @@ import io.github.anderescaray.cents.domain.repository.HoldingValueRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.usecase.chartPoints
 import io.github.anderescaray.cents.ui.navigation.Destination
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -79,7 +81,8 @@ class AssetViewModel
                             }.orEmpty(),
                     deletingValue = pending,
                 )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssetUiState())
+            }.flowOn(Dispatchers.Default) // Folds and chart points: not on the main thread (rule 4).
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssetUiState())
 
         fun onScaleChange(scale: ChartScale) {
             viewModelScope.launch { chartScales.set(chartKey, scale) }

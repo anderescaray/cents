@@ -27,8 +27,10 @@ import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.repository.TradeRepository
 import io.github.anderescaray.cents.domain.usecase.positionOf
 import io.github.anderescaray.cents.domain.usecase.tradeCashOf
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import java.time.Clock
 import java.time.LocalDate
@@ -63,7 +65,13 @@ class TradeCashWriter
             val trades = tradeDao.forHolding(holdingId).map { it.toDomain() }
             val values = holdingValueDao.forHolding(holdingId).map { it.toDomain() }
             val wanted = tradeCashOf(trades, positionOf(holding, trades, values))
-            val existing = transactionDao.cashForHolding(holdingId).associateBy { it.tradeId to it.tradeResult }
+            // A trade in another currency is in no sum, and its cash is left as it was.
+            val own = trades.filter { it.amount.currency == holding.currency }.map { it.id }.toSet()
+            val existing =
+                transactionDao
+                    .cashForHolding(holdingId)
+                    .filter { it.tradeId in own }
+                    .associateBy { it.tradeId to it.tradeResult }
             val now = clock.instant()
             val kept = mutableSetOf<Long>()
             for (cash in wanted) {
@@ -198,24 +206,25 @@ class RoomHoldingValueRepository
     ) : HoldingValueRepository {
         override suspend fun findById(id: Long): HoldingValue? = holdingValueDao.findById(id)?.toDomain()
 
-        override suspend fun setValue(
-            holdingId: Long,
+        override suspend fun setValues(
             date: LocalDate,
-            value: Money,
+            values: Map<Long, Money>,
         ) {
-            val holding = holdingDao.findById(holdingId) ?: return
             database.withTransaction {
-                holdingValueDao.save(
-                    HoldingValueEntity(
-                        holdingId = holdingId,
-                        date = date,
-                        valueMinor = value.minorUnits,
-                        currency = holding.currency,
-                        createdAt = clock.instant(),
-                    ),
-                )
-                // A part sale after this day measures itself against it.
-                cashWriter.rewrite(holdingId)
+                values.forEach { (holdingId, value) ->
+                    val holding = holdingDao.findById(holdingId) ?: return@forEach
+                    holdingValueDao.save(
+                        HoldingValueEntity(
+                            holdingId = holdingId,
+                            date = date,
+                            valueMinor = value.minorUnits,
+                            currency = holding.currency,
+                            createdAt = clock.instant(),
+                        ),
+                    )
+                    // A part sale after this day measures itself against it.
+                    cashWriter.rewrite(holdingId)
+                }
             }
         }
 
@@ -261,19 +270,26 @@ class RoomPortfolioRepository
                         values = valuesByHolding[entity.id].orEmpty().map { it.toDomain() },
                     )
                 }
-            }
+            }.flowOn(Dispatchers.Default)
 
         override fun observePosition(holdingId: Long): Flow<Position?> =
             observePositions().map { positions -> positions.firstOrNull { it.holding.id == holdingId } }
 
         override fun observeOverview(): Flow<InvestmentOverview> =
             combine(
-                accountRepository.observeAccountsWithBalances(includeArchived = false),
+                accountRepository.observeAccountsWithBalances(includeArchived = true),
                 observePositions(),
-                transactionDao.observeBrokerCashByDay(),
+                transactionDao.observeInvestmentCashByDay(),
             ) { accounts, positions, cashByDay ->
-                val brokers = accounts.filter { it.account.type == AccountType.BROKER }
                 val positionsByAccount = positions.groupBy { it.holding.accountId }
+                // Every active broker, and any other account still holding an open asset: one left
+                // in a bank account from before only brokers could hold them, or in an archived
+                // broker. Otherwise such an asset would count in the net worth and be out of reach.
+                val brokers =
+                    accounts.filter { item ->
+                        (item.account.type == AccountType.BROKER && !item.account.archived) ||
+                            positionsByAccount[item.account.id].orEmpty().any { it.isOpen }
+                    }
                 val cashByAccount = cashByDay.groupBy { it.accountId }
                 InvestmentOverview(
                     currency = brokers.map { it.account.currency }.distinct().singleOrNull(),

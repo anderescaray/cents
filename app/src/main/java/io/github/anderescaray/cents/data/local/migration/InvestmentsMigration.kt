@@ -5,11 +5,12 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import io.github.anderescaray.cents.domain.model.TradeSide
+import io.github.anderescaray.cents.domain.model.Holding
 import io.github.anderescaray.cents.domain.usecase.ConvertedPortfolio
 import io.github.anderescaray.cents.domain.usecase.LegacyHolding
 import io.github.anderescaray.cents.domain.usecase.LegacyQuote
 import io.github.anderescaray.cents.domain.usecase.LegacyTrade
+import io.github.anderescaray.cents.domain.usecase.TradeCash
 import io.github.anderescaray.cents.domain.usecase.convertLegacyPortfolio
 import io.github.anderescaray.cents.domain.usecase.positionOf
 import io.github.anderescaray.cents.domain.usecase.tradeCashOf
@@ -32,7 +33,8 @@ import java.time.ZoneId
  *   once it is done.
  * - `holding_values` is new, filled from each holding's last price.
  * - `price_quotes` goes: a value belongs to an asset now, not to a symbol.
- * - `transactions.tradeResult` is new, and each sale's cash is written again as two rows.
+ * - `transactions.tradeResult` is new, and every trade's cash is written again: a sale's as two
+ *   rows, the cost it returned and its result, with no balance moving.
  *
  * The DDL is copied from the exported `15.json`, as every migration's is (`Migrations.kt`).
  */
@@ -55,7 +57,7 @@ val MIGRATION_14_15 =
                     "ON `holding_values` (`holdingId`, `date`)",
             )
             db.execSQL("ALTER TABLE `transactions` ADD COLUMN `tradeResult` INTEGER NOT NULL DEFAULT 0")
-            rewriteSaleCash(db, converted)
+            rewriteTradeCash(db, converted)
         }
     }
 
@@ -171,11 +173,15 @@ private fun writePortfolio(
 }
 
 /**
- * Each sale's cash, written again as the cost it returned and its result. A purchase's row is
- * already its amount, fee included, and stays as it is. The first row keeps the old row's id, so
- * the movement does not move down the account's list.
+ * Every trade's cash, written again the way `TradeCashWriter` writes it from now on: a purchase as
+ * what it spent, a sale as the cost it returned and its result. The first row keeps the old row's
+ * id and date of creation, so the movement does not move down the account's list.
+ *
+ * **No balance moves.** Where the new rows do not add up to what the old ones did — a purchase
+ * recorded before v4, which never had a cash row, or a sale whose fee swallowed it — the account's
+ * opening balance takes the difference, so its cash reads exactly what it read before.
  */
-private fun rewriteSaleCash(
+private fun rewriteTradeCash(
     db: SupportSQLiteDatabase,
     converted: ConvertedPortfolio,
 ) {
@@ -183,40 +189,71 @@ private fun rewriteSaleCash(
     val valuesByHolding = converted.values.groupBy { it.holdingId }
     for (holding in converted.holdings) {
         val trades = tradesByHolding[holding.id].orEmpty()
-        val position = positionOf(holding, trades, valuesByHolding[holding.id].orEmpty())
-        val cashBySale =
+        val cashByTrade =
             tradeCashOf(
                 trades,
-                position,
-            ).filter { it.trade.side == TradeSide.SELL }.groupBy { it.trade.id }
-        for (sale in trades.filter { it.side == TradeSide.SELL }) {
-            val old = oldCash(db, sale.id)
-            val createdAt = old?.createdAt ?: System.currentTimeMillis()
-            db.execSQL("DELETE FROM transactions WHERE tradeId = ?", arrayOf(sale.id))
-            cashBySale[sale.id].orEmpty().forEachIndexed { index, cash ->
-                val row =
-                    ContentValues().apply {
-                        if (index == 0 && old != null) put("id", old.id)
-                        put("accountId", holding.accountId)
-                        put("kind", if (cash.signedMinor < 0) "EXPENSE" else "INCOME")
-                        put("amountMinor", kotlin.math.abs(cash.signedMinor))
-                        put("currency", holding.currency)
-                        put("date", sale.date.toEpochDay())
-                        put("note", sale.note)
-                        put("tradeId", sale.id)
-                        put("tradeResult", if (cash.isResult) 1 else 0)
-                        put("createdAt", createdAt)
-                        put("updatedAt", createdAt)
-                    }
-                db.insert("transactions", SQLiteDatabase.CONFLICT_ABORT, row)
+                positionOf(holding, trades, valuesByHolding[holding.id].orEmpty()),
+            ).groupBy {
+                it.trade.id
+            }
+        for (trade in trades.filter { it.amount.currency == holding.currency }) {
+            val old = oldCash(db, trade.id)
+            db.execSQL("DELETE FROM transactions WHERE tradeId = ?", arrayOf(trade.id))
+            val rows = cashByTrade[trade.id].orEmpty()
+            rows.forEachIndexed { index, cash ->
+                db.insert(
+                    "transactions",
+                    SQLiteDatabase.CONFLICT_ABORT,
+                    cashRow(
+                        holding,
+                        cash,
+                        if (index ==
+                            0
+                        ) {
+                            old
+                        } else {
+                            null
+                        },
+                        old?.createdAt,
+                    ),
+                )
+            }
+            val drift = (old?.signedSum ?: 0L) - rows.sumOf { it.signedMinor }
+            if (drift != 0L) {
+                db.execSQL(
+                    "UPDATE accounts SET openingBalanceMinor = openingBalanceMinor + ? WHERE id = ?",
+                    arrayOf(drift, holding.accountId),
+                )
             }
         }
     }
 }
 
+private fun cashRow(
+    holding: Holding,
+    cash: TradeCash,
+    keeping: OldCash?,
+    createdAt: Long?,
+) = ContentValues().apply {
+    val at = createdAt ?: System.currentTimeMillis()
+    if (keeping != null) put("id", keeping.id)
+    put("accountId", holding.accountId)
+    put("kind", if (cash.signedMinor < 0) "EXPENSE" else "INCOME")
+    put("amountMinor", kotlin.math.abs(cash.signedMinor))
+    put("currency", holding.currency)
+    put("date", cash.trade.date.toEpochDay())
+    put("note", cash.trade.note)
+    put("tradeId", cash.trade.id)
+    put("tradeResult", if (cash.isResult) 1 else 0)
+    put("createdAt", at)
+    put("updatedAt", at)
+}
+
+/** A trade's old cash: its first row, and what all its rows did to the balance. */
 private class OldCash(
     val id: Long,
     val createdAt: Long,
+    val signedSum: Long,
 )
 
 private fun oldCash(
@@ -224,8 +261,20 @@ private fun oldCash(
     tradeId: Long,
 ): OldCash? =
     db
-        .query("SELECT id, createdAt FROM transactions WHERE tradeId = ? ORDER BY id LIMIT 1", arrayOf(tradeId))
-        .use { c -> if (c.moveToFirst()) OldCash(c.long("id"), c.long("createdAt")) else null }
+        .query(
+            "SELECT MIN(id) AS id, MIN(createdAt) AS createdAt, " +
+                "SUM(CASE kind WHEN 'INCOME' THEN amountMinor ELSE -amountMinor END) AS signedSum, COUNT(*) AS n " +
+                "FROM transactions WHERE tradeId = ?",
+            arrayOf(tradeId),
+        ).use { c ->
+            if (c.moveToFirst() &&
+                c.long("n") > 0
+            ) {
+                OldCash(c.long("id"), c.long("createdAt"), c.long("signedSum"))
+            } else {
+                null
+            }
+        }
 
 private fun Cursor.long(column: String): Long = getLong(getColumnIndexOrThrow(column))
 

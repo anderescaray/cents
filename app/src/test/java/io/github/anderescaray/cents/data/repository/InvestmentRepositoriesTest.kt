@@ -188,6 +188,36 @@ class InvestmentRepositoriesTest {
             assertEquals(Money(100_000, "EUR"), overview.sums?.cost)
         }
 
+    @Test
+    fun `an asset left in a bank account is still on Invested, so it can be reached`() =
+        runTest {
+            val bank = database.accountDao().insert(account(name = "Old bank"))
+            holdings.createHolding(
+                Holding(0, bank, AssetClass.STOCK, "Old shares", "EUR", null),
+                Trade(0, 0, TradeSide.BUY, Money(10_000, "EUR"), bought, null),
+            )
+
+            val overview = portfolioRepository(database, clock).observeOverview().first()
+
+            assertEquals(listOf("Old bank"), overview.accounts.map { it.account.name })
+            assertEquals(Money(10_000, "EUR"), overview.accounts.single().invested)
+        }
+
+    @Test
+    fun `the week's values are written together`() =
+        runTest {
+            val first = newFund(purchase = 100_000)
+            val second =
+                holdings.createHolding(
+                    Holding(0, brokerId, AssetClass.CRYPTO, "Bitcoin", "EUR", null),
+                    Trade(0, 0, TradeSide.BUY, Money(20_000, "EUR"), bought, null),
+                )
+
+            values.setValues(valued, mapOf(first to Money(110_000, "EUR"), second to Money(25_000, "EUR")))
+
+            assertEquals(listOf(110_000L, 25_000L), database.holdingValueDao().all().map { it.valueMinor })
+        }
+
     /** A broker that received 150 000, and an asset bought for [purchase]. */
     private suspend fun newFund(purchase: Long): Long {
         brokerId = database.accountDao().insert(account(name = "Broker", type = AccountType.BROKER))

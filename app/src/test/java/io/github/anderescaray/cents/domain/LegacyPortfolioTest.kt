@@ -130,6 +130,82 @@ class LegacyPortfolioTest {
         assertEquals(Money(30_000, "EUR"), converted.values.single().value)
     }
 
+    @Test
+    fun `a part sale on the day of the last price is not taken for selling everything`() {
+        // Ten units at 10 €; the price, 10 €, is older than a sale of five at 10 €.
+        val converted =
+            convertLegacyPortfolio(
+                listOf(nvidia),
+                listOf(
+                    trade(11, "BUY", units = 10, price = 1_000),
+                    trade(12, "SELL", units = 5, price = 1_000, date = sold),
+                ),
+                listOf(LegacyQuote("NVD.DE", 1_000, "EUR", bought)),
+            )
+
+        val position = positionOf(converted.holdings.single(), converted.trades, converted.values)
+        assertTrue(
+            position.sales
+                .single()
+                .result.isZero,
+        )
+        assertTrue(position.isOpen)
+        assertEquals(Money(5_000, "EUR"), position.value)
+        assertEquals(Money(5_000, "EUR"), position.cost)
+    }
+
+    @Test
+    fun `two part sales on one day each keep the average cost's result`() {
+        val converted =
+            convertLegacyPortfolio(
+                listOf(nvidia),
+                listOf(
+                    trade(11, "BUY", units = 10, price = 1_000),
+                    trade(12, "SELL", units = 2, price = 1_500, date = sold),
+                    trade(13, "SELL", units = 2, price = 1_500, date = sold),
+                ),
+                emptyList(),
+            )
+
+        val position = positionOf(converted.holdings.single(), converted.trades, converted.values)
+        assertEquals(1, converted.values.size)
+        assertEquals(listOf(1_000L, 1_000L), position.sales.map { it.result.minorUnits })
+        assertEquals(Money(6_000, "EUR"), position.cost)
+    }
+
+    @Test
+    fun `a part sale whose fee swallowed it leaves the cost where it was`() {
+        val converted =
+            convertLegacyPortfolio(
+                listOf(nvidia),
+                listOf(
+                    trade(11, "BUY", units = 10, price = 10_000),
+                    trade(12, "SELL", units = 1, price = 50, fee = 100, date = sold),
+                ),
+                emptyList(),
+            )
+
+        val position = positionOf(converted.holdings.single(), converted.trades, converted.values)
+        assertTrue(converted.values.isEmpty())
+        assertTrue(position.isOpen)
+        assertEquals(Money(100_000, "EUR"), position.cost)
+    }
+
+    @Test
+    fun `a trade in another currency is kept, and left out of every sum`() {
+        val dollars = trade(12, "BUY", units = 1, price = 5_000).copy(currency = "USD")
+        val converted =
+            convertLegacyPortfolio(
+                listOf(nvidia),
+                listOf(trade(11, "BUY", units = 1, price = 10_000), dollars),
+                emptyList(),
+            )
+
+        assertEquals(listOf(11L, 12L), converted.trades.map { it.id })
+        val position = positionOf(converted.holdings.single(), converted.trades, converted.values)
+        assertEquals(Money(10_000, "EUR"), position.cost)
+    }
+
     private fun trade(
         id: Long,
         side: String,

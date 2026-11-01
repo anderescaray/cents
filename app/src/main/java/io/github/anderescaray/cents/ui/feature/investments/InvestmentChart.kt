@@ -36,9 +36,13 @@ import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 import io.github.anderescaray.cents.ui.util.formatLocale
+import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
+import java.util.Currency
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToLong
 
 /**
  * What an account, an asset or everything was worth through time, by week, month or year, with
@@ -105,6 +109,13 @@ private fun ValueLine(
             val formatter = DateTimeFormatter.ofPattern(scale.labelPattern, formatLocale())
             points.map { it.start.format(formatter) }
         }
+    // Whole units of the currency, grouped the way this phone writes numbers (rule 1).
+    val axis =
+        remember(points) {
+            val code = points.first().value.currency
+            val digits = runCatching { Currency.getInstance(code).defaultFractionDigits }.getOrNull() ?: 2
+            AxisFormat(NumberFormat.getIntegerInstance(formatLocale()), 10.0.pow(digits.coerceAtLeast(0)))
+        }
     val labelStyle = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)
     CartesianChartHost(
         chart =
@@ -122,15 +133,7 @@ private fun ValueLine(
                 startAxis =
                     VerticalAxis.rememberStart(
                         label = rememberAxisLabelComponent(style = labelStyle),
-                        // Minor units on an axis would read as a hundred times the money.
-                        valueFormatter =
-                            CartesianValueFormatter {
-                                _,
-                                value,
-                                _,
-                                ->
-                                (value / MINOR_UNITS_PER_UNIT).toLong().toString()
-                            },
+                        valueFormatter = CartesianValueFormatter { _, value, _ -> axis.format(value) },
                     ),
                 bottomAxis =
                     HorizontalAxis.rememberBottom(
@@ -152,6 +155,14 @@ private fun ValueLine(
         modelProducer = producer,
         modifier = modifier.fillMaxWidth().height(CHART_HEIGHT).testTag(CHART_TAG),
     )
+}
+
+/** Minor units on the axis as whole units of the currency. */
+private class AxisFormat(
+    private val numbers: NumberFormat,
+    private val minorPerUnit: Double,
+) {
+    fun format(minor: Double): String = numbers.format((minor / minorPerUnit).roundToLong())
 }
 
 /** How a point's period is named under the chart. */

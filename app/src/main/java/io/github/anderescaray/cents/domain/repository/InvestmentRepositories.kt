@@ -58,6 +58,12 @@ interface HoldingValueRepository {
         holdingId: Long,
         date: LocalDate,
         value: Money,
+    ) = setValues(date, mapOf(holdingId to value))
+
+    /** The week's values, by asset id, all written or none. */
+    suspend fun setValues(
+        date: LocalDate,
+        values: Map<Long, Money>,
     )
 
     suspend fun deleteValue(id: Long)
@@ -73,7 +79,10 @@ interface PortfolioRepository {
 
     fun observePosition(holdingId: Long): Flow<Position?>
 
-    /** Every active broker account with what is in it: Invested's screen. */
+    /**
+     * Every active broker account with what is in it, and any other account still holding an open
+     * asset, so none is out of reach: Invested's screen.
+     */
     fun observeOverview(): Flow<InvestmentOverview>
 
     fun observeAccount(accountId: Long): Flow<InvestmentAccount?>

@@ -11,9 +11,11 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.repository.ChartScaleRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.usecase.chartPoints
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -58,7 +60,8 @@ class InvestmentsViewModel
                             }
                         },
                 )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), InvestmentsUiState())
+            }.flowOn(Dispatchers.Default) // Folds and chart points: not on the main thread (rule 4).
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), InvestmentsUiState())
 
         fun onScaleChange(scale: ChartScale) {
             viewModelScope.launch { chartScales.set(ChartScaleRepository.TOTAL_CHART, scale) }

@@ -98,6 +98,29 @@ class InvestmentsMigrationTest {
         }
 
     @Test
+    fun `a purchase from before v4, with no cash row, leaves the balance as it was`() =
+        runTest {
+            old.createVersion(14)
+            old.writeRaw(
+                "INSERT INTO accounts (id, name, type, currency, openingBalanceMinor, colorArgb, archived, " +
+                    "sortOrder, createdAt) VALUES (2, 'Broker', 'BROKER', 'EUR', 100000, 0, 0, 1, $AT)",
+                "INSERT INTO holdings (id, accountId, assetClass, symbol, name, currency, note, createdAt, " +
+                    "updatedAt) VALUES (5, 2, 'ETF', 'VWCE', '', 'EUR', NULL, $AT, $AT)",
+                "INSERT INTO trades (id, holdingId, side, quantityScaled, pricePerUnitMinor, feeMinor, currency, " +
+                    "date, createdAt) VALUES (11, 5, 'BUY', 400000000, 10000, 0, 'EUR', $BOUGHT, $AT)",
+            )
+
+            val database = old.openWithMigrations()
+            try {
+                assertEquals(100_000L, database.accountDao().balanceOf(2))
+                assertEquals(listOf(40_000L), database.transactionDao().cashForHolding(5).map { it.amountMinor })
+                assertEquals("VWCE", database.holdingDao().findById(5)!!.name)
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
     fun `a version 14 database with no investments opens as it was`() =
         runTest {
             old.createVersion(14)

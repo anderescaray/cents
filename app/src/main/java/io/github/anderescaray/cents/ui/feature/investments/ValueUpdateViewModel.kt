@@ -103,14 +103,13 @@ class ValueUpdateViewModel
             if (!state.canSave) return
             form.update { it.copy(saving = true, writeFailed = false) }
             viewModelScope.launch {
-                val written =
-                    runCatching {
-                        state.entries.forEach { entry ->
-                            val typed = entry.typedMinor ?: return@forEach
-                            val holding = entry.position.holding
-                            values.setValue(holding.id, state.date, Money(typed, holding.currency))
-                        }
+                val typed =
+                    state.entries.mapNotNull { entry ->
+                        val holding = entry.position.holding
+                        entry.typedMinor?.let { holding.id to Money(it, holding.currency) }
                     }
+                // One transaction: a week half saved is not something the screen could explain.
+                val written = runCatching { values.setValues(state.date, typed.toMap()) }
                 form.update { it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess) }
             }
         }

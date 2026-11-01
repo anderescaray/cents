@@ -10,9 +10,9 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.Position
 import io.github.anderescaray.cents.domain.model.Trade
 import io.github.anderescaray.cents.domain.model.TradeSide
-import io.github.anderescaray.cents.domain.model.divideRoundingHalfUp
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
 import io.github.anderescaray.cents.domain.repository.TradeRepository
+import io.github.anderescaray.cents.domain.usecase.positionOf
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.math.BigInteger
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
@@ -49,26 +48,29 @@ data class TradeFormUiState(
     val canSave: Boolean get() = amountMinor > 0 && currency != null && !saving
 
     /**
-     * What a new sale would make, worked out the way `positionOf` will once it is saved: the cost
-     * it removes is all of it when it empties the asset, else the share of the worth it sells.
-     * Null for a purchase, an edit, or nothing typed yet.
+     * What a new sale would make, worked out by `positionOf` itself with the sale added at its
+     * date, so the preview is the result that will be written. Null for a purchase, an edit, or
+     * nothing typed yet.
      */
     val resultPreview: Money?
         get() {
             val held = position ?: return null
             if (!isNew || side != TradeSide.SELL || amountMinor <= 0) return null
-            val worth = held.value.minorUnits
-            val cost = held.cost.minorUnits
-            val removed =
-                if (sellsAll || worth <= 0 || amountMinor >= worth) {
-                    cost
-                } else {
-                    divideRoundingHalfUp(
-                        BigInteger.valueOf(cost) * BigInteger.valueOf(amountMinor),
-                        BigInteger.valueOf(worth),
-                    )
-                }
-            return Money(amountMinor - removed, held.holding.currency)
+            val sale =
+                Trade(
+                    id = Long.MAX_VALUE,
+                    holdingId = held.holding.id,
+                    side = TradeSide.SELL,
+                    amount = Money(amountMinor, held.holding.currency),
+                    date = date,
+                    note = null,
+                    sellsAll = sellsAll,
+                )
+            return positionOf(
+                held.holding,
+                held.trades + sale,
+                held.values,
+            ).sales.firstOrNull { it.trade.id == sale.id }?.result
         }
 }
 

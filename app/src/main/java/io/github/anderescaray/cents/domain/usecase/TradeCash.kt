@@ -23,7 +23,8 @@ data class TradeCash(
  *   returned. Only the result is a movement the owner sees; it is kept out of Reports and budgets
  *   like every trade's cash, so a loss never eats a budget.
  *
- * A row that would be zero is not written.
+ * A row that would be zero is not written. A trade in another currency than the asset's writes
+ * nothing here: it is in no sum (rule 2), and its cash, if it has any, is left as it was.
  */
 fun tradeCashOf(
     trades: List<Trade>,
@@ -31,6 +32,7 @@ fun tradeCashOf(
 ): List<TradeCash> {
     val costBySale = position.sales.associate { it.trade.id to it.cost.minorUnits }
     return trades
+        .filter { it.amount.currency == position.holding.currency }
         .flatMap { trade ->
             when (trade.side) {
                 TradeSide.BUY -> {

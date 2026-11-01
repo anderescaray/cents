@@ -146,8 +146,9 @@ interface TransactionDao {
     suspend fun deleteTradeCash(tradeId: Long): Int
 
     /**
-     * What each day did to each broker account's cash, signed, corrections included: the cash
-     * half of the investment charts. The other half is the assets' own values.
+     * What each day did to the cash of each account investments live in — every broker, and any
+     * other account holding an asset — signed, corrections included: the cash half of the
+     * investment charts. The other half is the assets' own values.
      */
     @Query(
         """
@@ -158,18 +159,18 @@ interface TransactionDao {
                        AS signedMinor
             FROM transactions t
             INNER JOIN accounts a ON a.id = t.accountId
-            WHERE a.type = 'BROKER'
+            WHERE a.type = 'BROKER' OR a.id IN (SELECT accountId FROM holdings)
             UNION ALL
             SELECT b.accountId AS accountId, b.date AS date, b.amountMinor AS signedMinor
             FROM balance_adjustments b
             INNER JOIN accounts a ON a.id = b.accountId
-            WHERE a.type = 'BROKER'
+            WHERE a.type = 'BROKER' OR a.id IN (SELECT accountId FROM holdings)
         ) m
         GROUP BY m.accountId, m.date
         ORDER BY m.date
         """,
     )
-    fun observeBrokerCashByDay(): Flow<List<AccountDayNet>>
+    fun observeInvestmentCashByDay(): Flow<List<AccountDayNet>>
 
     /**
      * The cash of every trade against one holding, for a holding being deleted whole.

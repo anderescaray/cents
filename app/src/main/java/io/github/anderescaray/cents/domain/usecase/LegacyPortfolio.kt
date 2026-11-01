@@ -97,44 +97,47 @@ private fun convertHolding(
     legacyTrades: List<LegacyTrade>,
     quote: LegacyQuote?,
 ): ConvertedHolding {
-    val currency = legacy.currency
     val holding =
         Holding(
             id = legacy.id,
             accountId = legacy.accountId,
             assetClass = AssetClass.entries.firstOrNull { it.name == legacy.assetClass } ?: AssetClass.STOCK,
             name = legacy.name.ifBlank { legacy.symbol },
-            currency = currency,
+            currency = legacy.currency,
             note = legacy.note,
         )
-    var held = 0L
+    val converter = HoldingConverter(legacy.id, legacy.currency)
+    legacyTrades.sortedWith(compareBy({ it.date }, { it.id })).forEach(converter::add)
+    if (quote != null && quote.currency == legacy.currency) converter.lastPrice(quote)
+    return ConvertedHolding(holding, converter.trades, converter.values)
+}
+
+/** One holding's trades, in order, turned into amounts, with the units still held carried along. */
+private class HoldingConverter(
+    private val holdingId: Long,
+    private val currency: String,
+) {
     val trades = mutableListOf<Trade>()
     val values = mutableListOf<HoldingValue>()
-    for (trade in legacyTrades.filter { it.currency == currency }.sortedWith(compareBy({ it.date }, { it.id }))) {
+    private var held = 0L
+
+    fun add(trade: LegacyTrade) {
         val gross = unitsTimesPrice(trade.quantityScaled, trade.pricePerUnitMinor)
-        when (trade.side) {
-            "BUY" -> {
+        when {
+            // Kept, so the movement that points at it still has something to point at; left out
+            // of every sum, as `positionOf` leaves out an amount in another currency (rule 2).
+            trade.currency != currency -> {
+                trades +=
+                    trade.toTrade(if (trade.side == "SELL") TradeSide.SELL else TradeSide.BUY, gross, sellsAll = false)
+            }
+
+            trade.side == "BUY" -> {
                 held += trade.quantityScaled
                 trades += trade.toTrade(TradeSide.BUY, gross + trade.feeMinor, sellsAll = false)
             }
 
-            "SELL" -> {
-                val sold = minOf(trade.quantityScaled, held)
-                val received = maxOf(unitsTimesPrice(sold, trade.pricePerUnitMinor) - trade.feeMinor, 0L)
-                val before = held
-                held -= sold
-                if (held > 0 && sold > 0) {
-                    // What the whole holding was worth at this sale's price: the share of it this
-                    // sale returned is then the share of units it sold.
-                    val worth =
-                        divideRoundingHalfUp(
-                            BigInteger.valueOf(received) * BigInteger.valueOf(before),
-                            BigInteger.valueOf(sold),
-                        )
-                    values +=
-                        HoldingValue(id = 0, holdingId = legacy.id, date = trade.date, value = Money(worth, currency))
-                }
-                trades += trade.toTrade(TradeSide.SELL, received, sellsAll = held <= 0)
+            trade.side == "SELL" -> {
+                sell(trade)
             }
 
             else -> {
@@ -142,19 +145,46 @@ private fun convertHolding(
             }
         }
     }
-    if (held > 0 && quote != null && quote.currency == currency) {
+
+    private fun sell(trade: LegacyTrade) {
+        val sold = minOf(trade.quantityScaled, held)
+        val received = maxOf(unitsTimesPrice(sold, trade.pricePerUnitMinor) - trade.feeMinor, 0L)
+        val before = held
+        held -= sold
+        // Only the day's first part sale leaves a value: a second one the same day is then
+        // measured against what the first left, which at one price is the same share. A sale
+        // whose fee swallowed it returned nothing, and says nothing about worth.
+        val leavesValue = held > 0 && received > 0 && values.none { it.date == trade.date }
+        if (leavesValue) {
+            // What the whole holding was worth at this sale's price: the share of it this sale
+            // returned is then the share of units it sold.
+            val worth =
+                divideRoundingHalfUp(
+                    BigInteger.valueOf(received) * BigInteger.valueOf(before),
+                    BigInteger.valueOf(sold),
+                )
+            values += HoldingValue(id = 0, holdingId = holdingId, date = trade.date, value = Money(worth, currency))
+        }
+        trades += trade.toTrade(TradeSide.SELL, received, sellsAll = held <= 0)
+    }
+
+    /** The last price, as the value of what is still held. */
+    fun lastPrice(quote: LegacyQuote) {
+        if (held <= 0) return
         val lastTrade = trades.maxOfOrNull { it.date }
-        val date = if (lastTrade != null && lastTrade.isAfter(quote.asOf)) lastTrade else quote.asOf
+        val latest = if (lastTrade != null && lastTrade.isAfter(quote.asOf)) lastTrade else quote.asOf
+        // A day's value comes before that day's sales, so a price no newer than a sale is dated
+        // the day after it: it is what was left, not what was there to sell.
+        val date = if (trades.any { it.side == TradeSide.SELL && it.date == latest }) latest.plusDays(1) else latest
         values.removeAll { it.date == date }
         values +=
             HoldingValue(
                 id = 0,
-                holdingId = legacy.id,
+                holdingId = holdingId,
                 date = date,
                 value = Money(unitsTimesPrice(held, quote.priceMinor), currency),
             )
     }
-    return ConvertedHolding(holding, trades, values)
 }
 
 private fun LegacyTrade.toTrade(

@@ -204,6 +204,10 @@ class RoomBackupRepository
          * asset's cash is written again: a file from before D40 holds a sale's cash as one row,
          * and written again it is the cost returned and the result apart. On a newer file this
          * changes nothing.
+         *
+         * **No balance moves**, as in the v15 migration: where the cash written again does not add
+         * up to the file's — a purchase from before v4 with no cash row, a sale whose fee swallowed
+         * it — the account's opening balance takes the difference.
          */
         private suspend fun restoreInvestments(
             backup: Backup,
@@ -213,7 +217,13 @@ class RoomBackupRepository
             backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
             backup.values.forEach { database.holdingValueDao().save(it.toEntity(now)) }
             backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
+            val accounts = backup.holdings.map { it.accountId }.distinct()
+            val before = accounts.associateWith { database.accountDao().balanceOf(it) ?: 0L }
             backup.holdings.forEach { cashWriter.rewrite(it.id) }
+            accounts.forEach { id ->
+                val drift = before.getValue(id) - (database.accountDao().balanceOf(id) ?: 0L)
+                if (drift != 0L) database.accountDao().addToOpeningBalance(id, drift)
+            }
         }
 
         private suspend fun rules() =

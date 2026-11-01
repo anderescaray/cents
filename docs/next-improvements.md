@@ -60,7 +60,7 @@ session can build it without the original conversation. **The build order is
 - [ ] 24. Settings reachable from every tab, the same round button at the right of each header,
   with the filters beside it on Movements and Customize beside it on Reports (2026-10-31). **Built
   in #163, not merged.** It opens in Home's stack from any tab, so there is only ever one Settings
-  (#163 explains why).
+  (#163 explains why), and back from it returns to the tab that opened it (owner, 2026-11-01).
 
 ## 22 · A variable bill knows who it is paid to (D39)
 

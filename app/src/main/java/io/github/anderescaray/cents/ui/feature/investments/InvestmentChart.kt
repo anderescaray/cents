@@ -101,14 +101,17 @@ private fun ValueLine(
     val accent = CentsTheme.colors.accent
     val labelColor = CentsTheme.colors.secondaryLabel
     val producer = remember { CartesianChartModelProducer() }
-    LaunchedEffect(points) {
-        producer.runTransaction { lineModel { series(points.map { it.value.minorUnits }) } }
-    }
-    val labels =
-        remember(points, scale) {
-            val formatter = DateTimeFormatter.ofPattern(scale.labelPattern, formatLocale())
-            points.map { it.start.format(formatter) }
+    // The labels go into the model with the series, in one transaction, so the axis only ever
+    // names the points the chart is drawing. Kept apart, a new scale's labels reached the axis a
+    // frame before its points did, and the old points' indices past the new labels came out blank,
+    // which Vico refuses with an IllegalStateException: the crash on Weeks then Months.
+    LaunchedEffect(points, scale) {
+        val labels = axisLabels(points, scale)
+        producer.runTransaction {
+            lineModel { series(points.map { it.value.minorUnits }) }
+            extras { it[LabelsKey] = labels }
         }
+    }
     // Whole units of the currency, grouped the way this phone writes numbers (rule 1).
     val axis =
         remember(points) {
@@ -139,16 +142,12 @@ private fun ValueLine(
                     HorizontalAxis.rememberBottom(
                         label = rememberAxisLabelComponent(style = labelStyle),
                         valueFormatter =
-                            CartesianValueFormatter {
-                                _,
-                                value,
-                                _,
-                                ->
-                                labels.getOrElse(value.toInt()) { "" }
+                            CartesianValueFormatter { context, value, _ ->
+                                axisLabel(context.model.extraStore.getOrNull(LabelsKey), value)
                             },
                         itemPlacer =
                             HorizontalAxis.ItemPlacer.aligned(
-                                { max(1, labels.size / TARGET_AXIS_LABELS) },
+                                { extras -> max(1, extras.getOrNull(LabelsKey).orEmpty().size / TARGET_AXIS_LABELS) },
                             ),
                     ),
             ),
@@ -156,6 +155,30 @@ private fun ValueLine(
         modifier = modifier.fillMaxWidth().height(CHART_HEIGHT).testTag(CHART_TAG),
     )
 }
+
+/** The name under each point, in the order of the series. */
+internal fun axisLabels(
+    points: List<ChartPoint>,
+    scale: ChartScale,
+): List<String> {
+    val formatter = DateTimeFormatter.ofPattern(scale.labelPattern, formatLocale())
+    return points.map { it.start.format(formatter) }
+}
+
+/**
+ * The label for x position [value]. Never blank, because Vico throws on a blank label: a position
+ * outside the labels, which the model's own labels should never leave, takes the nearest one.
+ */
+internal fun axisLabel(
+    labels: List<String>?,
+    value: Double,
+): String {
+    if (labels.isNullOrEmpty()) return NO_LABEL
+    return labels[value.roundToLong().coerceIn(0L, labels.lastIndex.toLong()).toInt()].ifBlank { NO_LABEL }
+}
+
+/** The labels, carried in the chart's model beside the series they name. */
+private val LabelsKey = ExtraStore.Key<List<String>>()
 
 /** Minor units on the axis as whole units of the currency. */
 private class AxisFormat(
@@ -210,3 +233,6 @@ private const val MINOR_UNITS_PER_UNIT = 100.0
 private const val TARGET_AXIS_LABELS = 5
 private const val RANGE_PADDING = 0.1
 private const val AREA_ALPHA = 0.16f
+
+/** What an axis position with no label shows: a space is blank to Vico, so an en dash. */
+private const val NO_LABEL = "–"

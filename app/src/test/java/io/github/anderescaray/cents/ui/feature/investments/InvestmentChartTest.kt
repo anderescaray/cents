@@ -1,8 +1,12 @@
 package io.github.anderescaray.cents.ui.feature.investments
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.view.View
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -12,11 +16,14 @@ import io.github.anderescaray.cents.domain.model.ChartScale
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.usecase.chartPoints
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.time.LocalDate
 
 /**
@@ -25,6 +32,7 @@ import java.time.LocalDate
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
+@GraphicsMode(GraphicsMode.Mode.NATIVE) // Vico only measures its axes while drawing.
 class InvestmentChartTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -33,7 +41,9 @@ class InvestmentChartTest {
 
     private fun switchThroughEveryScale(first: LocalDate?) {
         var scale by mutableStateOf(ChartScale.WEEK)
+        var view: View? = null
         composeRule.setContent {
+            view = LocalView.current
             CentsTheme {
                 InvestmentChart(
                     points =
@@ -47,11 +57,19 @@ class InvestmentChartTest {
                 )
             }
         }
+        composeRule.waitForIdle()
+        // Frame by frame, as the phone runs: the crash came from the frame right after a tap,
+        // drawn before the chart's new points had arrived.
+        composeRule.mainClock.autoAdvance = false
         for (label in listOf("Weeks", "Months", "Years", "Months", "Weeks", "Years", "Weeks")) {
             composeRule.onNodeWithText(label).performClick()
-            composeRule.waitForIdle()
+            repeat(FRAMES_AFTER_TAP) {
+                composeRule.mainClock.advanceTimeByFrame()
+                composeRule.runOnUiThread { draw(view!!) }
+            }
             composeRule.mainClock.advanceTimeBy(ANIMATION_MS)
             composeRule.waitForIdle()
+            composeRule.runOnUiThread { draw(view!!) }
         }
         composeRule.onNodeWithTag(CHART_SCALE_TAG).assertIsDisplayed()
     }
@@ -71,7 +89,29 @@ class InvestmentChartTest {
     @Test
     fun `years of history switch scale without crashing`() = switchThroughEveryScale(today.minusYears(3))
 
+    @Test
+    fun `an axis label is never blank, whatever position Vico asks for`() {
+        val months = listOf("Sep 26", "Oct 26", "Nov 26")
+        assertEquals("Oct 26", axisLabel(months, 1.0))
+        // Positions a week chart had, asked of a month chart's labels.
+        assertEquals("Nov 26", axisLabel(months, 12.0))
+        assertEquals("Sep 26", axisLabel(months, -1.0))
+        assertTrue(axisLabel(emptyList(), 0.0).isNotBlank())
+        assertTrue(axisLabel(null, 3.0).isNotBlank())
+    }
+
+    private fun draw(view: View) {
+        val bitmap =
+            Bitmap.createBitmap(
+                view.width.coerceAtLeast(1),
+                view.height.coerceAtLeast(1),
+                Bitmap.Config.ARGB_8888,
+            )
+        view.draw(Canvas(bitmap))
+    }
+
     private companion object {
         const val ANIMATION_MS = 2_000L
+        const val FRAMES_AFTER_TAP = 3
     }
 }

@@ -39,7 +39,7 @@ import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
 
 /**
- * Settings, opened from Home's header: what organises the money (categories, subscriptions,
+ * Settings, opened from any tab's header: what organises the money (categories, subscriptions,
  * groups, capture) in one card, which money figures Home shows, then the data — Drive,
  * export and restore — and last, the language the app is shown in.
  */
@@ -50,6 +50,7 @@ fun SettingsScreen(
     onBack: () -> Unit = {},
     onOpenGroups: () -> Unit = {},
     onOpenCapture: () -> Unit = {},
+    @StringRes backLabel: Int = R.string.tab_home,
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     driveViewModel: DriveBackupViewModel = hiltViewModel(),
@@ -72,6 +73,7 @@ fun SettingsScreen(
         onBack = onBack,
         onOpenGroups = onOpenGroups,
         onOpenCapture = onOpenCapture,
+        backLabel = backLabel,
         export = export,
         restore = restore,
         drive = drive,
@@ -141,6 +143,7 @@ internal fun SettingsContent(
     onBack: () -> Unit = {},
     onOpenGroups: () -> Unit = {},
     onOpenCapture: () -> Unit = {},
+    @StringRes backLabel: Int = R.string.tab_home,
     export: ExportUiState = ExportUiState(),
     exportActions: ExportActions = ExportActions(),
     restore: RestoreUiState = RestoreUiState(),
@@ -156,7 +159,7 @@ internal fun SettingsContent(
     val canStartData = dataIdle && !drive.isBusy && !drive.showBackups
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_settings),
-        leading = { CentsBackButton(label = stringResource(R.string.tab_home), onClick = onBack) },
+        leading = { CentsBackButton(label = stringResource(backLabel), onClick = onBack) },
     ) {
         item(key = "organise") {
             CentsListSection {

@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -146,6 +147,73 @@ class SelectedTabTest {
     }
 
     @Test
+    fun `back from settings returns to the tab that opened it, as it was left`() {
+        start()
+        switchTo(TopLevelTab.ACCOUNTS)
+        push(Destination.AccountDetail(accountId = 1))
+
+        openSettings()
+        leaveSettings()
+
+        val stack = navController.currentBackStack.value
+        assertEquals(TopLevelTab.ACCOUNTS, selected)
+        assertTrue(stack.last().destination.hasRoute(Destination.AccountDetail::class))
+        assertEquals(0, stack.count { it.destination.hasRoute(Destination.Settings::class) })
+
+        // Home was saved at its first screen, not with Settings still in it.
+        switchTo(TopLevelTab.HOME)
+        assertTrue(
+            navController.currentBackStack.value
+                .last()
+                .destination
+                .hasRoute(Destination.Home::class),
+        )
+    }
+
+    @Test
+    fun `back from settings opened on Home stays on Home`() {
+        start()
+
+        openSettings()
+        leaveSettings()
+
+        assertEquals(TopLevelTab.HOME, selected)
+        assertTrue(
+            navController.currentBackStack.value
+                .last()
+                .destination
+                .hasRoute(Destination.Home::class),
+        )
+    }
+
+    @Test
+    fun `asked for again from another tab, settings goes back to the newest one`() {
+        start()
+        switchTo(TopLevelTab.REPORTS)
+        openSettings()
+        push(Destination.Categories)
+
+        switchTo(TopLevelTab.TRANSACTIONS)
+        openSettings()
+        leaveSettings()
+
+        assertEquals(TopLevelTab.TRANSACTIONS, selected)
+    }
+
+    @Test
+    fun `a trip through the capsule makes settings go back to Home`() {
+        start()
+        switchTo(TopLevelTab.REPORTS)
+        openSettings()
+
+        tap(TopLevelTab.ACCOUNTS)
+        tap(TopLevelTab.HOME)
+        leaveSettings()
+
+        assertEquals(TopLevelTab.HOME, selected)
+    }
+
+    @Test
     fun `budgets belong to Reports now`() {
         start()
 
@@ -186,6 +254,26 @@ class SelectedTabTest {
 
     private fun openSettings() {
         composeRule.runOnIdle { navController.openSettings() }
+        composeRule.waitForIdle()
+    }
+
+    /** A tap on the capsule, which is not quite [switchTo]: the open tab's tap pops to its root. */
+    private fun tap(tab: TopLevelTab) {
+        composeRule.runOnIdle { navController.selectTab(tab, selected) }
+        composeRule.waitForIdle()
+    }
+
+    /** Back from Settings, with the tab it recorded, the way its screen reads it. */
+    private fun leaveSettings() {
+        composeRule.runOnIdle {
+            val settings =
+                navController.currentBackStack.value.last {
+                    it.destination.hasRoute(
+                        Destination.Settings::class,
+                    )
+                }
+            navController.leaveSettings(settings.settingsOrigin())
+        }
         composeRule.waitForIdle()
     }
 

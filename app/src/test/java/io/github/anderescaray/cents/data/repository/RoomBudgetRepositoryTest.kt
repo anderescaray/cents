@@ -87,9 +87,10 @@ class RoomBudgetRepositoryTest {
                 transaction(checking, amountMinor = 40_000, date = september12, tradeId = tradeId),
             )
 
-            val spent = budgets.observeSpentByCategory(september.first, september.second, "EUR").first()
+            val spent = budgets.observeSpending(september.first, september.second, "EUR").first()
 
-            assertEquals(mapOf(groceries to Money(3_550, "EUR")), spent)
+            assertEquals(mapOf(groceries to Money(3_550, "EUR")), spent.byCategory)
+            assertEquals(Money(3_550, "EUR"), spent.total)
         }
 
     @Test
@@ -127,9 +128,10 @@ class RoomBudgetRepositoryTest {
                 ),
             )
 
-            val spent = budgets.observeSpentInAll(september.first, september.second, "EUR").first()
+            val spent = budgets.observeSpending(september.first, september.second, "EUR").first()
 
-            assertEquals(Money(3_550, "EUR"), spent)
+            assertEquals(Money(3_550, "EUR"), spent.total)
+            assertEquals(mapOf(groceries to Money(2_550, "EUR")), spent.byCategory)
         }
 
     @Test

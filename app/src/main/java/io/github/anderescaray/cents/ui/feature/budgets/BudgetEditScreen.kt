@@ -159,24 +159,7 @@ private fun LazyListScope.categorySection(
     onChooseGeneral: () -> Unit,
 ) {
     item(key = "category") {
-        val footer =
-            when {
-                state.writeFailed -> {
-                    stringResource(R.string.budget_write_failed)
-                }
-
-                !state.isNew -> {
-                    stringResource(R.string.budget_category_footer_fixed)
-                }
-
-                state.loaded && state.choices.isEmpty() && !state.generalOffered -> {
-                    stringResource(R.string.budget_no_choices)
-                }
-
-                else -> {
-                    stringResource(R.string.budget_category_footer_new)
-                }
-            }
+        val footer = categoryFooter(state)
         CentsListSection(header = stringResource(R.string.budget_category_header), footer = footer) {
             val shown = if (state.isNew) state.choices else listOfNotNull(state.category)
             if (state.generalOffered && (state.isNew || state.general)) {
@@ -200,6 +183,20 @@ private fun LazyListScope.categorySection(
         }
     }
 }
+
+/** What the category section says under it: why a save failed, what can be chosen, or what was. */
+@Composable
+private fun categoryFooter(state: BudgetEditUiState): String =
+    stringResource(
+        when {
+            state.writeFailed && state.general -> R.string.budget_write_failed_general
+            state.writeFailed -> R.string.budget_write_failed
+            !state.isNew && state.general -> R.string.budget_general_footer_fixed
+            !state.isNew -> R.string.budget_category_footer_fixed
+            state.loaded && state.choices.isEmpty() && !state.generalOffered -> R.string.budget_no_choices
+            else -> R.string.budget_category_footer_new
+        },
+    )
 
 internal const val LIMIT_TAG = "budgetLimit"
 internal const val GENERAL_CHOICE_TAG = "budgetGeneral"

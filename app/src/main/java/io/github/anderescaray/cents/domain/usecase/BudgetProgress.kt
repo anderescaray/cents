@@ -95,7 +95,7 @@ fun budgetProgressOf(
     rules: List<RecurringRule>,
     today: LocalDate,
     postponements: List<Postponement>,
-    spentInAll: Money? = null,
+    spentInAll: Money,
 ): List<BudgetProgress> {
     val byId = categories.associateBy { it.id }
     val moved = postponements.byRule()

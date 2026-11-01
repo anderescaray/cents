@@ -19,8 +19,10 @@
     <string name="budget_category_header">Categoría</string>
     <string name="budget_category_footer_new">Todo el gasto puede tener un presupuesto, y cada categoría de gasto otro.</string>
     <string name="budget_category_footer_fixed">Para llevar este límite a otra categoría, bórralo y pon uno nuevo.</string>
+    <string name="budget_general_footer_fixed">Cuenta todos los gastos del mes. Para limitar una sola categoría, ponle un presupuesto a ella.</string>
     <string name="budget_no_choices">Todo el gasto y todas las categorías de gasto tienen ya un presupuesto.</string>
     <string name="budget_write_failed">No se ha podido guardar. Puede que su categoría se haya borrado mientras tanto.</string>
+    <string name="budget_write_failed_general">No se ha podido guardar. Inténtalo otra vez.</string>
     <string name="budget_delete">Borrar presupuesto</string>
     <string name="budget_delete_title">¿Borrar este presupuesto?</string>
     <string name="budget_delete_message">Se quita el límite. No cambia nada de lo que has registrado.</string>

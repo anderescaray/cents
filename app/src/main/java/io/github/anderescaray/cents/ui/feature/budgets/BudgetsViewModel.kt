@@ -65,13 +65,7 @@ class BudgetsViewModel
                 today.date.map { YearMonth.from(it) }.distinctUntilChanged(),
             ) { currency, month -> currency to month }
                 .flatMapLatest { (currency, month) ->
-                    val from = month.atDay(1)
-                    val to = month.atEndOfMonth()
-                    combine(
-                        budgets.observeSpentByCategory(from, to, currency),
-                        budgets.observeSpentInAll(from, to, currency),
-                        ::Pair,
-                    )
+                    budgets.observeSpending(month.atDay(1), month.atEndOfMonth(), currency)
                 }
 
         val uiState: StateFlow<BudgetsUiState> =
@@ -83,10 +77,19 @@ class BudgetsViewModel
                 // to are one question anyway.
                 combine(rules.observeRules(), rules.observePostponements(), ::Pair),
                 today.date,
-            ) { limits, expenseCategories, (spent, spentInAll), (allRules, postponements), day: LocalDate ->
+            ) { limits, expenseCategories, spending, (allRules, postponements), day: LocalDate ->
                 val budgeted = limits.map { it.categoryId }.toSet()
                 BudgetsUiState(
-                    rows = budgetProgressOf(limits, expenseCategories, spent, allRules, day, postponements, spentInAll),
+                    rows =
+                        budgetProgressOf(
+                            limits,
+                            expenseCategories,
+                            spending.byCategory,
+                            allRules,
+                            day,
+                            postponements,
+                            spentInAll = spending.total,
+                        ),
                     canAdd = null !in budgeted || expenseCategories.any { it.id !in budgeted },
                     hasExpenseCategories = expenseCategories.isNotEmpty(),
                     month = YearMonth.from(day),

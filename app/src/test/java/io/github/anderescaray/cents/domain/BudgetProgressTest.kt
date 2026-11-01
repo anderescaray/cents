@@ -120,6 +120,7 @@ class BudgetProgressTest {
                 rules = listOf(rent, water),
                 today = today,
                 postponements = moved,
+                spentInAll = Money.zero("EUR"),
             ).single()
 
         // Water's own September occurrence (the 30th) and its moved August one; no rent.
@@ -142,6 +143,7 @@ class BudgetProgressTest {
                 today = today,
                 postponements =
                     listOf(Postponement(electricity.id, LocalDate.of(2026, 8, 31), LocalDate.of(2026, 9, 3))),
+                spentInAll = Money.zero("EUR"),
             ).single()
 
         assertEquals(Money(14_000, "EUR"), row.committed)
@@ -193,6 +195,7 @@ class BudgetProgressTest {
                 rules = emptyList(),
                 today = today,
                 postponements = emptyList(),
+                spentInAll = Money.zero("EUR"),
             )
 
         assertTrue(rows.isEmpty())
@@ -212,6 +215,7 @@ class BudgetProgressTest {
                 rules = emptyList(),
                 today = today,
                 postponements = emptyList(),
+                spentInAll = Money.zero("EUR"),
             )
 
         assertEquals(listOf("Home", "Groceries"), rows.map { it.category?.name })
@@ -253,6 +257,7 @@ class BudgetProgressTest {
 
     @Test
     fun `a general budget with nothing spent yet reads as nothing spent`() {
+        // An empty month is a total of nothing in the budget's currency.
         val rows =
             budgetProgressOf(
                 budgets = listOf(Budget(2, null, Money(150_000, "EUR"))),
@@ -261,6 +266,7 @@ class BudgetProgressTest {
                 rules = emptyList(),
                 today = today,
                 postponements = emptyList(),
+                spentInAll = Money.zero("EUR"),
             )
 
         assertEquals(Money.zero("EUR"), rows.single().spent)
@@ -278,6 +284,7 @@ class BudgetProgressTest {
         rules = rules,
         today = today,
         postponements = emptyList(),
+        spentInAll = Money.zero("EUR"),
     )
 
     private fun category(

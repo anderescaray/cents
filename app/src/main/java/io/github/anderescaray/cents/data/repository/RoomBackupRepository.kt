@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.data.repository
 
 import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.data.local.entity.RulePostponementEntity
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
@@ -191,7 +192,7 @@ class RoomBackupRepository
                         ),
                     )
                 }
-                backup.budgets.forEach { database.budgetDao().insert(it.toEntity(now)) }
+                backup.budgets.forEach { restoreBudget(it.toEntity(now)) }
                 backup.groups.forEach { database.groupDao().insert(it.toEntity(now)) }
                 backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
                 backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
@@ -261,6 +262,15 @@ class RoomBackupRepository
                     date = it.date.toEpochDay(),
                 )
             }
+
+        /** A file holding two general budgets, which the app never writes, comes back with one. */
+        private suspend fun restoreBudget(row: BudgetEntity) {
+            if (row.categoryId == null) {
+                database.budgetDao().saveGeneral(row)
+            } else {
+                database.budgetDao().insert(row)
+            }
+        }
 
         private suspend fun budgets() =
             database.budgetDao().all().map {

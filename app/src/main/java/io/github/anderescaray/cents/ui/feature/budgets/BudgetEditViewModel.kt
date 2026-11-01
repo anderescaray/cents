@@ -93,7 +93,8 @@ class BudgetEditViewModel
                         .firstOrNull()
                         ?.currency
                     ?: deviceCurrency()
-            val choices = expense.filter { it.id !in taken && existing?.isGeneral != true }
+            // The general budget limits no category, so it is offered none, as a category's is its own.
+            val choices = if (existing?.isGeneral == true) emptyList() else expense.filter { it.id !in taken }
             // With one thing left to limit, it is chosen already.
             val only = if (generalOffered) null else choices.singleOrNull()?.id
             form.update { state ->

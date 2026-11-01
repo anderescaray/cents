@@ -15,3 +15,11 @@ data class Budget(
         const val NEW = 0L
     }
 }
+
+/** What a month's spending comes to, for budgets: by expense category, and in all. */
+data class BudgetSpending(
+    /** By category id. A category with nothing spent is absent. */
+    val byCategory: Map<Long, Money>,
+    /** Every expense, uncategorized included: what the general budget counts. */
+    val total: Money,
+)

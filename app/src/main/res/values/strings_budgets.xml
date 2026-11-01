@@ -19,8 +19,10 @@
     <string name="budget_category_header">Category</string>
     <string name="budget_category_footer_new">All spending can have one budget, and each expense category one more.</string>
     <string name="budget_category_footer_fixed">To move this limit to another category, delete it and set a new one.</string>
+    <string name="budget_general_footer_fixed">It counts every expense of the month. To limit one category instead, set a budget on it.</string>
     <string name="budget_no_choices">All spending and every expense category already have a budget.</string>
     <string name="budget_write_failed">That could not be saved. Its category may have been deleted meanwhile.</string>
+    <string name="budget_write_failed_general">That could not be saved. Try again.</string>
     <string name="budget_delete">Delete budget</string>
     <string name="budget_delete_title">Delete this budget?</string>
     <string name="budget_delete_message">The limit goes. Nothing you have recorded changes.</string>

@@ -162,9 +162,12 @@ data class BackupPostponement(
     val postponedTo: Long,
 )
 
-/** A monthly limit on one expense category. Nothing points at it, so it needs no id of its own. */
+/**
+ * A monthly limit on one expense category, or with no [categoryId] the general budget. Nothing
+ * points at it, so it needs no id of its own.
+ */
 data class BackupBudget(
-    val categoryId: Long,
+    val categoryId: Long?,
     val amountMinor: Long,
     val currency: String,
 )

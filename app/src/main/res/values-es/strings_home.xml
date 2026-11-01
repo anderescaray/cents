@@ -16,7 +16,7 @@
     <string name="home_in">Entra</string>
     <string name="home_out">Sale</string>
     <string name="reports_budgets_empty">Aún no hay presupuestos</string>
-    <string name="reports_budgets_empty_footer">Ponle a una categoría un límite mensual y mira aquí cuánto te falta.</string>
+    <string name="reports_budgets_empty_footer">Ponle un límite al mes, o a una categoría, y mira aquí cuánto te falta.</string>
     <string name="form_title_new_expense">Nuevo gasto</string>
     <string name="form_title_new_income">Nuevo ingreso</string>
     <string name="form_add_expense">Añadir gasto</string>

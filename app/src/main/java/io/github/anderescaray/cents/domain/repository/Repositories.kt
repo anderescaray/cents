@@ -417,9 +417,22 @@ interface BudgetRepository {
         currency: String,
     ): Flow<Map<Long, Money>>
 
+    /**
+     * Everything spent between [from] and [to], for the general budget: the same exclusions, and
+     * uncategorized spending counted, because it went out all the same.
+     */
+    fun observeSpentInAll(
+        from: LocalDate,
+        to: LocalDate,
+        currency: String,
+    ): Flow<Money>
+
     suspend fun findById(id: Long): Budget?
 
-    /** Creates it when its id is [Budget.NEW], and replaces the limit otherwise. Returns the id. */
+    /**
+     * Creates it when its id is [Budget.NEW], and replaces the limit otherwise. Returns the id. A
+     * new general budget when there is one already replaces that one's limit: there is at most one.
+     */
     suspend fun saveBudget(budget: Budget): Long
 
     suspend fun deleteBudget(id: Long)

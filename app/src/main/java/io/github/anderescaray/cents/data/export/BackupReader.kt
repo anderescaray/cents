@@ -259,7 +259,8 @@ object BackupReader {
 
     private fun budget(row: JsonObject) =
         BackupBudget(
-            categoryId = row.requireLong("categoryId"),
+            // Null is the general budget, which only a file from v14 on can hold.
+            categoryId = row.long("categoryId"),
             amountMinor = row.requireLong("amountMinor"),
             currency = row.requireString("currency"),
         )

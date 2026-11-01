@@ -35,6 +35,7 @@ val ALL_MIGRATIONS: Array<Migration>
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
+            MIGRATION_13_14,
         )
 
 /**
@@ -419,5 +420,39 @@ val MIGRATION_12_13 =
     object : Migration(12, 13) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE `movement_groups` ADD COLUMN `archived` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+/**
+ * v13 to v14 — a budget can be on no category: the general budget, over the month's spending as a
+ * whole (the owner, 2026-10-31).
+ *
+ * SQLite cannot drop a `NOT NULL` from a column, so the table is rebuilt the way SQLite documents:
+ * a new table with `categoryId` nullable, every row copied with its id, the old one dropped and
+ * the new one renamed, then its index again. Every budget comes through on its category, limit and
+ * currency exactly as it was, and none is general until the owner sets one.
+ */
+val MIGRATION_13_14 =
+    object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `budgets_new` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`categoryId` INTEGER, " +
+                    "`amountMinor` INTEGER NOT NULL, " +
+                    "`currency` TEXT NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "INSERT INTO `budgets_new` (`id`, `categoryId`, `amountMinor`, `currency`, `createdAt`) " +
+                    "SELECT `id`, `categoryId`, `amountMinor`, `currency`, `createdAt` FROM `budgets`",
+            )
+            db.execSQL("DROP TABLE `budgets`")
+            db.execSQL("ALTER TABLE `budgets_new` RENAME TO `budgets`")
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_budgets_categoryId` ON `budgets` (`categoryId`)",
+            )
         }
     }

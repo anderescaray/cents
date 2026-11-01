@@ -13,6 +13,7 @@ import io.github.anderescaray.cents.domain.usecase.BudgetStatus
 import io.github.anderescaray.cents.domain.usecase.budgetProgressOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -213,7 +214,57 @@ class BudgetProgressTest {
                 postponements = emptyList(),
             )
 
-        assertEquals(listOf("Home", "Groceries"), rows.map { it.category.name })
+        assertEquals(listOf("Home", "Groceries"), rows.map { it.category?.name })
+    }
+
+    @Test
+    fun `the general budget counts everything spent and every expense charge, and comes first`() {
+        val uncategorizedRent = rule(categoryId = null, minor = 65_000, start = LocalDate.of(2026, 9, 30))
+        val groceriesBox = rule(categoryId = groceries.id, minor = 3_000, start = LocalDate.of(2026, 9, 28))
+        val salary =
+            rule(categoryId = null, minor = 200_000, start = LocalDate.of(2026, 9, 28), kind = TransactionKind.INCOME)
+
+        val rows =
+            budgetProgressOf(
+                budgets =
+                    listOf(
+                        Budget(1, groceries.id, Money(40_000, "EUR")),
+                        Budget(2, null, Money(150_000, "EUR")),
+                    ),
+                categories = listOf(groceries, home),
+                spent = mapOf(groceries.id to Money(10_000, "EUR")),
+                rules = listOf(uncategorizedRent, groceriesBox, salary),
+                today = today,
+                postponements = emptyList(),
+                spentInAll = Money(25_000, "EUR"),
+            )
+
+        val general = rows.first()
+        assertNull(general.category)
+        assertTrue(general.budget.isGeneral)
+        // Everything spent, filed or not, and both charges still due: a category's and none.
+        assertEquals(Money(25_000, "EUR"), general.spent)
+        assertEquals(Money(68_000, "EUR"), general.committed)
+        assertEquals(Money(57_000, "EUR"), general.remaining)
+        // The category's own budget counts only its own.
+        assertEquals(Money(3_000, "EUR"), rows[1].committed)
+        assertEquals(Money(10_000, "EUR"), rows[1].spent)
+    }
+
+    @Test
+    fun `a general budget with nothing spent yet reads as nothing spent`() {
+        val rows =
+            budgetProgressOf(
+                budgets = listOf(Budget(2, null, Money(150_000, "EUR"))),
+                categories = emptyList(),
+                spent = emptyMap(),
+                rules = emptyList(),
+                today = today,
+                postponements = emptyList(),
+            )
+
+        assertEquals(Money.zero("EUR"), rows.single().spent)
+        assertEquals(BudgetStatus.UNDER, rows.single().status)
     }
 
     private fun progress(
@@ -244,7 +295,7 @@ class BudgetProgressTest {
     )
 
     private fun rule(
-        categoryId: Long,
+        categoryId: Long?,
         minor: Long,
         start: LocalDate,
         mode: RuleMode = RuleMode.AUTOMATIC,

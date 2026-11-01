@@ -22,6 +22,10 @@ interface BudgetDao {
     @Query("SELECT * FROM budgets WHERE categoryId = :categoryId")
     suspend fun findByCategory(categoryId: Long): BudgetEntity?
 
+    /** The general budget, over every expense of the month, if there is one. */
+    @Query("SELECT * FROM budgets WHERE categoryId IS NULL ORDER BY id LIMIT 1")
+    suspend fun findGeneral(): BudgetEntity?
+
     @Insert
     suspend fun insert(budget: BudgetEntity): Long
 

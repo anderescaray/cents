@@ -66,10 +66,12 @@ class BudgetEditViewModelTest {
             val home = database.categoryDao().insert(category(name = "Home"))
             database.categoryDao().insert(category(name = "Salary", kind = CategoryKind.INCOME))
             database.budgetDao().insert(budget(groceries))
+            database.budgetDao().insert(budget(null))
 
             val state = editorFor().uiState.first { it.loaded }
 
             assertEquals(listOf(home), state.choices.map { it.id })
+            assertFalse("there is a general budget already", state.generalOffered)
             // The only choice is chosen already, rather than making the owner tap the obvious.
             assertEquals(home, state.categoryId)
         }
@@ -81,6 +83,7 @@ class BudgetEditViewModelTest {
             val groceries = database.categoryDao().insert(category(name = "Groceries"))
             val editor = editorFor()
             editor.uiState.first { it.loaded }
+            editor.chooseCategory(groceries)
 
             assertFalse(editor.uiState.value.canSave)
             "400".forEach(editor::appendDigit)
@@ -130,6 +133,53 @@ class BudgetEditViewModelTest {
             editor.uiState.first { it.finished }
 
             assertNull(budgets.findById(id))
+        }
+
+    @Test
+    fun `all spending is offered first while there is no general budget, and saves as one`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            val editor = editorFor()
+            val loaded = editor.uiState.first { it.loaded }
+            assertTrue(loaded.generalOffered)
+            // Two things to limit, so nothing is chosen for the owner.
+            assertFalse(loaded.general)
+            assertNull(loaded.categoryId)
+
+            editor.chooseCategory(groceries)
+            editor.chooseGeneral()
+            "1500".forEach(editor::appendDigit)
+            editor.save()
+            editor.uiState.first { it.finished }
+
+            val saved = budgets.observeBudgets().first().single()
+            assertTrue(saved.isGeneral)
+            assertEquals(Money(150_000, "EUR"), saved.limit)
+        }
+
+    @Test
+    fun `with no expense category, all spending is the choice already`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+
+            val state = editorFor().uiState.first { it.loaded }
+
+            assertTrue(state.general)
+        }
+
+    @Test
+    fun `the general budget opens as itself, with no category on offer`() =
+        runTest {
+            database.categoryDao().insert(category(name = "Groceries"))
+            val id = database.budgetDao().insert(budget(null, amountMinor = 150_000))
+
+            val state = editorFor(id).uiState.first { it.loaded }
+
+            assertTrue(state.general)
+            assertTrue(state.generalOffered)
+            assertTrue(state.choices.isEmpty())
+            assertTrue(state.canSave)
         }
 
     private fun editorFor(budgetId: Long = Destination.BudgetEdit.NEW) =

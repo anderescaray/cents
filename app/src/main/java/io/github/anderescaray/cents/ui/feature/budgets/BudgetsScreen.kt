@@ -34,6 +34,7 @@ import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
+import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -109,7 +110,9 @@ private fun LazyListScope.budgetRows(
 
 /**
  * One category against its limit: what is left (or how far over) where a row puts its value, what
- * made it up underneath, and a bar that says the same thing at a glance, in the colour of D26.
+ * made it up underneath, and a bar that says the same thing at a glance, in the colour of D26. The
+ * general budget is the same row, named for all spending, with the wallet where a category's
+ * badge would be.
  */
 @Composable
 internal fun BudgetRow(
@@ -117,9 +120,10 @@ internal fun BudgetRow(
     onClick: () -> Unit,
 ) {
     val tint = row.status.tint()
+    val category = row.category
     Column(modifier = Modifier.testTag(BUDGET_ROW_TAG)) {
         CentsListRow(
-            title = row.category.name,
+            title = category?.name ?: stringResource(R.string.budget_general_name),
             subtitle = row.detail(),
             value =
                 if (row.status == BudgetStatus.OVER) {
@@ -129,7 +133,11 @@ internal fun BudgetRow(
                 },
             valueColor = if (row.status == BudgetStatus.UNDER) CentsTheme.colors.label else tint,
             leading = {
-                CategoryBadge(name = row.category.name, colorArgb = row.category.colorArgb, emoji = row.category.emoji)
+                if (category == null) {
+                    IconBadge(iconRes = R.drawable.ic_wallet, color = CentsTheme.colors.accent)
+                } else {
+                    CategoryBadge(name = category.name, colorArgb = category.colorArgb, emoji = category.emoji)
+                }
             },
             showChevron = true,
             showSeparator = false,

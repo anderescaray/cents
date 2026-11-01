@@ -563,6 +563,7 @@ class RestoreTest {
         val broker = database.accountDao().insert(account(name = "Broker"))
         val groceries = database.categoryDao().insert(category(name = "Groceries"))
         database.budgetDao().insert(budget(groceries, amountMinor = 40_000))
+        database.budgetDao().insert(budget(null, amountMinor = 150_000))
         database.transactionDao().insert(
             transaction(checking, categoryId = groceries, amountMinor = 2_550, note = "Weekly shop"),
         )

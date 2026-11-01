@@ -96,7 +96,7 @@ abstract class CentsDatabase : RoomDatabase() {
          * added `capture_matches`; v12 (2026-10-15) turned every Card, Savings and Other account
          * into a Bank one; v13 (2026-10-18) added `movement_groups.archived`. See `Migrations.kt`.
          */
-        const val VERSION = 13
+        const val VERSION = 14
         const val NAME = "cents.db"
     }
 }

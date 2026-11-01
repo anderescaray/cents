@@ -204,7 +204,8 @@ fun recurringRule(
 )
 
 fun budget(
-    categoryId: Long,
+    /** Null for the general budget. */
+    categoryId: Long?,
     amountMinor: Long = 30_000,
     currency: String = "EUR",
 ) = BudgetEntity(

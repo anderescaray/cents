@@ -17,7 +17,7 @@
     <string name="home_in">In</string>
     <string name="home_out">Out</string>
     <string name="reports_budgets_empty">No budgets yet</string>
-    <string name="reports_budgets_empty_footer">Give a category a monthly limit and see here how close you are.</string>
+    <string name="reports_budgets_empty_footer">Give the month, or a category, a limit and see here how close you are.</string>
     <string name="form_title_new_expense">New expense</string>
     <string name="form_title_new_income">New income</string>
     <string name="form_add_expense">Add expense</string>

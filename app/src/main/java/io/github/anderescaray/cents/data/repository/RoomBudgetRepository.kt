@@ -41,11 +41,30 @@ class RoomBudgetRepository
                         .toMap()
                 }
 
+        /**
+         * The same query, every row added up, the uncategorized ones included: everything spent
+         * counts against the general budget, filed or not.
+         */
+        override fun observeSpentInAll(
+            from: LocalDate,
+            to: LocalDate,
+            currency: String,
+        ): Flow<Money> =
+            transactionDao
+                .observeTotalsByCategory(TransactionKind.EXPENSE, from, to, accountId = null)
+                .map { totals -> Money(totals.sumOf { it.totalMinor }, currency) }
+
         override suspend fun findById(id: Long): Budget? = budgetDao.findById(id)?.toDomain()
 
         override suspend fun saveBudget(budget: Budget): Long {
             require(budget.limit.minorUnits > 0) { "A budget is a positive limit" }
-            return if (budget.id == Budget.NEW) {
+            // At most one general budget: a second one replaces the first's limit rather than
+            // standing beside it, which the unique index cannot refuse for a null.
+            val general = if (budget.isGeneral && budget.id == Budget.NEW) budgetDao.findGeneral() else null
+            return if (general != null) {
+                budgetDao.update(budget.toEntity().copy(id = general.id, createdAt = general.createdAt))
+                general.id
+            } else if (budget.id == Budget.NEW) {
                 budgetDao.insert(budget.toEntity())
             } else {
                 val existing = requireNotNull(budgetDao.findById(budget.id)) { "No budget ${budget.id}" }

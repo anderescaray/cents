@@ -71,7 +71,11 @@ fun BudgetEditScreen(
             item(key = "limit") {
                 LimitHeader(state = state, onTapped = keypad::showForAmount)
             }
-            categorySection(state = state, onChoose = viewModel::chooseCategory)
+            categorySection(
+                state = state,
+                onChoose = viewModel::chooseCategory,
+                onChooseGeneral = viewModel::chooseGeneral,
+            )
             if (!state.isNew) {
                 item(key = "delete") {
                     CentsListSection {
@@ -145,23 +149,46 @@ private fun LimitHeader(
 }
 
 /**
- * Which category the limit is on. Offered as a list while the budget is new — every expense
- * category without one — and shown, not offered, once it exists.
+ * Which category the limit is on, or all spending. Offered as a list while the budget is new —
+ * all spending first, while there is no general budget, then every expense category without one —
+ * and shown, not offered, once it exists.
  */
 private fun LazyListScope.categorySection(
     state: BudgetEditUiState,
     onChoose: (Long) -> Unit,
+    onChooseGeneral: () -> Unit,
 ) {
     item(key = "category") {
         val footer =
             when {
-                state.writeFailed -> stringResource(R.string.budget_write_failed)
-                !state.isNew -> stringResource(R.string.budget_category_footer_fixed)
-                state.loaded && state.choices.isEmpty() -> stringResource(R.string.budget_no_choices)
-                else -> stringResource(R.string.budget_category_footer_new)
+                state.writeFailed -> {
+                    stringResource(R.string.budget_write_failed)
+                }
+
+                !state.isNew -> {
+                    stringResource(R.string.budget_category_footer_fixed)
+                }
+
+                state.loaded && state.choices.isEmpty() && !state.generalOffered -> {
+                    stringResource(R.string.budget_no_choices)
+                }
+
+                else -> {
+                    stringResource(R.string.budget_category_footer_new)
+                }
             }
         CentsListSection(header = stringResource(R.string.budget_category_header), footer = footer) {
             val shown = if (state.isNew) state.choices else listOfNotNull(state.category)
+            if (state.generalOffered && (state.isNew || state.general)) {
+                CentsListRow(
+                    title = stringResource(R.string.budget_general_name),
+                    subtitle = stringResource(R.string.budget_general_detail),
+                    selected = state.general,
+                    showSeparator = shown.isNotEmpty(),
+                    onClick = if (state.isNew) onChooseGeneral else null,
+                    modifier = Modifier.testTag(GENERAL_CHOICE_TAG),
+                )
+            }
             shown.forEachIndexed { index, category ->
                 CentsListRow(
                     title = category.name,
@@ -175,3 +202,4 @@ private fun LazyListScope.categorySection(
 }
 
 internal const val LIMIT_TAG = "budgetLimit"
+internal const val GENERAL_CHOICE_TAG = "budgetGeneral"

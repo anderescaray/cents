@@ -50,6 +50,8 @@ fun SettingsScreen(
     onBack: () -> Unit = {},
     onOpenGroups: () -> Unit = {},
     onOpenCapture: () -> Unit = {},
+    /** The tab Settings was opened from, which back returns to and TalkBack names. */
+    @StringRes backLabel: Int = R.string.tab_home,
     exportViewModel: ExportViewModel = hiltViewModel(),
     restoreViewModel: RestoreViewModel = hiltViewModel(),
     driveViewModel: DriveBackupViewModel = hiltViewModel(),
@@ -70,6 +72,7 @@ fun SettingsScreen(
         onOpenCategories = onOpenCategories,
         onOpenSubscriptions = onOpenSubscriptions,
         onBack = onBack,
+        backLabel = backLabel,
         onOpenGroups = onOpenGroups,
         onOpenCapture = onOpenCapture,
         export = export,
@@ -139,6 +142,7 @@ internal fun SettingsContent(
     onOpenCategories: () -> Unit,
     onOpenSubscriptions: () -> Unit = {},
     onBack: () -> Unit = {},
+    @StringRes backLabel: Int = R.string.tab_home,
     onOpenGroups: () -> Unit = {},
     onOpenCapture: () -> Unit = {},
     export: ExportUiState = ExportUiState(),
@@ -156,7 +160,7 @@ internal fun SettingsContent(
     val canStartData = dataIdle && !drive.isBusy && !drive.showBackups
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_settings),
-        leading = { CentsBackButton(label = stringResource(R.string.tab_home), onClick = onBack) },
+        leading = { CentsBackButton(label = stringResource(backLabel), onClick = onBack) },
     ) {
         item(key = "organise") {
             CentsListSection {

@@ -109,7 +109,7 @@ class SelectedTabTest {
     }
 
     @Test
-    fun `settings and the category list behind it belong to Home, where Settings opens from`() {
+    fun `settings opened from Home leaves you in Home`() {
         start()
 
         switchTo(TopLevelTab.REPORTS)
@@ -119,6 +119,18 @@ class SelectedTabTest {
         push(Destination.CategoryEdit(categoryId = 3))
 
         assertEquals(TopLevelTab.HOME, selected)
+    }
+
+    @Test
+    fun `settings opened from Reports leaves you in Reports`() {
+        start()
+
+        switchTo(TopLevelTab.REPORTS)
+        push(Destination.Settings)
+        push(Destination.Categories)
+
+        // Every tab's header opens Settings, so it is filed under the tab it was opened from.
+        assertEquals(TopLevelTab.REPORTS, selected)
     }
 
     @Test

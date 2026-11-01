@@ -53,9 +53,9 @@ class TabTravelTest {
 
     @Test
     fun `switching into a tab whose stack has a detail screen on top travels backwards`() {
-        // What arrives is Settings, pushed inside Home, but the tab you moved to is Home, and
-        // that is what the direction is owed to.
-        val arriving = TopLevelTab.entries.first { Destination.Settings::class in it.routes }
+        // What arrives is the filter form, pushed inside Transactions, but the tab you moved to is
+        // Transactions, and that is what the direction is owed to.
+        val arriving = TopLevelTab.entries.first { Destination.TransactionFilters::class in it.routes }
         assertEquals(
             SlideDirection.End,
             slideDirectionFor(from = TopLevelTab.REPORTS, to = arriving),

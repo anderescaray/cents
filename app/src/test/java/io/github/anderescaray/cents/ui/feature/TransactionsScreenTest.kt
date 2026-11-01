@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.domain.model.Transaction
 import io.github.anderescaray.cents.domain.model.TransactionDetails
 import io.github.anderescaray.cents.domain.model.TransactionFilter
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.ui.components.SETTINGS_BUTTON_TAG
 import io.github.anderescaray.cents.ui.feature.transactions.CLEAR_FILTER_TAG
 import io.github.anderescaray.cents.ui.feature.transactions.FILTERS_BUTTON_TAG
 import io.github.anderescaray.cents.ui.feature.transactions.FILTERS_COUNT_TAG
@@ -46,6 +47,7 @@ class TransactionsScreenTest {
     val composeRule = createComposeRule()
 
     private var cleared = 0
+    private var settingsOpened = 0
     private val openedMovements = mutableListOf<Long>()
     private val openedTransfers = mutableListOf<Long>()
     private val openedTrades = mutableListOf<Pair<Long, Long>>()
@@ -157,7 +159,7 @@ class TransactionsScreenTest {
     }
 
     @Test
-    fun `the filters sit on the right beside the add button, clear of the title`() {
+    fun `the filters sit on the right after the add button, clear of the title`() {
         setContent(unfiltered())
 
         val filters = composeRule.onNodeWithTag(FILTERS_BUTTON_TAG)
@@ -169,7 +171,7 @@ class TransactionsScreenTest {
         val add = composeRule.onNodeWithContentDescription("New transaction").getUnclippedBoundsInRoot()
         // `docs/next-improvements.md` §2: the title and the action no longer share a corner.
         assertTrue("the button is clear of the title", button.bottom <= title.top || button.left >= title.right)
-        assertTrue("and it stands with the add button, before it", button.right <= add.left)
+        assertTrue("and it stands with the add button, after it", add.right <= button.left)
     }
 
     @Test
@@ -276,6 +278,19 @@ class TransactionsScreenTest {
             counterpartAccountName = "Checking",
         )
 
+    @Test
+    fun `settings is the last button in the header, with the filters beside it`() {
+        setContent(unfiltered())
+
+        composeRule.onNodeWithTag(SETTINGS_BUTTON_TAG).performClick()
+        assertEquals(1, settingsOpened)
+        val settings = composeRule.onNodeWithTag(SETTINGS_BUTTON_TAG).getUnclippedBoundsInRoot()
+        val filters = composeRule.onNodeWithTag(FILTERS_BUTTON_TAG).getUnclippedBoundsInRoot()
+        // Side by side, Settings to the right: where every tab has it.
+        assertTrue(filters.right <= settings.left)
+        assertEquals(filters.top, settings.top)
+    }
+
     private fun setContent(state: TransactionsUiState) {
         composeRule.setContent {
             CentsTheme {
@@ -288,6 +303,7 @@ class TransactionsScreenTest {
                     onOpenFilters = {},
                     onQueryChange = {},
                     onClearFilter = { cleared++ },
+                    onOpenSettings = { settingsOpened++ },
                 )
             }
         }

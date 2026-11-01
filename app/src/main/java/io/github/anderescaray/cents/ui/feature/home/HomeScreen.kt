@@ -36,8 +36,8 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsCard
 import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
-import io.github.anderescaray.cents.ui.components.RoundIconButton
 import io.github.anderescaray.cents.ui.components.ScreenHeader
+import io.github.anderescaray.cents.ui.components.SettingsButton
 import io.github.anderescaray.cents.ui.components.arrive
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
@@ -141,11 +141,7 @@ private fun HomeList(
         // what they date, rather than heading a screen that is mostly about recording.
         item(key = "header") {
             ScreenHeader(title = stringResource(R.string.tab_home)) {
-                RoundIconButton(
-                    iconRes = R.drawable.ic_tab_settings,
-                    contentDescription = stringResource(R.string.tab_settings),
-                    onClick = actions.onOpenSettings,
-                )
+                SettingsButton(onClick = actions.onOpenSettings)
             }
         }
 

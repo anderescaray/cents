@@ -27,6 +27,7 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.RoundIconButton
+import io.github.anderescaray.cents.ui.components.SettingsButton
 import io.github.anderescaray.cents.ui.feature.budgets.BudgetRow
 import io.github.anderescaray.cents.ui.feature.budgets.BudgetsUiState
 import io.github.anderescaray.cents.ui.feature.budgets.BudgetsViewModel
@@ -55,6 +56,7 @@ fun ReportsScreen(
     onOpenMovements: () -> Unit,
     onOpenBudgets: () -> Unit = {},
     onCustomize: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
     viewModel: ReportsViewModel = hiltViewModel(),
     budgetsViewModel: BudgetsViewModel = hiltViewModel(),
     layoutViewModel: ReportLayoutViewModel = hiltViewModel(),
@@ -71,6 +73,7 @@ fun ReportsScreen(
         shown = if (layout.loaded) layout.shown else emptyList(),
         onOpenBudgets = onOpenBudgets,
         onCustomize = onCustomize,
+        onOpenSettings = onOpenSettings,
         onSelectPreset = viewModel::selectPreset,
         onSelectAccount = viewModel::selectAccount,
         onSetRange = viewModel::setCustomRange,
@@ -102,18 +105,22 @@ fun ReportsScreen(
     shown: List<String> = ReportCard.keys,
     onOpenBudgets: () -> Unit = {},
     onCustomize: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     var openPicker by rememberSaveable { mutableStateOf<RangeBound?>(null) }
     val actions = remember(onDrillDown) { ReportActions(onDrillDown = onDrillDown) }
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.tab_reports),
+        // Customize beside Settings, which is last on every tab. Its own glyph, the cards in a
+        // grid, so the two are not one icon twice.
         trailing = {
             RoundIconButton(
-                iconRes = R.drawable.ic_tab_settings,
+                iconRes = R.drawable.ic_customize,
                 contentDescription = stringResource(R.string.reports_customize_action),
                 onClick = onCustomize,
             )
+            SettingsButton(onClick = onOpenSettings)
         },
     ) {
         periodSection(state, onSelectPreset) { openPicker = it }

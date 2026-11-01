@@ -56,6 +56,7 @@
     <string name="asset_history_result">%1$s · resultado %2$s</string>
     <string name="asset_value_delete_title">¿Borrar este valor?</string>
     <string name="asset_value_delete_message">La gráfica vuelve al valor anterior. No se puede deshacer.</string>
+    <string name="asset_value_delete_failed">No se ha podido borrar el valor. No ha cambiado nada.</string>
 
     <!-- El formulario del activo -->
     <string name="holding_new_title">Nuevo activo</string>
@@ -80,6 +81,7 @@
     <string name="trade_sells_all">Vender todo</string>
     <string name="trade_sells_all_footer">Vacía el activo y se lleva todo su coste, diga lo que diga su último valor. Vender tanto como vale hace lo mismo.</string>
     <string name="trade_result_preview">Esta venta da %1$s.</string>
+    <string name="trade_empties_warning">Es al menos su último valor, %1$s, así que lo vaciaría. Si aún queda algo, escribe antes el valor de hoy; si no, activa Vender todo.</string>
     <string name="trade_delete">Borrar esta operación</string>
     <string name="trade_delete_title">¿Borrar esta operación?</string>
     <string name="trade_delete_message">El dinero que movió en la cuenta se va con ella. No se puede deshacer.</string>

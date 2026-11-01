@@ -131,6 +131,83 @@ class InvestmentScreensTest {
         composeRule.onNodeWithTag(SELL_TAG).assertDoesNotExist()
     }
 
+    @Test
+    fun `an asset deleted from its own form goes back by itself, once`() {
+        var backs = 0
+        composeRule.setContent {
+            CentsTheme { AssetContent(state = AssetUiState(loading = false, position = null), onBack = { backs++ }) }
+        }
+
+        composeRule.waitForIdle()
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun `an asset still loading does not go back`() {
+        var backs = 0
+        composeRule.setContent {
+            CentsTheme { AssetContent(state = AssetUiState(), onBack = { backs++ }) }
+        }
+
+        composeRule.waitForIdle()
+        assertEquals(0, backs)
+    }
+
+    @Test
+    fun `an account that is gone goes back by itself`() {
+        var backs = 0
+        composeRule.setContent {
+            CentsTheme {
+                InvestmentAccountContent(
+                    state = InvestmentAccountUiState(loading = false, account = null),
+                    actions = InvestmentAccountActions(onBack = { backs++ }),
+                )
+            }
+        }
+
+        composeRule.waitForIdle()
+        assertEquals(1, backs)
+    }
+
+    @Test
+    fun `a bank account listed for an old asset offers no new asset`() {
+        val bank = broker.copy(id = 9, name = "Old bank", type = AccountType.BANK)
+        composeRule.setContent {
+            CentsTheme {
+                InvestmentAccountContent(
+                    state =
+                        InvestmentAccountUiState(
+                            loading = false,
+                            account = InvestmentAccount(bank, cash = eur(0), positions = positions),
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(ADD_ASSET_TAG).assertDoesNotExist()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("World fund"))
+        composeRule.onNodeWithText("Add an asset").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a broker with only cash shows its cash, no assets and no chart line`() {
+        composeRule.setContent {
+            CentsTheme {
+                InvestmentAccountContent(
+                    state =
+                        InvestmentAccountUiState(
+                            loading = false,
+                            account = InvestmentAccount(broker, cash = eur(30_000), positions = emptyList()),
+                        ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(CASH_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(ADD_ASSET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(CHART_TAG).assertDoesNotExist()
+    }
+
     private fun buy(
         id: Long,
         holding: Holding,

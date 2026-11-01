@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.ui.feature.investments
 
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
@@ -58,6 +59,15 @@ fun AssetScreen(
             destructive = true,
         )
     }
+    if (state.deleteFailed) {
+        CentsAlert(
+            title = stringResource(R.string.delete_failed_title),
+            message = stringResource(R.string.asset_value_delete_failed),
+            confirmLabel = stringResource(R.string.action_ok),
+            onConfirm = viewModel::dismissDeleteFailure,
+            onDismiss = viewModel::dismissDeleteFailure,
+        )
+    }
 }
 
 /** Where the asset screen leads, and what it asks of its view model. */
@@ -79,6 +89,9 @@ internal fun AssetContent(
     actions: AssetActions = AssetActions(),
 ) {
     val position = state.position
+    // Deleted from its own edit form: there is nothing left to show, so this goes back too.
+    val gone = !state.loading && position == null
+    LaunchedEffect(gone) { if (gone) onBack() }
     CentsLargeTitleScaffold(
         title = position?.holding?.name.orEmpty(),
         bottomPadding = CentsDimens.sectionSpacing,

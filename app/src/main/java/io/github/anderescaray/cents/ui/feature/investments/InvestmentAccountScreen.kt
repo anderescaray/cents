@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.ui.feature.investments
 
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
@@ -14,6 +15,7 @@ import io.github.anderescaray.cents.domain.model.ChartScale
 import io.github.anderescaray.cents.domain.model.InvestmentAccount
 import io.github.anderescaray.cents.domain.model.Position
 import io.github.anderescaray.cents.domain.model.Sale
+import io.github.anderescaray.cents.domain.model.holdsInvestments
 import io.github.anderescaray.cents.ui.components.CentsActionRow
 import io.github.anderescaray.cents.ui.components.CentsBackButton
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
@@ -69,12 +71,15 @@ internal fun InvestmentAccountContent(
     actions: InvestmentAccountActions = InvestmentAccountActions(),
 ) {
     val account = state.account
+    // The account deleted, or one that is not a broker left with nothing open: nothing to show.
+    val gone = !state.loading && account == null
+    LaunchedEffect(gone) { if (gone) actions.onBack() }
     CentsLargeTitleScaffold(
         title = account?.account?.name.orEmpty(),
         bottomPadding = CentsDimens.sectionSpacing,
         leading = { CentsBackButton(label = stringResource(R.string.tab_investments), onClick = actions.onBack) },
         trailing = {
-            if (account != null) {
+            if (account != null && account.account.holdsInvestments) {
                 RoundIconButton(
                     iconRes = R.drawable.ic_plus,
                     contentDescription = stringResource(R.string.investments_add),
@@ -139,10 +144,14 @@ private fun LazyListScope.assets(
                     modifier = Modifier.testTag(UPDATE_VALUES_TAG),
                 )
             }
-            CentsActionRow(
-                label = stringResource(R.string.investments_add),
-                onClick = { actions.onAddAsset(account.account.id) },
-            )
+            // A new asset lives only in an active broker; a bank account or an archived broker
+            // listed here for an old asset still held takes none (D40).
+            if (account.account.holdsInvestments) {
+                CentsActionRow(
+                    label = stringResource(R.string.investments_add),
+                    onClick = { actions.onAddAsset(account.account.id) },
+                )
+            }
         }
     }
 }

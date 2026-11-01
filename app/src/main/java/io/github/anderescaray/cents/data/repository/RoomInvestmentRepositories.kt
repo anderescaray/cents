@@ -20,6 +20,7 @@ import io.github.anderescaray.cents.domain.model.Position
 import io.github.anderescaray.cents.domain.model.Trade
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.model.ValueStep
+import io.github.anderescaray.cents.domain.model.holdsInvestments
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.HoldingRepository
 import io.github.anderescaray.cents.domain.repository.HoldingValueRepository
@@ -292,7 +293,14 @@ class RoomPortfolioRepository
                     }
                 val cashByAccount = cashByDay.groupBy { it.accountId }
                 InvestmentOverview(
-                    currency = brokers.map { it.account.currency }.distinct().singleOrNull(),
+                    // The currency most of them share: the others are listed and not added, which
+                    // is what the footer about them says (rule 2).
+                    currency =
+                        brokers
+                            .groupingBy { it.account.currency }
+                            .eachCount()
+                            .maxByOrNull { it.value }
+                            ?.key,
                     accounts =
                         brokers.map { item ->
                             investmentAccount(
@@ -308,13 +316,31 @@ class RoomPortfolioRepository
             observeOverview().map { overview -> overview.accounts.firstOrNull { it.account.id == accountId } }
     }
 
-/** One broker account: its cash now, its cash through time from the opening balance, and its assets. */
+/**
+ * One broker account: its cash now, its cash through time from the opening balance, and its assets.
+ *
+ * Only an active broker's cash is investment cash, as `netWorthOf` counts it. A bank account or an
+ * archived broker listed for an old asset it still holds brings that asset and no cash, or its
+ * whole balance would count as invested on this screen and as normal money everywhere else.
+ *
+ * An asset in another currency than its account is left out, as `liveBalances` leaves it out of
+ * Wallet: adding it would be inventing a rate (rule 2), and `Money` refuses to.
+ */
 private fun investmentAccount(
     item: AccountWithBalance,
-    positions: List<Position>,
+    allPositions: List<Position>,
     cashByDay: List<AccountDayNet>,
 ): InvestmentAccount {
     val currency = item.account.currency
+    val positions = allPositions.filter { it.holding.currency == currency }
+    if (!item.account.holdsInvestments) {
+        return InvestmentAccount(
+            account = item.account,
+            cash = Money.zero(currency),
+            positions = positions,
+            cashBefore = Money.zero(currency),
+        )
+    }
     var running = item.account.openingBalance.minorUnits
     val steps =
         cashByDay.sortedBy { it.date }.map { day ->

@@ -204,6 +204,59 @@ class InvestmentRepositoriesTest {
         }
 
     @Test
+    fun `a bank account holding an old asset brings the asset and none of its balance`() =
+        runTest {
+            val bank = database.accountDao().insert(account(name = "Old bank", openingBalanceMinor = 500_000))
+            holdings.createHolding(
+                Holding(0, bank, AssetClass.STOCK, "Old shares", "EUR", null),
+                Trade(0, 0, TradeSide.BUY, Money(10_000, "EUR"), bought, null),
+            )
+
+            val overview = portfolioRepository(database, clock).observeOverview().first()
+
+            // The 490 000 left in the bank is normal money, as the net worth counts it.
+            val listed = overview.accounts.single()
+            assertEquals(Money.zero("EUR"), listed.cash)
+            assertEquals(Money(10_000, "EUR"), listed.total)
+            assertEquals(Money(10_000, "EUR"), overview.sums?.total)
+            assertEquals(Money(10_000, "EUR"), overview.totalOn(bought))
+        }
+
+    @Test
+    fun `a broker in another currency is listed, left out of the sums, and said to be`() =
+        runTest {
+            newFund(purchase = 100_000)
+            database.accountDao().insert(
+                account(name = "Second broker", type = AccountType.BROKER, openingBalanceMinor = 5_000),
+            )
+            database.accountDao().insert(
+                account(name = "US broker", type = AccountType.BROKER, currency = "USD", openingBalanceMinor = 7_000),
+            )
+
+            val overview = portfolioRepository(database, clock).observeOverview().first()
+
+            assertEquals("EUR", overview.currency)
+            assertEquals(3, overview.accounts.size)
+            assertTrue(overview.leavesSomeOut)
+            assertEquals(Money(155_000, "EUR"), overview.sums?.total)
+        }
+
+    @Test
+    fun `an asset in another currency than its account is left out instead of crashing`() =
+        runTest {
+            newFund(purchase = 100_000)
+            database.holdingDao().insert(
+                Holding(0, brokerId, AssetClass.STOCK, "Dollar shares", "USD", null)
+                    .toEntity(createdAt = clock.instant(), updatedAt = clock.instant()),
+            )
+
+            val account = portfolioRepository(database, clock).observeAccount(brokerId).first()!!
+
+            assertEquals(listOf("World fund"), account.positions.map { it.holding.name })
+            assertEquals(Money(150_000, "EUR"), account.totalOn(bought))
+        }
+
+    @Test
     fun `the week's values are written together`() =
         runTest {
             val first = newFund(purchase = 100_000)

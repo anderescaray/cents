@@ -62,6 +62,7 @@
     <string name="asset_history_result">%1$s · result %2$s</string>
     <string name="asset_value_delete_title">Delete this value?</string>
     <string name="asset_value_delete_message">The chart goes back to the value before it. This cannot be undone.</string>
+    <string name="asset_value_delete_failed">The value could not be deleted. Nothing was changed.</string>
 
     <!-- The asset form -->
     <string name="holding_new_title">New asset</string>
@@ -86,6 +87,7 @@
     <string name="trade_sells_all">Sell everything</string>
     <string name="trade_sells_all_footer">Empties the asset and takes all of its cost, whatever its last value said. Selling as much as it is worth does the same.</string>
     <string name="trade_result_preview">This sale makes %1$s.</string>
+    <string name="trade_empties_warning">That is at least its last value, %1$s, so it would empty the asset. If some is still held, type today’s value first; if not, turn on Sell everything.</string>
     <string name="trade_delete">Delete this operation</string>
     <string name="trade_delete_title">Delete this operation?</string>
     <string name="trade_delete_message">The money it moved in the account goes with it. This cannot be undone.</string>

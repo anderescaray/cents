@@ -42,36 +42,62 @@ data class TradeFormUiState(
     val saving: Boolean = false,
     val writeFailed: Boolean = false,
     val finished: Boolean = false,
-) {
-    val amountMinor: Long get() = AmountEntry.toMinorUnits(amountInput)
-
-    val canSave: Boolean get() = amountMinor > 0 && currency != null && !saving
-
     /**
      * What a new sale would make, worked out by `positionOf` itself with the sale added at its
      * date, so the preview is the result that will be written. Null for a purchase, an edit, or
-     * nothing typed yet.
+     * nothing typed yet. Worked out in the view model, not by the screen (`CLAUDE.md` §5).
      */
-    val resultPreview: Money?
-        get() {
-            val held = position ?: return null
-            if (!isNew || side != TradeSide.SELL || amountMinor <= 0) return null
-            val sale =
-                Trade(
-                    id = Long.MAX_VALUE,
-                    holdingId = held.holding.id,
-                    side = TradeSide.SELL,
-                    amount = Money(amountMinor, held.holding.currency),
-                    date = date,
-                    note = null,
-                    sellsAll = sellsAll,
-                )
-            return positionOf(
-                held.holding,
-                held.trades + sale,
-                held.values,
-            ).sales.firstOrNull { it.trade.id == sale.id }?.result
+    val resultPreview: Money? = null,
+    /**
+     * The worth a part sale of at least this much would empty the asset against: its last value,
+     * carried to the sale's date. Null when the sale is below it, sells everything, or is a
+     * purchase. Saving waits until the owner says it sells everything or types a newer value,
+     * because a part sale read as a whole one would drop what is still held.
+     */
+    val emptiesAgainst: Money? = null,
+) {
+    val amountMinor: Long get() = AmountEntry.toMinorUnits(amountInput)
+
+    /** A sale of everything may return nothing: an asset that went to zero still has to close. */
+    private val amountAccepted: Boolean
+        get() = amountMinor > 0 || (side == TradeSide.SELL && sellsAll)
+
+    val canSave: Boolean get() = amountAccepted && currency != null && !saving && emptiesAgainst == null
+}
+
+/**
+ * [state] with what follows from it worked out again: the sale's result and whether, as a part
+ * sale, it would empty the asset.
+ */
+internal fun derived(
+    state: TradeFormUiState,
+    editedTradeId: Long?,
+): TradeFormUiState {
+    val held = state.position
+    val amount = state.amountMinor
+    if (held == null || state.side != TradeSide.SELL || amount <= 0 && !state.sellsAll) {
+        return state.copy(resultPreview = null, emptiesAgainst = null)
+    }
+    val others = held.trades.filter { it.id != editedTradeId }
+    val before = positionOf(held.holding, others, held.values).valueOn(state.date)
+    val sale =
+        Trade(
+            id = editedTradeId ?: Long.MAX_VALUE,
+            holdingId = held.holding.id,
+            side = TradeSide.SELL,
+            amount = Money(amount, held.holding.currency),
+            date = state.date,
+            note = null,
+            sellsAll = state.sellsAll,
+        )
+    val preview =
+        if (state.isNew) {
+            positionOf(held.holding, others + sale, held.values).sales.firstOrNull { it.trade.id == sale.id }?.result
+        } else {
+            null
         }
+    val empties = !state.sellsAll && amount > 0 && before.minorUnits > 0 && amount >= before.minorUnits
+    return state.copy(resultPreview = preview, emptiesAgainst = before.takeIf { empties })
 }
 
 /** A purchase or a sale, as an amount and a date (D40). */
@@ -100,6 +126,9 @@ class TradeFormViewModel
 
         val uiState: StateFlow<TradeFormUiState> = form.asStateFlow()
 
+        /** Every change goes through here, so what follows from the form is never stale. */
+        private fun edit(change: (TradeFormUiState) -> TradeFormUiState) = form.update { derived(change(it), tradeId) }
+
         init {
             viewModelScope.launch { load() }
         }
@@ -107,7 +136,7 @@ class TradeFormViewModel
         private suspend fun load() {
             val position = portfolio.observePosition(route.holdingId).first()
             val trade = tradeId?.let { tradeRepository.findById(it) }
-            form.update { state ->
+            edit { state ->
                 state.copy(
                     currency = position?.holding?.currency,
                     position = position,
@@ -120,9 +149,9 @@ class TradeFormViewModel
             }
         }
 
-        fun onAmountTyped(value: String) = form.update { it.copy(amountInput = AmountEntry.sanitize(value)) }
+        fun onAmountTyped(value: String) = edit { it.copy(amountInput = AmountEntry.sanitize(value)) }
 
-        fun onSellsAllChanged(value: Boolean) = form.update { it.copy(sellsAll = value) }
+        fun onSellsAllChanged(value: Boolean) = edit { it.copy(sellsAll = value) }
 
         fun onNoteChanged(value: String) = form.update { it.copy(note = value) }
 
@@ -130,7 +159,7 @@ class TradeFormViewModel
 
         fun dismissDatePicker() = form.update { it.copy(pickingDate = false) }
 
-        fun onDateSelected(value: LocalDate) = form.update { it.copy(date = value, pickingDate = false) }
+        fun onDateSelected(value: LocalDate) = edit { it.copy(date = value, pickingDate = false) }
 
         fun dismissWriteFailure() = form.update { it.copy(writeFailed = false) }
 

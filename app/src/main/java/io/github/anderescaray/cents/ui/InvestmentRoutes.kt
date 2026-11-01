@@ -2,6 +2,7 @@ package io.github.anderescaray.cents.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -28,9 +29,9 @@ internal fun NavGraphBuilder.investmentRoutes(navController: NavHostController) 
             },
         )
     }
-    composable<Destination.InvestmentAccount> {
+    composable<Destination.InvestmentAccount> { entry ->
         InvestmentAccountScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popIfShowing(entry) },
             onAddAsset = { accountId ->
                 navController.navigate(Destination.HoldingEdit(accountId = accountId)) { launchSingleTop = true }
             },
@@ -43,9 +44,9 @@ internal fun NavGraphBuilder.investmentRoutes(navController: NavHostController) 
             },
         )
     }
-    composable<Destination.HoldingDetail> {
+    composable<Destination.HoldingDetail> { entry ->
         AssetScreen(
-            onBack = { navController.popBackStack() },
+            onBack = { navController.popIfShowing(entry) },
             actions = navController.assetActions(),
         )
     }
@@ -69,6 +70,15 @@ private fun NavGraphBuilder.investmentFormRoutes(navController: NavHostControlle
     composable<Destination.ValueUpdate> {
         ValueUpdateScreen(onDone = { navController.popBackStack() })
     }
+}
+
+/**
+ * Back from [entry], only while it is the screen showing. These screens also go back by themselves
+ * when what they show is deleted, and a tap on back in the same moment must not pop a second
+ * screen with it.
+ */
+private fun NavHostController.popIfShowing(entry: NavBackStackEntry) {
+    if (currentBackStackEntry?.id == entry.id) popBackStack()
 }
 
 /** Where the asset screen leads. */

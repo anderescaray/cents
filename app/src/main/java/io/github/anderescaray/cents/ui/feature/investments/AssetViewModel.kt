@@ -39,6 +39,8 @@ data class AssetUiState(
     val points: List<ChartPoint> = emptyList(),
     /** A value the owner asked to delete, waiting for the confirmation. */
     val deletingValue: HoldingValue? = null,
+    /** The last deletion could not be written; nothing was changed. */
+    val deleteFailed: Boolean = false,
 )
 
 /** One asset (D40). */
@@ -56,14 +58,15 @@ class AssetViewModel
         private val holdingId = savedStateHandle.toRoute<Destination.HoldingDetail>().holdingId
         private val chartKey = ChartScaleRepository.holdingChart(holdingId)
         private val deleting = MutableStateFlow<HoldingValue?>(null)
+        private val deleteFailed = MutableStateFlow(false)
 
         val uiState: StateFlow<AssetUiState> =
             combine(
                 portfolio.observePosition(holdingId),
                 accounts.observeAccounts(includeArchived = true),
                 chartScales.observe(chartKey),
-                deleting,
-            ) { position, allAccounts, scale, pending ->
+                combine(deleting, deleteFailed, ::Pair),
+            ) { position, allAccounts, scale, (pending, failed) ->
                 AssetUiState(
                     loading = false,
                     position = position,
@@ -80,6 +83,7 @@ class AssetViewModel
                                 )
                             }.orEmpty(),
                     deletingValue = pending,
+                    deleteFailed = failed,
                 )
             }.flowOn(Dispatchers.Default) // Folds and chart points: not on the main thread (rule 4).
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), AssetUiState())
@@ -99,7 +103,14 @@ class AssetViewModel
         fun confirmValueDeletion() {
             val value = deleting.value ?: return
             deleting.update { null }
-            viewModelScope.launch { values.deleteValue(value.id) }
+            viewModelScope.launch {
+                // A failed write says so, as the forms do, rather than taking the app down.
+                deleteFailed.value = runCatching { values.deleteValue(value.id) }.isFailure
+            }
+        }
+
+        fun dismissDeleteFailure() {
+            deleteFailed.value = false
         }
 
         private companion object {

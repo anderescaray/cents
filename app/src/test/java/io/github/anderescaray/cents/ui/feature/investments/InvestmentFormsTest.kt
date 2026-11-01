@@ -30,6 +30,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -117,6 +119,51 @@ class InvestmentFormsTest {
                 assertEquals(Money(-70_000, "EUR"), awaitStateThat { it.sellsAll }.resultPreview)
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `a part sale of at least the last value waits until it is said to sell everything`() =
+        runTest {
+            // Bought for 1 000, never valued since: grown, the owner sells 1 200 of it.
+            val holdingId = fund(cost = 100_000)
+            val form = tradeForm(holdingId, selling = true)
+
+            form.uiState.test {
+                awaitStateThat { it.position != null }
+                form.onAmountTyped("1200")
+                val warned = awaitStateThat { it.emptiesAgainst != null }
+                assertEquals(Money(100_000, "EUR"), warned.emptiesAgainst)
+                assertFalse(warned.canSave)
+                form.onAmountTyped("999")
+                assertTrue(awaitStateThat { it.emptiesAgainst == null && it.amountMinor == 99_900L }.canSave)
+                form.onAmountTyped("1200")
+                awaitStateThat { it.emptiesAgainst != null }
+                form.onSellsAllChanged(true)
+                assertTrue(awaitStateThat { it.sellsAll && it.emptiesAgainst == null }.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an asset that went to zero can be sold whole for nothing`() =
+        runTest {
+            val holdingId = fund(cost = 50_000)
+            val form = tradeForm(holdingId, selling = true)
+
+            form.uiState.test {
+                assertFalse(awaitStateThat { it.position != null }.canSave)
+                form.onSellsAllChanged(true)
+                val whole = awaitStateThat { it.sellsAll }
+                assertTrue(whole.canSave)
+                assertEquals(Money(-50_000, "EUR"), whole.resultPreview)
+                form.save()
+                awaitStateThat { it.finished }
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val position = portfolioRepository(database, clock).observePosition(holdingId).first()!!
+            assertFalse(position.isOpen)
+            assertEquals(Money(-50_000, "EUR"), position.realised)
         }
 
     @Test

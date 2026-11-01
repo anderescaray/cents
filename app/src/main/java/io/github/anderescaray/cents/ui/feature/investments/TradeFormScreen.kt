@@ -100,7 +100,9 @@ private fun TradeFields(
     val selling = state.side == TradeSide.SELL
     CentsListSection(
         footer =
-            state.resultPreview?.let {
+            state.emptiesAgainst?.let {
+                stringResource(R.string.trade_empties_warning, MoneyFormatter.format(it))
+            } ?: state.resultPreview?.let {
                 stringResource(R.string.trade_result_preview, MoneyFormatter.formatSigned(it))
             },
     ) {

@@ -30,6 +30,10 @@ data class BudgetEditUiState(
     val isNew: Boolean = true,
     /** Expense categories that can take this limit: the ones without one, and its own. */
     val choices: List<Category> = emptyList(),
+    /** Whether the month as a whole can take this limit: no general budget yet, or this is it. */
+    val generalOffered: Boolean = false,
+    /** The general budget, over every expense of the month, rather than one category's. */
+    val general: Boolean = false,
     val categoryId: Long? = null,
     val amountInput: String = AmountEntry.EMPTY,
     val currency: String = "EUR",
@@ -44,11 +48,11 @@ data class BudgetEditUiState(
     val category: Category? get() = choices.firstOrNull { it.id == categoryId }
 
     /** A limit of nothing is not a budget: it is a category you mean never to spend in. */
-    val canSave: Boolean get() = loaded && !saving && category != null && limit.minorUnits > 0
+    val canSave: Boolean get() = loaded && !saving && (general || category != null) && limit.minorUnits > 0
 }
 
 /**
- * Setting one limit: which expense category, and how much a month.
+ * Setting one limit: which expense category, or all of them, and how much a month.
  *
  * The category is fixed once the budget exists. Moving a limit to another category is deleting
  * one and setting another, and saying so is clearer than a picker that quietly does both.
@@ -77,12 +81,9 @@ class BudgetEditViewModel
 
         private suspend fun load() {
             val existing = budgetId?.let { budgets.findById(it) }
-            val taken =
-                budgets
-                    .observeBudgets()
-                    .first()
-                    .map { it.categoryId }
-                    .toSet() - setOfNotNull(existing?.categoryId)
+            val others = budgets.observeBudgets().first().filter { it.id != existing?.id }
+            val taken = others.mapNotNull { it.categoryId }.toSet()
+            val generalOffered = if (existing != null) existing.isGeneral else others.none { it.isGeneral }
             val expense = categories.observeCategories(CategoryKind.EXPENSE).first()
             val currency =
                 existing?.limit?.currency
@@ -92,11 +93,16 @@ class BudgetEditViewModel
                         .firstOrNull()
                         ?.currency
                     ?: deviceCurrency()
-            val choices = expense.filter { it.id !in taken }
+            // The general budget limits no category, so it is offered none, as a category's is its own.
+            val choices = if (existing?.isGeneral == true) emptyList() else expense.filter { it.id !in taken }
+            // With one thing left to limit, it is chosen already.
+            val only = if (generalOffered) null else choices.singleOrNull()?.id
             form.update { state ->
                 state.copy(
                     choices = choices,
-                    categoryId = existing?.categoryId ?: choices.singleOrNull()?.id,
+                    generalOffered = generalOffered,
+                    general = existing?.isGeneral ?: (generalOffered && choices.isEmpty()),
+                    categoryId = existing?.categoryId ?: only,
                     amountInput =
                         existing?.let {
                             AmountEntry.fromMinorUnits(
@@ -111,7 +117,12 @@ class BudgetEditViewModel
 
         fun chooseCategory(id: Long) {
             if (!form.value.isNew) return
-            form.update { it.copy(categoryId = id) }
+            form.update { it.copy(categoryId = id, general = false) }
+        }
+
+        fun chooseGeneral() {
+            if (!form.value.isNew || !form.value.generalOffered) return
+            form.update { it.copy(categoryId = null, general = true) }
         }
 
         fun appendDigit(digit: Char) {
@@ -128,8 +139,8 @@ class BudgetEditViewModel
 
         fun save() {
             val state = form.value
-            val categoryId = state.categoryId
-            if (!state.canSave || categoryId == null) return
+            if (!state.canSave) return
+            val categoryId = if (state.general) null else state.categoryId
             form.update { it.copy(saving = true, writeFailed = false) }
             viewModelScope.launch {
                 val written =

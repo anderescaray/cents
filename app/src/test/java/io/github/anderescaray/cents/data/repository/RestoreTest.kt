@@ -533,6 +533,47 @@ class RestoreTest {
     }
 
     @Test
+    fun `a budget with no category is the general budget from v14, and a damaged file before it`() {
+        fun file(
+            version: Int,
+            categoryId: String,
+        ) = """
+            {"schemaVersion":$version,"accounts":[],"categories":[],"transactions":[],
+             "holdings":[],"trades":[],"quotes":[],
+             "budgets":[{"categoryId":$categoryId,"amountMinor":150000,"currency":"EUR"}]}
+            """.trimIndent()
+
+        val general = BackupReader.parse(file(14, "null"), 14)
+        assertNull(
+            (general as BackupParse.Restorable)
+                .backup.budgets
+                .single()
+                .categoryId,
+        )
+
+        // Before v14 no budget could be general: one without a category was damaged on the way.
+        assertTrue(BackupReader.parse(file(13, "null"), 14) is BackupParse.Damaged)
+        // And from v14 a category that is there but not a number is still damage, not "general".
+        assertTrue(BackupReader.parse(file(14, "7.5"), 14) is BackupParse.Damaged)
+    }
+
+    @Test
+    fun `a file with two general budgets comes back with one`() =
+        runTest {
+            val text =
+                """
+                {"schemaVersion":14,"accounts":[],"categories":[],"transactions":[],
+                 "holdings":[],"trades":[],"quotes":[],
+                 "budgets":[{"categoryId":null,"amountMinor":150000,"currency":"EUR"},
+                            {"categoryId":null,"amountMinor":120000,"currency":"EUR"}]}
+                """.trimIndent()
+
+            backups.restore(readable(text))
+
+            assertEquals(listOf(120_000L), backups.snapshot().budgets.map { it.amountMinor })
+        }
+
+    @Test
     fun `a restore that cannot finish leaves the app exactly as it was`() =
         runTest {
             populate()
@@ -563,6 +604,7 @@ class RestoreTest {
         val broker = database.accountDao().insert(account(name = "Broker"))
         val groceries = database.categoryDao().insert(category(name = "Groceries"))
         database.budgetDao().insert(budget(groceries, amountMinor = 40_000))
+        database.budgetDao().insert(budget(null, amountMinor = 150_000))
         database.transactionDao().insert(
             transaction(checking, categoryId = groceries, amountMinor = 2_550, note = "Weekly shop"),
         )

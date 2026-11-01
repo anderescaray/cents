@@ -87,9 +87,66 @@ class RoomBudgetRepositoryTest {
                 transaction(checking, amountMinor = 40_000, date = september12, tradeId = tradeId),
             )
 
-            val spent = budgets.observeSpentByCategory(september.first, september.second, "EUR").first()
+            val spent = budgets.observeSpending(september.first, september.second, "EUR").first()
 
-            assertEquals(mapOf(groceries to Money(3_550, "EUR")), spent)
+            assertEquals(mapOf(groceries to Money(3_550, "EUR")), spent.byCategory)
+            assertEquals(Money(3_550, "EUR"), spent.total)
+        }
+
+    @Test
+    fun `spent in all counts uncategorized spending too, and still nothing that is not spending`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking"))
+            val savings = database.accountDao().insert(account(name = "Savings"))
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            val september12 = LocalDate.of(2026, 9, 12)
+            database.transactionDao().insert(
+                transaction(checking, categoryId = groceries, amountMinor = 2_550, date = september12),
+            )
+            database.transactionDao().insert(transaction(checking, amountMinor = 1_000, date = september12))
+            database.transactionDao().insert(
+                transaction(
+                    checking,
+                    amountMinor = 7_777,
+                    kind = TransactionKind.INCOME,
+                    date = september12,
+                ),
+            )
+            // A transfer's outgoing leg is money moved, not spent.
+            val outId =
+                database.transactionDao().insert(
+                    transaction(checking, amountMinor = 50_000, date = september12),
+                )
+            database.transactionDao().setTransferId(id = outId, transferId = outId, updatedAt = clock.instant())
+            database.transactionDao().insert(
+                transaction(
+                    savings,
+                    kind = TransactionKind.INCOME,
+                    amountMinor = 50_000,
+                    date = september12,
+                    transferId = outId,
+                ),
+            )
+
+            val spent = budgets.observeSpending(september.first, september.second, "EUR").first()
+
+            assertEquals(Money(3_550, "EUR"), spent.total)
+            assertEquals(mapOf(groceries to Money(2_550, "EUR")), spent.byCategory)
+        }
+
+    @Test
+    fun `there is at most one general budget, and a second one replaces its limit`() =
+        runTest {
+            val groceries = database.categoryDao().insert(category(name = "Groceries"))
+            budgets.saveBudget(Budget(Budget.NEW, groceries, Money(40_000, "EUR")))
+
+            val first = budgets.saveBudget(Budget(Budget.NEW, null, Money(150_000, "EUR")))
+            val second = budgets.saveBudget(Budget(Budget.NEW, null, Money(120_000, "EUR")))
+
+            assertEquals(first, second)
+            val general = budgets.observeBudgets().first().filter { it.isGeneral }
+            assertEquals(listOf(Money(120_000, "EUR")), general.map { it.limit })
+            assertEquals(2, budgets.observeBudgets().first().size)
         }
 
     @Test

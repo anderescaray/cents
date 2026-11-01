@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.Budget
+import io.github.anderescaray.cents.domain.model.BudgetSpending
 import io.github.anderescaray.cents.domain.model.Category
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.CategorySpending
@@ -406,20 +407,25 @@ interface BudgetRepository {
     fun observeBudgets(): Flow<List<Budget>>
 
     /**
-     * What each expense category took between [from] and [to], by category id.
+     * What each expense category took between [from] and [to], by category id, and everything
+     * spent in all, for the general budget.
      *
      * The same exclusions every report makes: a transfer leg and a trade's cash are not spending,
-     * and have no category anyway. Uncategorized spending has no budget to count against.
+     * and have no category anyway. Uncategorized spending has no category budget to count against,
+     * and counts in the total, because it went out all the same.
      */
-    fun observeSpentByCategory(
+    fun observeSpending(
         from: LocalDate,
         to: LocalDate,
         currency: String,
-    ): Flow<Map<Long, Money>>
+    ): Flow<BudgetSpending>
 
     suspend fun findById(id: Long): Budget?
 
-    /** Creates it when its id is [Budget.NEW], and replaces the limit otherwise. Returns the id. */
+    /**
+     * Creates it when its id is [Budget.NEW], and replaces the limit otherwise. Returns the id. A
+     * new general budget when there is one already replaces that one's limit: there is at most one.
+     */
     suspend fun saveBudget(budget: Budget): Long
 
     suspend fun deleteBudget(id: Long)

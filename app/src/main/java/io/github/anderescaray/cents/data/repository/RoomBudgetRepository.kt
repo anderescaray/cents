@@ -4,6 +4,7 @@ import io.github.anderescaray.cents.data.local.dao.BudgetDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
 import io.github.anderescaray.cents.data.local.entity.BudgetEntity
 import io.github.anderescaray.cents.domain.model.Budget
+import io.github.anderescaray.cents.domain.model.BudgetSpending
 import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.domain.repository.BudgetRepository
@@ -27,25 +28,38 @@ class RoomBudgetRepository
                 rows.map { it.toDomain() }
             }
 
-        /** The donut's own query, all accounts: a budget is about a category, wherever it was paid from. */
-        override fun observeSpentByCategory(
+        /**
+         * The donut's own query, all accounts: a budget is about a category, wherever it was paid
+         * from. One query for both figures: the categorized rows by category, and every row added up,
+         * the uncategorized one included, for the general budget.
+         */
+        override fun observeSpending(
             from: LocalDate,
             to: LocalDate,
             currency: String,
-        ): Flow<Map<Long, Money>> =
+        ): Flow<BudgetSpending> =
             transactionDao
                 .observeTotalsByCategory(TransactionKind.EXPENSE, from, to, accountId = null)
                 .map { totals ->
-                    totals
-                        .mapNotNull { total -> total.categoryId?.let { it to Money(total.totalMinor, currency) } }
-                        .toMap()
+                    BudgetSpending(
+                        byCategory =
+                            totals
+                                .mapNotNull { total ->
+                                    total.categoryId?.let { it to Money(total.totalMinor, currency) }
+                                }.toMap(),
+                        total = Money(totals.sumOf { it.totalMinor }, currency),
+                    )
                 }
 
         override suspend fun findById(id: Long): Budget? = budgetDao.findById(id)?.toDomain()
 
         override suspend fun saveBudget(budget: Budget): Long {
             require(budget.limit.minorUnits > 0) { "A budget is a positive limit" }
-            return if (budget.id == Budget.NEW) {
+            // At most one general budget: a second one replaces the first's limit rather than
+            // standing beside it, which the unique index cannot refuse for a null.
+            return if (budget.isGeneral && budget.id == Budget.NEW) {
+                budgetDao.saveGeneral(budget.toEntity())
+            } else if (budget.id == Budget.NEW) {
                 budgetDao.insert(budget.toEntity())
             } else {
                 val existing = requireNotNull(budgetDao.findById(budget.id)) { "No budget ${budget.id}" }

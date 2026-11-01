@@ -94,14 +94,53 @@ class BudgetsViewModelTest {
         }
 
     @Test
-    fun `with every expense category budgeted there is nothing left to add`() =
+    fun `with every expense category budgeted the month as a whole can still have one`() =
         runTest {
             database.accountDao().insert(account(name = "Checking"))
             val home = database.categoryDao().insert(category(name = "Home"))
             database.budgetDao().insert(budget(home))
 
             viewModel().uiState.test {
-                assertFalse(awaitStateThat { !it.isLoading && it.rows.isNotEmpty() }.canAdd)
+                assertTrue(awaitStateThat { !it.isLoading && it.rows.isNotEmpty() }.canAdd)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `with the month and every expense category budgeted there is nothing left to add`() =
+        runTest {
+            database.accountDao().insert(account(name = "Checking"))
+            val home = database.categoryDao().insert(category(name = "Home"))
+            database.budgetDao().insert(budget(home))
+            database.budgetDao().insert(budget(null))
+
+            viewModel().uiState.test {
+                assertFalse(awaitStateThat { !it.isLoading && it.rows.size == 2 }.canAdd)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the general budget reads every expense of the month, filed or not, and is listed first`() =
+        runTest {
+            val checking = database.accountDao().insert(account(name = "Checking"))
+            val home = database.categoryDao().insert(category(name = "Home"))
+            database.budgetDao().insert(budget(home, amountMinor = 100_000))
+            database.budgetDao().insert(budget(null, amountMinor = 150_000))
+            database.transactionDao().insert(
+                transaction(checking, categoryId = home, amountMinor = 20_000, date = LocalDate.of(2026, 9, 10)),
+            )
+            // Captured and not yet filed: it went out all the same.
+            database.transactionDao().insert(
+                transaction(checking, amountMinor = 5_000, date = LocalDate.of(2026, 9, 12)),
+            )
+
+            viewModel().uiState.test {
+                val state = awaitStateThat { !it.isLoading && it.rows.size == 2 }
+                val general = state.rows.first()
+                assertTrue(general.budget.isGeneral)
+                assertEquals(Money(25_000, "EUR"), general.spent)
+                assertEquals(Money(20_000, "EUR"), state.rows[1].spent)
                 cancelAndIgnoreRemainingEvents()
             }
         }

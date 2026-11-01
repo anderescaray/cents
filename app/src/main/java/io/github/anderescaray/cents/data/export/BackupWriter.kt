@@ -215,7 +215,7 @@ object BackupWriter {
 
     private fun budgetJson(row: BackupBudget) =
         mapOf(
-            "categoryId" to JsonPrimitive(row.categoryId),
+            "categoryId" to row.categoryId.orNull(),
             "amountMinor" to JsonPrimitive(row.amountMinor),
             "currency" to JsonPrimitive(row.currency),
         )

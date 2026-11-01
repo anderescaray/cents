@@ -16,6 +16,7 @@ import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -126,7 +127,7 @@ object BackupReader {
             // Absent before a backup carried subscriptions, and read as none.
             rules = root.rows("recurringRules", ::rule),
             reminders = root.rows("ruleReminders", ::reminder),
-            budgets = root.rows("budgets", ::budget),
+            budgets = root.rows("budgets") { budget(it, version) },
             groups = root.rows("groups", ::group),
             postponements = root.rows("rulePostponements", ::postponement),
             // Absent before a balance could be corrected, and read as none.
@@ -257,12 +258,17 @@ object BackupReader {
             note = row.requireString("note"),
         )
 
-    private fun budget(row: JsonObject) =
-        BackupBudget(
-            categoryId = row.requireLong("categoryId"),
-            amountMinor = row.requireLong("amountMinor"),
-            currency = row.requireString("currency"),
-        )
+    private fun budget(
+        row: JsonObject,
+        version: Int,
+    ) = BackupBudget(
+        // Null is the general budget, which only a file from v14 on can hold: before it, a budget
+        // without a category is a damaged file, not a limit the owner never set.
+        categoryId =
+            if (version >= GENERAL_BUDGET_SCHEMA) row.optionalLong("categoryId") else row.requireLong("categoryId"),
+        amountMinor = row.requireLong("amountMinor"),
+        currency = row.requireString("currency"),
+    )
 
     private fun group(row: JsonObject) =
         BackupGroup(
@@ -304,8 +310,18 @@ object BackupReader {
 
     private fun JsonObject.long(name: String): Long? = this[name]?.jsonPrimitive?.longOrNull
 
+    /** Absent or null reads as none; anything else has to be a number, or the file is refused. */
+    private fun JsonObject.optionalLong(name: String): Long? {
+        val value = this[name]
+        if (value == null || value is JsonNull) return null
+        return value.jsonPrimitive.longOrNull ?: error("$name is not a number")
+    }
+
     private fun JsonObject.string(name: String): String? =
         this[name]?.jsonPrimitive?.takeUnless { it.toString() == "null" }?.content
 
     private fun JsonObject.boolean(name: String): Boolean = this[name]?.jsonPrimitive?.booleanOrNull ?: false
 }
+
+/** The first schema whose budgets can have no category: the general budget. */
+private const val GENERAL_BUDGET_SCHEMA = 14

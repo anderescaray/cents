@@ -34,7 +34,8 @@ Then read these, in this order, before writing any code:
   - **#164**, the general budget (backlog item 23). It takes **Room v14** and amends D26. With it,
     1168 JVM tests.
   - Both had `/code-review high`, and each PR says what was fixed. On #163 the review changed the
-    design: Settings opens in Home's stack from any tab, so there is only ever one.
+    design: Settings opens in Home's stack from any tab, so there is only ever one. Back from it
+    returns to the tab that opened it, as the owner asked on 2026-11-01.
 - **The Pixel runs `4416198`**, #160's branch, the same code as `main`, installed 2026-10-28.
   Neither #163 nor #164 is on it.
 - **D39 was answered on 2026-10-28** and is not built yet: §3, item 2.
@@ -60,11 +61,10 @@ Then read these, in this order, before writing any code:
 
 ## 4. Waiting on the owner
 
-- **Three PRs to review and merge:** #163 and #164 (code), and #162 (this docs PR). #164 before
-  D39 starts, because both change the schema.
+- **Three PRs to review and merge:** #163 and #164 (code), and this docs PR. #164 before D39
+  starts, because both change the schema.
 - **One reading to confirm, on #163:** Reports has no filters button, so the button placed beside
-  Settings there is Customize. And back from Settings goes to Home, whichever tab's button opened
-  it.
+  Settings there is Customize.
 - **Checks on the phone:** H5, H7, H8, C1, R3, G1, G2 and X2 for items 15 to 19, and A4 and M2
   for items 13 and 14 (`docs/device-check.md`); then #163's and #164's.
 - **Branches** that are merged or superseded and can be deleted when the owner says so: on

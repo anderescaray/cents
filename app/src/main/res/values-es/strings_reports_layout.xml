@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reports_step_back">Periodo anterior</string>
+    <string name="reports_step_forward">Periodo siguiente</string>
+    <string name="reports_step_now">Volver a hoy</string>
+    <string name="reports_period_this_week">Esta semana</string>
+    <string name="reports_period_this_month">Este mes</string>
+    <string name="reports_period_this_quarter">Este trimestre</string>
+    <string name="reports_period_this_year">Este año</string>
+
+    <string name="reports_customize_order">Orden de los gráficos</string>
+    <string name="reports_customize_order_summary">%1$d de %2$d visibles</string>
+    <string name="reports_customize_reorder">Arrastra para mover %1$s</string>
+
+    <string name="reports_flow_tap_hint">Toca una columna para ver sus cifras</string>
+    <string name="reports_flow_in">Entra</string>
+    <string name="reports_flow_out">Sale</string>
+
+    <string name="reports_weekday_days">Día a día</string>
+    <string name="reports_weekday_most">Donde más gastas: %1$s</string>
+
+    <string name="reports_comparison_spent_less">Has gastado %1$s menos</string>
+    <string name="reports_comparison_spent_more">Has gastado %1$s más</string>
+    <string name="reports_share_signed">%1$s%%</string>
+    <string name="reports_comparison_spent_same">Has gastado lo mismo</string>
+    <string name="reports_comparison_than_previous">que en el periodo anterior</string>
+    <string name="reports_comparison_than_year_ago">que en el mismo periodo del año pasado</string>
+</resources>

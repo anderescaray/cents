@@ -1,9 +1,12 @@
 package io.github.anderescaray.cents.ui.feature.reports.section
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -31,6 +34,7 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
+import io.github.anderescaray.cents.ui.components.AnimatedMoney
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.feature.reports.AmountRow
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
@@ -76,28 +80,40 @@ data class BalanceOverTimeSection(
                 // A flat line at the opening balance would be true and would say nothing.
                 EmptyChart(stringResource(R.string.reports_balance_empty))
             } else {
-                Box(Modifier.padding(vertical = CentsDimens.spacingM)) { BalanceLineChart(balance) }
-                AmountRow(
-                    label = stringResource(R.string.reports_balance_opening),
-                    amount = balance.opening,
-                )
-                AmountRow(
-                    label = stringResource(R.string.reports_balance_closing),
-                    amount = balance.closing,
-                )
-                AmountRow(
-                    label = stringResource(R.string.reports_balance_change),
-                    amount = balance.change,
-                    // The sign is the answer to the question the chart asks, so it is the
-                    // one number on the tab that is tinted.
-                    valueColor =
-                        when {
-                            balance.change.isZero -> null
-                            balance.change.isNegative -> CentsTheme.colors.destructiveText
-                            else -> CentsTheme.colors.positiveText
-                        },
-                    last = true,
-                )
+                // The answer first: how much the money moved over the period, in its colour.
+                val tone =
+                    when {
+                        balance.change.isZero -> CentsTheme.colors.label
+                        balance.change.isNegative -> CentsTheme.colors.destructiveText
+                        else -> CentsTheme.colors.positiveText
+                    }
+                Column(
+                    Modifier.padding(
+                        horizontal = CentsDimens.rowHorizontalPadding,
+                        vertical = CentsDimens.spacingM,
+                    ),
+                ) {
+                    Text(
+                        text = stringResource(R.string.reports_balance_change),
+                        style = CentsTheme.typography.footnote,
+                        color = CentsTheme.colors.secondaryLabel,
+                    )
+                    AnimatedMoney(
+                        money = balance.change,
+                        style = CentsTheme.typography.title1,
+                        color = tone,
+                        withSign = true,
+                    )
+                }
+                BalanceLineChart(balance)
+                Spacer(Modifier.height(CentsDimens.spacingM))
+                // A line drawn against an axis that does not start at zero cannot be read for its
+                // level, only for its shape, so the level is stated in words beside it.
+                StatRow {
+                    StatCell(label = stringResource(R.string.reports_balance_opening), amount = balance.opening)
+                    StatCell(label = stringResource(R.string.reports_balance_closing), amount = balance.closing)
+                }
+                Spacer(Modifier.height(CentsDimens.spacingL))
             }
         }
     }
@@ -133,6 +149,7 @@ internal fun BalanceLineChart(
     val positive = CentsTheme.colors.positive
     val destructive = CentsTheme.colors.destructive
     val labelColor = CentsTheme.colors.secondaryLabel
+    val locale = formatLocale()
     val producer = remember { CartesianChartModelProducer() }
 
     // Keyed on the data, so the model is rebuilt when the balances change rather than on
@@ -153,8 +170,12 @@ internal fun BalanceLineChart(
         }
 
     CartesianChartHost(
-        chart = rememberBalanceChart(balance.opening.minorUnits, labels, positive, destructive, labelColor),
+        chart = rememberBalanceChart(balance.opening.minorUnits, labels, positive, destructive, labelColor, locale),
         modelProducer = producer,
+        // The whole period in the card's width: a line scrolled through a day at a time showed
+        // a week, and the shape of the period is the whole point of it.
+        scrollState = rememberFixedScroll(),
+        zoomState = rememberFitZoom(),
         modifier = modifier.fillMaxWidth().height(LINE_CHART_HEIGHT),
     )
 }
@@ -173,6 +194,7 @@ private fun rememberBalanceChart(
     positive: Color,
     destructive: Color,
     labelColor: Color,
+    locale: java.util.Locale,
 ) = rememberCartesianChart(
     rememberLineCartesianLayer(
         lineProvider =
@@ -197,11 +219,7 @@ private fun rememberBalanceChart(
     startAxis =
         VerticalAxis.rememberStart(
             label = rememberAxisLabelComponent(style = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)),
-            // Minor units on an axis would read as a hundred times the money.
-            valueFormatter =
-                CartesianValueFormatter { _, value, _ ->
-                    (value / MINOR_UNITS_PER_UNIT).toLong().toString()
-                },
+            valueFormatter = CartesianValueFormatter { _, value, _ -> axisAmount(value, locale) },
         ),
     bottomAxis =
         HorizontalAxis.rememberBottom(

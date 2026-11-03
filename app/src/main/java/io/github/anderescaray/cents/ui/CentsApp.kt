@@ -13,10 +13,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
@@ -247,8 +249,14 @@ private fun CentsNavHost(
                 onOpenSettings = { navController.openSettings() },
             )
         }
-        composable<Destination.ReportsCustomize> {
-            ReportsCustomizeScreen(onBack = { navController.popBackStack() })
+        composable<Destination.ReportsCustomize> { entry ->
+            // The Reports tab's own view model, so the account chosen here is the one the tab
+            // shows on the way back. Customize is only ever opened from Reports, which is under it.
+            val reportsEntry = remember(entry) { navController.getBackStackEntry<Destination.Reports>() }
+            ReportsCustomizeScreen(
+                onBack = { navController.popBackStack() },
+                reportsViewModel = hiltViewModel(reportsEntry),
+            )
         }
         settingsRoutes(navController)
     }

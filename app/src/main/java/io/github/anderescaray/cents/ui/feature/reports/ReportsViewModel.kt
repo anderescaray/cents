@@ -66,7 +66,18 @@ data class ReportsUiState(
     val accounts: List<Account> = emptyList(),
     /** Which account the whole tab is narrowed to, or null for all of them. */
     val accountId: Long? = null,
+    /**
+     * How many periods back from the one holding today: 0 is this month (or week, quarter, year),
+     * -1 the one before, and so on. Always 0 on Custom, which has no neighbours.
+     */
+    val offset: Int = 0,
 ) {
+    /** Whether the period can step back and forward: a preset can, a custom range cannot. */
+    val canStep: Boolean get() = preset != PeriodPreset.CUSTOM
+
+    /** Forward stops at the period holding today: the future has nothing in it to report. */
+    val canStepForward: Boolean get() = canStep && offset < 0
+
     /**
      * Whether choosing is worth the room it takes. With one account there is nothing to
      * choose, and a picker offering a single answer is a row that only ever says what the
@@ -111,7 +122,7 @@ class ReportsViewModel
                         if (current.preset == PeriodPreset.CUSTOM) {
                             current
                         } else {
-                            current.copy(period = periodFor(current.preset, day))
+                            current.copy(period = periodFor(current.preset, day, current.offset))
                         }
                     }
                 }
@@ -144,6 +155,7 @@ class ReportsViewModel
                                 period = selected.period,
                                 isLoading = false,
                                 hasNoAccounts = true,
+                                offset = selected.offset,
                             ),
                         )
                     } else {
@@ -164,6 +176,7 @@ class ReportsViewModel
                                 isLoading = false,
                                 accounts = accounts,
                                 accountId = accountId,
+                                offset = selected.offset,
                             )
                         }
                     }
@@ -182,11 +195,13 @@ class ReportsViewModel
                     current.copy(
                         preset = PeriodPreset.CUSTOM,
                         period = ReportPeriod.Custom(current.period.from, current.period.to),
+                        offset = 0,
                     )
                 } else {
                     // Copied rather than rebuilt: changing the period is not a reason to stop
                     // looking at the account that was being looked at.
-                    current.copy(preset = preset, period = periodFor(preset, today.date.value))
+                    // A new kind of period starts again from the one holding today.
+                    current.copy(preset = preset, period = periodFor(preset, today.date.value), offset = 0)
                 }
             }
         }
@@ -202,6 +217,21 @@ class ReportsViewModel
             selection.update { it.copy(accountId = accountId) }
         }
 
+        /**
+         * Moves to the period [by] steps away: -1 is the month (or week, quarter, year) before
+         * the one on screen. Never past the one holding today, and not at all on Custom.
+         */
+        fun stepPeriod(by: Int) {
+            selection.update { current ->
+                if (current.preset == PeriodPreset.CUSTOM) return@update current
+                val offset = (current.offset + by).coerceAtMost(0)
+                current.copy(offset = offset, period = periodFor(current.preset, today.date.value, offset))
+            }
+        }
+
+        /** Back to the period holding today, from however far back the owner went. */
+        fun stepToNow() = stepPeriod(-selection.value.offset)
+
         fun setCustomRange(
             from: LocalDate,
             to: LocalDate,
@@ -211,7 +241,7 @@ class ReportsViewModel
             val start = minOf(from, to)
             val end = maxOf(from, to)
             selection.update {
-                it.copy(preset = PeriodPreset.CUSTOM, period = ReportPeriod.Custom(start, end))
+                it.copy(preset = PeriodPreset.CUSTOM, period = ReportPeriod.Custom(start, end), offset = 0)
             }
         }
 
@@ -239,6 +269,7 @@ class ReportsViewModel
             val preset: PeriodPreset,
             val period: ReportPeriod,
             val accountId: Long? = null,
+            val offset: Int = 0,
         )
 
         private companion object {
@@ -254,6 +285,29 @@ class ReportsViewModel
  * week and not the last seven days.
  */
 internal fun periodFor(
+    preset: PeriodPreset,
+    today: LocalDate,
+    /** Periods away from the one holding [today]: -1 is the one before it. */
+    offset: Int = 0,
+): ReportPeriod = periodHolding(preset, shifted(preset, today, offset))
+
+/** A day inside the period [offset] steps from the one holding [today]. */
+private fun shifted(
+    preset: PeriodPreset,
+    today: LocalDate,
+    offset: Int,
+): LocalDate {
+    val by = offset.toLong()
+    return when (preset) {
+        PeriodPreset.WEEK -> today.plusWeeks(by)
+        PeriodPreset.MONTH -> today.plusMonths(by)
+        PeriodPreset.QUARTER -> today.plusMonths(by * MONTHS_IN_QUARTER)
+        PeriodPreset.YEAR -> today.plusYears(by)
+        PeriodPreset.CUSTOM -> today
+    }
+}
+
+private fun periodHolding(
     preset: PeriodPreset,
     today: LocalDate,
 ): ReportPeriod =

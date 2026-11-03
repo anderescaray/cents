@@ -64,6 +64,12 @@ data class CentsColors(
     val heroGlow: Color,
     /** Money below zero, as text on the hero card, where the plain red is too dark to read. */
     val heroNegative: Color,
+    /**
+     * The two parts of what the owner has, cash and bank and invested: indigo and teal, apart
+     * from green (money in) and the accent blue (a transfer, and anything tappable).
+     */
+    val cashPart: Color,
+    val investedPart: Color,
     val isDark: Boolean,
 )
 
@@ -97,6 +103,8 @@ val LightColors =
         heroBottom = Color(0xFF0E1117),
         heroGlow = Color(0x66007AFF),
         heroNegative = Color(0xFFFF8A80),
+        cashPart = Color(0xFF5856D6),
+        investedPart = Color(0xFF0E9AA7),
         isDark = false,
     )
 
@@ -130,6 +138,8 @@ val DarkColors =
         heroBottom = Color(0xFF15171F),
         heroGlow = Color(0x660A84FF),
         heroNegative = Color(0xFFFF8A80),
+        cashPart = Color(0xFF7D7AFF),
+        investedPart = Color(0xFF3CC8D6),
         isDark = true,
     )
 

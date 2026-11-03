@@ -599,6 +599,56 @@ class ReportsViewModelTest {
         assertEquals(LocalDate.of(2026, 9, 30), quarter.to)
     }
 
+    @Test
+    fun `a preset steps back a period at a time, and forward no further than now`() =
+        runTest {
+            database.accountDao().insert(account(name = "Current"))
+
+            viewModel.uiState.test {
+                val now = awaitStateThat { !it.isLoading }.period as ReportPeriod.Month
+
+                viewModel.stepPeriod(-1)
+                val back = awaitStateThat { it.offset == -1 }
+                assertEquals(ReportPeriod.Month(now.month.minusMonths(1)), back.period)
+                assertTrue(back.canStepForward)
+
+                // Past today there is nothing to report, so forward stops at the current month.
+                viewModel.stepPeriod(5)
+                val again = awaitStateThat { it.offset == 0 }
+                assertEquals(now, again.period)
+                assertFalse(again.canStepForward)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `another kind of period starts again from the one holding today`() =
+        runTest {
+            database.accountDao().insert(account(name = "Current"))
+
+            viewModel.uiState.test {
+                awaitStateThat { !it.isLoading }
+                viewModel.stepPeriod(-3)
+                awaitStateThat { it.offset == -3 }
+
+                viewModel.selectPreset(PeriodPreset.YEAR)
+
+                val year = awaitStateThat { it.preset == PeriodPreset.YEAR }
+                assertEquals(0, year.offset)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `an offset shifts a preset by whole periods`() {
+        val tuesday = LocalDate.of(2026, 8, 18)
+
+        assertEquals(ReportPeriod.Month(YearMonth.of(2026, 6)), periodFor(PeriodPreset.MONTH, tuesday, -2))
+        assertEquals(LocalDate.of(2026, 8, 10), periodFor(PeriodPreset.WEEK, tuesday, -1).from)
+        assertEquals(LocalDate.of(2026, 4, 1), periodFor(PeriodPreset.QUARTER, tuesday, -1).from)
+        assertEquals(ReportPeriod.Year(2024), periodFor(PeriodPreset.YEAR, tuesday, -2))
+    }
+
     private companion object {
         const val TREND_BUCKETS = 12
         const val MONTHS_IN_YEAR = 12

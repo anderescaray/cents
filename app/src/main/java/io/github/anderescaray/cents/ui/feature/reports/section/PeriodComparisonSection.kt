@@ -1,14 +1,17 @@
 package io.github.anderescaray.cents.ui.feature.reports.section
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -17,23 +20,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
-import com.patrykandpatrick.vico.compose.cartesian.data.columnModel
-import com.patrykandpatrick.vico.compose.cartesian.layer.ColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.compose.common.Fill
-import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.ComparisonSegment
 import io.github.anderescaray.cents.domain.model.Money
@@ -45,6 +40,7 @@ import io.github.anderescaray.cents.domain.repository.reports.PeriodComparisonRe
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
+import io.github.anderescaray.cents.ui.components.rememberDrawOn
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.LegendRow
 import io.github.anderescaray.cents.ui.feature.reports.ReportActions
@@ -59,6 +55,8 @@ import kotlinx.coroutines.flow.combine
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Am I doing better or worse than last time: this period's income and expenses beside the
@@ -68,13 +66,13 @@ import javax.inject.Singleton
  * behind — one model, one repository interface, one Room implementation, this file, its own
  * strings, and single lines in `RepositoryModule`, `ReportSections` and the test factory.
  *
- * **The columns are the question and the rows are the answer.** Two pairs of bars show the
- * shape at a glance; the three rows underneath say the change in words, because a bar that is
- * slightly shorter than its neighbour does not tell anyone whether they saved forty euros or
- * four hundred.
+ * **The answer comes first.** One sentence says whether more or less was spent, and by how much;
+ * then each measure — income, expenses, what was left — as its figure, its change and two bars on
+ * one scale, then and now. A bar slightly shorter than its neighbour does not tell anyone whether
+ * they saved forty euros or four hundred, so the figure and the change are always written.
  *
  * The tinting is not "up is green". Spending *more* is worse and earning more is better, so
- * each row carries which direction is good — see [ChangeRow]. Getting that uniform would make
+ * each measure carries which direction is good — see [MeasureBars]. Getting that uniform would make
  * a month of heavier spending glow green, which is the sort of chart that quietly teaches the
  * wrong thing.
  *
@@ -146,39 +144,36 @@ private fun ComparisonDetails(
     segment: ComparisonSegment,
     onDrillDown: (TransactionFilter) -> Unit,
 ) {
-    Box(Modifier.padding(vertical = CentsDimens.spacingM)) {
-        key(segment) {
-            ComparisonColumns(comparison)
-        }
-    }
-    LegendRow(
-        color = CentsTheme.colors.tertiaryLabel,
-        label = stringResource(segment.legendRes),
-        amount = comparison.before.net,
+    SpendingVerdict(comparison = comparison, segment = segment)
+    ChartLegend(
+        listOf(
+            CentsTheme.colors.tertiaryLabel to stringResource(segment.legendRes),
+            CentsTheme.colors.accent to stringResource(R.string.reports_comparison_legend_current),
+        ),
     )
-    LegendRow(
-        color = CentsTheme.colors.accentText,
-        label = stringResource(R.string.reports_comparison_legend_current),
-        amount = comparison.current.net,
-    )
-    ChangeRow(
+    Spacer(Modifier.height(CentsDimens.spacingS))
+    MeasureBars(
         label = stringResource(R.string.summary_income),
-        amount = comparison.current.income,
+        before = comparison.before.income,
+        now = comparison.current.income,
         change = comparison.incomeChange,
         moreIsBetter = true,
     )
-    ChangeRow(
+    MeasureBars(
         label = stringResource(R.string.summary_expenses),
-        amount = comparison.current.expenses,
+        before = comparison.before.expenses,
+        now = comparison.current.expenses,
         change = comparison.expensesChange,
         moreIsBetter = false,
     )
-    ChangeRow(
+    MeasureBars(
         label = stringResource(R.string.summary_net),
-        amount = comparison.current.net,
+        before = comparison.before.net,
+        now = comparison.current.net,
         change = comparison.netChange,
         moreIsBetter = true,
     )
+    Spacer(Modifier.height(CentsDimens.spacingS))
     // The comparison period is the only stretch on this tab that no other view can
     // reach: everything else reports on the period that is selected. So it gets
     // the drill-down, and this period keeps the one it already has everywhere.
@@ -190,6 +185,179 @@ private fun ComparisonDetails(
         onClick = { onDrillDown(comparison.filterForPrevious()) },
     )
 }
+
+/**
+ * The answer in one sentence, before any bar: *Spent 120,00 € less than the previous period*, green
+ * when less went out and red when more did. Spending is what this card is most often opened for.
+ */
+@Composable
+private fun SpendingVerdict(
+    comparison: PeriodComparison,
+    segment: ComparisonSegment,
+) {
+    val change = comparison.expensesChange
+    val amount = MoneyFormatter.format(if (change.isNegative) -change else change)
+    val (text, tone) =
+        when {
+            change.isZero -> {
+                stringResource(R.string.reports_comparison_spent_same) to CentsTheme.colors.label
+            }
+
+            change.isNegative -> {
+                stringResource(R.string.reports_comparison_spent_less, amount) to
+                    CentsTheme.colors.positiveText
+            }
+
+            else -> {
+                stringResource(R.string.reports_comparison_spent_more, amount) to CentsTheme.colors.destructiveText
+            }
+        }
+    Column(Modifier.padding(horizontal = CentsDimens.rowHorizontalPadding, vertical = CentsDimens.spacingM)) {
+        Text(text = text, style = CentsTheme.typography.title3, color = tone)
+        Text(
+            text = stringResource(segment.thanRes),
+            style = CentsTheme.typography.footnote,
+            color = CentsTheme.colors.secondaryLabel,
+        )
+    }
+}
+
+/**
+ * One measure, then and now: its name, what it is now and what it did, as a percentage where there
+ * was something before to be a percentage of; and two bars on the same scale, the comparison
+ * period in grey over this one in the accent.
+ *
+ * [moreIsBetter] is the whole point of the change's colour. Income going up and expenses going up
+ * are both "a bigger number", and colouring them the same way would tell someone their worst month
+ * was their best one.
+ */
+@Composable
+private fun MeasureBars(
+    label: String,
+    before: Money,
+    now: Money,
+    change: Money,
+    moreIsBetter: Boolean,
+) {
+    val tint =
+        when {
+            change.isZero -> CentsTheme.colors.secondaryLabel
+            change.isNegative == moreIsBetter -> CentsTheme.colors.destructiveText
+            else -> CentsTheme.colors.positiveText
+        }
+    val scale = maxOf(abs(before.minorUnits), abs(now.minorUnits)).coerceAtLeast(1L)
+    Column(Modifier.padding(horizontal = CentsDimens.rowHorizontalPadding, vertical = CentsDimens.spacingS)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label,
+                style = CentsTheme.typography.subhead,
+                color = CentsTheme.colors.secondaryLabel,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = changeText(change, before),
+                style = CentsTheme.typography.footnote.copy(fontWeight = FontWeight.SemiBold),
+                color = tint,
+                modifier =
+                    Modifier
+                        .clip(CircleShape)
+                        .background(tint.copy(alpha = CHANGE_TINT))
+                        .padding(horizontal = CentsDimens.spacingS, vertical = 2.dp),
+            )
+        }
+        Text(
+            text = MoneyFormatter.format(now),
+            style = CentsTheme.typography.headline,
+            color = if (now.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
+        )
+        Spacer(Modifier.height(CentsDimens.spacingXs + 2.dp))
+        Bar(
+            fraction = abs(before.minorUnits).toFloat() / scale,
+            color = CentsTheme.colors.tertiaryLabel,
+            amount = before,
+        )
+        Spacer(Modifier.height(BAR_GAP.dp))
+        Bar(fraction = abs(now.minorUnits).toFloat() / scale, color = CentsTheme.colors.accent, amount = now)
+    }
+}
+
+/** How a measure changed: "+12 %" where there was something before, the amount where there was not. */
+@Composable
+private fun changeText(
+    change: Money,
+    before: Money,
+): String {
+    val percent =
+        if (before.isZero) null else (change.minorUnits.toDouble() / abs(before.minorUnits) * PERCENT).roundToInt()
+    return when {
+        change.isZero -> {
+            stringResource(R.string.reports_comparison_unchanged)
+        }
+
+        percent == null -> {
+            MoneyFormatter.formatSigned(change)
+        }
+
+        else -> {
+            stringResource(
+                R.string.reports_share_signed,
+                if (percent >
+                    0
+                ) {
+                    "+$percent"
+                } else {
+                    percent.toString().replace("-", "−")
+                },
+            )
+        }
+    }
+}
+
+/** One period's bar, with its amount at the end of it; it grows into place the first time it is seen. */
+@Composable
+private fun Bar(
+    fraction: Float,
+    color: Color,
+    amount: Money,
+) {
+    val drawn by rememberDrawOn()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(BAR_HEIGHT.dp)
+                    .clip(CircleShape)
+                    .background(CentsTheme.colors.fill)
+                    .drawBehind {
+                        val width = size.width * fraction.coerceIn(0f, 1f) * drawn
+                        if (width > 0f) {
+                            drawRoundRect(
+                                color = color,
+                                size = size.copy(width = width),
+                                cornerRadius =
+                                    CornerRadius(size.height / 2),
+                            )
+                        }
+                    },
+        )
+        Spacer(Modifier.width(CentsDimens.spacingS))
+        Text(
+            text = MoneyFormatter.format(amount),
+            style = CentsTheme.typography.caption1,
+            color = CentsTheme.colors.secondaryLabel,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.widthIn(min = BAR_AMOUNT_MIN.dp),
+        )
+    }
+}
+
+private const val CHANGE_TINT = 0.12f
+private const val BAR_HEIGHT = 8
+private const val BAR_GAP = 4
+private const val BAR_AMOUNT_MIN = 72
+private const val PERCENT = 100
 
 internal const val SEGMENT_CONTROL_TAG = "reportsComparisonSegment"
 
@@ -212,6 +380,14 @@ private val ComparisonSegment.legendRes: Int
         when (this) {
             ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_legend_before
             ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_legend_year_ago
+        }
+
+/** What the verdict compares against: "than the previous period". */
+private val ComparisonSegment.thanRes: Int
+    get() =
+        when (this) {
+            ComparisonSegment.PREVIOUS_PERIOD -> R.string.reports_comparison_than_previous
+            ComparisonSegment.SAME_PERIOD_LAST_YEAR -> R.string.reports_comparison_than_year_ago
         }
 
 private val ComparisonSegment.openRes: Int
@@ -243,118 +419,6 @@ class PeriodComparisonSectionSource
     }
 
 /**
- * One measure, its current value, and what it did since the previous period.
- *
- * [moreIsBetter] is the whole point of the row. Income going up and expenses going up are
- * both "a bigger number", and colouring them the same way would tell someone their worst
- * month was their best one.
- */
-@Composable
-private fun ChangeRow(
-    label: String,
-    amount: Money,
-    change: Money,
-    moreIsBetter: Boolean,
-) {
-    val tint =
-        when {
-            change.isZero -> CentsTheme.colors.secondaryLabel
-            change.isNegative == moreIsBetter -> CentsTheme.colors.destructiveText
-            else -> CentsTheme.colors.positiveText
-        }
-
-    CentsListRow(
-        title = label,
-        trailing = {
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = MoneyFormatter.format(amount),
-                    style = CentsTheme.typography.body,
-                    color = CentsTheme.colors.label,
-                )
-                Text(
-                    text =
-                        if (change.isZero) {
-                            stringResource(R.string.reports_comparison_unchanged)
-                        } else {
-                            MoneyFormatter.formatSigned(change)
-                        },
-                    style = CentsTheme.typography.footnote,
-                    color = tint,
-                )
-            }
-        },
-    )
-}
-
-/**
- * Two pairs of columns: what came in, and what went out, each period beside the other.
- *
- * The previous period is grey and this one takes the accent, so the faded pair reads as the
- * past without needing the legend to say which is which. Both series are drawn even when one
- * period is empty — a missing column would read as missing data rather than as a period in
- * which nothing happened.
- */
-@Composable
-internal fun ComparisonColumns(
-    comparison: PeriodComparison,
-    modifier: Modifier = Modifier,
-) {
-    val past = CentsTheme.colors.tertiaryLabel
-    val now = CentsTheme.colors.accent
-    val labelColor = CentsTheme.colors.secondaryLabel
-    val producer = remember { CartesianChartModelProducer() }
-
-    LaunchedEffect(comparison) {
-        producer.runTransaction {
-            columnModel {
-                series(comparison.before.income.minorUnits, comparison.before.expenses.minorUnits)
-                series(comparison.current.income.minorUnits, comparison.current.expenses.minorUnits)
-            }
-        }
-    }
-
-    val axisLabels =
-        listOf(
-            stringResource(R.string.summary_income),
-            stringResource(R.string.summary_expenses),
-        )
-    val labelStyle = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)
-
-    CartesianChartHost(
-        chart =
-            rememberCartesianChart(
-                rememberColumnCartesianLayer(
-                    columnProvider =
-                        ColumnCartesianLayer.ColumnProvider.series(
-                            rememberLineComponent(Fill(past), COLUMN_WIDTH),
-                            rememberLineComponent(Fill(now), COLUMN_WIDTH),
-                        ),
-                ),
-                startAxis =
-                    VerticalAxis.rememberStart(
-                        label = rememberAxisLabelComponent(style = labelStyle),
-                        // Minor units on an axis would read as a hundred times the money.
-                        valueFormatter =
-                            CartesianValueFormatter { _, value, _ ->
-                                (value / MINOR_UNITS_PER_UNIT).toLong().toString()
-                            },
-                    ),
-                bottomAxis =
-                    HorizontalAxis.rememberBottom(
-                        label = rememberAxisLabelComponent(style = labelStyle),
-                        valueFormatter =
-                            CartesianValueFormatter { _, value, _ ->
-                                axisLabels.getOrElse(value.toInt()) { "" }
-                            },
-                    ),
-            ),
-        modelProducer = producer,
-        modifier = modifier.fillMaxWidth().height(COLUMN_CHART_HEIGHT),
-    )
-}
-
-/**
  * The previous period, written out.
  *
  * Both ends are shown rather than a name like "last month", because the period this compares
@@ -367,12 +431,5 @@ private fun ReportPeriod.label(): String {
     return "${from.format(formatter)} – ${to.format(formatter)}"
 }
 
-private val COLUMN_CHART_HEIGHT = 180.dp
-private val COLUMN_WIDTH = 14.dp
-private val AXIS_LABEL_SIZE = 11.sp
-
 /** "4 Aug", in whatever the device locale calls August. */
 private const val RANGE_LABEL_PATTERN = "d MMM"
-
-/** Cents stores money in minor units; an axis is labelled in whole ones. */
-private const val MINOR_UNITS_PER_UNIT = 100.0

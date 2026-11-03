@@ -89,7 +89,7 @@ fun MoneyFiguresBlock(
                     WorthTile(
                         share = if (both) shareOf(netWorth.normal.minorUnits, netWorth.invested.minorUnits) else null,
                         iconRes = R.drawable.ic_wallet,
-                        color = CentsTheme.colors.accent,
+                        color = CentsTheme.colors.cashPart,
                         label = stringResource(R.string.money_normal),
                         value = MoneyFormatter.format(netWorth.normal),
                         negative = netWorth.normal.isNegative,
@@ -101,7 +101,7 @@ fun MoneyFiguresBlock(
                     WorthTile(
                         share = if (both) shareOf(invested.minorUnits, netWorth.normal.minorUnits) else null,
                         iconRes = R.drawable.ic_trend_up,
-                        color = CentsTheme.colors.positive,
+                        color = CentsTheme.colors.investedPart,
                         label = stringResource(R.string.net_worth_invested),
                         value = MoneyFormatter.format(invested),
                         negative = invested.isNegative,
@@ -294,13 +294,13 @@ private fun SplitPartsCard(
 ) {
     val both = figures.normal && figures.invested
     val normalShare = if (both) shareOf(netWorth.normal.minorUnits, netWorth.invested.minorUnits) else null
-    val accent = CentsTheme.colors.accent
-    val positive = CentsTheme.colors.positive
+    val cash = CentsTheme.colors.cashPart
+    val invested = CentsTheme.colors.investedPart
     CentsCard {
         Row(modifier = Modifier.height(IntrinsicSize.Min)) {
             if (figures.normal) {
                 SplitPart(
-                    color = accent,
+                    color = cash,
                     label = stringResource(R.string.money_normal),
                     money = netWorth.normal,
                     share = normalShare,
@@ -318,7 +318,7 @@ private fun SplitPartsCard(
             }
             if (figures.invested) {
                 SplitPart(
-                    color = positive,
+                    color = invested,
                     label = stringResource(R.string.net_worth_invested),
                     money = netWorth.invested,
                     share = normalShare?.let { 1f - it },
@@ -328,7 +328,7 @@ private fun SplitPartsCard(
         }
         if (normalShare != null) {
             Spacer(Modifier.height(CentsDimens.spacingM))
-            SplitBar(share = normalShare, left = accent, right = positive)
+            SplitBar(share = normalShare, left = cash, right = invested)
         }
     }
 }

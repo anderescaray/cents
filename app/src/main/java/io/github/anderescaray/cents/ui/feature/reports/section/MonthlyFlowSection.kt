@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -119,44 +120,48 @@ data class MonthlyFlowSection(
         val bucket = buckets.getOrNull(selected) ?: buckets.lastOrNull()
         val select: (Int) -> Unit = { if (it in buckets.indices) selected = it }
 
-        Column {
-            CentsListSection(header = stringResource(R.string.reports_flow_header)) {
-                // Inside the card they change, so the controls and the chart read as one thing.
-                Column(Modifier.padding(vertical = CentsDimens.spacingS)) {
-                    FlowControls(mode = mode, onMode = { mode = it }, shape = flow.shape, onReshape = onReshape)
+        CentsListSection(header = stringResource(R.string.reports_flow_header)) {
+            if (flow.isEmpty || bucket == null) {
+                EmptyChart(stringResource(R.string.reports_flow_empty))
+            } else {
+                BucketHeadline(bucket = bucket, size = flow.shape.size)
+                val previous = stringResource(R.string.reports_flow_previous_column)
+                val next = stringResource(R.string.reports_flow_next_column)
+                Box(
+                    Modifier
+                        .padding(top = CentsDimens.spacingM, bottom = CentsDimens.spacingS)
+                        // The columns are tapped through the chart library, which TalkBack
+                        // cannot reach, so the same move is offered as two actions.
+                        .semantics {
+                            customActions =
+                                listOf(
+                                    CustomAccessibilityAction(previous) {
+                                        select(selected - 1)
+                                        true
+                                    },
+                                    CustomAccessibilityAction(next) {
+                                        select(selected + 1)
+                                        true
+                                    },
+                                )
+                        },
+                ) {
+                    FlowChart(flow = flow, mode = mode, selected = selected, onSelect = select)
                 }
-                if (flow.isEmpty || bucket == null) {
-                    EmptyChart(stringResource(R.string.reports_flow_empty))
-                } else {
-                    val previous = stringResource(R.string.reports_flow_previous_column)
-                    val next = stringResource(R.string.reports_flow_next_column)
-                    Box(
-                        Modifier
-                            .padding(vertical = CentsDimens.spacingM)
-                            // The columns are tapped through the chart library, which TalkBack
-                            // cannot reach, so the same move is offered as two actions.
-                            .semantics {
-                                customActions =
-                                    listOf(
-                                        CustomAccessibilityAction(previous) {
-                                            select(selected - 1)
-                                            true
-                                        },
-                                        CustomAccessibilityAction(next) {
-                                            select(selected + 1)
-                                            true
-                                        },
-                                    )
-                            },
-                    ) {
-                        FlowChart(flow = flow, mode = mode, selected = selected, onSelect = select)
-                    }
-                    BucketDetail(
-                        bucket = bucket,
-                        size = flow.shape.size,
-                        onOpen = { actions.onDrillDown(flow.filterFor(bucket)) },
-                    )
-                }
+                FlowLegend(mode)
+            }
+            // Below the answer rather than above it: how the chart is cut is the question asked
+            // least, and three rows of controls first pushed the figures off the card.
+            Column(Modifier.padding(vertical = CentsDimens.spacingM)) {
+                FlowControls(mode = mode, onMode = { mode = it }, shape = flow.shape, onReshape = onReshape)
+            }
+            // A quiet column has nothing to open.
+            if (bucket != null && !flow.isEmpty && !bucket.isEmpty) {
+                CentsActionRow(
+                    label = stringResource(R.string.reports_flow_show_movements),
+                    onClick = { actions.onDrillDown(flow.filterFor(bucket)) },
+                    modifier = Modifier.testTag(OPEN_TAG),
+                )
             }
         }
     }
@@ -239,50 +244,85 @@ private fun FlowControls(
     }
 }
 
-/** The tapped column in figures, and the way into its movements. */
+/**
+ * The tapped column as the card's headline: its name, and what came in, what went out and what
+ * was left as three figures side by side. The latest column with something in it until another
+ * is tapped, and a hint saying that one can be.
+ */
 @Composable
-private fun BucketDetail(
+private fun BucketHeadline(
     bucket: FlowBucket,
     size: FlowBucketSize,
-    onOpen: () -> Unit,
 ) {
     val formatter = remember(size) { DateTimeFormatter.ofPattern(size.titlePattern(), formatLocale()) }
     val dayFormatter = remember { DateTimeFormatter.ofPattern(CUT_DAY_PATTERN, formatLocale()) }
     val net = bucket.summary.net
-
-    // A column cut where the period ends says so, or "2026" read in August looks like a
-    // whole year beside 2025's.
-    CentsListRow(
-        title = bucket.whole.from.format(formatter),
-        subtitle =
+    Column(Modifier.padding(horizontal = CentsDimens.rowHorizontalPadding, vertical = CentsDimens.spacingM)) {
+        Text(
+            text =
+                bucket.whole.from
+                    .format(formatter)
+                    .replaceFirstChar { it.titlecase(formatLocale()) },
+            style = CentsTheme.typography.title3,
+            color = CentsTheme.colors.label,
+        )
+        // A column cut where the period ends says so, or "2026" read in August looks like a
+        // whole year beside 2025's.
+        val cut =
             stringResource(R.string.reports_flow_until, bucket.counted.to.format(dayFormatter))
-                .takeIf { bucket.counted.to < bucket.whole.to },
-    )
-    LegendRow(
-        color = CentsTheme.colors.positiveText,
-        label = stringResource(R.string.reports_flow_legend_income),
-        amount = bucket.summary.income,
-    )
-    LegendRow(
-        color = CentsTheme.colors.destructiveText,
-        label = stringResource(R.string.reports_flow_legend_expenses),
-        amount = bucket.summary.expenses,
-    )
-    // Said in words, and as an amount without a sign: "Overspent 85,10 €" is the answer, where
-    // "−85,10 €" is a number to work out.
-    AmountRow(
-        label = stringResource(if (net.isNegative) R.string.reports_flow_overspent else R.string.reports_flow_saved),
-        amount = if (net.isNegative) -net else net,
-        valueColor = if (net.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.positiveText,
-    )
-    // A quiet column has nothing to open.
-    if (!bucket.isEmpty) {
-        CentsActionRow(
-            label = stringResource(R.string.reports_flow_show_movements),
-            onClick = onOpen,
-            modifier = Modifier.testTag(MonthlyFlowSection.OPEN_TAG),
+                .takeIf { bucket.counted.to < bucket.whole.to }
+        Text(
+            text = cut ?: stringResource(R.string.reports_flow_tap_hint),
+            style = CentsTheme.typography.footnote,
+            color = CentsTheme.colors.secondaryLabel,
         )
     }
+    StatRow {
+        StatCell(
+            label = stringResource(R.string.reports_flow_in),
+            amount = bucket.summary.income,
+            color = CentsTheme.colors.positiveText,
+        )
+        StatCell(
+            label = stringResource(R.string.reports_flow_out),
+            amount = bucket.summary.expenses,
+            color = CentsTheme.colors.destructiveText,
+        )
+        // Said in words, and as an amount without a sign: "Overspent 85,10 €" is the answer,
+        // where "−85,10 €" is a number to work out.
+        StatCell(
+            label =
+                stringResource(
+                    if (net.isNegative) R.string.reports_flow_overspent else R.string.reports_flow_saved,
+                ),
+            amount = if (net.isNegative) -net else net,
+            color = if (net.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.positiveText,
+        )
+    }
+}
+
+/** What the colours of the columns mean, in the mode they are drawn in. */
+@Composable
+private fun FlowLegend(mode: FlowMode) {
+    val positive = CentsTheme.colors.positive
+    val destructive = CentsTheme.colors.destructive
+    ChartLegend(
+        when (mode) {
+            FlowMode.IN_AND_OUT -> {
+                listOf(
+                    positive to stringResource(R.string.reports_flow_legend_income),
+                    destructive to stringResource(R.string.reports_flow_legend_expenses),
+                )
+            }
+
+            FlowMode.SAVED -> {
+                listOf(
+                    positive to stringResource(R.string.reports_flow_saved),
+                    destructive to stringResource(R.string.reports_flow_overspent),
+                )
+            }
+        },
+    )
 }
 
 /**
@@ -305,6 +345,7 @@ internal fun FlowChart(
     val positive = CentsTheme.colors.positive
     val destructive = CentsTheme.colors.destructive
     val labelColor = CentsTheme.colors.secondaryLabel
+    val locale = formatLocale()
     val buckets = flow.buckets
     val producer = rememberFlowModel(buckets, mode)
 
@@ -336,11 +377,7 @@ internal fun FlowChart(
                 startAxis =
                     VerticalAxis.rememberStart(
                         label = rememberAxisLabelComponent(style = labelStyle),
-                        // Minor units on an axis would read as a hundred times the money.
-                        valueFormatter =
-                            CartesianValueFormatter { _, value, _ ->
-                                (value / MINOR_UNITS_PER_UNIT).toLong().toString()
-                            },
+                        valueFormatter = CartesianValueFormatter { _, value, _ -> axisAmount(value, locale) },
                     ),
                 bottomAxis =
                     HorizontalAxis.rememberBottom(
@@ -355,6 +392,9 @@ internal fun FlowChart(
                 markerController = controller,
             ),
         modelProducer = producer,
+        // Every column in the card at once: 24 of them scrolled sideways hid most of the answer.
+        scrollState = rememberFixedScroll(),
+        zoomState = rememberFitZoom(),
         modifier = modifier.fillMaxWidth().height(COLUMN_CHART_HEIGHT),
     )
 }
@@ -477,6 +517,3 @@ private const val CUT_DAY_PATTERN = "d MMM"
 /** Which mode the numbers in a chart model were drawn for. */
 private val FLOW_MODE_KEY = ExtraStore.Key<FlowMode>()
 private const val SIZE_CONTROL_WEIGHT = 1.6f
-
-/** Cents stores money in minor units; an axis is labelled in whole ones. */
-private const val MINOR_UNITS_PER_UNIT = 100.0

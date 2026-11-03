@@ -42,7 +42,9 @@ private enum class RangeBound { FROM, TO }
 /**
  * The Reports tab.
  *
- * One period and one account govern the whole screen. Every chart answers the same question —
+ * One period and one account govern the whole screen. The period is chosen at the top, and can be
+ * stepped back a month (or week, quarter, year) at a time; the account is chosen in Customize,
+ * which keeps the top of the tab for the period and the charts. Every chart answers the same question —
  * "over this stretch of time, for this money" — so a selector per chart would let them drift
  * apart and quietly invite a comparison of August's spending against the whole year's income,
  * or of one account's outgoings against every account's balance.
@@ -75,7 +77,8 @@ fun ReportsScreen(
         onCustomize = onCustomize,
         onOpenSettings = onOpenSettings,
         onSelectPreset = viewModel::selectPreset,
-        onSelectAccount = viewModel::selectAccount,
+        onStep = viewModel::stepPeriod,
+        onStepToNow = viewModel::stepToNow,
         onSetRange = viewModel::setCustomRange,
         onDrillDown = { filter ->
             // The filter is applied first and the tab switched second, so the list is
@@ -97,7 +100,6 @@ fun ReportsScreen(
 fun ReportsScreen(
     state: ReportsUiState,
     onSelectPreset: (PeriodPreset) -> Unit,
-    onSelectAccount: (Long?) -> Unit,
     onSetRange: (LocalDate, LocalDate) -> Unit,
     onDrillDown: (TransactionFilter) -> Unit,
     budgets: BudgetsUiState? = null,
@@ -106,6 +108,9 @@ fun ReportsScreen(
     onOpenBudgets: () -> Unit = {},
     onCustomize: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    /** One period back (-1) or forward (+1), for the arrows either side of its name. */
+    onStep: (Int) -> Unit = {},
+    onStepToNow: () -> Unit = {},
 ) {
     var openPicker by rememberSaveable { mutableStateOf<RangeBound?>(null) }
     val actions = remember(onDrillDown) { ReportActions(onDrillDown = onDrillDown) }
@@ -123,8 +128,7 @@ fun ReportsScreen(
             SettingsButton(onClick = onOpenSettings)
         },
     ) {
-        periodSection(state, onSelectPreset) { openPicker = it }
-        accountSection(state, onSelectAccount)
+        periodSection(state, onSelectPreset, onStep, onStepToNow) { openPicker = it }
 
         if (state.hasNoAccounts) {
             item(key = "no-accounts") { NoAccountsSection() }
@@ -167,6 +171,8 @@ fun ReportsScreen(
 private fun LazyListScope.periodSection(
     state: ReportsUiState,
     onSelectPreset: (PeriodPreset) -> Unit,
+    onStep: (Int) -> Unit,
+    onStepToNow: () -> Unit,
     onOpenPicker: (RangeBound) -> Unit,
 ) {
     item(key = "period") {
@@ -184,56 +190,17 @@ private fun LazyListScope.periodSection(
         )
     }
 
+    if (state.canStep) {
+        item(key = "stepper") {
+            PeriodStepper(state = state, onStep = onStep, onStepToNow = onStepToNow)
+        }
+    }
+
     if (state.preset == PeriodPreset.CUSTOM) {
         item(key = "range") {
             CentsListSection {
                 RangeRow(R.string.reports_range_from, state.customFrom) { onOpenPicker(RangeBound.FROM) }
                 RangeRow(R.string.reports_range_to, state.customTo, last = true) { onOpenPicker(RangeBound.TO) }
-            }
-        }
-    }
-}
-
-/**
- * Which account the tab is about, or all of them.
- *
- * It is the filter form's list of rows rather than a sheet or a screen of its own: the
- * question is small, the answer is worth being able to read without tapping anything, and
- * `SelectableRow` already says "one of these is chosen" the way iOS does. Archived accounts
- * are offered, because the charts have always counted their movements — hiding one here would
- * make an archived account's history unreachable from the tab that exists to look at history.
- *
- * It does not appear at all until there are two accounts to choose between. A picker with one
- * answer is a row that says what the screen already said.
- */
-private fun LazyListScope.accountSection(
-    state: ReportsUiState,
-    onSelectAccount: (Long?) -> Unit,
-) {
-    if (!state.canPickAccount) return
-
-    item(key = "account") {
-        // A row of chips rather than a list: the answer is still readable without a tap, and a
-        // picker of four accounts no longer pushes the first chart below the fold.
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = CentsDimens.screenMargin),
-            horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingS),
-        ) {
-            item(key = "all") {
-                CentsChip(
-                    label = stringResource(R.string.reports_all_accounts),
-                    selected = state.accountId == null,
-                    onClick = { onSelectAccount(null) },
-                )
-            }
-            items(state.accounts, key = { it.id }) { account ->
-                CentsChip(
-                    label = account.displayName(),
-                    selected = state.accountId == account.id,
-                    colorArgb = account.colorArgb,
-                    showBadge = false,
-                    onClick = { onSelectAccount(account.id) },
-                )
             }
         }
     }

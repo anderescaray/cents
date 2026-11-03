@@ -1,52 +1,58 @@
 package io.github.anderescaray.cents.ui.feature.reports.section
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.VerticalAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberAxisLabelComponent
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
-import com.patrykandpatrick.vico.compose.cartesian.data.CartesianValueFormatter
-import com.patrykandpatrick.vico.compose.cartesian.data.lineModel
-import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.compose.common.Fill
-import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
+import io.github.anderescaray.cents.domain.model.BalancePoint
+import io.github.anderescaray.cents.domain.model.BalanceSpan
+import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.ReportPeriod
 import io.github.anderescaray.cents.domain.model.ReportScope
 import io.github.anderescaray.cents.domain.repository.reports.BalanceOverTimeRepository
+import io.github.anderescaray.cents.ui.components.AnimatedMoney
 import io.github.anderescaray.cents.ui.components.CentsListSection
-import io.github.anderescaray.cents.ui.feature.reports.AmountRow
+import io.github.anderescaray.cents.ui.components.headlineMoney
+import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.reports.EmptyChart
 import io.github.anderescaray.cents.ui.feature.reports.ReportActions
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionSource
 import io.github.anderescaray.cents.ui.feature.reports.ReportSectionState
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.MoneyFormatter
 import io.github.anderescaray.cents.ui.util.formatLocale
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.abs
-import kotlin.math.max
 
 /**
  * Am I trending up or down: the balance, day by day, over the period.
@@ -56,9 +62,8 @@ import kotlin.math.max
  * is `TransactionDao.observeDailyNet` plus `observeBalanceBefore`, its repository is
  * `RoomBalanceOverTimeRepository`, and everything on screen is in this file.
  *
- * **The line starts from the money carried into the period, not from zero.** The whole
- * argument is on [BalanceOverTime]; the part that matters here is what it costs, which is
- * that the y-axis must not be dragged down to zero — see [BalanceRangeProvider].
+ * **The line starts from the money carried into the period, not from zero**, and runs to today.
+ * The whole argument is on [BalanceOverTime]; drawing it is [BalanceLine], which reads by touch.
  *
  * The three rows under the chart are not decoration. A line drawn against an axis that does
  * not start at zero cannot be read for its level, only for its shape, so the level is stated
@@ -66,46 +71,117 @@ import kotlin.math.max
  */
 data class BalanceOverTimeSection(
     val balance: BalanceOverTime,
+    /** How far back this card reaches, which only this card changes. */
+    val span: BalanceSpan = BalanceSpan.PERIOD,
+    /** A stable instance from the source, so two states still compare equal. */
+    val onSpan: (BalanceSpan) -> Unit = {},
 ) : ReportSectionState {
     override val key: String get() = KEY
 
     @Composable
     override fun Content(actions: ReportActions) {
-        CentsListSection(header = stringResource(R.string.reports_balance_header)) {
+        val today = remember { LocalDate.now() }
+        // From what there was before the period, so a single expense on its first day is a step
+        // down rather than a flat line, and no further than today: the days still to come have
+        // nothing in them, and drawing them flat said the money had stopped moving.
+        val line =
+            remember(balance, today) {
+                listOf(BalancePoint(balance.period.from.minusDays(1), balance.opening)) +
+                    balance.points.filter { it.date <= today }
+            }
+        var scrubbed by remember(line) { mutableStateOf<Int?>(null) }
+        val reading = scrubbed?.let(line::getOrNull)
+
+        CentsListSection(
+            header = stringResource(R.string.reports_balance_header),
+            // Said, because over every account the brokers are left out, and a line that quietly
+            // omits money is the kind of number that gets believed and should not be.
+            footer = stringResource(R.string.reports_balance_scope).takeIf { !balance.oneAccount },
+        ) {
+            // The answer first: how much the money moved, in its colour, with how far back to look
+            // beside it, small, so it costs the card no row of its own. While a finger is on the
+            // line, the day under it instead: what there was then, and how far from the start.
+            BalanceHeadline(balance = balance, reading = reading, span = span, onSpan = onSpan)
             if (balance.isEmpty) {
                 // A flat line at the opening balance would be true and would say nothing.
                 EmptyChart(stringResource(R.string.reports_balance_empty))
             } else {
-                Box(Modifier.padding(vertical = CentsDimens.spacingM)) { BalanceLineChart(balance) }
-                AmountRow(
-                    label = stringResource(R.string.reports_balance_opening),
-                    amount = balance.opening,
+                BalanceLine(
+                    points = line,
+                    above = CentsTheme.colors.positive,
+                    below = CentsTheme.colors.destructive,
+                    scrubbed = scrubbed,
+                    onScrub = { scrubbed = it },
+                    description =
+                        stringResource(
+                            R.string.reports_balance_line_description,
+                            MoneyFormatter.format(balance.opening),
+                            MoneyFormatter.format(line.last().balance),
+                        ),
+                    modifier = Modifier.padding(horizontal = CentsDimens.rowHorizontalPadding),
                 )
-                AmountRow(
-                    label = stringResource(R.string.reports_balance_closing),
-                    amount = balance.closing,
-                )
-                AmountRow(
-                    label = stringResource(R.string.reports_balance_change),
-                    amount = balance.change,
-                    // The sign is the answer to the question the chart asks, so it is the
-                    // one number on the tab that is tinted.
-                    valueColor =
-                        when {
-                            balance.change.isZero -> null
-                            balance.change.isNegative -> CentsTheme.colors.destructiveText
-                            else -> CentsTheme.colors.positiveText
-                        },
-                    last = true,
-                )
+                Spacer(Modifier.height(CentsDimens.spacingM))
+                // A line with no axis cannot be read for its level, only for its shape, so the level
+                // is stated in words under it.
+                StatRow {
+                    StatCell(label = stringResource(R.string.reports_balance_opening), amount = balance.opening)
+                    StatCell(label = stringResource(R.string.reports_balance_closing), amount = balance.closing)
+                }
+                Spacer(Modifier.height(CentsDimens.spacingL))
             }
         }
     }
 
     companion object {
         const val KEY = "balance"
+        const val SPAN_TAG = "balance-span"
     }
 }
+
+/**
+ * The three reaches as one small track of pills: the tab's period, the year up to its end, all of it. Small on
+ * purpose: it is a second look at the same line, not a control the card is about.
+ */
+@Composable
+private fun SpanPicker(
+    selected: BalanceSpan,
+    onSelect: (BalanceSpan) -> Unit,
+) {
+    val labels =
+        mapOf(
+            BalanceSpan.PERIOD to stringResource(R.string.reports_balance_span_period),
+            BalanceSpan.YEAR to stringResource(R.string.reports_balance_span_year),
+            BalanceSpan.ALL to stringResource(R.string.reports_balance_span_all),
+        )
+    Row(
+        modifier =
+            Modifier
+                .testTag(BalanceOverTimeSection.SPAN_TAG)
+                .clip(CircleShape)
+                .background(CentsTheme.colors.fill)
+                .padding(SPAN_TRACK.dp),
+    ) {
+        BalanceSpan.entries.forEach { span ->
+            val isSelected = span == selected
+            Text(
+                text = labels.getValue(span),
+                style = CentsTheme.typography.caption1.copy(fontWeight = FontWeight.SemiBold),
+                color = if (isSelected) CentsTheme.colors.label else CentsTheme.colors.secondaryLabel,
+                modifier =
+                    Modifier
+                        .clip(CircleShape)
+                        .background(if (isSelected) CentsTheme.colors.groupedCard else Color.Transparent)
+                        .semantics { this.selected = isSelected }
+                        .tappable(onClick = { onSelect(span) })
+                        .padding(horizontal = SPAN_PAD_H.dp, vertical = SPAN_PAD_V.dp),
+            )
+        }
+    }
+}
+
+private const val SPAN_TRACK = 2
+private const val SPAN_PAD_H = 10
+private const val SPAN_PAD_V = 4
 
 @Singleton
 class BalanceOverTimeSectionSource
@@ -113,157 +189,119 @@ class BalanceOverTimeSectionSource
     constructor(
         private val repository: BalanceOverTimeRepository,
     ) : ReportSectionSource {
+        /** In memory, like the flow chart's shape: a way of looking, reset by a restart. */
+        private val span = MutableStateFlow(BalanceSpan.PERIOD)
+
+        private val onSpan: (BalanceSpan) -> Unit = { span.value = it }
+
+        @OptIn(ExperimentalCoroutinesApi::class)
         override fun observe(scope: ReportScope): Flow<ReportSectionState> =
-            repository.observeBalanceOverTime(scope).map(::BalanceOverTimeSection)
+            span.flatMapLatest { chosen ->
+                reach(scope, chosen)
+                    .flatMapLatest { period -> repository.observeBalanceOverTime(scope.copy(period = period)) }
+                    .map { BalanceOverTimeSection(it, chosen, onSpan) }
+            }
+
+        /**
+         * Where the line runs for a span, always ending where the tab's period ends, so stepping back
+         * a month moves the year and all of time with it.
+         */
+        private fun reach(
+            scope: ReportScope,
+            span: BalanceSpan,
+        ): Flow<ReportPeriod> {
+            val end = scope.period.to
+            return when (span) {
+                BalanceSpan.PERIOD -> {
+                    flowOf(scope.period)
+                }
+
+                BalanceSpan.YEAR -> {
+                    flowOf(ReportPeriod.Custom(end.minusYears(1).plusDays(1), end))
+                }
+
+                BalanceSpan.ALL -> {
+                    repository.observeFirstDate(scope.accountId).map { first ->
+                        ReportPeriod.Custom(minOf(first ?: scope.period.from, scope.period.from), end)
+                    }
+                }
+            }
+        }
     }
 
 /**
- * The balance line.
- *
- * Green above the balance the period started from and red below it, split at exactly that
- * value — the same two tokens the transaction list uses for amounts and the columns above use
- * for income and expenses, so a colour means one thing across the whole app. Nothing here
- * comes from Vico's Material defaults (ADR 0001).
+ * The change over the line, or the day a finger is on, with how far back to look beside it: small,
+ * so it costs the card no row of its own.
  */
 @Composable
-internal fun BalanceLineChart(
+private fun BalanceHeadline(
     balance: BalanceOverTime,
-    modifier: Modifier = Modifier,
+    reading: BalancePoint?,
+    span: BalanceSpan,
+    onSpan: (BalanceSpan) -> Unit,
 ) {
-    val positive = CentsTheme.colors.positive
-    val destructive = CentsTheme.colors.destructive
-    val labelColor = CentsTheme.colors.secondaryLabel
-    val producer = remember { CartesianChartModelProducer() }
-
-    // Keyed on the data, so the model is rebuilt when the balances change rather than on
-    // every recomposition while the tab is scrolled.
-    LaunchedEffect(balance) {
-        if (balance.points.isEmpty()) return@LaunchedEffect
-        producer.runTransaction {
-            lineModel { series(balance.points.map { it.balance.minorUnits }) }
+    Row(
+        modifier = Modifier.padding(horizontal = CentsDimens.rowHorizontalPadding, vertical = CentsDimens.spacingM),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(Modifier.weight(1f)) {
+            if (reading != null) {
+                ScrubHeadline(point = reading, opening = balance.opening)
+            } else {
+                Text(
+                    text = stringResource(R.string.reports_balance_change),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.secondaryLabel,
+                )
+                if (!balance.isEmpty) {
+                    AnimatedMoney(
+                        money = balance.change,
+                        style = CentsTheme.typography.title1,
+                        color = toneOf(balance.change),
+                        withSign = true,
+                    )
+                }
+            }
         }
+        SpanPicker(selected = span, onSelect = onSpan)
     }
+}
 
-    if (balance.points.isEmpty()) return
-
-    val labels =
-        remember(balance) {
-            val formatter = DateTimeFormatter.ofPattern(DAY_LABEL_PATTERN, formatLocale())
-            balance.points.map { it.date.format(formatter) }
-        }
-
-    CartesianChartHost(
-        chart = rememberBalanceChart(balance.opening.minorUnits, labels, positive, destructive, labelColor),
-        modelProducer = producer,
-        modifier = modifier.fillMaxWidth().height(LINE_CHART_HEIGHT),
+/** A day read off the line: its date, what there was, and how far that is from the start. */
+@Composable
+private fun ScrubHeadline(
+    point: BalancePoint,
+    opening: Money,
+) {
+    val formatter = remember { DateTimeFormatter.ofPattern(SCRUB_DATE_PATTERN, formatLocale()) }
+    val fromStart = point.balance - opening
+    Text(
+        text = point.date.format(formatter),
+        style = CentsTheme.typography.footnote,
+        color = CentsTheme.colors.secondaryLabel,
+    )
+    val text = MoneyFormatter.format(point.balance)
+    Text(
+        text = headlineMoney(text, CentsTheme.typography.title1.fontSize, CentsTheme.colors.label),
+        style = CentsTheme.typography.title1,
+        color = CentsTheme.colors.label,
+        maxLines = 1,
+    )
+    Text(
+        text = MoneyFormatter.formatSigned(fromStart),
+        style = CentsTheme.typography.footnote,
+        color = toneOf(fromStart),
     )
 }
 
-/**
- * The chart itself: one line, split in two colours at the balance the period started from,
- * over an axis that fits the balances rather than the whole range down to zero.
- *
- * Split out from [BalanceLineChart] because it is the half that is all Vico configuration,
- * and keeping the data handling above it readable is worth one indirection.
- */
+/** Green for more, red for less, ink for no change: the colour of a change in money. */
 @Composable
-private fun rememberBalanceChart(
-    openingMinor: Long,
-    labels: List<String>,
-    positive: Color,
-    destructive: Color,
-    labelColor: Color,
-) = rememberCartesianChart(
-    rememberLineCartesianLayer(
-        lineProvider =
-            LineCartesianLayer.LineProvider.series(
-                LineCartesianLayer.rememberLine(
-                    fill =
-                        LineCartesianLayer.LineFill.double(
-                            Fill(positive),
-                            Fill(destructive),
-                            { openingMinor },
-                        ),
-                    areaFill =
-                        LineCartesianLayer.AreaFill.double(
-                            Fill(positive.copy(alpha = AREA_ALPHA)),
-                            Fill(destructive.copy(alpha = AREA_ALPHA)),
-                            { openingMinor },
-                        ),
-                ),
-            ),
-        rangeProvider = BalanceRangeProvider,
-    ),
-    startAxis =
-        VerticalAxis.rememberStart(
-            label = rememberAxisLabelComponent(style = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)),
-            // Minor units on an axis would read as a hundred times the money.
-            valueFormatter =
-                CartesianValueFormatter { _, value, _ ->
-                    (value / MINOR_UNITS_PER_UNIT).toLong().toString()
-                },
-        ),
-    bottomAxis =
-        HorizontalAxis.rememberBottom(
-            label = rememberAxisLabelComponent(style = TextStyle(color = labelColor, fontSize = AXIS_LABEL_SIZE)),
-            valueFormatter =
-                CartesianValueFormatter { _, value, _ ->
-                    labels.getOrElse(value.toInt()) { "" }
-                },
-            // A year is 365 points and cannot carry 365 dates under it. Roughly five labels,
-            // whatever the period is, and never a spacing of zero.
-            itemPlacer = HorizontalAxis.ItemPlacer.aligned({ max(1, labels.size / TARGET_AXIS_LABELS) }),
-        ),
-)
-
-/**
- * The y-axis fits the balances, instead of being dragged down to zero.
- *
- * Vico's own `auto()` returns zero as the minimum whenever every value is positive, which is
- * right for columns — a bar has to start somewhere — and wrong for a balance: 10.000 euros
- * moving by 200 over a month draws a dead flat line at the top of a chart that is mostly
- * empty space. This is the direct cost of starting the line from the money carried into the
- * period rather than from zero, and paying it is the point: the slope is the answer, the
- * level is context, and the rows under the chart state the level in words.
- *
- * The range is padded by a tenth of its own span so the line does not run along the frame,
- * and a period whose balance never moved is given a span to be flat inside rather than a
- * zero-height axis to divide by.
- */
-private object BalanceRangeProvider : CartesianLayerRangeProvider {
-    override fun getMinY(
-        minY: Double,
-        maxY: Double,
-        extraStore: ExtraStore,
-    ): Double = minY - padding(minY, maxY)
-
-    override fun getMaxY(
-        minY: Double,
-        maxY: Double,
-        extraStore: ExtraStore,
-    ): Double = maxY + padding(minY, maxY)
-
-    private fun padding(
-        minY: Double,
-        maxY: Double,
-    ): Double {
-        val span = maxY - minY
-        if (span > 0) return span * RANGE_PADDING
-        // A line that never moves still needs somewhere to be drawn. Ten percent of its own
-        // value, or one whole unit when that value is zero too.
-        return max(abs(maxY) * RANGE_PADDING, MINOR_UNITS_PER_UNIT)
+private fun toneOf(change: Money): Color =
+    when {
+        change.isZero -> CentsTheme.colors.label
+        change.isNegative -> CentsTheme.colors.destructiveText
+        else -> CentsTheme.colors.positiveText
     }
-}
 
-private val LINE_CHART_HEIGHT = 180.dp
-private val AXIS_LABEL_SIZE = 11.sp
-
-/** Day and short month: "3 Sep", "3 sept" — whatever the device locale calls it. */
-private const val DAY_LABEL_PATTERN = "d MMM"
-
-/** Cents stores money in minor units; an axis is labelled in whole ones. */
-private const val MINOR_UNITS_PER_UNIT = 100.0
-
-private const val TARGET_AXIS_LABELS = 5
-private const val RANGE_PADDING = 0.1
-private const val AREA_ALPHA = 0.16f
+/** "3 Nov 2026": the day a finger is on. */
+private const val SCRUB_DATE_PATTERN = "d MMM yyyy"

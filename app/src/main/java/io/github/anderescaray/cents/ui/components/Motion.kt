@@ -23,16 +23,23 @@ import io.github.anderescaray.cents.ui.util.rememberReduceMotion
 /** Things arriving: fast out, long settle. The film's one easing for anything appearing. */
 val EaseOutExpo = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
+/** Moving from one place to another: a push, a pop. Quick to leave, and soft as it lands. */
+val EaseOutQuint = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
+
+/** Things leaving: they gather speed and are gone, rather than drifting off slowly. */
+val EaseInSharp = CubicBezierEasing(0.4f, 0f, 1f, 1f)
+
 /** A value changing in place: a total counting, an arc re-balancing. */
 val EaseInOut = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)
 
 /** How long a card takes to rise into place, and how far apart two cards start. */
-private const val ARRIVE_MS = 600
-private const val ARRIVE_STAGGER_MS = 70
-private const val ARRIVE_RISE_DP = 22f
+private const val ARRIVE_MS = 460
+private const val ARRIVE_STAGGER_MS = 45
+private const val ARRIVE_RISE_DP = 14f
 
 /** How far a pressed thing gives under the thumb. */
-private const val PRESSED_SCALE = 0.97f
+private const val PRESSED_SCALE = 0.96f
+private const val PRESS_DAMPING = 0.7f
 
 /**
  * A card rising into place the first time a screen draws it, [index] places after the first.
@@ -78,7 +85,8 @@ private const val MAX_STAGGERED = 6
 fun rememberPressScale(pressed: Boolean): Float {
     val scale by animateFloatAsState(
         targetValue = if (pressed) PRESSED_SCALE else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        // Firm rather than bouncy: it answers the thumb at once and settles without a wobble.
+        animationSpec = spring(dampingRatio = PRESS_DAMPING, stiffness = Spring.StiffnessMediumLow * 2),
         label = "pressScale",
     )
     return scale

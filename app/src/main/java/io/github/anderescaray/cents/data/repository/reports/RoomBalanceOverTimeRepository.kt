@@ -56,9 +56,13 @@ class RoomBalanceOverTimeRepository
                     // Days, not movements: what this separates is "nothing happened" from
                     // "it happened and cancelled out", and both of those are days.
                     activeDays = days.count { it.movementCount > 0 },
+                    oneAccount = scope.accountId != null,
                 )
             }
         }
+
+        override fun observeFirstDate(accountId: Long?): Flow<LocalDate?> =
+            transactionDao.observeFirstBalanceDate(accountId)
     }
 
 /**

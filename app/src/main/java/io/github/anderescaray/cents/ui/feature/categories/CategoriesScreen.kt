@@ -46,7 +46,10 @@ import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
 import io.github.anderescaray.cents.ui.components.CentsSegmentedControl
 import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
+import io.github.anderescaray.cents.ui.components.ReorderState
 import io.github.anderescaray.cents.ui.components.RoundIconButton
+import io.github.anderescaray.cents.ui.components.reorderHandle
+import io.github.anderescaray.cents.ui.components.reorderableRow
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.accounts.DeletionFailedAlert
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -232,28 +235,7 @@ private fun CategoryRow(
     onMove: (Int, Int) -> Unit,
     onDelete: (Category) -> Unit,
 ) {
-    val isDragged = index == reorder.draggedIndex
-    // Derived, not computed inline: a drag emits an offset per frame, but the displacement
-    // of the rows around it only changes when the finger crosses into the next position.
-    val shift by remember(index, count) {
-        derivedStateOf {
-            displacement(
-                index = index,
-                from = reorder.draggedIndex,
-                to = reorder.targetIndex(count),
-                rowHeight = reorder.rowHeight,
-            )
-        }
-    }
-    val animatedShift by animateFloatAsState(shift, label = "categoryShift")
-
-    Box(
-        modifier =
-            Modifier
-                .zIndex(if (isDragged) 1f else 0f)
-                .onSizeChanged { reorder.rowHeight = it.height }
-                .graphicsLayer { translationY = if (isDragged) reorder.offset else animatedShift },
-    ) {
+    Box(modifier = Modifier.reorderableRow(reorder, index, count)) {
         CentsSwipeableRow(
             onDelete = { onDelete(category) },
             deleteLabel = stringResource(R.string.action_delete),
@@ -263,72 +245,12 @@ private fun CategoryRow(
                 title = category.name,
                 leading = { CategoryMark(category) },
                 trailing = {
-                    ReorderHandle(
-                        modifier =
-                            Modifier.pointerInput(count) {
-                                detectDragGestures(
-                                    onDragStart = { reorder.start(index) },
-                                    onDrag = { change, amount ->
-                                        change.consume()
-                                        reorder.offset += amount.y
-                                    },
-                                    onDragEnd = {
-                                        val from = reorder.draggedIndex
-                                        val to = reorder.targetIndex(count)
-                                        if (from != null && to != null) onMove(from, to)
-                                        reorder.stop()
-                                    },
-                                    onDragCancel = reorder::stop,
-                                )
-                            },
-                    )
+                    ReorderHandle(modifier = Modifier.reorderHandle(reorder, index, count, onMove))
                 },
                 showSeparator = index != count - 1,
                 onClick = { onOpen(category.id, category.kind) },
             )
         }
-    }
-}
-
-/** Which row the finger is holding and how far it has travelled. */
-private class ReorderState {
-    var draggedIndex by mutableStateOf<Int?>(null)
-    var offset by mutableFloatStateOf(0f)
-    var rowHeight by mutableIntStateOf(0)
-
-    /** The position the dragged row would take if the finger let go now. */
-    fun targetIndex(count: Int): Int? {
-        val from = draggedIndex ?: return null
-        val movedRows = if (rowHeight == 0 || count == 0) 0 else (offset / rowHeight).roundToInt()
-        return (from + movedRows).coerceIn(0, (count - 1).coerceAtLeast(0))
-    }
-
-    fun start(index: Int) {
-        draggedIndex = index
-        offset = 0f
-    }
-
-    fun stop() {
-        draggedIndex = null
-        offset = 0f
-    }
-}
-
-/**
- * How far a row that is not being dragged has to move so the gap follows the finger:
- * everything between the row's old and new position shifts by exactly one row.
- */
-private fun displacement(
-    index: Int,
-    from: Int?,
-    to: Int?,
-    rowHeight: Int,
-): Float {
-    if (from == null || to == null || from == to) return 0f
-    return when {
-        from < to && index in (from + 1)..to -> -rowHeight.toFloat()
-        from > to && index in to..<from -> rowHeight.toFloat()
-        else -> 0f
     }
 }
 

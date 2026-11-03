@@ -584,6 +584,12 @@ interface TransactionDao {
      * one legitimate difference from the Accounts tab total, which sums only active accounts,
      * is an archived account that still holds a balance.
      *
+     * **Over every account, brokers are left out**: the line is cash and bank, the money Home and
+     * Wallet call *Cash and bank*. A broker's cash is invested money (`DECISIONS.md` D34), and a
+     * purchase only turns it into an asset (D40) — counted here, buying 300 € of shares drew a
+     * 300 € fall in a month whose spending was 28 €. What is invested has its own screens. With a
+     * broker chosen as [accountId], the line is that account's cash, as its own screen shows it.
+     *
      * With an [accountId] given, **both halves narrow together**. Only that account's opening
      * balance is carried in, and only its movements are counted before [from] — narrowing one
      * and not the other is the mistake this query exists to make impossible, because it would
@@ -606,7 +612,7 @@ interface TransactionDao {
         SELECT (
                    SELECT COALESCE(SUM(a.openingBalanceMinor), 0)
                    FROM accounts a
-                   WHERE :accountId IS NULL OR a.id = :accountId
+                   WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
                ) + (
                    SELECT COALESCE(
                        SUM(
@@ -620,12 +626,18 @@ interface TransactionDao {
                    )
                    FROM transactions t
                    WHERE t.date < :from
-                     AND (:accountId IS NULL OR t.accountId = :accountId)
+                     AND t.accountId IN (
+                         SELECT a.id FROM accounts a
+                         WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+                     )
                ) + (
                    SELECT COALESCE(SUM(b.amountMinor), 0)
                    FROM balance_adjustments b
                    WHERE b.date < :from
-                     AND (:accountId IS NULL OR b.accountId = :accountId)
+                     AND b.accountId IN (
+                         SELECT a.id FROM accounts a
+                         WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+                     )
                )
         """,
     )
@@ -646,8 +658,12 @@ interface TransactionDao {
      * than carrying two columns; [DayNet.movementCount] is what tells an empty period apart
      * from a period whose income and expenses happened to cancel out exactly.
      *
-     * **Transfer legs count here too.** Over every account a transfer nets to zero and the
-     * line is flat through it, which is the truth: the money changed pockets. Narrowed to one
+     * **The same accounts as [observeBalanceBefore]**: one chosen account, or every one but the
+     * brokers.
+     *
+     * **Transfer legs count here too.** Between two cash and bank accounts a transfer nets to zero
+     * and the line is flat through it, which is the truth: the money changed pockets. To a broker
+     * it is a step down, because the money left *Cash and bank* to be invested. Narrowed to one
      * account it is a real step up or down, which is also the truth, and dropping it would
      * draw a balance that ends somewhere the account is not.
      *
@@ -668,12 +684,18 @@ interface TransactionDao {
                    END AS signedMinor
             FROM transactions t
             WHERE t.date BETWEEN :from AND :to
-              AND (:accountId IS NULL OR t.accountId = :accountId)
+              AND t.accountId IN (
+                  SELECT a.id FROM accounts a
+                  WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+              )
             UNION ALL
             SELECT b.date AS date, b.amountMinor AS signedMinor
             FROM balance_adjustments b
             WHERE b.date BETWEEN :from AND :to
-              AND (:accountId IS NULL OR b.accountId = :accountId)
+              AND b.accountId IN (
+                  SELECT a.id FROM accounts a
+                  WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+              )
         ) m
         GROUP BY m.date
         ORDER BY m.date
@@ -684,6 +706,31 @@ interface TransactionDao {
         to: LocalDate,
         accountId: Long?,
     ): Flow<List<DayNet>>
+
+    /**
+     * The first day anything moved in the accounts the balance line follows — the same accounts
+     * as [observeDailyNet] — or null. This is where the line's *all time* starts.
+     */
+    @Query(
+        """
+        SELECT MIN(m.date) FROM (
+            SELECT t.date AS date
+            FROM transactions t
+            WHERE t.accountId IN (
+                SELECT a.id FROM accounts a
+                WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+            )
+            UNION ALL
+            SELECT b.date AS date
+            FROM balance_adjustments b
+            WHERE b.accountId IN (
+                SELECT a.id FROM accounts a
+                WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+            )
+        ) m
+        """,
+    )
+    fun observeFirstBalanceDate(accountId: Long?): Flow<LocalDate?>
 
     /**
      * Every category with a movement over a span, largest first.

@@ -61,14 +61,6 @@ class AccountsViewModel
         portfolioRepository: PortfolioRepository,
     ) : ViewModel() {
         /**
-         * The same delete question the editor asks, reachable here by swiping a row.
-         *
-         * Swiping is a shortcut to the question, never past it: the sheet that names how
-         * many movements are at stake is the same object in both places (`DECISIONS.md` D7).
-         */
-        val removal = AccountRemoval(accountRepository, viewModelScope)
-
-        /**
          * The accounts and the portfolio together, because the tab now answers a question that
          * needs both.
          *

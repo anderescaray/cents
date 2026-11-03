@@ -18,10 +18,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
+import io.github.anderescaray.cents.domain.model.BalanceSpan
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.CategoryTrend
@@ -47,6 +49,8 @@ import io.github.anderescaray.cents.ui.components.SETTINGS_BUTTON_TAG
 import io.github.anderescaray.cents.ui.feature.reports.PeriodPreset
 import io.github.anderescaray.cents.ui.feature.reports.ReportsScreen
 import io.github.anderescaray.cents.ui.feature.reports.ReportsUiState
+import io.github.anderescaray.cents.ui.feature.reports.STEP_BACK_TAG
+import io.github.anderescaray.cents.ui.feature.reports.STEP_FORWARD_TAG
 import io.github.anderescaray.cents.ui.feature.reports.section.BalanceOverTimeSection
 import io.github.anderescaray.cents.ui.feature.reports.section.CategoryTrendSection
 import io.github.anderescaray.cents.ui.feature.reports.section.KIND_CONTROL_TAG
@@ -176,47 +180,38 @@ class ReportsScreenTest {
     }
 
     @Test
-    fun `one account is not a choice, so no picker is drawn`() {
-        setContent(fullState(accounts = listOf(account(CURRENT_ID, "Current"))))
+    fun `the account is not chosen on the tab any more, so the charts start at the top`() {
+        setContent(fullState(accounts = twoAccounts()))
 
-        // A row offering a single answer says what the screen already said.
+        // Chosen in Customize now (ReportsCustomizeTest), which keeps the top for the period.
         composeRule.onNodeWithText("All accounts").assertDoesNotExist()
     }
 
     @Test
-    fun `two accounts are offered, along with the way back to all of them`() {
-        setContent(fullState(accounts = twoAccounts()))
+    fun `the period is named, and its arrows step back and forward`() {
+        val steps = mutableListOf<Int>()
+        setContent(fullState(), onStep = { steps += it })
 
-        composeRule.onNodeWithText("All accounts").assertExists()
-        composeRule.onNodeWithText("Current").assertExists()
-        composeRule.onNodeWithText("Savings").assertExists()
+        composeRule.onNodeWithText("August 2026").assertExists()
+        composeRule.onNodeWithText("This month").assertExists()
+        composeRule.onNodeWithTag(STEP_BACK_TAG).performClick()
+
+        // At the period holding today there is nowhere further forward to go.
+        composeRule.onNodeWithTag(STEP_FORWARD_TAG).performClick()
+        assertEquals(listOf(-1), steps)
     }
 
     @Test
-    fun `choosing an account is reported, and so is choosing all of them again`() {
-        val chosen = mutableListOf<Long?>()
-        setContent(
-            fullState(accounts = twoAccounts(), accountId = CURRENT_ID),
-            onSelectAccount = { chosen += it },
-        )
+    fun `a period in the past offers the way back to now, and forward again`() {
+        val steps = mutableListOf<Int>()
+        var now = 0
+        setContent(fullState().copy(offset = -2), onStep = { steps += it }, onStepToNow = { now++ })
 
-        composeRule.onNodeWithText("Savings").performClick()
-        composeRule.onNodeWithText("All accounts").performClick()
+        composeRule.onNodeWithTag(STEP_FORWARD_TAG).performClick()
+        composeRule.onNodeWithText("Back to now").performClick()
 
-        // Null is a real answer rather than the absence of one: it is how the tab goes back
-        // to every account, and it has to be reachable from the same list.
-        assertEquals(listOf(SAVINGS_ID, null), chosen)
-    }
-
-    @Test
-    fun `an archived account is offered, and says that it is archived`() {
-        setContent(
-            fullState(accounts = twoAccounts() + account(OLD_ID, "Old card", archived = true)),
-        )
-
-        // The charts have always counted an archived account's movements. Leaving it out
-        // here would make its history unreachable from the tab that exists to look at it.
-        composeRule.onNodeWithText("Old card (archived)").assertExists()
+        assertEquals(listOf(1), steps)
+        assertEquals(1, now)
     }
 
     @Test
@@ -232,10 +227,41 @@ class ReportsScreenTest {
     }
 
     @Test
+    fun `the balance can look back a year or all of time, from its own card`() {
+        val asked = mutableListOf<BalanceSpan>()
+        val balance = fullState().section<BalanceOverTimeSection>()!!.copy(onSpan = { asked += it })
+        setContent(ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(balance)))
+
+        composeRule.onNodeWithText("1 year").performClick()
+        composeRule.onNodeWithText("All").performClick()
+
+        assertEquals(listOf(BalanceSpan.YEAR, BalanceSpan.ALL), asked)
+    }
+
+    @Test
+    fun `a finger on the balance line reads that day, and letting go shows the change again`() {
+        val balance = fullState().section<BalanceOverTimeSection>()!!
+        setContent(ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(balance)))
+
+        val line = composeRule.onNodeWithContentDescription("Balance line", substring = true)
+        line.performTouchInput { down(center) }
+        composeRule.onNodeWithText("Change").assertDoesNotExist()
+
+        line.performTouchInput { up() }
+        composeRule.onNodeWithText("Change").assertExists()
+    }
+
+    @Test
     fun `the weekday view lists each day and answers whether weekends cost more`() {
         setContent(fullState())
 
         scrollTo("SPENDING BY WEEKDAY")
+        // The costliest day is said first; the seven rows are folded under *Day by day*.
+        scrollTo("Most spent on Saturday")
+        composeRule.onNodeWithText("Monday").assertDoesNotExist()
+        scrollTo("Day by day")
+        composeRule.onNodeWithText("Day by day").performClick()
+        scrollTo("Saturday")
         composeRule.onNodeWithText("Saturday").assertExists()
         composeRule.onNodeWithText("Monday").assertExists()
         // Saturday is 9 000 against a flat 1 000 on the weekdays, so a typical weekend day
@@ -250,6 +276,8 @@ class ReportsScreenTest {
         var opened: TransactionFilter? = null
         setContent(fullState(), onDrillDown = { opened = it })
 
+        scrollTo("Day by day")
+        composeRule.onNodeWithText("Day by day").performClick()
         scrollTo("Saturday")
         composeRule.onNodeWithText("Saturday").assertHasClickAction().performClick()
 
@@ -323,7 +351,8 @@ class ReportsScreenTest {
             ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(MonthlyFlowSection(withAQuietEnd) {})),
         )
 
-        composeRule.onNodeWithText("August 2026").assertExists()
+        // Once as the period's name over the tab, and once as the column the figures are about.
+        composeRule.onAllNodesWithText("August 2026").assertCountEquals(2)
         composeRule.onNodeWithText("September 2026").assertDoesNotExist()
         composeRule.onNode(hasTestTag(MonthlyFlowSection.OPEN_TAG)).assertExists()
     }
@@ -604,7 +633,6 @@ class ReportsScreenTest {
                 ReportsScreen(
                     state = fullState(),
                     onSelectPreset = {},
-                    onSelectAccount = {},
                     onSetRange = { _, _ -> },
                     onDrillDown = {},
                     onCustomize = { customize++ },
@@ -623,17 +651,19 @@ class ReportsScreenTest {
     private fun setContent(
         state: ReportsUiState,
         onSelectPreset: (PeriodPreset) -> Unit = {},
-        onSelectAccount: (Long?) -> Unit = {},
         onDrillDown: (TransactionFilter) -> Unit = {},
+        onStep: (Int) -> Unit = {},
+        onStepToNow: () -> Unit = {},
     ) {
         composeRule.setContent {
             CentsTheme {
                 ReportsScreen(
                     state = state,
                     onSelectPreset = onSelectPreset,
-                    onSelectAccount = onSelectAccount,
                     onSetRange = { _, _ -> },
                     onDrillDown = onDrillDown,
+                    onStep = onStep,
+                    onStepToNow = onStepToNow,
                 )
             }
         }

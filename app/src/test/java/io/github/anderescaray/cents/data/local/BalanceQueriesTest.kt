@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.data.local
 
 import io.github.anderescaray.cents.data.local.entity.BalanceAdjustmentEntity
+import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -54,6 +55,57 @@ class BalanceQueriesTest {
             // The count is movements, not days: it is what separates "nothing happened" from
             // "it happened and cancelled out".
             assertEquals(listOf(2, 1), rows.map { it.movementCount })
+        }
+
+    @Test
+    fun `over every account the line is cash and bank, and a broker counts only on its own`() =
+        runTest {
+            val bank = database.accountDao().insert(account(name = "Bank", openingBalanceMinor = 100_000))
+            val broker =
+                database.accountDao().insert(
+                    account(name = "Broker", openingBalanceMinor = 50_000, type = AccountType.BROKER),
+                )
+            val dao = database.transactionDao()
+            dao.insertAll(
+                listOf(
+                    transaction(bank, amountMinor = 2_799, date = august(1)),
+                    // Shares bought with the broker's cash: invested, not spent.
+                    transaction(broker, amountMinor = 30_000, date = august(2)),
+                    transaction(broker, amountMinor = 5_000, date = LocalDate.of(2026, 7, 20)),
+                ),
+            )
+
+            // The broker's opening balance and July purchase stay out of every-account's start...
+            assertEquals(100_000L, dao.observeBalanceBefore(august(1), null).first())
+            // ...and its August purchase out of every-account's days.
+            assertEquals(listOf(-2_799L), dao.observeDailyNet(august(1), august(31), null).first().map { it.netMinor })
+
+            // Chosen on its own, the broker is its own cash.
+            assertEquals(45_000L, dao.observeBalanceBefore(august(1), broker).first())
+            assertEquals(
+                listOf(-30_000L),
+                dao.observeDailyNet(august(1), august(31), broker).first().map { it.netMinor },
+            )
+        }
+
+    @Test
+    fun `all time starts at the first movement in cash and bank, not in a broker`() =
+        runTest {
+            val bank = database.accountDao().insert(account(name = "Bank"))
+            val broker = database.accountDao().insert(account(name = "Broker", type = AccountType.BROKER))
+            val dao = database.transactionDao()
+            assertEquals(null, dao.observeFirstBalanceDate(null).first())
+
+            dao.insertAll(
+                listOf(
+                    transaction(broker, date = LocalDate.of(2025, 1, 3)),
+                    transaction(bank, date = LocalDate.of(2025, 6, 9)),
+                    transaction(bank, date = august(1)),
+                ),
+            )
+
+            assertEquals(LocalDate.of(2025, 6, 9), dao.observeFirstBalanceDate(null).first())
+            assertEquals(LocalDate.of(2025, 1, 3), dao.observeFirstBalanceDate(broker).first())
         }
 
     @Test

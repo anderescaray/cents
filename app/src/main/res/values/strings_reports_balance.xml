@@ -13,4 +13,9 @@
     <string name="reports_balance_opening">Started with</string>
     <string name="reports_balance_closing">Ended with</string>
     <string name="reports_balance_change">Change</string>
+    <string name="reports_balance_scope">Your cash and bank accounts, the same money as Cash and bank on Home. Investments are followed on their own screen.</string>
+    <string name="reports_balance_span_period">Period</string>
+    <string name="reports_balance_span_year">1 year</string>
+    <string name="reports_balance_span_all">All</string>
+    <string name="reports_balance_line_description">Balance line from %1$s to %2$s. Touch and slide along it to read each day.</string>
 </resources>

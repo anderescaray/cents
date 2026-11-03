@@ -9,21 +9,32 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
+import io.github.anderescaray.cents.ui.components.EaseInSharp
 import io.github.anderescaray.cents.ui.components.EaseOutExpo
+import io.github.anderescaray.cents.ui.components.EaseOutQuint
 import io.github.anderescaray.cents.ui.navigation.Destination
 import io.github.anderescaray.cents.ui.navigation.SheetForms
 import io.github.anderescaray.cents.ui.navigation.TopLevelTab
 import io.github.anderescaray.cents.ui.navigation.routes
 
 /** How long a push or pop takes: a brisk slide, not a slow fade. */
-private const val PUSH_DURATION_MS = 320
+private const val PUSH_DURATION_MS = 300
+
+/**
+ * How far the screen underneath travels while another is pushed over it: a quarter of the way,
+ * so the two move at different depths instead of as one long strip.
+ */
+private const val PARALLAX_DIVISOR = 4
 
 /** How long changing tabs takes: a quick cross-fade, because the capsule already moved. */
-private const val TAB_FADE_MS = 180
+private const val TAB_FADE_MS = 160
 
-/** How long a sheet takes to rise, and to fall away again. */
-private const val SHEET_RISE_MS = 380
-private const val SHEET_FALL_MS = 260
+/**
+ * How long a sheet takes to rise, and to fall away again. The fall is the shorter: leaving is
+ * never something to watch, and a cancelled form should be gone the moment the thumb lifts.
+ */
+private const val SHEET_RISE_MS = 340
+internal const val SHEET_FALL_MS = 200
 
 /**
  * The tab a destination belongs to: the tab it *is*, or the tab it was pushed inside.
@@ -182,8 +193,17 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.arriving(
             fadeIn(tween(TAB_FADE_MS))
         }
 
+        // A push arrives the whole width; the screen a pop returns to comes back from its quarter.
+        direction == BACKWARDS -> {
+            slideIntoContainer(
+                direction,
+                animationSpec = tween(PUSH_DURATION_MS, easing = EaseOutQuint),
+                initialOffset = { it / PARALLAX_DIVISOR },
+            )
+        }
+
         else -> {
-            slideIntoContainer(direction, animationSpec = tween(PUSH_DURATION_MS))
+            slideIntoContainer(direction, animationSpec = tween(PUSH_DURATION_MS, easing = EaseOutQuint))
         }
     }
 
@@ -201,7 +221,7 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.leaving(
         initialState.destination.isSheet() && direction == BACKWARDS -> {
             slideOutOfContainer(
                 AnimatedContentTransitionScope.SlideDirection.Down,
-                animationSpec = tween(SHEET_FALL_MS),
+                animationSpec = tween(SHEET_FALL_MS, easing = EaseInSharp),
             )
         }
 
@@ -215,8 +235,17 @@ internal fun AnimatedContentTransitionScope<NavBackStackEntry>.leaving(
             ExitTransition.KeepUntilTransitionsFinished
         }
 
+        // The screen being covered only steps back a quarter, behind the one sliding over it.
+        direction != BACKWARDS -> {
+            slideOutOfContainer(
+                direction,
+                animationSpec = tween(PUSH_DURATION_MS, easing = EaseOutQuint),
+                targetOffset = { it / PARALLAX_DIVISOR },
+            )
+        }
+
         else -> {
-            slideOutOfContainer(direction, animationSpec = tween(PUSH_DURATION_MS))
+            slideOutOfContainer(direction, animationSpec = tween(PUSH_DURATION_MS, easing = EaseOutQuint))
         }
     }
 

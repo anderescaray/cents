@@ -28,7 +28,7 @@
     <string name="home_left_month">Left this month</string>
     <string name="home_overspent_month">Overspent this month</string>
     <string name="reports_customize_title">Customize reports</string>
-    <string name="reports_customize_footer">Move a card up or down, or switch it off to hide it. Hidden cards keep their place for when you switch them back on.</string>
+    <string name="reports_customize_footer">Hold a chart by its handle and drag it to move it, or switch it off to hide it. Hidden charts keep their place for when you switch them back on.</string>
     <string name="reports_customize_reset">Back to the original order</string>
     <string name="reports_customize_up">Move %1$s up</string>
     <string name="reports_customize_down">Move %1$s down</string>

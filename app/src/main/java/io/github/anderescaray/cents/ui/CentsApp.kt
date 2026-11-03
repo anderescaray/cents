@@ -1,10 +1,10 @@
 package io.github.anderescaray.cents.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,10 +13,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -29,6 +32,7 @@ import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.capture.OpenCapturedFromNotification
 import io.github.anderescaray.cents.ui.components.CentsTabBar
 import io.github.anderescaray.cents.ui.components.CentsTabItem
+import io.github.anderescaray.cents.ui.components.EaseOutExpo
 import io.github.anderescaray.cents.ui.components.EntryKind
 import io.github.anderescaray.cents.ui.feature.accounts.AccountBalanceScreen
 import io.github.anderescaray.cents.ui.feature.accounts.AccountDetailScreen
@@ -81,7 +85,12 @@ fun CentsApp(
     val backStack by navController.currentBackStack.collectAsState()
     val currentTab = backStack.selectedTab()
     val top = backStack.lastOrNull()?.destination
-    val onForm = top?.let { FullScreenForms.any { route -> it.hasRoute(route) } } == true
+    val onForm = top?.isFullScreenForm() == true
+    // The capsule comes back only once no form is on screen at all — not the moment one is
+    // popped. Shown at the pop, it took its height from a sheet that was still falling, and the
+    // sheet jumped up before it went down.
+    val visible by navController.visibleEntries.collectAsState()
+    val formOnScreen = onForm || visible.any { it.destination.isFullScreenForm() }
     // Swiping changes tab only on a tab's own screen: on anything pushed above it, a sideways
     // swipe would leave a half-finished form or a detail without going back through it.
     val onTabRoot = currentTab != null && top?.hasRoute(currentTab.destination::class) == true
@@ -132,9 +141,12 @@ fun CentsApp(
 
         // Not under a form: its keypad or its own button is where the capsule would be.
         AnimatedVisibility(
-            visible = currentTab != null && !onForm,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+            visible = currentTab != null && !formOnScreen,
+            enter =
+                fadeIn(tween(BAR_RETURN_MS)) +
+                    slideInVertically(tween(BAR_RETURN_MS, easing = EaseOutExpo)) { it / 2 },
+            // Gone at once: a form is already rising over the place it stood.
+            exit = ExitTransition.None,
         ) {
             CentsTabBar(
                 items = tabs,
@@ -146,6 +158,11 @@ fun CentsApp(
         }
     }
 }
+
+private fun NavDestination.isFullScreenForm(): Boolean = FullScreenForms.any { route -> hasRoute(route) }
+
+/** How long the capsule takes to settle back in after a form has gone. */
+private const val BAR_RETURN_MS = 240
 
 /** The movement form, adding: from the capsule's button, or one of Home's three. */
 private fun NavHostController.openNewMovement(kind: TransactionKind) {
@@ -232,8 +249,14 @@ private fun CentsNavHost(
                 onOpenSettings = { navController.openSettings() },
             )
         }
-        composable<Destination.ReportsCustomize> {
-            ReportsCustomizeScreen(onBack = { navController.popBackStack() })
+        composable<Destination.ReportsCustomize> { entry ->
+            // The Reports tab's own view model, so the account chosen here is the one the tab
+            // shows on the way back. Customize is only ever opened from Reports, which is under it.
+            val reportsEntry = remember(entry) { navController.getBackStackEntry<Destination.Reports>() }
+            ReportsCustomizeScreen(
+                onBack = { navController.popBackStack() },
+                reportsViewModel = hiltViewModel(reportsEntry),
+            )
         }
         settingsRoutes(navController)
     }

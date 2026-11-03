@@ -148,14 +148,16 @@ private const val ROUND_BUTTON = 42
 private const val ROUND_ICON = 20
 
 private val CountEasing = CubicBezierEasing(0.33f, 1f, 0.68f, 1f)
-private const val COUNT_MS = 900
+private const val COUNT_MS = 650
 
 /**
  * Money that counts from what it was to what it is when it changes, so a total visibly moves when
  * a movement lands. Money stays a `Long` throughout (rule 1): what animates is the fraction, and
  * each frame shows `old + (new − old) × fraction`, rounded to a whole cent.
  *
- * The first value is shown as it is; only changes count. TalkBack reads the final figure.
+ * The first value is shown as it is; only changes count. TalkBack reads the final figure. The
+ * whole units lead and the cents sit smaller beside them ([headlineMoney]), because this is
+ * always a card's headline figure.
  */
 @Composable
 fun AnimatedMoney(
@@ -184,8 +186,9 @@ fun AnimatedMoney(
     }
     val shown = between(from, target, progress.value)
     val finalText = MoneyFormatter.format(money, withSign = withSign)
+    val shownText = MoneyFormatter.format(money.copy(minorUnits = shown), withSign = withSign)
     Text(
-        text = MoneyFormatter.format(money.copy(minorUnits = shown), withSign = withSign),
+        text = headlineMoney(shownText, style.fontSize, color),
         style = style,
         color = color,
         maxLines = 1,

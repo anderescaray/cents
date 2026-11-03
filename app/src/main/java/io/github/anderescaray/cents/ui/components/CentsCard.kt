@@ -15,8 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.semantics.Role
@@ -83,6 +87,30 @@ fun CentsCard(
         content = content,
     )
 }
+
+/**
+ * The pale canvas a screen stands on, with a faint light of the accent falling from its top
+ * corner: enough to give the page depth, never enough to read as a colour of its own.
+ */
+@Composable
+fun Modifier.canvas(): Modifier {
+    val colors = CentsTheme.colors
+    val glow = colors.accent.copy(alpha = if (colors.isDark) CANVAS_GLOW_DARK else CANVAS_GLOW_LIGHT)
+    return background(colors.groupedBackground).drawBehind {
+        drawRect(
+            Brush.radialGradient(
+                colors = listOf(glow, Color.Transparent),
+                center = Offset(size.width * CANVAS_GLOW_X, 0f),
+                radius = size.width * CANVAS_GLOW_REACH,
+            ),
+        )
+    }
+}
+
+private const val CANVAS_GLOW_LIGHT = 0.07f
+private const val CANVAS_GLOW_DARK = 0.14f
+private const val CANVAS_GLOW_X = 0.85f
+private const val CANVAS_GLOW_REACH = 1.1f
 
 /** The card's corner shape, for the few places that draw their own surface. */
 val CardShape = RoundedCornerShape(CentsDimens.cardCornerRadius)

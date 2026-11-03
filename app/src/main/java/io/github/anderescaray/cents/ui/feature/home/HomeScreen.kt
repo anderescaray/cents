@@ -13,20 +13,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,11 +43,11 @@ import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.TransactionKind
 import io.github.anderescaray.cents.ui.components.CentsCard
-import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
 import io.github.anderescaray.cents.ui.components.ScreenHeader
 import io.github.anderescaray.cents.ui.components.SettingsButton
 import io.github.anderescaray.cents.ui.components.arrive
+import io.github.anderescaray.cents.ui.components.canvas
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
 import io.github.anderescaray.cents.ui.feature.inbox.InboxViewModel
@@ -111,7 +120,7 @@ internal fun HomeContent(
     actions: HomeActions,
 ) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Box(modifier = Modifier.fillMaxSize().background(CentsTheme.colors.groupedBackground)) {
+    Box(modifier = Modifier.fillMaxSize().canvas()) {
         HomeList(state = state, inbox = inbox, actions = actions, topInset = topInset)
         // The status bar is drawn over the app: without a backdrop the title scrolls up under
         // the clock and the two are read as one.
@@ -186,6 +195,7 @@ private fun LazyListScope.moneyFigures(state: HomeUiState) {
             netWorth = netWorth,
             figures = state.figures,
             totalStyle = CentsTheme.typography.title2,
+            splitParts = true,
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
         )
     }
@@ -256,10 +266,9 @@ private fun QuickAddTile(
         onClickLabel = stringResource(R.string.home_add_label, label),
         contentPadding = PaddingValues(vertical = CentsDimens.spacingL, horizontal = CentsDimens.spacingS),
     ) {
-        IconBadge(
+        SolidBadge(
             iconRes = iconRes,
             color = color,
-            size = 44.dp,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Spacer(Modifier.height(CentsDimens.spacingS))
@@ -273,6 +282,41 @@ private fun QuickAddTile(
         )
     }
 }
+
+/**
+ * The quick-add tiles' mark: the kind's colour as a solid disc with a soft glow of itself under
+ * it, the white glyph on top — the three ways in read before their names do.
+ */
+@Composable
+private fun SolidBadge(
+    iconRes: Int,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .size(QUICK_BADGE.dp)
+                .dropShadow(
+                    CircleShape,
+                    Shadow(radius = 12.dp, color = color.copy(alpha = QUICK_GLOW), offset = DpOffset(0.dp, 5.dp)),
+                ).clip(CircleShape)
+                .background(Brush.verticalGradient(listOf(color.copy(alpha = QUICK_TOP), color))),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size((QUICK_BADGE * QUICK_ICON_SHARE).dp),
+        )
+    }
+}
+
+private const val QUICK_BADGE = 46
+private const val QUICK_ICON_SHARE = 0.5f
+private const val QUICK_GLOW = 0.4f
+private const val QUICK_TOP = 0.82f
 
 /** The movements waiting for a category, each one tap from filed — the inbox, brought forward. */
 private fun LazyListScope.toCategorize(

@@ -55,6 +55,21 @@ data class CentsColors(
     val cardShadow: Color,
     /** The veil over the screen behind a sheet or an alert. */
     val scrim: Color,
+    /**
+     * The one dark card of a screen, the total of what the owner has: deep ink from [heroTop] to
+     * [heroBottom], with a glow of the accent in its corner. White text sits on it.
+     */
+    val heroTop: Color,
+    val heroBottom: Color,
+    val heroGlow: Color,
+    /** Money below zero, as text on the hero card, where the plain red is too dark to read. */
+    val heroNegative: Color,
+    /**
+     * The two parts of what the owner has, cash and bank and invested: indigo and teal, apart
+     * from green (money in) and the accent blue (a transfer, and anything tappable).
+     */
+    val cashPart: Color,
+    val investedPart: Color,
     val isDark: Boolean,
 )
 
@@ -84,6 +99,12 @@ val LightColors =
         settingsButton = Color(0xFFE2E4EA),
         cardShadow = Color(0x1A101828),
         scrim = Color(0x470E1117),
+        heroTop = Color(0xFF1D2540),
+        heroBottom = Color(0xFF0E1117),
+        heroGlow = Color(0x66007AFF),
+        heroNegative = Color(0xFFFF8A80),
+        cashPart = Color(0xFF5856D6),
+        investedPart = Color(0xFF0E9AA7),
         isDark = false,
     )
 
@@ -113,6 +134,12 @@ val DarkColors =
         settingsButton = Color(0xFF3A3A3C),
         cardShadow = Color(0x00000000),
         scrim = Color(0x99000000),
+        heroTop = Color(0xFF243058),
+        heroBottom = Color(0xFF15171F),
+        heroGlow = Color(0x660A84FF),
+        heroNegative = Color(0xFFFF8A80),
+        cashPart = Color(0xFF7D7AFF),
+        investedPart = Color(0xFF3CC8D6),
         isDark = true,
     )
 

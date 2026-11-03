@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Stepping the Reports period back and forward, one month (or week, quarter, year) at a time. -->
+    <string name="reports_step_back">Previous period</string>
+    <string name="reports_step_forward">Next period</string>
+    <string name="reports_step_now">Back to now</string>
+    <string name="reports_period_this_week">This week</string>
+    <string name="reports_period_this_month">This month</string>
+    <string name="reports_period_this_quarter">This quarter</string>
+    <string name="reports_period_this_year">This year</string>
+
+    <!-- Reports › Customize: which account, and the order of the charts. -->
+    <string name="reports_customize_order">Order of charts</string>
+    <string name="reports_customize_order_summary">%1$d of %2$d shown</string>
+    <string name="reports_customize_reorder">Drag to move %1$s</string>
+
+    <!-- The income and expenses card. -->
+    <string name="reports_flow_tap_hint">Tap a column to see its figures</string>
+    <string name="reports_flow_in">In</string>
+    <string name="reports_flow_out">Out</string>
+
+    <!-- The weekday card. -->
+    <string name="reports_weekday_days">Day by day</string>
+    <string name="reports_weekday_most">Most spent on %1$s</string>
+
+    <!-- The comparison card. -->
+    <string name="reports_comparison_spent_less">Spent %1$s less</string>
+    <string name="reports_comparison_spent_more">Spent %1$s more</string>
+    <string name="reports_share_signed">%1$s%%</string>
+    <string name="reports_comparison_spent_same">Spent the same</string>
+    <string name="reports_comparison_than_previous">than the previous period</string>
+    <string name="reports_comparison_than_year_ago">than the same period last year</string>
+</resources>

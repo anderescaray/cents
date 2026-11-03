@@ -2,6 +2,17 @@ package io.github.anderescaray.cents.domain.model
 
 import java.time.LocalDate
 
+/**
+ * How far back the balance line reaches, chosen on its own card: the period the tab is on, the
+ * year up to the end of it, or everything since the first movement. The other charts always read
+ * the tab's period; only the balance is a story worth seeing over years.
+ */
+enum class BalanceSpan {
+    PERIOD,
+    YEAR,
+    ALL,
+}
+
 /** The money there was at the end of one day. */
 data class BalancePoint(
     val date: LocalDate,

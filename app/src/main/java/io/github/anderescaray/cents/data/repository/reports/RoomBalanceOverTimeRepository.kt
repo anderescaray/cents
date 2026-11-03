@@ -60,6 +60,9 @@ class RoomBalanceOverTimeRepository
                 )
             }
         }
+
+        override fun observeFirstDate(accountId: Long?): Flow<LocalDate?> =
+            transactionDao.observeFirstBalanceDate(accountId)
     }
 
 /**

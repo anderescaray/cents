@@ -6,4 +6,8 @@
     <string name="reports_balance_closing">Terminaste con</string>
     <string name="reports_balance_change">Cambio</string>
     <string name="reports_balance_scope">Tus cuentas de efectivo y banco, el mismo dinero que Efectivo y banco en Inicio. Las inversiones se siguen en su propia pantalla.</string>
+    <string name="reports_balance_span_period">Periodo</string>
+    <string name="reports_balance_span_year">1 año</string>
+    <string name="reports_balance_span_all">Todo</string>
+    <string name="reports_balance_line_description">Línea del saldo de %1$s a %2$s. Toca y desliza por ella para leer cada día.</string>
 </resources>

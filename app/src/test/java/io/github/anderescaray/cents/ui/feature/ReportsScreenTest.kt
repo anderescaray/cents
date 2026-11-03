@@ -18,10 +18,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AccountType
 import io.github.anderescaray.cents.domain.model.BalanceOverTime
 import io.github.anderescaray.cents.domain.model.BalancePoint
+import io.github.anderescaray.cents.domain.model.BalanceSpan
 import io.github.anderescaray.cents.domain.model.CategoryFilter
 import io.github.anderescaray.cents.domain.model.CategorySpending
 import io.github.anderescaray.cents.domain.model.CategoryTrend
@@ -221,6 +223,31 @@ class ReportsScreenTest {
         composeRule.onNodeWithText("Ended with").assertExists()
         // The chart is drawn against an axis that does not start at zero, so the level it is
         // drawn at has to be said in words as well.
+        composeRule.onNodeWithText("Change").assertExists()
+    }
+
+    @Test
+    fun `the balance can look back a year or all of time, from its own card`() {
+        val asked = mutableListOf<BalanceSpan>()
+        val balance = fullState().section<BalanceOverTimeSection>()!!.copy(onSpan = { asked += it })
+        setContent(ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(balance)))
+
+        composeRule.onNodeWithText("1 year").performClick()
+        composeRule.onNodeWithText("All").performClick()
+
+        assertEquals(listOf(BalanceSpan.YEAR, BalanceSpan.ALL), asked)
+    }
+
+    @Test
+    fun `a finger on the balance line reads that day, and letting go shows the change again`() {
+        val balance = fullState().section<BalanceOverTimeSection>()!!
+        setContent(ReportsUiState(isLoading = false, period = AUGUST, sections = listOf(balance)))
+
+        val line = composeRule.onNodeWithContentDescription("Balance line", substring = true)
+        line.performTouchInput { down(center) }
+        composeRule.onNodeWithText("Change").assertDoesNotExist()
+
+        line.performTouchInput { up() }
         composeRule.onNodeWithText("Change").assertExists()
     }
 

@@ -708,6 +708,31 @@ interface TransactionDao {
     ): Flow<List<DayNet>>
 
     /**
+     * The first day anything moved in the accounts the balance line follows — the same accounts
+     * as [observeDailyNet] — or null. This is where the line's *all time* starts.
+     */
+    @Query(
+        """
+        SELECT MIN(m.date) FROM (
+            SELECT t.date AS date
+            FROM transactions t
+            WHERE t.accountId IN (
+                SELECT a.id FROM accounts a
+                WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+            )
+            UNION ALL
+            SELECT b.date AS date
+            FROM balance_adjustments b
+            WHERE b.accountId IN (
+                SELECT a.id FROM accounts a
+                WHERE (:accountId IS NULL AND a.type != 'BROKER') OR a.id = :accountId
+            )
+        ) m
+        """,
+    )
+    fun observeFirstBalanceDate(accountId: Long?): Flow<LocalDate?>
+
+    /**
      * Every category with a movement over a span, largest first.
      *
      * This is the single-category trend's list of things it can be about, and where its

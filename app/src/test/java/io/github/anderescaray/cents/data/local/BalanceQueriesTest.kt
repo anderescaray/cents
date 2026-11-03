@@ -89,6 +89,26 @@ class BalanceQueriesTest {
         }
 
     @Test
+    fun `all time starts at the first movement in cash and bank, not in a broker`() =
+        runTest {
+            val bank = database.accountDao().insert(account(name = "Bank"))
+            val broker = database.accountDao().insert(account(name = "Broker", type = AccountType.BROKER))
+            val dao = database.transactionDao()
+            assertEquals(null, dao.observeFirstBalanceDate(null).first())
+
+            dao.insertAll(
+                listOf(
+                    transaction(broker, date = LocalDate.of(2025, 1, 3)),
+                    transaction(bank, date = LocalDate.of(2025, 6, 9)),
+                    transaction(bank, date = august(1)),
+                ),
+            )
+
+            assertEquals(LocalDate.of(2025, 6, 9), dao.observeFirstBalanceDate(null).first())
+            assertEquals(LocalDate.of(2025, 1, 3), dao.observeFirstBalanceDate(broker).first())
+        }
+
+    @Test
     fun `a day whose movements cancel out is still a row`() =
         runTest {
             val accountId = database.accountDao().insert(account())

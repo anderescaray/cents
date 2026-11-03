@@ -7,12 +7,15 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -37,9 +40,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
+import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MoneyFigures
 import io.github.anderescaray.cents.domain.model.NetWorth
 import io.github.anderescaray.cents.ui.theme.CentsDimens
@@ -63,11 +68,19 @@ fun MoneyFiguresBlock(
     totalStyle: TextStyle,
     modifier: Modifier = Modifier,
     onOpenInvestments: (() -> Unit)? = null,
+    /**
+     * Home's look for the two parts: one card with both figures side by side and one bar split
+     * between them, rather than Wallet's two tiles. Home is for recording, and the parts there are
+     * a glance, not a place to go.
+     */
+    splitParts: Boolean = false,
 ) {
     if (!figures.any) return
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
         if (figures.total) TotalCard(netWorth, totalStyle)
-        if (figures.normal || figures.invested) {
+        if (splitParts && (figures.normal || figures.invested)) {
+            SplitPartsCard(netWorth = netWorth, figures = figures)
+        } else if (figures.normal || figures.invested) {
             Row(horizontalArrangement = Arrangement.spacedBy(CentsDimens.spacingM)) {
                 // Each tile says what part of the whole it is, when both are shown and the
                 // whole is something to be a part of.
@@ -174,8 +187,8 @@ private const val HERO_GLOW_REACH = 0.9f
 private const val HERO_LABEL_ALPHA = 0.66f
 
 /**
- * One part of what the owner has, as a small card: a wash of its colour from the top corner, its
- * mark as a solid disc, the figure, and - when [share] is given - a bar of how much of the whole
+ * One part of what the owner has, as a small card: a faint wash of its colour from the top corner,
+ * its mark, the figure, and - when [share] is given - a bar of how much of the whole
  * it is, drawn on the first time it is seen.
  */
 @Composable
@@ -244,7 +257,7 @@ private fun TileHeader(
     opens: Boolean,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        TileBadge(iconRes = iconRes, color = color)
+        IconBadge(iconRes = iconRes, color = color)
         Spacer(Modifier.weight(1f))
         if (share != null) {
             Text(
@@ -269,31 +282,141 @@ private fun TileHeader(
     }
 }
 
-/** The tile's mark: its colour as a disc lit from above, standing on a glow of itself. */
+/**
+ * Home's two parts in one card: cash and bank on the left, invested on the right, each with its
+ * colour as a dot and its share of the whole, and under them one bar split between the two colours
+ * in the same proportion - the balance between them, read at a glance.
+ */
 @Composable
-private fun TileBadge(
-    iconRes: Int,
-    color: Color,
+private fun SplitPartsCard(
+    netWorth: NetWorth,
+    figures: MoneyFigures,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .size(CentsDimens.badgeSize)
-                .dropShadow(
-                    CircleShape,
-                    Shadow(radius = 10.dp, color = color.copy(alpha = TILE_GLOW), offset = DpOffset(0.dp, 4.dp)),
-                ).clip(CircleShape)
-                .background(Brush.verticalGradient(listOf(lerp(color, Color.White, TILE_HIGHLIGHT), color))),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(CentsDimens.badgeSize * TILE_ICON_SHARE),
+    val both = figures.normal && figures.invested
+    val normalShare = if (both) shareOf(netWorth.normal.minorUnits, netWorth.invested.minorUnits) else null
+    val accent = CentsTheme.colors.accent
+    val positive = CentsTheme.colors.positive
+    CentsCard {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            if (figures.normal) {
+                SplitPart(
+                    color = accent,
+                    label = stringResource(R.string.money_normal),
+                    money = netWorth.normal,
+                    share = normalShare,
+                    modifier = Modifier.weight(1f).testTag(NORMAL_FIGURE_TAG),
+                )
+            }
+            if (both) {
+                Box(
+                    Modifier
+                        .padding(horizontal = CentsDimens.spacingL)
+                        .fillMaxHeight()
+                        .width(CentsDimens.separatorThickness * 2)
+                        .background(CentsTheme.colors.separator),
+                )
+            }
+            if (figures.invested) {
+                SplitPart(
+                    color = positive,
+                    label = stringResource(R.string.net_worth_invested),
+                    money = netWorth.invested,
+                    share = normalShare?.let { 1f - it },
+                    modifier = Modifier.weight(1f).testTag(INVESTED_FIGURE_TAG),
+                )
+            }
+        }
+        if (normalShare != null) {
+            Spacer(Modifier.height(CentsDimens.spacingM))
+            SplitBar(share = normalShare, left = accent, right = positive)
+        }
+    }
+}
+
+/** One side of the split card: a dot of its colour, its name and share, then the figure. */
+@Composable
+private fun SplitPart(
+    color: Color,
+    label: String,
+    money: Money,
+    share: Float?,
+    modifier: Modifier = Modifier,
+) {
+    val valueColor = if (money.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(SPLIT_DOT.dp).clip(CircleShape).background(color))
+            Spacer(Modifier.width(CentsDimens.spacingS))
+            Text(
+                text = label,
+                style = CentsTheme.typography.footnote,
+                color = CentsTheme.colors.secondaryLabel,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (share != null) {
+                Spacer(Modifier.width(CentsDimens.spacingXs))
+                Text(
+                    text = stringResource(R.string.reports_share, (share * PERCENT).roundToInt()),
+                    style = CentsTheme.typography.footnote,
+                    color = CentsTheme.colors.tertiaryLabel,
+                    maxLines = 1,
+                )
+            }
+        }
+        Spacer(Modifier.height(CentsDimens.spacingXs))
+        val text = MoneyFormatter.format(money)
+        Text(
+            text = headlineMoney(text, CentsTheme.typography.title3.fontSize, valueColor),
+            style = CentsTheme.typography.title3,
+            color = valueColor,
+            maxLines = 1,
         )
     }
 }
+
+/**
+ * One bar in two colours, [left] for [share] of its width and [right] for the rest, with a small
+ * gap between them. It grows from the left the first time it is seen.
+ */
+@Composable
+private fun SplitBar(
+    share: Float,
+    left: Color,
+    right: Color,
+) {
+    val drawn by rememberDrawOn()
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(SHARE_BAR_HEIGHT.dp)
+                .drawBehind {
+                    val gap = SPLIT_GAP.dp.toPx()
+                    val radius = CornerRadius(size.height / 2)
+                    val shown = size.width * drawn
+                    val leftWidth = ((size.width - gap) * share).coerceAtLeast(0f)
+                    val leftShown = leftWidth.coerceAtMost(shown)
+                    if (leftShown > 0f) {
+                        drawRoundRect(color = left, size = size.copy(width = leftShown), cornerRadius = radius)
+                    }
+                    val rightStart = leftWidth + if (share > 0f) gap else 0f
+                    val rightShown = (shown - rightStart).coerceAtMost(size.width - rightStart)
+                    if (rightShown > 0f && share < 1f) {
+                        drawRoundRect(
+                            color = right,
+                            topLeft = Offset(rightStart, 0f),
+                            size = size.copy(width = rightShown),
+                            cornerRadius = radius,
+                        )
+                    }
+                },
+    )
+}
+
+private const val SPLIT_DOT = 8
+private const val SPLIT_GAP = 3
 
 /** A thin bar, filled as far as [share] of the whole, the first time it is seen. */
 @Composable
@@ -340,12 +463,10 @@ internal fun shareOf(
 }
 
 private const val PERCENT = 100
-private const val TILE_WASH = 0.12f
-private const val TILE_GLOW = 0.35f
-private const val TILE_HIGHLIGHT = 0.15f
-private const val TILE_ICON_SHARE = 0.52f
+private const val TILE_WASH = 0.06f
 private const val SHARE_BAR_HEIGHT = 6
-private const val SHARE_START = 0.55f
+private const val SHARE_START = 0.35f
+private const val SHARE_END = 0.75f
 
 /**
  * What the figures shown leave out, said when it is left out: money in archived accounts exists

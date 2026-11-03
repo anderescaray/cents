@@ -195,6 +195,7 @@ private fun LazyListScope.moneyFigures(state: HomeUiState) {
             netWorth = netWorth,
             figures = state.figures,
             totalStyle = CentsTheme.typography.title2,
+            splitParts = true,
             modifier = Modifier.padding(horizontal = CentsDimens.screenMargin).arrive(0),
         )
     }

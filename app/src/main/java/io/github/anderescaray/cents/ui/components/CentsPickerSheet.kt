@@ -454,8 +454,8 @@ private const val GRABBER_WIDTH = 40
 private const val GRABBER_HEIGHT = 5
 private const val GRABBER_ALPHA = 0.6f
 private const val DRAG_TO_CLOSE = 96
-private const val RISE_DAMPING = 0.86f
-private const val RISE_STIFFNESS = 174f
+private const val RISE_DAMPING = 0.9f
+private const val RISE_STIFFNESS = 420f
 private const val QUIET_ROW_HEIGHT = 48
 
 internal const val PICKER_LIST_TAG = "pickerList"

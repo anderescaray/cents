@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -310,8 +311,12 @@ internal fun MonthTotals(state: HomeUiState) {
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(PANEL_RADIUS.dp))
-                    .background(tone.copy(alpha = PANEL_TINT))
-                    .padding(horizontal = CentsDimens.spacingL, vertical = CentsDimens.spacingM),
+                    // Strongest where the label starts, fading across: a wash, not a block.
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(tone.copy(alpha = PANEL_TINT), tone.copy(alpha = PANEL_TINT_END)),
+                        ),
+                    ).padding(horizontal = CentsDimens.spacingL, vertical = CentsDimens.spacingM),
         ) {
             Text(
                 text = stringResource(if (over) R.string.home_overspent_month else R.string.home_left_month),
@@ -373,7 +378,8 @@ internal fun TotalCell(
 }
 
 private const val PANEL_RADIUS = 16
-private const val PANEL_TINT = 0.1f
+private const val PANEL_TINT = 0.16f
+private const val PANEL_TINT_END = 0.04f
 
 /** How many categories the month card lists. */
 private const val MONTH_ROWS = 5

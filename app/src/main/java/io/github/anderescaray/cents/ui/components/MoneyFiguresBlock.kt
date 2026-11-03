@@ -4,19 +4,28 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.domain.model.MoneyFigures
@@ -82,26 +91,69 @@ fun MoneyFiguresBlock(
     }
 }
 
-/** Cash and bank plus invested, as one number. */
+/**
+ * Cash and bank plus invested, as one number, on the screen's one dark card: deep ink with a glow
+ * of the accent in its top corner, so the total reads as the thing the others are parts of.
+ */
 @Composable
 private fun TotalCard(
     netWorth: NetWorth,
     style: TextStyle,
 ) {
     val total = netWorth.total
-    CentsCard(modifier = Modifier.testTag(TOTAL_FIGURE_TAG)) {
+    val colors = CentsTheme.colors
+    val shape = RoundedCornerShape(CentsDimens.cardCornerRadius)
+    Column(
+        modifier =
+            Modifier
+                .testTag(TOTAL_FIGURE_TAG)
+                .fillMaxWidth()
+                .then(
+                    if (colors.isDark) {
+                        Modifier
+                    } else {
+                        Modifier.dropShadow(
+                            shape,
+                            Shadow(
+                                radius = 24.dp,
+                                color = colors.heroBottom.copy(alpha = HERO_SHADOW),
+                                offset = DpOffset(0.dp, 10.dp),
+                            ),
+                        )
+                    },
+                ).clip(shape)
+                .drawBehind {
+                    drawRect(Brush.verticalGradient(listOf(colors.heroTop, colors.heroBottom)))
+                    drawRect(
+                        Brush.radialGradient(
+                            colors = listOf(colors.heroGlow, Color.Transparent),
+                            center = Offset(size.width, 0f),
+                            radius = size.width * HERO_GLOW_REACH,
+                        ),
+                    )
+                }.padding(
+                    horizontal = CentsDimens.spacingL + CentsDimens.spacingXs,
+                    vertical =
+                        CentsDimens.spacingL + CentsDimens.spacingXs,
+                ),
+    ) {
         Text(
             text = stringResource(R.string.net_worth_total),
             style = CentsTheme.typography.subhead,
-            color = CentsTheme.colors.secondaryLabel,
+            color = Color.White.copy(alpha = HERO_LABEL_ALPHA),
         )
+        Spacer(Modifier.height(CentsDimens.spacingXs))
         AnimatedMoney(
             money = total,
             style = style,
-            color = if (total.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
+            color = if (total.isNegative) colors.heroNegative else Color.White,
         )
     }
 }
+
+private const val HERO_SHADOW = 0.28f
+private const val HERO_GLOW_REACH = 0.9f
+private const val HERO_LABEL_ALPHA = 0.66f
 
 /** One part of what the owner has, as a small card: cash and bank, or what is invested. */
 @Composable

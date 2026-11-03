@@ -1,20 +1,27 @@
 package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -35,11 +42,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.R
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
+import io.github.anderescaray.cents.ui.util.rememberReduceMotion
 
 /**
  * The floating tab capsule (ADR 0003): a rounded white bar standing clear of the screen's bottom
@@ -69,29 +78,77 @@ fun CentsTabBar(
                 .padding(horizontal = CAPSULE_MARGIN.dp)
                 .padding(top = CentsDimens.spacingXs, bottom = bottomInset + CentsDimens.spacingS),
     ) {
-        Row(
+        BoxWithConstraints(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .height(CentsDimens.tabBarHeight)
                     .cardSurface(CircleShape)
                     .padding(horizontal = CentsDimens.spacingS),
-            verticalAlignment = Alignment.CenterVertically,
+            contentAlignment = Alignment.CenterStart,
         ) {
-            items.forEachIndexed { index, item ->
-                if (onAdd != null && index == half) {
-                    AddButton(onClick = onAdd, label = addLabel, modifier = Modifier.weight(1f))
+            // Every slot, the add button's included, has the same width; the pill slides between
+            // the tabs' slots and skips the add button's.
+            val slots = items.size + if (onAdd != null) 1 else 0
+            val slotWidth = maxWidth / slots.coerceAtLeast(1)
+            val selected = items.indexOfFirst { it.key == selectedKey }
+            if (selected >= 0) {
+                val slot = if (onAdd != null && selected >= half) selected + 1 else selected
+                SelectionPill(offset = slotWidth * slot, width = slotWidth)
+            }
+            Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                items.forEachIndexed { index, item ->
+                    if (onAdd != null && index == half) {
+                        AddButton(onClick = onAdd, label = addLabel, modifier = Modifier.weight(1f))
+                    }
+                    TabButton(
+                        item = item,
+                        selected = item.key == selectedKey,
+                        onClick = { onSelect(item.key) },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                TabButton(
-                    item = item,
-                    selected = item.key == selectedKey,
-                    onClick = { onSelect(item.key) },
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
     }
 }
+
+/**
+ * The soft accent pill behind the selected tab. It glides to the next one rather than jumping, so
+ * a change of tab is seen in the capsule as well as on the screen.
+ */
+@Composable
+private fun SelectionPill(
+    offset: Dp,
+    width: Dp,
+) {
+    val reduce = rememberReduceMotion()
+    val x by animateDpAsState(
+        targetValue = offset,
+        animationSpec =
+            if (reduce) {
+                snap()
+            } else {
+                spring(
+                    dampingRatio = PILL_DAMPING,
+                    stiffness = Spring.StiffnessMediumLow,
+                )
+            },
+        label = "tabPill",
+    )
+    Box(
+        modifier =
+            Modifier
+                .offset(x = x + PILL_INSET.dp)
+                .size(width = width - (PILL_INSET * 2).dp, height = CentsDimens.tabBarHeight - (PILL_INSET * 2 + 4).dp)
+                .clip(CircleShape)
+                .background(CentsTheme.colors.accent.copy(alpha = PILL_ALPHA)),
+    )
+}
+
+private const val PILL_INSET = 4
+private const val PILL_ALPHA = 0.1f
+private const val PILL_DAMPING = 0.82f
 
 @Composable
 private fun TabButton(

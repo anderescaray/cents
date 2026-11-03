@@ -13,4 +13,5 @@
     <string name="reports_balance_opening">Started with</string>
     <string name="reports_balance_closing">Ended with</string>
     <string name="reports_balance_change">Change</string>
+    <string name="reports_balance_scope">Your cash and bank accounts, the same money as Cash and bank on Home. Investments are followed on their own screen.</string>
 </resources>

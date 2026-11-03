@@ -75,7 +75,12 @@ data class BalanceOverTimeSection(
 
     @Composable
     override fun Content(actions: ReportActions) {
-        CentsListSection(header = stringResource(R.string.reports_balance_header)) {
+        CentsListSection(
+            header = stringResource(R.string.reports_balance_header),
+            // Said, because over every account the brokers are left out, and a line that quietly
+            // omits money is the kind of number that gets believed and should not be.
+            footer = stringResource(R.string.reports_balance_scope).takeIf { !balance.oneAccount },
+        ) {
             if (balance.isEmpty) {
                 // A flat line at the opening balance would be true and would say nothing.
                 EmptyChart(stringResource(R.string.reports_balance_empty))

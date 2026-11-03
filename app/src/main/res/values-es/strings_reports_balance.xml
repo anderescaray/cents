@@ -5,4 +5,5 @@
     <string name="reports_balance_opening">Empezaste con</string>
     <string name="reports_balance_closing">Terminaste con</string>
     <string name="reports_balance_change">Cambio</string>
+    <string name="reports_balance_scope">Tus cuentas de efectivo y banco, el mismo dinero que Efectivo y banco en Inicio. Las inversiones se siguen en su propia pantalla.</string>
 </resources>

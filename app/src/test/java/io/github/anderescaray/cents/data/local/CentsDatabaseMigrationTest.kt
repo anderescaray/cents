@@ -70,7 +70,7 @@ class CentsDatabaseMigrationTest {
                 // The new tables exist and are usable, which is the point of the migration.
                 val holdingId =
                     database.holdingDao().insert(
-                        holding(accountId = accounts.single().id, symbol = "NVDA", assetClass = AssetClass.STOCK),
+                        holding(accountId = accounts.single().id, assetClass = AssetClass.STOCK),
                     )
                 database.tradeDao().insert(trade(holdingId = holdingId))
                 assertEquals(1, database.holdingDao().countTrades(holdingId))
@@ -175,7 +175,7 @@ class CentsDatabaseMigrationTest {
                         .first()
                         .single()
                         .id
-                val holdingId = database.holdingDao().insert(holding(accountId, symbol = "NVD.DE"))
+                val holdingId = database.holdingDao().insert(holding(accountId))
                 val tradeId = database.tradeDao().insert(trade(holdingId))
 
                 // `ALTER TABLE ... ADD COLUMN ... REFERENCES` is the only form SQLite accepts
@@ -645,7 +645,7 @@ class CentsDatabaseMigrationTest {
                 )
                 assertTrue(
                     database
-                        .priceQuoteDao()
+                        .holdingValueDao()
                         .observeAll()
                         .first()
                         .isEmpty(),

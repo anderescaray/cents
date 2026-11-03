@@ -2,227 +2,249 @@ package io.github.anderescaray.cents.data.repository
 
 import androidx.room.withTransaction
 import io.github.anderescaray.cents.data.local.CentsDatabase
+import io.github.anderescaray.cents.data.local.dao.AccountDayNet
 import io.github.anderescaray.cents.data.local.dao.HoldingDao
-import io.github.anderescaray.cents.data.local.dao.PriceQuoteDao
+import io.github.anderescaray.cents.data.local.dao.HoldingValueDao
 import io.github.anderescaray.cents.data.local.dao.TradeDao
 import io.github.anderescaray.cents.data.local.dao.TransactionDao
-import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.HoldingValueEntity
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
+import io.github.anderescaray.cents.domain.model.AccountType
+import io.github.anderescaray.cents.domain.model.AccountWithBalance
 import io.github.anderescaray.cents.domain.model.Holding
+import io.github.anderescaray.cents.domain.model.HoldingValue
+import io.github.anderescaray.cents.domain.model.InvestmentAccount
+import io.github.anderescaray.cents.domain.model.InvestmentOverview
 import io.github.anderescaray.cents.domain.model.Money
-import io.github.anderescaray.cents.domain.model.Portfolio
 import io.github.anderescaray.cents.domain.model.Position
-import io.github.anderescaray.cents.domain.model.PriceQuote
-import io.github.anderescaray.cents.domain.model.QuoteSource
 import io.github.anderescaray.cents.domain.model.Trade
 import io.github.anderescaray.cents.domain.model.TransactionKind
+import io.github.anderescaray.cents.domain.model.ValueStep
+import io.github.anderescaray.cents.domain.model.holdsInvestments
+import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.HoldingRepository
+import io.github.anderescaray.cents.domain.repository.HoldingValueRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
-import io.github.anderescaray.cents.domain.repository.PriceQuoteRepository
 import io.github.anderescaray.cents.domain.repository.TradeRepository
-import io.github.anderescaray.cents.domain.usecase.positionFrom
+import io.github.anderescaray.cents.domain.usecase.positionOf
+import io.github.anderescaray.cents.domain.usecase.tradeCashOf
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import java.time.Clock
-import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
+
+/**
+ * Writes again the movements an asset's trades make in its account's cash (`DECISIONS.md` D40).
+ *
+ * **Every write to an asset ends here**, inside its database transaction: a purchase edited,
+ * a value typed, a sale deleted. Each can change what a later sale removed in cost, and so what it
+ * made, so the whole asset's cash is worked out again from scratch rather than patched. That is
+ * one fold over the owner's own record of one asset, which is short.
+ *
+ * Rows are matched to what they were by trade and part, and keep their ids and dates of creation,
+ * so a movement written again does not move down the account's list.
+ */
+@Singleton
+class TradeCashWriter
+    @Inject
+    constructor(
+        private val holdingDao: HoldingDao,
+        private val tradeDao: TradeDao,
+        private val holdingValueDao: HoldingValueDao,
+        private val transactionDao: TransactionDao,
+        private val clock: Clock,
+    ) {
+        /** Call inside a database transaction. */
+        suspend fun rewrite(holdingId: Long) {
+            val holding = holdingDao.findById(holdingId)?.toDomain() ?: return
+            val trades = tradeDao.forHolding(holdingId).map { it.toDomain() }
+            val values = holdingValueDao.forHolding(holdingId).map { it.toDomain() }
+            val wanted = tradeCashOf(trades, positionOf(holding, trades, values))
+            // A trade in another currency is in no sum, and its cash is left as it was.
+            val own = trades.filter { it.amount.currency == holding.currency }.map { it.id }.toSet()
+            val existing =
+                transactionDao
+                    .cashForHolding(holdingId)
+                    .filter { it.tradeId in own }
+                    .associateBy { it.tradeId to it.tradeResult }
+            val now = clock.instant()
+            val kept = mutableSetOf<Long>()
+            for (cash in wanted) {
+                val old = existing[cash.trade.id to cash.isResult]
+                val row =
+                    TransactionEntity(
+                        id = old?.id ?: 0,
+                        accountId = holding.accountId,
+                        categoryId = null,
+                        kind = if (cash.signedMinor < 0) TransactionKind.EXPENSE else TransactionKind.INCOME,
+                        // Positive, with the direction in the kind, as every movement is.
+                        amountMinor = abs(cash.signedMinor),
+                        currency = holding.currency,
+                        date = cash.trade.date,
+                        note = cash.trade.note,
+                        tradeId = cash.trade.id,
+                        tradeResult = cash.isResult,
+                        createdAt = old?.createdAt ?: now,
+                        updatedAt = now,
+                    )
+                if (old == null) {
+                    kept += transactionDao.insert(row)
+                } else {
+                    transactionDao.update(row)
+                    kept += old.id
+                }
+            }
+            val stale = existing.values.map { it.id }.filterNot { it in kept }
+            if (stale.isNotEmpty()) transactionDao.deleteByIds(stale)
+        }
+    }
 
 @Singleton
 class RoomHoldingRepository
     @Inject
     constructor(
         private val holdingDao: HoldingDao,
+        private val tradeDao: TradeDao,
         private val transactionDao: TransactionDao,
+        private val cashWriter: TradeCashWriter,
         private val database: CentsDatabase,
         private val clock: Clock,
     ) : HoldingRepository {
-        override fun observeHoldings(): Flow<List<Holding>> =
-            holdingDao.observeAll().map { rows ->
-                rows.map { it.toDomain() }
-            }
-
         override fun observeHolding(id: Long): Flow<Holding?> = holdingDao.observeById(id).map { it?.toDomain() }
 
         override suspend fun findById(id: Long): Holding? = holdingDao.findById(id)?.toDomain()
 
-        override suspend fun findBySymbol(
-            accountId: Long,
-            symbol: String,
-        ): Holding? = holdingDao.findBySymbol(accountId, symbol)?.toDomain()
-
-        override suspend fun createHolding(holding: Holding): Long {
-            val now = clock.instant()
-            return holdingDao.insert(holding.toEntity(createdAt = now, updatedAt = now))
-        }
+        override suspend fun createHolding(
+            holding: Holding,
+            firstPurchase: Trade,
+        ): Long =
+            database.withTransaction {
+                val now = clock.instant()
+                val id = holdingDao.insert(holding.toEntity(createdAt = now, updatedAt = now))
+                tradeDao.insert(firstPurchase.copy(id = 0, holdingId = id).toEntity(createdAt = now))
+                cashWriter.rewrite(id)
+                id
+            }
 
         override suspend fun updateHolding(holding: Holding) {
             val existing = holdingDao.findById(holding.id) ?: return
-            holdingDao.update(holding.toEntity(createdAt = existing.createdAt, updatedAt = clock.instant()))
+            database.withTransaction {
+                holdingDao.update(holding.toEntity(createdAt = existing.createdAt, updatedAt = clock.instant()))
+                // The note and name travel with the cash's rows only through the trades, so
+                // nothing about the cash changes; but the account cannot change either, so this
+                // is enough.
+            }
         }
 
         override suspend fun deleteHolding(id: Long) {
             // The cash goes first, because `transactions.tradeId` is `RESTRICT` and the trades
             // are about to be deleted underneath it. It also has to go at all: those rows are
-            // movements in a real account, and leaving them behind would leave that account's
-            // balance short by money whose reason no longer exists.
+            // movements in a real account, and leaving them would leave its cash short by money
+            // whose reason no longer exists.
             database.withTransaction {
                 transactionDao.deleteCashForHolding(id)
-                holdingDao.deleteWithTrades(id)
+                holdingDao.deleteWithHistory(id)
             }
         }
 
         override suspend fun countTrades(id: Long): Int = holdingDao.countTrades(id)
     }
 
-/**
- * Trades, and the cash each one moves.
- *
- * **A purchase is two records, written together**: the trade, which says what was bought, and a
- * movement in the holding's account, which says the money left. They are separate facts rather
- * than one fact stored twice — the trade knows about units and the movement knows about a
- * balance — and keeping them together is what makes an investments account's balance read as
- * **the cash still in it** rather than as everything ever put there (D11).
- *
- * Every write here is one `withTransaction`, for the reason `RoomTransferRepository` gives about
- * its two legs: nothing enforces the pairing but this class, so a trade recorded without its
- * cash — or cash left behind by a deleted trade — must not be a state the app can reach.
- */
 @Singleton
 class RoomTradeRepository
     @Inject
     constructor(
         private val tradeDao: TradeDao,
-        private val holdingDao: HoldingDao,
         private val transactionDao: TransactionDao,
+        private val cashWriter: TradeCashWriter,
         private val database: CentsDatabase,
         private val clock: Clock,
     ) : TradeRepository {
-        override fun observeTrades(holdingId: Long): Flow<List<Trade>> =
-            tradeDao.observeForHolding(holdingId).map { rows -> rows.map { it.toDomain() } }
-
         override suspend fun findById(id: Long): Trade? = tradeDao.findById(id)?.toDomain()
 
         override suspend fun addTrade(trade: Trade): Long =
             database.withTransaction {
                 val id = tradeDao.insert(trade.toEntity(createdAt = clock.instant()))
-                // With the id, because the movement has to point back at the trade it paid for.
-                writeCash(trade.copy(id = id))
+                cashWriter.rewrite(trade.holdingId)
                 id
             }
 
         override suspend fun updateTrade(trade: Trade) {
             val existing = tradeDao.findById(trade.id) ?: return
             database.withTransaction {
-                tradeDao.update(trade.toEntity(createdAt = existing.createdAt))
-                writeCash(trade)
+                tradeDao.update(trade.copy(holdingId = existing.holdingId).toEntity(createdAt = existing.createdAt))
+                cashWriter.rewrite(existing.holdingId)
             }
         }
 
         override suspend fun deleteTrade(id: Long) {
+            val existing = tradeDao.findById(id) ?: return
             database.withTransaction {
                 // First, because `transactions.tradeId` is `RESTRICT`: the movement points at
                 // the trade, so the pointer goes before the thing pointed at.
                 transactionDao.deleteTradeCash(id)
                 tradeDao.deleteById(id)
+                cashWriter.rewrite(existing.holdingId)
             }
-        }
-
-        /**
-         * Puts the account's side of the trade in step with the trade itself.
-         *
-         * Written rather than patched, and **rewritten rather than added to**: editing a
-         * purchase from 400 € to 300 € has to leave one movement of 300 €, not two totalling
-         * 700 €. The row keeps the id it had, so a trade edited twice does not shuffle its way
-         * down the account's list.
-         *
-         * A trade that moves no money has no row, and that is not only the correction case: a
-         * sale whose fee exactly swallows its proceeds moves nothing either. If such an edit
-         * lands on a trade that *did* move money, the row it had is removed rather than left
-         * behind at its old amount.
-         *
-         * The currency is the holding's, which is the account's — a holding takes it from the
-         * account it is created in (rule 2). A movement is denominated in what it was recorded
-         * in, and a balance sums an account's movements under the account's own currency, so
-         * these two agreeing is what keeps that sum meaningful.
-         */
-        private suspend fun writeCash(trade: Trade) {
-            val holding = holdingDao.findById(trade.holdingId) ?: return
-            val existing = transactionDao.findTradeCash(trade.id)
-            val delta = trade.cashDelta
-            if (delta.minorUnits == 0L) {
-                if (existing != null) transactionDao.deleteTradeCash(trade.id)
-                return
-            }
-            val now = clock.instant()
-            val row =
-                TransactionEntity(
-                    id = existing?.id ?: 0,
-                    accountId = holding.accountId,
-                    categoryId = null,
-                    kind = if (delta.minorUnits < 0) TransactionKind.EXPENSE else TransactionKind.INCOME,
-                    // The amount is always positive and the direction lives in the kind, which
-                    // is the same rule every other movement in this app obeys.
-                    amountMinor = abs(delta.minorUnits),
-                    currency = holding.currency,
-                    date = trade.date,
-                    // The trade's note travels with its cash, so searching the list for it finds
-                    // the movement as well as the trade.
-                    note = trade.note,
-                    tradeId = trade.id,
-                    createdAt = existing?.createdAt ?: now,
-                    updatedAt = now,
-                )
-            if (existing == null) transactionDao.insert(row) else transactionDao.update(row)
         }
     }
 
 @Singleton
-class RoomPriceQuoteRepository
+class RoomHoldingValueRepository
     @Inject
     constructor(
-        private val priceQuoteDao: PriceQuoteDao,
-    ) : PriceQuoteRepository {
-        override fun observeQuotes(): Flow<List<PriceQuote>> =
-            priceQuoteDao.observeAll().map { rows ->
-                rows.map { it.toDomain() }
-            }
+        private val holdingValueDao: HoldingValueDao,
+        private val holdingDao: HoldingDao,
+        private val cashWriter: TradeCashWriter,
+        private val database: CentsDatabase,
+        private val clock: Clock,
+    ) : HoldingValueRepository {
+        override suspend fun findById(id: Long): HoldingValue? = holdingValueDao.findById(id)?.toDomain()
 
-        override fun observeQuote(symbol: String): Flow<PriceQuote?> =
-            priceQuoteDao.observeBySymbol(symbol).map {
-                it?.toDomain()
-            }
-
-        override suspend fun setManualPrice(
-            symbol: String,
-            price: Money,
-            asOf: Instant,
+        override suspend fun setValues(
+            date: LocalDate,
+            values: Map<Long, Money>,
         ) {
-            priceQuoteDao.upsert(
-                PriceQuoteEntity(
-                    symbol = symbol,
-                    priceMinor = price.minorUnits,
-                    currency = price.currency,
-                    asOf = asOf,
-                    source = QuoteSource.MANUAL,
-                ),
-            )
+            database.withTransaction {
+                values.forEach { (holdingId, value) ->
+                    val holding = holdingDao.findById(holdingId) ?: return@forEach
+                    holdingValueDao.save(
+                        HoldingValueEntity(
+                            holdingId = holdingId,
+                            date = date,
+                            valueMinor = value.minorUnits,
+                            currency = holding.currency,
+                            createdAt = clock.instant(),
+                        ),
+                    )
+                    // A part sale after this day measures itself against it.
+                    cashWriter.rewrite(holdingId)
+                }
+            }
+        }
+
+        override suspend fun deleteValue(id: Long) {
+            val existing = holdingValueDao.findById(id) ?: return
+            database.withTransaction {
+                holdingValueDao.deleteById(id)
+                cashWriter.rewrite(existing.holdingId)
+            }
         }
     }
 
 /**
- * The read model: holdings, every trade, and every price, folded into positions.
+ * The read model: assets, every trade, every value, and the broker accounts' cash, folded into
+ * what the investment screens show.
  *
- * **Every trade in one query rather than one query per holding.** A portfolio of twenty
- * holdings would otherwise be twenty flows to combine and twenty statements to re-run whenever
- * any of them changed. The rows are grouped in Kotlin, which is bounded by how many times the
- * owner has traded — the same argument `positionFrom` makes about why the fold is not SQL.
- *
- * **A price is matched by symbol, not by holding**, so the same instrument held in two accounts
- * is worth the same in both. A holding with no quote yet produces a position with a null market
- * value, which is what the screens render as "no price yet" rather than as zero.
+ * **Every trade and value in one query each**, grouped in Kotlin, rather than a flow per asset:
+ * twenty assets would otherwise be sixty flows to combine. The rows are bounded by how much the
+ * owner has recorded by hand.
  */
 @Singleton
 class RoomPortfolioRepository
@@ -230,29 +252,106 @@ class RoomPortfolioRepository
     constructor(
         private val holdingDao: HoldingDao,
         private val tradeDao: TradeDao,
-        private val priceQuoteDao: PriceQuoteDao,
+        private val holdingValueDao: HoldingValueDao,
+        private val transactionDao: TransactionDao,
+        private val accountRepository: AccountRepository,
     ) : PortfolioRepository {
-        override fun observePortfolio(): Flow<Portfolio> =
+        override fun observePositions(): Flow<List<Position>> =
             combine(
                 holdingDao.observeAll(),
                 tradeDao.observeAll(),
-                priceQuoteDao.observeAll(),
-            ) { holdings, trades, quotes ->
+                holdingValueDao.observeAll(),
+            ) { holdings, trades, values ->
                 val tradesByHolding = trades.groupBy { it.holdingId }
-                val quotesBySymbol = quotes.associateBy { it.symbol }
-                Portfolio(
-                    positions =
-                        holdings.map { entity ->
-                            val holding = entity.toDomain()
-                            positionFrom(
-                                holding = holding,
-                                trades = tradesByHolding[entity.id].orEmpty().map { it.toDomain() },
-                                quote = quotesBySymbol[holding.symbol]?.toDomain(),
+                val valuesByHolding = values.groupBy { it.holdingId }
+                holdings.map { entity ->
+                    positionOf(
+                        holding = entity.toDomain(),
+                        trades = tradesByHolding[entity.id].orEmpty().map { it.toDomain() },
+                        values = valuesByHolding[entity.id].orEmpty().map { it.toDomain() },
+                    )
+                }
+            }.flowOn(Dispatchers.Default)
+
+        override fun observePosition(holdingId: Long): Flow<Position?> =
+            observePositions().map { positions -> positions.firstOrNull { it.holding.id == holdingId } }
+
+        override fun observeOverview(): Flow<InvestmentOverview> =
+            combine(
+                accountRepository.observeAccountsWithBalances(includeArchived = true),
+                observePositions(),
+                transactionDao.observeInvestmentCashByDay(),
+            ) { accounts, positions, cashByDay ->
+                val positionsByAccount = positions.groupBy { it.holding.accountId }
+                // Every active broker, and any other account still holding an open asset: one left
+                // in a bank account from before only brokers could hold them, or in an archived
+                // broker. Otherwise such an asset would count in the net worth and be out of reach.
+                val brokers =
+                    accounts.filter { item ->
+                        (item.account.type == AccountType.BROKER && !item.account.archived) ||
+                            positionsByAccount[item.account.id].orEmpty().any { it.isOpen }
+                    }
+                val cashByAccount = cashByDay.groupBy { it.accountId }
+                InvestmentOverview(
+                    // The currency most of them share: the others are listed and not added, which
+                    // is what the footer about them says (rule 2).
+                    currency =
+                        brokers
+                            .groupingBy { it.account.currency }
+                            .eachCount()
+                            .maxByOrNull { it.value }
+                            ?.key,
+                    accounts =
+                        brokers.map { item ->
+                            investmentAccount(
+                                item,
+                                positionsByAccount[item.account.id].orEmpty(),
+                                cashByAccount[item.account.id].orEmpty(),
                             )
                         },
                 )
             }
 
-        override fun observePosition(holdingId: Long): Flow<Position?> =
-            observePortfolio().map { portfolio -> portfolio.positions.firstOrNull { it.holding.id == holdingId } }
+        override fun observeAccount(accountId: Long): Flow<InvestmentAccount?> =
+            observeOverview().map { overview -> overview.accounts.firstOrNull { it.account.id == accountId } }
     }
+
+/**
+ * One broker account: its cash now, its cash through time from the opening balance, and its assets.
+ *
+ * Only an active broker's cash is investment cash, as `netWorthOf` counts it. A bank account or an
+ * archived broker listed for an old asset it still holds brings that asset and no cash, or its
+ * whole balance would count as invested on this screen and as normal money everywhere else.
+ *
+ * An asset in another currency than its account is left out, as `liveBalances` leaves it out of
+ * Wallet: adding it would be inventing a rate (rule 2), and `Money` refuses to.
+ */
+private fun investmentAccount(
+    item: AccountWithBalance,
+    allPositions: List<Position>,
+    cashByDay: List<AccountDayNet>,
+): InvestmentAccount {
+    val currency = item.account.currency
+    val positions = allPositions.filter { it.holding.currency == currency }
+    if (!item.account.holdsInvestments) {
+        return InvestmentAccount(
+            account = item.account,
+            cash = Money.zero(currency),
+            positions = positions,
+            cashBefore = Money.zero(currency),
+        )
+    }
+    var running = item.account.openingBalance.minorUnits
+    val steps =
+        cashByDay.sortedBy { it.date }.map { day ->
+            running += day.netMinor
+            ValueStep(day.date, Money(running, currency))
+        }
+    return InvestmentAccount(
+        account = item.account,
+        cash = item.balance,
+        positions = positions,
+        cashSteps = steps,
+        cashBefore = item.account.openingBalance,
+    )
+}

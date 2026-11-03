@@ -140,20 +140,19 @@ class TransactionsScreenTest {
     }
 
     @Test
-    fun `a purchase says what was bought and opens the trade behind it`() {
+    fun `a sale's result says which asset it was made on and opens the sale`() {
         setContent(unfiltered().copy(days = listOf(TransactionDay(TODAY, listOf(purchase())))))
 
         // Without this it reads *Uncategorized* with an amount, which says nothing about the
         // one thing worth knowing.
-        composeRule.onNodeWithText("Bought NVD.DE").assertExists()
+        composeRule.onNodeWithText("Result on World fund").assertExists()
         composeRule.onNodeWithText("Uncategorized").assertDoesNotExist()
 
         composeRule
-            .onNodeWithText("Bought NVD.DE")
+            .onNodeWithText("Result on World fund")
             .performSemanticsAction(SemanticsActions.OnClick)
 
-        // The money is a consequence of the units: editing it on its own would make the two
-        // disagree about what the purchase was.
+        // The result follows from the sale: it is changed by changing the sale.
         assertEquals(listOf(9L to 42L), openedTrades)
         assertEquals(emptyList<Long>(), openedMovements)
     }
@@ -234,8 +233,9 @@ class TransactionsScreenTest {
             accountName = "Broker",
             categoryName = null,
             categoryColorArgb = null,
-            tradeSymbol = "NVD.DE",
+            tradeAssetName = "World fund",
             tradeHoldingId = 9,
+            tradeResult = true,
         )
 
     /** The side money left: an expense in Checking, belonging to transfer 77. */

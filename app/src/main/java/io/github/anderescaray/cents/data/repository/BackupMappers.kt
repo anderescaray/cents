@@ -10,7 +10,7 @@ import io.github.anderescaray.cents.data.local.entity.CaptureMatchEntity
 import io.github.anderescaray.cents.data.local.entity.CategoryEntity
 import io.github.anderescaray.cents.data.local.entity.GroupEntity
 import io.github.anderescaray.cents.data.local.entity.HoldingEntity
-import io.github.anderescaray.cents.data.local.entity.PriceQuoteEntity
+import io.github.anderescaray.cents.data.local.entity.HoldingValueEntity
 import io.github.anderescaray.cents.data.local.entity.RecurringRuleEntity
 import io.github.anderescaray.cents.data.local.entity.RuleReminderEntity
 import io.github.anderescaray.cents.data.local.entity.TradeEntity
@@ -24,14 +24,13 @@ import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
-import io.github.anderescaray.cents.domain.model.BackupQuote
+import io.github.anderescaray.cents.domain.model.BackupHoldingValue
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import io.github.anderescaray.cents.domain.model.CategoryKind
 import io.github.anderescaray.cents.domain.model.Frequency
-import io.github.anderescaray.cents.domain.model.QuoteSource
 import io.github.anderescaray.cents.domain.model.RuleMode
 import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -97,6 +96,7 @@ fun BackupTransaction.toEntity(createdAt: Instant) =
         note = note,
         transferId = transferId,
         tradeId = tradeId,
+        tradeResult = tradeResult,
         ruleId = ruleId,
         groupId = groupId,
         createdAt = createdAt,
@@ -126,7 +126,6 @@ fun BackupHolding.toEntity(createdAt: Instant) =
         id = id,
         accountId = accountId,
         assetClass = enumOrDefault(assetClass, AssetClass.STOCK),
-        symbol = symbol,
         name = name,
         currency = currency,
         note = note,
@@ -139,9 +138,8 @@ fun BackupTrade.toEntity(createdAt: Instant) =
         id = id,
         holdingId = holdingId,
         side = enumOrDefault(side, TradeSide.BUY),
-        quantityScaled = quantityScaled,
-        pricePerUnitMinor = pricePerUnitMinor,
-        feeMinor = feeMinor,
+        amountMinor = amountMinor,
+        sellsAll = sellsAll,
         currency = currency,
         date = LocalDate.ofEpochDay(date),
         note = note,
@@ -199,13 +197,13 @@ fun BackupAdjustment.toEntity(createdAt: Instant) =
         createdAt = createdAt,
     )
 
-fun BackupQuote.toEntity() =
-    PriceQuoteEntity(
-        symbol = symbol,
-        priceMinor = priceMinor,
+fun BackupHoldingValue.toEntity(createdAt: Instant) =
+    HoldingValueEntity(
+        holdingId = holdingId,
+        date = LocalDate.ofEpochDay(date),
+        valueMinor = valueMinor,
         currency = currency,
-        asOf = Instant.ofEpochMilli(asOf),
-        source = enumOrDefault(source, QuoteSource.MANUAL),
+        createdAt = createdAt,
     )
 
 private inline fun <reified T : Enum<T>> enumOrDefault(

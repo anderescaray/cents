@@ -12,8 +12,8 @@ import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
+import io.github.anderescaray.cents.domain.model.BackupHoldingValue
 import io.github.anderescaray.cents.domain.model.BackupPostponement
-import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
@@ -48,6 +48,7 @@ class RoomBackupRepository
     constructor(
         private val database: CentsDatabase,
         private val clock: Clock,
+        private val cashWriter: TradeCashWriter,
     ) : BackupRepository {
         override suspend fun snapshot(): Backup =
             database.withTransaction {
@@ -61,7 +62,7 @@ class RoomBackupRepository
                     transactions = transactions(),
                     holdings = holdings(),
                     trades = trades(),
-                    quotes = quotes(),
+                    values = values(),
                     rules = rules(),
                     reminders = reminders(),
                     budgets = budgets(),
@@ -113,6 +114,7 @@ class RoomBackupRepository
                     note = it.note,
                     transferId = it.transferId,
                     tradeId = it.tradeId,
+                    tradeResult = it.tradeResult,
                     ruleId = it.ruleId,
                     groupId = it.groupId,
                 )
@@ -124,7 +126,6 @@ class RoomBackupRepository
                     id = it.id,
                     accountId = it.accountId,
                     assetClass = it.assetClass.name,
-                    symbol = it.symbol,
                     name = it.name,
                     currency = it.currency,
                     note = it.note,
@@ -137,9 +138,8 @@ class RoomBackupRepository
                     id = it.id,
                     holdingId = it.holdingId,
                     side = it.side.name,
-                    quantityScaled = it.quantityScaled,
-                    pricePerUnitMinor = it.pricePerUnitMinor,
-                    feeMinor = it.feeMinor,
+                    amountMinor = it.amountMinor,
+                    sellsAll = it.sellsAll,
                     currency = it.currency,
                     date = it.date.toEpochDay(),
                     note = it.note,
@@ -151,10 +151,10 @@ class RoomBackupRepository
          *
          * **The order is the foreign keys' order, in both directions.** Movements point at
          * accounts, categories, trades and rules; trades point at holdings; rules point at
-         * accounts and categories, reminders and postponements at rules, budgets at categories, and movements at
-         * groups too; balance corrections point at accounts; capture matches at movements, rules and
-         * accounts; so the emptying
-         * goes from the leaves inward and the filling from the roots outward. Getting it wrong does not
+         * accounts and categories, reminders and postponements at rules, budgets at categories,
+         * values at holdings, and movements at groups too; balance corrections point at accounts;
+         * capture matches at movements, rules and accounts; so the emptying goes from the leaves
+         * inward and the filling from the roots outward. Getting it wrong does not
          * corrupt anything — `RESTRICT` refuses and the whole transaction rolls back — but it
          * would turn every restore into a failure, so it is written down rather than discovered.
          *
@@ -171,9 +171,9 @@ class RoomBackupRepository
                 database.rulePostponementDao().deleteAll()
                 database.ruleReminderDao().deleteAll()
                 database.recurringRuleDao().deleteAll()
+                database.holdingValueDao().deleteAll()
                 database.tradeDao().deleteAll()
                 database.holdingDao().deleteAll()
-                database.priceQuoteDao().deleteAll()
                 database.categoryDao().deleteAll()
                 database.accountDao().deleteAll()
 
@@ -194,11 +194,35 @@ class RoomBackupRepository
                 }
                 backup.budgets.forEach { restoreBudget(it.toEntity(now)) }
                 backup.groups.forEach { database.groupDao().insert(it.toEntity(now)) }
-                backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
-                backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
-                backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
-                backup.quotes.forEach { database.priceQuoteDao().upsert(it.toEntity()) }
+                restoreInvestments(backup, now)
                 backup.captureMatches.forEach { database.captureMatchDao().insert(it.toEntity(now)) }
+            }
+        }
+
+        /**
+         * Assets, their trades and values, and the movements, which point at trades. Then each
+         * asset's cash is written again: a file from before D40 holds a sale's cash as one row,
+         * and written again it is the cost returned and the result apart. On a newer file this
+         * changes nothing.
+         *
+         * **No balance moves**, as in the v15 migration: where the cash written again does not add
+         * up to the file's — a purchase from before v4 with no cash row, a sale whose fee swallowed
+         * it — the account's opening balance takes the difference.
+         */
+        private suspend fun restoreInvestments(
+            backup: Backup,
+            now: java.time.Instant,
+        ) {
+            backup.holdings.forEach { database.holdingDao().insert(it.toEntity(now)) }
+            backup.trades.forEach { database.tradeDao().insert(it.toEntity(now)) }
+            backup.values.forEach { database.holdingValueDao().save(it.toEntity(now)) }
+            backup.transactions.forEach { database.transactionDao().insert(it.toEntity(now)) }
+            val accounts = backup.holdings.map { it.accountId }.distinct()
+            val before = accounts.associateWith { database.accountDao().balanceOf(it) ?: 0L }
+            backup.holdings.forEach { cashWriter.rewrite(it.id) }
+            accounts.forEach { id ->
+                val drift = before.getValue(id) - (database.accountDao().balanceOf(id) ?: 0L)
+                if (drift != 0L) database.accountDao().addToOpeningBalance(id, drift)
             }
         }
 
@@ -288,14 +312,13 @@ class RoomBackupRepository
                 )
             }
 
-        private suspend fun quotes() =
-            database.priceQuoteDao().observeAll().first().map {
-                BackupQuote(
-                    symbol = it.symbol,
-                    priceMinor = it.priceMinor,
+        private suspend fun values() =
+            database.holdingValueDao().all().map {
+                BackupHoldingValue(
+                    holdingId = it.holdingId,
+                    date = it.date.toEpochDay(),
+                    valueMinor = it.valueMinor,
                     currency = it.currency,
-                    asOf = it.asOf.toEpochMilli(),
-                    source = it.source.name,
                 )
             }
     }

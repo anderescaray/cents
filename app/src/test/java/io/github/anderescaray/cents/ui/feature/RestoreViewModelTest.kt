@@ -7,6 +7,7 @@ import io.github.anderescaray.cents.data.export.BackupWriter
 import io.github.anderescaray.cents.data.export.DocumentReader
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.backupRepository
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomBackupRepository
@@ -236,14 +237,14 @@ class RestoreViewModelTest {
         return try {
             other.accountDao().insert(account(name = "Savings"))
             other.accountDao().insert(account(name = "Broker"))
-            BackupWriter.toJson(RoomBackupRepository(other, clock).snapshot())
+            BackupWriter.toJson(backupRepository(other, clock).snapshot())
         } finally {
             other.close()
         }
     }
 
     private fun restorer(): RestoreViewModel =
-        viewModels.keep(RestoreViewModel(RoomBackupRepository(database, clock), reader))
+        viewModels.keep(RestoreViewModel(backupRepository(database, clock), reader))
 }
 
 /**

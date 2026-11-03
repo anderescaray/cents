@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -60,20 +59,19 @@ fun MoneyFiguresBlock(
                 }
                 if (figures.invested) {
                     val invested = netWorth.invested
-                    val noPrice = stringResource(R.string.investments_no_price)
                     WorthTile(
                         iconRes = R.drawable.ic_trend_up,
                         color = CentsTheme.colors.positive,
                         label = stringResource(R.string.net_worth_invested),
-                        value = invested?.let { MoneyFormatter.format(it) } ?: noPrice,
-                        negative = invested?.isNegative == true,
+                        value = MoneyFormatter.format(invested),
+                        negative = invested.isNegative,
                         onClick = onOpenInvestments,
                         modifier = Modifier.weight(1f).testTag(INVESTED_FIGURE_TAG),
                     )
                 }
             }
         }
-        figuresNotes(netWorth, figures).forEach { note ->
+        figuresNotes(netWorth).forEach { note ->
             Text(
                 text = note,
                 style = CentsTheme.typography.footnote,
@@ -84,7 +82,7 @@ fun MoneyFiguresBlock(
     }
 }
 
-/** Cash and bank plus invested, as one number, or *no price yet* while the second is unknown. */
+/** Cash and bank plus invested, as one number. */
 @Composable
 private fun TotalCard(
     netWorth: NetWorth,
@@ -97,21 +95,11 @@ private fun TotalCard(
             style = CentsTheme.typography.subhead,
             color = CentsTheme.colors.secondaryLabel,
         )
-        if (total != null) {
-            AnimatedMoney(
-                money = total,
-                style = style,
-                color = if (total.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
-            )
-        } else {
-            // Nothing priced is not the same as nothing held, and the two must not render the
-            // same way.
-            Text(
-                text = stringResource(R.string.investments_no_price),
-                style = CentsTheme.typography.title2,
-                color = CentsTheme.colors.secondaryLabel,
-            )
-        }
+        AnimatedMoney(
+            money = total,
+            style = style,
+            color = if (total.isNegative) CentsTheme.colors.destructiveText else CentsTheme.colors.label,
+        )
     }
 }
 
@@ -152,21 +140,13 @@ private fun WorthTile(
 }
 
 /**
- * What the figures shown leave out, each said when it is left out.
- *
- * Both are money or value that exists and is not in the figures above, and a figure that quietly
- * omits either is the kind of number that gets believed and should not be. Holdings with no price
- * only matter to a figure that counts holdings.
+ * What the figures shown leave out, said when it is left out: money in archived accounts exists
+ * and is not in the figures above, and a figure that quietly omits it is the kind of number that
+ * gets believed and should not be.
  */
 @Composable
-private fun figuresNotes(
-    netWorth: NetWorth,
-    figures: MoneyFigures,
-): List<String> =
+private fun figuresNotes(netWorth: NetWorth): List<String> =
     buildList {
-        if (netWorth.hasUnpriced && (figures.invested || figures.total)) {
-            add(pluralStringResource(R.plurals.net_worth_unpriced, netWorth.unpricedCount, netWorth.unpricedCount))
-        }
         if (netWorth.hasArchivedMoney) {
             add(stringResource(R.string.net_worth_archived, MoneyFormatter.format(netWorth.inArchivedAccounts)))
         }

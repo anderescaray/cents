@@ -5,11 +5,12 @@ import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.holding
-import io.github.anderescaray.cents.data.local.quote
+import io.github.anderescaray.cents.data.local.portfolioRepository
+import io.github.anderescaray.cents.data.local.tradeCashWriter
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomAccountRepository
 import io.github.anderescaray.cents.data.repository.RoomBalanceRepository
-import io.github.anderescaray.cents.data.repository.RoomPortfolioRepository
+import io.github.anderescaray.cents.data.repository.RoomHoldingValueRepository
 import io.github.anderescaray.cents.data.repository.RoomRecurringRuleRepository
 import io.github.anderescaray.cents.data.repository.RoomTradeRepository
 import io.github.anderescaray.cents.data.repository.RoomTransactionRepository
@@ -21,7 +22,6 @@ import io.github.anderescaray.cents.domain.model.Money
 import io.github.anderescaray.cents.domain.model.MoneyFigure
 import io.github.anderescaray.cents.domain.model.MoneyFigures
 import io.github.anderescaray.cents.domain.model.NetWorth
-import io.github.anderescaray.cents.domain.model.Quantity
 import io.github.anderescaray.cents.domain.model.Trade
 import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.TransactionKind
@@ -70,7 +70,7 @@ class MoneyFiguresAgreeTest {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         database = createTestDatabase()
         val accounts = RoomAccountRepository(database.accountDao(), database.transactionDao(), database, clock)
-        val portfolio = RoomPortfolioRepository(database.holdingDao(), database.tradeDao(), database.priceQuoteDao())
+        val portfolio = portfolioRepository(database, clock)
         wallet = viewModels.keep(AccountsViewModel(accounts, portfolio))
         home =
             viewModels.keep(
@@ -131,25 +131,25 @@ class MoneyFiguresAgreeTest {
             )
             bothRead(normal = 52_450, invested = 50_000)
 
-            // Two units at 100 €: 200 € of the broker's cash becomes a holding nobody has priced
-            // yet. The 300 € left is still known.
-            val holdingId = database.holdingDao().insert(holding(accountId = broker, symbol = "NVDA"))
-            RoomTradeRepository(database.tradeDao(), database.holdingDao(), database.transactionDao(), database, clock)
+            // 200 € of the broker's cash becomes an asset, worth what was paid until a value is
+            // typed (D40): the invested figure does not move.
+            val holdingId = database.holdingDao().insert(holding(accountId = broker))
+            val cash = tradeCashWriter(database, clock)
+            RoomTradeRepository(database.tradeDao(), database.transactionDao(), cash, database, clock)
                 .addTrade(
                     Trade(
                         id = 0L,
                         holdingId = holdingId,
                         side = TradeSide.BUY,
-                        quantity = Quantity.ofUnits(2),
-                        pricePerUnit = Money(10_000, "EUR"),
-                        fee = Money.zero("EUR"),
+                        amount = Money(20_000, "EUR"),
                         date = today,
                         note = null,
                     ),
                 )
-            bothRead(normal = 52_450, invested = 30_000)
+            bothRead(normal = 52_450, invested = 50_000)
 
-            database.priceQuoteDao().upsert(quote(symbol = "NVDA", priceMinor = 12_000))
+            RoomHoldingValueRepository(database.holdingValueDao(), database.holdingDao(), cash, database, clock)
+                .setValue(holdingId, today, Money(24_000, "EUR"))
             bothRead(normal = 52_450, invested = 54_000)
 
             RoomBalanceRepository(database, clock)

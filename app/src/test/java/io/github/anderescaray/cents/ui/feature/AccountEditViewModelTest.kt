@@ -265,7 +265,7 @@ class AccountEditViewModelTest {
             // with a holding and no movements took the "nothing lives in it" path and ended in
             // a constraint violation reported as "try again" — advice that could never work.
             val id = database.accountDao().insert(account(name = "Broker"))
-            database.holdingDao().insert(holding(id, symbol = "NVDA"))
+            database.holdingDao().insert(holding(id))
             val editor = editorFor(id)
 
             editor.uiState.test {

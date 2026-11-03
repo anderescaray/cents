@@ -9,71 +9,57 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.anderescaray.cents.domain.model.Account
 import io.github.anderescaray.cents.domain.model.AssetClass
 import io.github.anderescaray.cents.domain.model.Holding
+import io.github.anderescaray.cents.domain.model.Money
+import io.github.anderescaray.cents.domain.model.Trade
+import io.github.anderescaray.cents.domain.model.TradeSide
 import io.github.anderescaray.cents.domain.model.holdsInvestments
 import io.github.anderescaray.cents.domain.repository.AccountRepository
 import io.github.anderescaray.cents.domain.repository.HoldingRepository
 import io.github.anderescaray.cents.ui.navigation.Destination
-import kotlinx.coroutines.Job
+import io.github.anderescaray.cents.ui.util.AmountEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Locale
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 
 @Immutable
 data class HoldingEditUiState(
     val isNew: Boolean = true,
-    val symbol: String = "",
     val name: String = "",
-    val assetClass: AssetClass = AssetClass.STOCK,
+    val assetClass: AssetClass = AssetClass.INDEX_FUND,
     val accountId: Long? = null,
-    /**
-     * The accounts the form offers: the brokers that are not archived, and the account an existing
-     * holding is already in, whatever it is (`docs/next-improvements.md` §10).
-     */
+    /** The brokers a new asset can go in; an existing one stays where it is. */
     val accounts: List<Account> = emptyList(),
-    /** The accounts have arrived; until then an empty list means "not yet", not "none". */
     val accountsLoaded: Boolean = false,
+    /** The first purchase, for a new asset. */
+    val amountInput: String = AmountEntry.EMPTY,
+    val date: LocalDate = LocalDate.MIN,
+    val today: LocalDate = LocalDate.MIN,
+    val pickingDate: Boolean = false,
     val note: String = "",
-    /** The symbol is already held in the chosen account: saving would split one position in two. */
-    val duplicateOf: String? = null,
+    val tradeCount: Int = 0,
+    val deleting: Boolean = false,
     val saving: Boolean = false,
-    /** The database refused the write. It is shown and nothing is retried automatically. */
     val writeFailed: Boolean = false,
     val finished: Boolean = false,
 ) {
-    /** The chosen account, or null while the list is still loading. */
     val account: Account? get() = accounts.firstOrNull { it.id == accountId }
 
-    /** There is no broker account to put a new holding in, so the form offers to make one. */
-    val needsBrokerAccount: Boolean get() = accountsLoaded && accounts.isEmpty()
+    val needsBrokerAccount: Boolean get() = isNew && accountsLoaded && accounts.isEmpty()
 
-    /**
-     * Saving needs an account that is actually **in the list**, not merely an id.
-     * A holding in an archived account used to satisfy `accountId != null` while no row was
-     * selected, and the currency then fell through to a hard-coded default — which on a
-     * non-EUR device silently relabelled the holding (rule 2).
-     */
+    val amountMinor: Long get() = AmountEntry.toMinorUnits(amountInput)
+
     val canSave: Boolean
-        get() = symbol.isNotBlank() && name.isNotBlank() && account != null && duplicateOf == null && !saving
+        get() = name.isNotBlank() && !saving && (!isNew || (account != null && amountMinor > 0))
 }
 
 /**
- * Creating or editing one holding: what it is, what kind of thing it is, and which account it
- * is held in.
- *
- * **The symbol is the interesting field.** It is what a price is stored against, so it is
- * upper-cased on the way in and checked against the account before saving: two rows for NVDA in
- * one account would split a single position, and every average and total would then be right
- * about each half and wrong about the holding. The database refuses it too — there is a unique
- * index — but asking first is what lets the form say *why* instead of throwing.
- *
- * The currency is the device's and is not asked for, exactly as the account form no longer asks
- * (D2). The instrument's own currency is a real thing and the column is there for it, but a
- * dollar-priced holding needs a conversion rate to sit in a euro total, and that rate is the
- * subject of PRD 4.5 rather than something to invent here.
+ * A new asset with its first purchase, or an existing one's type, name and note (D40). The name is
+ * the owner's own and matches nothing, so there is nothing to check it against.
  */
 @HiltViewModel
 class HoldingEditViewModel
@@ -81,20 +67,26 @@ class HoldingEditViewModel
     constructor(
         private val holdingRepository: HoldingRepository,
         private val accountRepository: AccountRepository,
+        clock: Clock,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val holdingId: Long? =
-            savedStateHandle
-                .toRoute<Destination.HoldingEdit>()
-                .holdingId
-                .takeIf { it != Destination.HoldingEdit.NEW }
+        private val route = savedStateHandle.toRoute<Destination.HoldingEdit>()
+        private val holdingId: Long? = route.holdingId.takeIf { it != Destination.HoldingEdit.NEW }
+        private val today = LocalDate.now(clock)
 
-        private val form = MutableStateFlow(HoldingEditUiState(isNew = holdingId == null))
+        private val form =
+            MutableStateFlow(
+                HoldingEditUiState(
+                    isNew = holdingId == null,
+                    accountId = route.accountId.takeIf { it != Destination.HoldingEdit.NO_ACCOUNT },
+                    date = today,
+                    today = today,
+                ),
+            )
 
         val uiState: StateFlow<HoldingEditUiState> = form.asStateFlow()
 
-        /** The account an existing holding is in, which stays offered whatever it is. */
-        private var ownAccountId: Long? = null
+        private var existing: Holding? = null
 
         init {
             viewModelScope.launch { load() }
@@ -102,127 +94,101 @@ class HoldingEditViewModel
 
         private suspend fun load() {
             val holding = holdingId?.let { holdingRepository.findById(it) }
-            ownAccountId = holding?.accountId
-            form.update { state ->
-                state.copy(
-                    symbol = holding?.symbol ?: state.symbol,
-                    name = holding?.name ?: state.name,
-                    assetClass = holding?.assetClass ?: state.assetClass,
-                    accountId = holding?.accountId,
-                    note = holding?.note.orEmpty(),
-                )
+            existing = holding
+            if (holding != null) {
+                val trades = holdingRepository.countTrades(holding.id)
+                form.update {
+                    it.copy(
+                        name = holding.name,
+                        assetClass = holding.assetClass,
+                        accountId = holding.accountId,
+                        note = holding.note.orEmpty(),
+                        tradeCount = trades,
+                    )
+                }
             }
             // Watched rather than read once: a broker made from this form, when there was none,
-            // has to appear in it on the way back. Archived accounts are read too, so an old
-            // holding can still name the account it is in.
-            accountRepository.observeAccounts(includeArchived = true).collect { accounts ->
-                form.update { it.withAccounts(accounts) }
-                checkForDuplicate()
-            }
-        }
-
-        /**
-         * Only a broker for a new holding (§10): its trades spend and return that account's cash,
-         * and a current account is not where investing happens. An existing holding keeps the
-         * account it is in and shows it, even one that is not a broker or has been archived —
-         * nothing is moved for the owner.
-         */
-        private fun HoldingEditUiState.withAccounts(all: List<Account>): HoldingEditUiState {
-            val offered = all.filter { it.holdsInvestments || it.id == ownAccountId }
-            val kept = accountId?.takeIf { id -> offered.any { it.id == id } }
-            return copy(
-                accounts = offered,
-                accountsLoaded = true,
-                accountId = kept ?: offered.firstOrNull { it.holdsInvestments }?.id,
-            )
-        }
-
-        fun onSymbolChanged(value: String) {
-            form.update { it.copy(symbol = value.uppercase(Locale.ROOT).trim()) }
-            checkForDuplicate()
-        }
-
-        fun dismissWriteFailure() {
-            form.update { it.copy(writeFailed = false) }
-        }
-
-        fun onNameChanged(value: String) {
-            form.update { it.copy(name = value) }
-        }
-
-        fun onAssetClassChanged(value: AssetClass) {
-            form.update { it.copy(assetClass = value) }
-        }
-
-        fun onAccountChanged(value: Long) {
-            form.update { it.copy(accountId = value) }
-            checkForDuplicate()
-        }
-
-        fun onNoteChanged(value: String) {
-            form.update { it.copy(note = value) }
-        }
-
-        /**
-         * Is this symbol already held in this account?
-         *
-         * **One check at a time.** It runs on every keystroke, and unsequenced coroutines finish
-         * in whatever order the database answers — so a stale reply could clear the warning after
-         * a duplicate had been typed, and `save()` would then walk into the unique index it
-         * exists to keep away from. Cancelling the one in flight makes the last answer the last
-         * word.
-         */
-        private fun checkForDuplicate() {
-            val state = form.value
-            val accountId = state.accountId
-            duplicateCheck?.cancel()
-            if (accountId == null || state.symbol.isBlank()) {
-                form.update { it.copy(duplicateOf = null) }
-                return
-            }
-            duplicateCheck =
-                viewModelScope.launch {
-                    val existing = holdingRepository.findBySymbol(accountId, state.symbol)
-                    val clashes = existing != null && existing.id != holdingId
-                    form.update { it.copy(duplicateOf = if (clashes) existing?.symbol else null) }
+            // has to appear in it on the way back.
+            accountRepository.observeAccounts(includeArchived = true).collect { all ->
+                form.update { state ->
+                    val offered = all.filter { it.holdsInvestments || it.id == holding?.accountId }
+                    val kept = state.accountId?.takeIf { id -> offered.any { it.id == id } }
+                    state.copy(accounts = offered, accountsLoaded = true, accountId = kept ?: offered.firstOrNull()?.id)
                 }
+            }
+        }
+
+        fun onNameChanged(value: String) = form.update { it.copy(name = value) }
+
+        fun onAssetClassChanged(value: AssetClass) = form.update { it.copy(assetClass = value) }
+
+        fun onAccountChanged(value: Long) = form.update { it.copy(accountId = value) }
+
+        fun onAmountTyped(value: String) = form.update { it.copy(amountInput = AmountEntry.sanitize(value)) }
+
+        fun onNoteChanged(value: String) = form.update { it.copy(note = value) }
+
+        fun openDatePicker() = form.update { it.copy(pickingDate = true) }
+
+        fun dismissDatePicker() = form.update { it.copy(pickingDate = false) }
+
+        fun onDateSelected(value: LocalDate) = form.update { it.copy(date = value, pickingDate = false) }
+
+        fun dismissWriteFailure() = form.update { it.copy(writeFailed = false) }
+
+        fun requestDeletion() = form.update { it.copy(deleting = true) }
+
+        fun cancelDeletion() = form.update { it.copy(deleting = false) }
+
+        fun confirmDeletion() {
+            val id = holdingId ?: return
+            form.update { it.copy(deleting = false, saving = true) }
+            viewModelScope.launch {
+                val done = runCatching { holdingRepository.deleteHolding(id) }
+                form.update { it.copy(saving = false, writeFailed = done.isFailure, finished = done.isSuccess) }
+            }
         }
 
         fun save() {
             val state = form.value
-            // The account object, not the id: its currency is what the holding is denominated
-            // in, and there is no sensible fallback for a currency (rule 2).
-            val account = state.account ?: return
             if (!state.canSave) return
             form.update { it.copy(saving = true, writeFailed = false) }
             viewModelScope.launch {
-                val holding =
-                    Holding(
-                        id = holdingId ?: 0L,
-                        accountId = account.id,
-                        assetClass = state.assetClass,
-                        symbol = state.symbol,
-                        name = state.name.trim(),
-                        currency = account.currency,
-                        note = state.note.trim().ifBlank { null },
-                    )
-                // The duplicate check ahead of this is a courtesy, not a guarantee: the row it
-                // looked for can be created between the check and the write, and the unique
-                // index will then refuse this one. An exception escaping here would take the app
-                // down, so it becomes an alert — the same bargain `AccountRemoval` strikes.
-                val written =
-                    runCatching {
-                        if (holdingId == null) {
-                            holdingRepository.createHolding(holding)
-                        } else {
-                            holdingRepository.updateHolding(holding)
-                        }
-                    }
-                form.update {
-                    it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess)
-                }
+                val written = runCatching { write(state) }
+                form.update { it.copy(saving = false, writeFailed = written.isFailure, finished = written.isSuccess) }
             }
         }
 
-        private var duplicateCheck: Job? = null
+        private suspend fun write(state: HoldingEditUiState) {
+            val note = state.note.trim().ifBlank { null }
+            val old = existing
+            if (old != null) {
+                holdingRepository.updateHolding(
+                    old.copy(name = state.name.trim(), assetClass = state.assetClass, note = note),
+                )
+                return
+            }
+            // The account object, not the id: its currency is the asset's (rule 2).
+            val account = state.account ?: return
+            holdingRepository.createHolding(
+                holding =
+                    Holding(
+                        id = 0,
+                        accountId = account.id,
+                        assetClass = state.assetClass,
+                        name = state.name.trim(),
+                        currency = account.currency,
+                        note = note,
+                    ),
+                firstPurchase =
+                    Trade(
+                        id = 0,
+                        holdingId = 0,
+                        side = TradeSide.BUY,
+                        amount = Money(state.amountMinor, account.currency),
+                        date = state.date,
+                        note = null,
+                    ),
+            )
+        }
     }

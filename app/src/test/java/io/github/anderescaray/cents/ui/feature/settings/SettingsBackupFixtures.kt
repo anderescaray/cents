@@ -26,7 +26,6 @@ internal fun backupWithAccounts(vararg names: String): Backup =
         transactions = emptyList(),
         holdings = emptyList(),
         trades = emptyList(),
-        quotes = emptyList(),
     )
 
 internal class SettingsBackupRepository(

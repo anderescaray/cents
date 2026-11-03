@@ -5,6 +5,7 @@ import io.github.anderescaray.cents.data.export.BackupReader
 import io.github.anderescaray.cents.data.export.BackupWriter
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.backupRepository
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.entity.TransactionEntity
 import io.github.anderescaray.cents.domain.model.CaptureOutcome
@@ -402,7 +403,7 @@ class CaptureMatchTest {
             rules().createRule(netflix(start = OCT_15))
             val recorder = recorder()
             val matched = recorder.record(BANK_APP, "Compra en NETFLIX por 12,99 €", AT_10) as CaptureOutcome.Matched
-            val backups = RoomBackupRepository(database, Clock.fixed(AT_10, ZoneOffset.UTC))
+            val backups = backupRepository(database, Clock.fixed(AT_10, ZoneOffset.UTC))
 
             // Through the file itself, as a restore reads it.
             val text = BackupWriter.toJson(backups.snapshot())

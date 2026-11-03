@@ -8,8 +8,8 @@ import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
 import io.github.anderescaray.cents.domain.model.BackupHolding
+import io.github.anderescaray.cents.domain.model.BackupHoldingValue
 import io.github.anderescaray.cents.domain.model.BackupPostponement
-import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
 import io.github.anderescaray.cents.domain.model.BackupTrade
@@ -78,7 +78,7 @@ object BackupWriter {
                     "transactions" to backup.transactions.toArray(::transactionJson),
                     "holdings" to backup.holdings.toArray(::holdingJson),
                     "trades" to backup.trades.toArray(::tradeJson),
-                    "quotes" to backup.quotes.toArray(::quoteJson),
+                    "holdingValues" to backup.values.toArray(::valueJson),
                     "recurringRules" to backup.rules.toArray(::ruleJson),
                     "ruleReminders" to backup.reminders.toArray(::reminderJson),
                     "budgets" to backup.budgets.toArray(::budgetJson),
@@ -131,6 +131,7 @@ object BackupWriter {
             "tradeId" to row.tradeId.orNull(),
             "ruleId" to row.ruleId.orNull(),
             "groupId" to row.groupId.orNull(),
+            "tradeResult" to JsonPrimitive(row.tradeResult),
         )
 
     private fun holdingJson(row: BackupHolding) =
@@ -138,7 +139,6 @@ object BackupWriter {
             "id" to JsonPrimitive(row.id),
             "accountId" to JsonPrimitive(row.accountId),
             "assetClass" to JsonPrimitive(row.assetClass),
-            "symbol" to JsonPrimitive(row.symbol),
             "name" to JsonPrimitive(row.name),
             "currency" to JsonPrimitive(row.currency),
             "note" to row.note.orNull(),
@@ -149,9 +149,8 @@ object BackupWriter {
             "id" to JsonPrimitive(row.id),
             "holdingId" to JsonPrimitive(row.holdingId),
             "side" to JsonPrimitive(row.side),
-            "quantityScaled" to JsonPrimitive(row.quantityScaled),
-            "pricePerUnitMinor" to JsonPrimitive(row.pricePerUnitMinor),
-            "feeMinor" to JsonPrimitive(row.feeMinor),
+            "amountMinor" to JsonPrimitive(row.amountMinor),
+            "sellsAll" to JsonPrimitive(row.sellsAll),
             "currency" to JsonPrimitive(row.currency),
             "date" to JsonPrimitive(row.date),
             "note" to row.note.orNull(),
@@ -229,13 +228,12 @@ object BackupWriter {
             "archived" to JsonPrimitive(row.archived),
         )
 
-    private fun quoteJson(row: BackupQuote) =
+    private fun valueJson(row: BackupHoldingValue) =
         mapOf(
-            "symbol" to JsonPrimitive(row.symbol),
-            "priceMinor" to JsonPrimitive(row.priceMinor),
+            "holdingId" to JsonPrimitive(row.holdingId),
+            "date" to JsonPrimitive(row.date),
+            "valueMinor" to JsonPrimitive(row.valueMinor),
             "currency" to JsonPrimitive(row.currency),
-            "asOf" to JsonPrimitive(row.asOf),
-            "source" to JsonPrimitive(row.source),
         )
 
     /**

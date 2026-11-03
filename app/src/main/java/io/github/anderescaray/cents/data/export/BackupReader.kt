@@ -7,18 +7,13 @@ import io.github.anderescaray.cents.domain.model.BackupBudget
 import io.github.anderescaray.cents.domain.model.BackupCaptureMatch
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupGroup
-import io.github.anderescaray.cents.domain.model.BackupHolding
 import io.github.anderescaray.cents.domain.model.BackupPostponement
-import io.github.anderescaray.cents.domain.model.BackupQuote
 import io.github.anderescaray.cents.domain.model.BackupReminder
 import io.github.anderescaray.cents.domain.model.BackupRule
-import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import java.time.Instant
@@ -112,8 +107,9 @@ object BackupReader {
     private fun read(
         root: JsonObject,
         version: Int,
-    ): Backup =
-        Backup(
+    ): Backup {
+        val portfolio = root.portfolio(version)
+        return Backup(
             schemaVersion = version,
             exportedAt =
                 root.string("exportedAt")?.let { runCatching { Instant.parse(it) }.getOrNull() }
@@ -121,9 +117,9 @@ object BackupReader {
             accounts = root.rows("accounts", ::account),
             categories = root.rows("categories", ::category),
             transactions = root.rows("transactions", ::transaction),
-            holdings = root.rows("holdings", ::holding),
-            trades = root.rows("trades", ::trade),
-            quotes = root.rows("quotes", ::quote),
+            holdings = portfolio.holdings,
+            trades = portfolio.trades,
+            values = portfolio.values,
             // Absent before a backup carried subscriptions, and read as none.
             rules = root.rows("recurringRules", ::rule),
             reminders = root.rows("ruleReminders", ::reminder),
@@ -135,6 +131,7 @@ object BackupReader {
             // Absent before capture recognised a subscription's charge, and read as none.
             captureMatches = root.rows("captureMatches", ::captureMatch),
         )
+    }
 
     private fun account(row: JsonObject) =
         BackupAccount(
@@ -176,30 +173,7 @@ object BackupReader {
             tradeId = row.long("tradeId"),
             ruleId = row.long("ruleId"),
             groupId = row.long("groupId"),
-        )
-
-    private fun holding(row: JsonObject) =
-        BackupHolding(
-            id = row.requireLong("id"),
-            accountId = row.requireLong("accountId"),
-            assetClass = row.requireString("assetClass"),
-            symbol = row.requireString("symbol"),
-            name = row.requireString("name"),
-            currency = row.requireString("currency"),
-            note = row.string("note"),
-        )
-
-    private fun trade(row: JsonObject) =
-        BackupTrade(
-            id = row.requireLong("id"),
-            holdingId = row.requireLong("holdingId"),
-            side = row.requireString("side"),
-            quantityScaled = row.requireLong("quantityScaled"),
-            pricePerUnitMinor = row.requireLong("pricePerUnitMinor"),
-            feeMinor = row.requireLong("feeMinor"),
-            currency = row.requireString("currency"),
-            date = row.requireLong("date"),
-            note = row.string("note"),
+            tradeResult = row.boolean("tradeResult"),
         )
 
     private fun rule(row: JsonObject) =
@@ -278,49 +252,6 @@ object BackupReader {
             endDate = row.long("endDate"),
             archived = row.boolean("archived"),
         )
-
-    private fun quote(row: JsonObject) =
-        BackupQuote(
-            symbol = row.requireString("symbol"),
-            priceMinor = row.requireLong("priceMinor"),
-            currency = row.requireString("currency"),
-            asOf = row.requireLong("asOf"),
-            source = row.requireString("source"),
-        )
-
-    private fun <T> JsonObject.rows(
-        name: String,
-        row: (JsonObject) -> T,
-    ): List<T> = (this[name] as? JsonArray).orEmpty().map { row(it as JsonObject) }
-
-    private fun JsonArray?.orEmpty(): List<kotlinx.serialization.json.JsonElement> = this ?: emptyList()
-
-    /**
-     * A field that has to be there.
-     *
-     * It throws, and [parse] turns that into [BackupParse.Damaged] naming the field. A restore
-     * that silently substituted a zero for a missing amount would be the failure this whole
-     * class exists to prevent — money that is quietly wrong is worse than a file that is
-     * honestly refused.
-     */
-    private fun JsonObject.requireLong(name: String): Long =
-        this[name]?.jsonPrimitive?.longOrNull ?: error("$name is missing or is not a number")
-
-    private fun JsonObject.requireString(name: String): String = string(name) ?: error("$name is missing")
-
-    private fun JsonObject.long(name: String): Long? = this[name]?.jsonPrimitive?.longOrNull
-
-    /** Absent or null reads as none; anything else has to be a number, or the file is refused. */
-    private fun JsonObject.optionalLong(name: String): Long? {
-        val value = this[name]
-        if (value == null || value is JsonNull) return null
-        return value.jsonPrimitive.longOrNull ?: error("$name is not a number")
-    }
-
-    private fun JsonObject.string(name: String): String? =
-        this[name]?.jsonPrimitive?.takeUnless { it.toString() == "null" }?.content
-
-    private fun JsonObject.boolean(name: String): Boolean = this[name]?.jsonPrimitive?.booleanOrNull ?: false
 }
 
 /** The first schema whose budgets can have no category: the general budget. */

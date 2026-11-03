@@ -23,10 +23,6 @@
         <item quantity="one">Tiene una inversión. Una posición no se puede mover a otra cuenta, y borrarla se llevaría por delante sus operaciones — quítala desde Inversiones y luego borra esta cuenta.</item>
         <item quantity="other">Tiene %1$d inversiones. Una posición no se puede mover a otra cuenta, y borrar una se llevaría por delante sus operaciones — quítalas desde Inversiones y luego borra esta cuenta.</item>
     </plurals>
-    <plurals name="investments_total_unpriced">
-        <item quantity="one">Una de ellas no tiene precio todavía y queda fuera del total.</item>
-        <item quantity="other">%1$d de ellas no tienen precio todavía y quedan fuera del total.</item>
-    </plurals>
     <plurals name="holding_delete_message_trades">
         <item quantity="one">Su única operación registrada se va con ella, y eso no se puede deshacer.</item>
         <item quantity="other">Sus %1$d operaciones registradas se van con ella, y eso no se puede deshacer.</item>
@@ -38,14 +34,6 @@
     <plurals name="export_done_message">
         <item quantity="one">Hay una fila en el archivo, donde lo hayas guardado. No ha salido nada del móvil.</item>
         <item quantity="other">Hay %1$d filas en el archivo, donde lo hayas guardado. No ha salido nada del móvil.</item>
-    </plurals>
-    <plurals name="net_worth_unpriced">
-        <item quantity="one">Una posición no tiene precio todavía, así que no entra en estos números.</item>
-        <item quantity="other">%1$d posiciones no tienen precio todavía, así que no entran en estos números.</item>
-    </plurals>
-    <plurals name="prices_changed">
-        <item quantity="one">Se actualizará un precio. Los demás se quedan tal cual.</item>
-        <item quantity="other">Se actualizarán %1$d precios. Los demás se quedan tal cual.</item>
     </plurals>
     <plurals name="account_delete_blocked_by_rules">
         <item quantity="one">Hay una suscripción que apunta en ella. Una suscripción tiene que apuntar en algún sitio, y desde aquí no se puede mover — entra en Ajustes › Suscripciones y elimínala, y luego borra esta cuenta.</item>
@@ -82,5 +70,9 @@
     <plurals name="account_reassign_transfers">
         <item quantity="one">Una transferencia entre las dos tendría ambos lados aquí. Saldos e informes no cambian.</item>
         <item quantity="other">%1$d transferencias entre las dos tendrían ambos lados aquí. Saldos e informes no cambian.</item>
+    </plurals>
+    <plurals name="investment_reminder_many">
+        <item quantity="one">Un activo todavía no tiene valor esta semana.</item>
+        <item quantity="other">%1$d activos todavía no tienen valor esta semana.</item>
     </plurals>
 </resources>

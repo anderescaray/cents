@@ -9,15 +9,15 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * One purchase or sale of a holding.
+ * One purchase or sale of an asset, as an amount (`DECISIONS.md` D40).
  *
- * [quantityScaled] is an exact integer of hundred-millionths of a unit and [pricePerUnitMinor]
- * an exact integer of cents — the same rule as every other number in this app, applied to the
- * one place where fractions are genuinely part of the domain rather than a formatting choice.
+ * [amountMinor] is positive: the direction lives in [side], the way a movement's lives in its
+ * kind. A sale's [sellsAll] says it emptied the asset. What cost a sale removed and what it made
+ * are not stored: they follow from everything before it, and are worked out where they are read
+ * (`positionOf`), so editing an old purchase corrects every sale after it.
  *
- * Both are positive: the direction lives in [side], the way a transaction's direction lives in
- * its kind. The foreign key is `RESTRICT`, so a holding with trades cannot vanish sideways;
- * deleting one takes its trades with it explicitly, in one database transaction.
+ * The foreign key is `RESTRICT`, so an asset with trades cannot vanish sideways; deleting one
+ * takes its trades with it explicitly, in one database transaction.
  */
 @Entity(
     tableName = "trades",
@@ -39,10 +39,9 @@ data class TradeEntity(
     val id: Long = 0,
     val holdingId: Long,
     val side: TradeSide,
-    val quantityScaled: Long,
-    val pricePerUnitMinor: Long,
-    val feeMinor: Long,
-    /** ISO-4217 code. Denormalized from the holding so history survives a change to it. */
+    val amountMinor: Long,
+    val sellsAll: Boolean = false,
+    /** ISO-4217 code. Denormalized from the asset so history survives a change to it. */
     val currency: String,
     val date: LocalDate,
     val note: String? = null,

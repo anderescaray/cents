@@ -47,10 +47,13 @@ fun AccountsScreen(
     onOpenAccount: (Long) -> Unit,
     onOpenInvestments: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    /** A broker opens on its investments, its cash and its assets (D40); the rest on their movements. */
+    onOpenInvestmentAccount: (Long) -> Unit = onOpenAccount,
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val removal by viewModel.removal.state.collectAsStateWithLifecycle()
+    val open: (Long) -> Unit = { id -> if (id in state.brokerIds) onOpenInvestmentAccount(id) else onOpenAccount(id) }
 
     CentsLargeTitleScaffold(
         title = stringResource(R.string.wallet_title),
@@ -74,7 +77,7 @@ fun AccountsScreen(
                 headerRes = R.string.accounts_section_header,
                 accounts = state.active,
                 footer = { totalFooter(state) },
-                onOpenAccount = onOpenAccount,
+                onOpenAccount = open,
                 onDeleteAccount = viewModel.removal::request,
             )
         }
@@ -85,7 +88,7 @@ fun AccountsScreen(
                 headerRes = R.string.accounts_archived_header,
                 accounts = state.archived,
                 footer = { stringResource(R.string.accounts_archived_footer) },
-                onOpenAccount = onOpenAccount,
+                onOpenAccount = open,
                 onDeleteAccount = viewModel.removal::request,
             )
         }

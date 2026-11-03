@@ -5,10 +5,11 @@ import io.github.anderescaray.cents.data.export.BackupReader
 import io.github.anderescaray.cents.data.export.BackupWriter
 import io.github.anderescaray.cents.data.local.CentsDatabase
 import io.github.anderescaray.cents.data.local.account
+import io.github.anderescaray.cents.data.local.backupRepository
 import io.github.anderescaray.cents.data.local.category
 import io.github.anderescaray.cents.data.local.createTestDatabase
 import io.github.anderescaray.cents.data.local.holding
-import io.github.anderescaray.cents.data.local.quote
+import io.github.anderescaray.cents.data.local.holdingValue
 import io.github.anderescaray.cents.data.local.trade
 import io.github.anderescaray.cents.data.local.transaction
 import io.github.anderescaray.cents.data.repository.RoomBackupRepository
@@ -38,7 +39,7 @@ class DefaultDriveBackupStorageTest {
     @Before
     fun setUp() {
         database = createTestDatabase()
-        backups = RoomBackupRepository(database, clock)
+        backups = backupRepository(database, clock)
     }
 
     @After
@@ -51,8 +52,8 @@ class DefaultDriveBackupStorageTest {
         runTest {
             val accountId = database.accountDao().insert(account(name = "Checking \"daily\""))
             val categoryId = database.categoryDao().insert(category(name = "Food, drink"))
-            val holdingId = database.holdingDao().insert(holding(accountId, symbol = "NVD.DE"))
-            val tradeId = database.tradeDao().insert(trade(holdingId, quantityScaled = 123_456_789))
+            val holdingId = database.holdingDao().insert(holding(accountId, name = "Fund \"world\""))
+            val tradeId = database.tradeDao().insert(trade(holdingId, amountMinor = 123_456_789))
             database.transactionDao().insert(
                 transaction(
                     accountId,
@@ -62,7 +63,7 @@ class DefaultDriveBackupStorageTest {
                     tradeId = tradeId,
                 ),
             )
-            database.priceQuoteDao().upsert(quote("NVD.DE"))
+            database.holdingValueDao().insert(holdingValue(holdingId))
             val snapshot = backups.snapshot()
             val storage = DefaultDriveBackupStorage(backups, drive)
 
@@ -148,7 +149,7 @@ class DefaultDriveBackupStorageTest {
             drive.operations.clear()
 
             // A later snapshot differs only in when it was taken.
-            DefaultDriveBackupStorage(RoomBackupRepository(database, later), drive).create("token")
+            DefaultDriveBackupStorage(backupRepository(database, later), drive).create("token")
 
             assertEquals(listOf("list"), drive.operations)
             assertEquals(1, drive.files.size)
@@ -161,7 +162,7 @@ class DefaultDriveBackupStorageTest {
             storage.create("token")
             database.accountDao().insert(account(name = "Savings"))
 
-            DefaultDriveBackupStorage(RoomBackupRepository(database, later), drive).create("token")
+            DefaultDriveBackupStorage(backupRepository(database, later), drive).create("token")
 
             assertEquals(2, drive.files.size)
         }

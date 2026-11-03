@@ -81,7 +81,7 @@ class RoomBudgetRepositoryTest {
                     date = september12,
                 ),
             )
-            val holdingId = database.holdingDao().insert(holding(checking, symbol = "NVD.DE"))
+            val holdingId = database.holdingDao().insert(holding(checking))
             val tradeId = database.tradeDao().insert(trade(holdingId))
             database.transactionDao().insert(
                 transaction(checking, amountMinor = 40_000, date = september12, tradeId = tradeId),

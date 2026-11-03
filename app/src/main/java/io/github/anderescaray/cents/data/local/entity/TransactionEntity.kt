@@ -1,5 +1,6 @@
 package io.github.anderescaray.cents.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -28,10 +29,12 @@ import java.time.LocalDate
  * its template is money that really was spent.
  *
  * A row with a [tradeId] is the same idea one step along: **the cash a purchase took out of the
- * account, or a sale put back**. Buying 400 € of shares is not spending 400 €, it is holding the
+ * account, or a sale put back**. Buying 400 € of an asset is not spending 400 €, it is holding the
  * same money in a different shape — so it is excluded from the reports exactly as a transfer leg
  * is, and counted by the balance exactly as one is, which is what makes an investments account's
- * balance read as the cash left in it.
+ * balance read as the cash left in it. A sale writes two: the cost it returns, and its
+ * [tradeResult], what it made or lost, which is the one trade row the movement lists show
+ * (`DECISIONS.md` D40). Neither reaches a report or a budget.
  *
  * A row with a [groupId] is **part of an occasion** — a trip, a freelance job — and, like
  * [ruleId], that changes nothing about how it counts: the trip's dinner is still a restaurant
@@ -118,6 +121,9 @@ data class TransactionEntity(
      * surface; a silent cascade is the same bug not reaching it.
      */
     val tradeId: Long? = null,
+    /** True on the row that is a sale's result rather than money moving to or from the asset. */
+    @ColumnInfo(defaultValue = "0")
+    val tradeResult: Boolean = false,
     /**
      * The recurring rule that generated this, and null for a movement that was typed.
      *

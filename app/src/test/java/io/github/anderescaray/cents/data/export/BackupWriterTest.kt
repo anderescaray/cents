@@ -4,7 +4,7 @@ import io.github.anderescaray.cents.domain.model.Backup
 import io.github.anderescaray.cents.domain.model.BackupAccount
 import io.github.anderescaray.cents.domain.model.BackupCategory
 import io.github.anderescaray.cents.domain.model.BackupHolding
-import io.github.anderescaray.cents.domain.model.BackupQuote
+import io.github.anderescaray.cents.domain.model.BackupHoldingValue
 import io.github.anderescaray.cents.domain.model.BackupTrade
 import io.github.anderescaray.cents.domain.model.BackupTransaction
 import kotlinx.serialization.json.Json
@@ -59,7 +59,7 @@ class BackupWriterTest {
                 "transactions",
                 "holdings",
                 "trades",
-                "quotes",
+                "holdingValues",
                 "recurringRules",
                 "ruleReminders",
                 "budgets",
@@ -73,7 +73,7 @@ class BackupWriterTest {
         assertEquals(1, json.getValue("accounts").jsonArray.size)
         assertEquals(1, json.getValue("holdings").jsonArray.size)
         assertEquals(1, json.getValue("trades").jsonArray.size)
-        assertEquals(1, json.getValue("quotes").jsonArray.size)
+        assertEquals(1, json.getValue("holdingValues").jsonArray.size)
     }
 
     @Test
@@ -92,13 +92,13 @@ class BackupWriterTest {
         assertEquals("2550", movement.getValue("amountMinor").jsonPrimitive.content)
         assertEquals(LocalDate.of(2026, 9, 16).toEpochDay().toString(), movement.getValue("date").jsonPrimitive.content)
         assertEquals(
-            "250000000",
+            "50000",
             json
                 .getValue("trades")
                 .jsonArray
                 .first()
                 .jsonObject
-                .getValue("quantityScaled")
+                .getValue("amountMinor")
                 .jsonPrimitive.content,
         )
     }
@@ -171,7 +171,6 @@ class BackupWriterTest {
                 transactions = emptyList(),
                 holdings = emptyList(),
                 trades = emptyList(),
-                quotes = emptyList(),
             )
 
         // A fresh install has nothing in it, and exporting it must produce a valid file rather
@@ -216,7 +215,7 @@ class BackupWriterTest {
         transactions = listOf(aMovement(amountMinor, note)),
         holdings = listOf(aHolding()),
         trades = listOf(aTrade()),
-        quotes = listOf(aQuote()),
+        values = listOf(aValue()),
     )
 
     private fun anAccount() =
@@ -262,9 +261,8 @@ class BackupWriterTest {
         BackupHolding(
             id = 4,
             accountId = 1,
-            assetClass = "STOCK",
-            symbol = "NVD.DE",
-            name = "NVIDIA",
+            assetClass = "INDEX_FUND",
+            name = "Global index fund",
             currency = "EUR",
             note = null,
         )
@@ -274,21 +272,19 @@ class BackupWriterTest {
             id = 5,
             holdingId = 4,
             side = "BUY",
-            quantityScaled = 250_000_000,
-            pricePerUnitMinor = 20_000,
-            feeMinor = 0,
+            amountMinor = 50_000,
+            sellsAll = false,
             currency = "EUR",
             date = LocalDate.of(2026, 9, 16).toEpochDay(),
             note = null,
         )
 
-    private fun aQuote() =
-        BackupQuote(
-            symbol = "NVD.DE",
-            priceMinor = 21_000,
+    private fun aValue() =
+        BackupHoldingValue(
+            holdingId = 4,
+            date = LocalDate.of(2026, 9, 18).toEpochDay(),
+            valueMinor = 52_000,
             currency = "EUR",
-            asOf = WHEN.toEpochMilli(),
-            source = "MANUAL",
         )
 
     private fun uncategorized() =

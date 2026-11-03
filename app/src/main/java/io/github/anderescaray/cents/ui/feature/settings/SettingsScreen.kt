@@ -56,12 +56,14 @@ fun SettingsScreen(
     driveViewModel: DriveBackupViewModel = hiltViewModel(),
     languageViewModel: AppLanguageViewModel = hiltViewModel(),
     figuresViewModel: MoneyFiguresViewModel = hiltViewModel(),
+    reminderViewModel: InvestmentReminderViewModel = hiltViewModel(),
 ) {
     val export by exportViewModel.uiState.collectAsStateWithLifecycle()
     val restore by restoreViewModel.uiState.collectAsStateWithLifecycle()
     val drive by driveViewModel.uiState.collectAsStateWithLifecycle()
     val language by languageViewModel.language.collectAsStateWithLifecycle()
     val figures by figuresViewModel.figures.collectAsStateWithLifecycle()
+    val investmentReminder by reminderViewModel.enabled.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
     // Each composition is a new screen: changing the language recreates it, and so can the
     // phone's own App languages, while the view model carries on from before.
@@ -105,6 +107,8 @@ fun SettingsScreen(
         language = language,
         onChooseLanguage = { chosen -> if (languageViewModel.choose(chosen)) activity?.recreate() },
         figures = figures,
+        investmentReminder = investmentReminder,
+        onInvestmentReminderChanged = reminderViewModel::set,
         onFiguresChanged = figuresViewModel::set,
     )
 }
@@ -153,6 +157,8 @@ internal fun SettingsContent(
     language: AppLanguage = AppLanguage.SYSTEM,
     onChooseLanguage: (AppLanguage) -> Unit = {},
     figures: MoneyFigures = MoneyFigures(),
+    investmentReminder: Boolean = true,
+    onInvestmentReminderChanged: (Boolean) -> Unit = {},
     onFiguresChanged: (MoneyFigure, Boolean) -> Unit = { _, _ -> },
 ) {
     val dataIdle = export.step == ExportStep.IDLE && restore.step == RestoreStep.IDLE
@@ -192,6 +198,7 @@ internal fun SettingsContent(
             }
         }
         item(key = "figures") { MoneyFiguresSection(figures, onFiguresChanged) }
+        item(key = "investmentReminder") { InvestmentReminderSection(investmentReminder, onInvestmentReminderChanged) }
         item(key = "data") {
             DataSection(
                 onExport = exportActions.onStart.takeIf { canStartData },

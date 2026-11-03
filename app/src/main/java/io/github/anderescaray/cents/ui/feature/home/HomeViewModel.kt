@@ -107,7 +107,7 @@ class HomeViewModel
                 } else {
                     combine(
                         accounts.observeAccountsWithBalances(includeArchived = true),
-                        portfolio.observePortfolio(),
+                        portfolio.observePositions(),
                     ) { all, held -> HomeMoney(netWorth = netWorthOf(all, held), figures = chosen) }
                 }
             }

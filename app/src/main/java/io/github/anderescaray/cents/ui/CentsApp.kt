@@ -45,11 +45,13 @@ import io.github.anderescaray.cents.ui.feature.groups.GroupEditScreen
 import io.github.anderescaray.cents.ui.feature.groups.GroupsScreen
 import io.github.anderescaray.cents.ui.feature.home.HomeScreen
 import io.github.anderescaray.cents.ui.feature.inbox.InboxScreen
-import io.github.anderescaray.cents.ui.feature.investments.HoldingDetailScreen
+import io.github.anderescaray.cents.ui.feature.investments.AssetActions
+import io.github.anderescaray.cents.ui.feature.investments.AssetScreen
 import io.github.anderescaray.cents.ui.feature.investments.HoldingEditScreen
-import io.github.anderescaray.cents.ui.feature.investments.PortfolioScreen
-import io.github.anderescaray.cents.ui.feature.investments.PriceUpdateScreen
+import io.github.anderescaray.cents.ui.feature.investments.InvestmentAccountScreen
+import io.github.anderescaray.cents.ui.feature.investments.InvestmentsScreen
 import io.github.anderescaray.cents.ui.feature.investments.TradeFormScreen
+import io.github.anderescaray.cents.ui.feature.investments.ValueUpdateScreen
 import io.github.anderescaray.cents.ui.feature.recurring.GenerateDueMovements
 import io.github.anderescaray.cents.ui.feature.recurring.PendingChargesScreen
 import io.github.anderescaray.cents.ui.feature.recurring.RuleFormScreen
@@ -69,6 +71,8 @@ import io.github.anderescaray.cents.ui.theme.CentsTheme
 fun CentsApp(
     /** True when a reminder asking for a figure was tapped: go straight to the screen that takes it. */
     openPending: Boolean = false,
+    /** True when the Friday reminder was tapped: go to Invested. */
+    openInvestments: Boolean = false,
     /** The movement a capture notification was tapped for, opened once and then forgotten. */
     openCapturedTransactionId: Long? = null,
     onCapturedOpened: () -> Unit = {},
@@ -87,6 +91,7 @@ fun CentsApp(
     GenerateDueMovements()
 
     OpenPendingFromNotification(openPending, navController)
+    OpenInvestmentsFromNotification(openInvestments, navController)
     OpenCapturedFromNotification(
         transactionId = openCapturedTransactionId,
         // On top of the movements list, so back from the form shows it among the rest.
@@ -327,6 +332,9 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
             onOpenAccount = { id ->
                 navController.navigate(Destination.AccountDetail(id)) { launchSingleTop = true }
             },
+            onOpenInvestmentAccount = { id ->
+                navController.navigate(Destination.InvestmentAccount(id)) { launchSingleTop = true }
+            },
             onOpenSettings = { navController.openSettings() },
         )
     }
@@ -363,60 +371,6 @@ private fun NavGraphBuilder.accountRoutes(navController: NavHostController) {
     }
     composable<Destination.AccountBalance> {
         AccountBalanceScreen(onDone = { navController.popBackStack() })
-    }
-}
-
-/** The portfolio, one holding on its own, and the two forms behind them. */
-private fun NavGraphBuilder.investmentRoutes(navController: NavHostController) {
-    composable<Destination.Investments> {
-        PortfolioScreen(
-            onBack = { navController.popBackStack() },
-            onAddHolding = {
-                navController.navigate(Destination.HoldingEdit()) { launchSingleTop = true }
-            },
-            onOpenHolding = { id ->
-                navController.navigate(Destination.HoldingDetail(id)) { launchSingleTop = true }
-            },
-            onUpdatePrices = {
-                navController.navigate(Destination.PriceUpdate) { launchSingleTop = true }
-            },
-        )
-    }
-    composable<Destination.PriceUpdate> {
-        PriceUpdateScreen(onDone = { navController.popBackStack() })
-    }
-    composable<Destination.HoldingDetail> {
-        HoldingDetailScreen(
-            onBack = { navController.popBackStack() },
-            onEdit = { id ->
-                navController.navigate(Destination.HoldingEdit(holdingId = id)) { launchSingleTop = true }
-            },
-            onAddTrade = { holdingId ->
-                navController.navigate(Destination.TradeForm(holdingId = holdingId)) { launchSingleTop = true }
-            },
-            onCorrect = { holdingId ->
-                navController.navigate(Destination.TradeForm(holdingId = holdingId, correcting = true)) {
-                    launchSingleTop = true
-                }
-            },
-            onOpenTrade = { holdingId, tradeId ->
-                navController.navigate(Destination.TradeForm(holdingId = holdingId, tradeId = tradeId)) {
-                    launchSingleTop = true
-                }
-            },
-        )
-    }
-    composable<Destination.HoldingEdit> {
-        HoldingEditScreen(
-            onDone = { navController.popBackStack() },
-            // A new holding can only live in a broker (§10), so the account it makes is one.
-            onCreateBrokerAccount = {
-                navController.navigate(Destination.AccountEdit(type = AccountType.BROKER)) { launchSingleTop = true }
-            },
-        )
-    }
-    composable<Destination.TradeForm> {
-        TradeFormScreen(onDone = { navController.popBackStack() })
     }
 }
 

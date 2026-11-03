@@ -122,32 +122,43 @@ sealed interface Destination {
         val accountId: Long,
     ) : Destination
 
-    /** One holding: its position, its price and the trades behind it. */
+    /** One broker account's investments: its cash, its assets and its closed operations (D40). */
+    @Serializable
+    data class InvestmentAccount(
+        val accountId: Long,
+    ) : Destination
+
+    /** One asset: what it is worth, what it cost, its chart and its history. */
     @Serializable
     data class HoldingDetail(
         val holdingId: Long,
     ) : Destination
 
-    /** [holdingId] is [HoldingEdit.NEW] when the screen is creating one. */
+    /**
+     * A new asset, with its first purchase, when [holdingId] is [HoldingEdit.NEW]; otherwise the
+     * asset's name, type and note. [accountId] is the broker a new one goes in, when known.
+     */
     @Serializable
     data class HoldingEdit(
         val holdingId: Long = NEW,
+        val accountId: Long = NO_ACCOUNT,
     ) : Destination {
         companion object {
             const val NEW = 0L
+            const val NO_ACCOUNT = 0L
         }
     }
 
     /**
-     * A purchase or a sale. [tradeId] is [TradeForm.NEW] when recording one, and the holding
-     * is always known: a trade with no holding is not a record of anything.
+     * A purchase or a sale. [tradeId] is [TradeForm.NEW] when recording one, and the asset is
+     * always known: a trade with no asset is not a record of anything.
      */
     @Serializable
     data class TradeForm(
         val holdingId: Long,
         val tradeId: Long = NEW,
-        /** Opens straight on the correction segment: the owner is fixing a number, not trading. */
-        val correcting: Boolean = false,
+        /** A new trade that is a sale rather than a purchase. */
+        val selling: Boolean = false,
     ) : Destination {
         companion object {
             const val NEW = 0L
@@ -155,13 +166,18 @@ sealed interface Destination {
     }
 
     /**
-     * Every open holding's price, on one screen.
-     *
-     * No arguments: it is about the whole portfolio rather than about one holding, which is the
-     * entire reason it exists beside the per-holding editor rather than replacing it.
+     * The week's values: every open asset in one broker account, or only [holdingId] when it is
+     * not [ValueUpdate.ALL], each typed as what it is worth now (D40).
      */
     @Serializable
-    data object PriceUpdate : Destination
+    data class ValueUpdate(
+        val accountId: Long,
+        val holdingId: Long = ALL,
+    ) : Destination {
+        companion object {
+            const val ALL = 0L
+        }
+    }
 
     @Serializable
     data object Categories : Destination
@@ -324,10 +340,11 @@ enum class TopLevelTab(
             listOf(
                 Destination.AccountDetail::class,
                 Destination.Investments::class,
+                Destination.InvestmentAccount::class,
                 Destination.HoldingDetail::class,
                 Destination.HoldingEdit::class,
                 Destination.TradeForm::class,
-                Destination.PriceUpdate::class,
+                Destination.ValueUpdate::class,
             ),
         labelRes = R.string.tab_wallet,
         iconRes = R.drawable.ic_wallet,
@@ -349,7 +366,7 @@ val FullScreenForms: List<KClass<out Destination>> =
         Destination.CategoryEdit::class,
         Destination.HoldingEdit::class,
         Destination.TradeForm::class,
-        Destination.PriceUpdate::class,
+        Destination.ValueUpdate::class,
         Destination.RuleForm::class,
         Destination.PendingCharges::class,
         Destination.BudgetEdit::class,

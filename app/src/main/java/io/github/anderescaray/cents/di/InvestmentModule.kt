@@ -5,12 +5,12 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.anderescaray.cents.data.repository.RoomHoldingRepository
+import io.github.anderescaray.cents.data.repository.RoomHoldingValueRepository
 import io.github.anderescaray.cents.data.repository.RoomPortfolioRepository
-import io.github.anderescaray.cents.data.repository.RoomPriceQuoteRepository
 import io.github.anderescaray.cents.data.repository.RoomTradeRepository
 import io.github.anderescaray.cents.domain.repository.HoldingRepository
+import io.github.anderescaray.cents.domain.repository.HoldingValueRepository
 import io.github.anderescaray.cents.domain.repository.PortfolioRepository
-import io.github.anderescaray.cents.domain.repository.PriceQuoteRepository
 import io.github.anderescaray.cents.domain.repository.TradeRepository
 
 /**
@@ -31,7 +31,7 @@ abstract class InvestmentModule {
     abstract fun bindTradeRepository(impl: RoomTradeRepository): TradeRepository
 
     @Binds
-    abstract fun bindPriceQuoteRepository(impl: RoomPriceQuoteRepository): PriceQuoteRepository
+    abstract fun bindHoldingValueRepository(impl: RoomHoldingValueRepository): HoldingValueRepository
 
     @Binds
     abstract fun bindPortfolioRepository(impl: RoomPortfolioRepository): PortfolioRepository

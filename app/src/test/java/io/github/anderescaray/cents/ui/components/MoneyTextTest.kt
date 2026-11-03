@@ -36,3 +36,17 @@ class MoneyTextTest {
         assertNull(wholeUnits("€", ','))
     }
 }
+
+class ShareOfTest {
+    @Test
+    fun `a part is its fraction of the whole`() {
+        assertEquals(0.25f, shareOf(1_000, 3_000)!!, 0.0001f)
+    }
+
+    @Test
+    fun `nothing to share, or money below zero, has no share`() {
+        assertNull(shareOf(0, 0))
+        assertNull(shareOf(-500, 3_000))
+        assertNull(shareOf(500, -3_000))
+    }
+}

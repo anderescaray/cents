@@ -26,7 +26,6 @@ import io.github.anderescaray.cents.domain.model.NetWorth
 import io.github.anderescaray.cents.ui.components.CentsLargeTitleScaffold
 import io.github.anderescaray.cents.ui.components.CentsListRow
 import io.github.anderescaray.cents.ui.components.CentsListSection
-import io.github.anderescaray.cents.ui.components.CentsSwipeableRow
 import io.github.anderescaray.cents.ui.components.IconBadge
 import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
 import io.github.anderescaray.cents.ui.components.RoundIconButton
@@ -52,7 +51,6 @@ fun AccountsScreen(
     viewModel: AccountsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val removal by viewModel.removal.state.collectAsStateWithLifecycle()
     val open: (Long) -> Unit = { id -> if (id in state.brokerIds) onOpenInvestmentAccount(id) else onOpenAccount(id) }
 
     CentsLargeTitleScaffold(
@@ -78,7 +76,6 @@ fun AccountsScreen(
                 accounts = state.active,
                 footer = { totalFooter(state) },
                 onOpenAccount = open,
-                onDeleteAccount = viewModel.removal::request,
             )
         }
 
@@ -89,7 +86,6 @@ fun AccountsScreen(
                 accounts = state.archived,
                 footer = { stringResource(R.string.accounts_archived_footer) },
                 onOpenAccount = open,
-                onDeleteAccount = viewModel.removal::request,
             )
         }
 
@@ -110,8 +106,6 @@ fun AccountsScreen(
             }
         }
     }
-
-    RemovalDialogs(state = removal, removal = viewModel.removal)
 }
 
 /**
@@ -157,9 +151,8 @@ private fun totalFooter(state: AccountsUiState): String? {
 }
 
 /**
- * Both sections swipe to delete, archived ones included: what "delete an account" means is
- * the same question wherever the account is listed, and an archived account is exactly the
- * one somebody is most likely to want gone for good.
+ * One section of accounts. A row only opens its account: deleting one is done from its editor,
+ * so a sideways swipe across the list is free to change tab.
  */
 private fun LazyListScope.accountSection(
     key: String,
@@ -167,38 +160,27 @@ private fun LazyListScope.accountSection(
     accounts: List<AccountWithBalance>,
     footer: @Composable () -> String?,
     onOpenAccount: (Long) -> Unit,
-    onDeleteAccount: (Account) -> Unit,
 ) {
     item(key = "section-$key") {
-        val deleteLabel = stringResource(R.string.action_delete)
         CentsListSection(header = stringResource(headerRes), footer = footer()) {
             accounts.forEachIndexed { index, item ->
                 val account = item.account
-                // Keyed by identity, not by position: a row's swipe offset is remembered
-                // against its key, and without one, deleting or reordering hands an open
-                // offset to whatever account moves into that slot.
                 key(account.id) {
-                    CentsSwipeableRow(
-                        onDelete = { onDeleteAccount(account) },
-                        deleteLabel = deleteLabel,
-                    ) { rowModifier ->
-                        CentsListRow(
-                            modifier = rowModifier,
-                            title = account.name,
-                            subtitle = stringResource(account.type.labelRes()),
-                            value = MoneyFormatter.format(item.balance),
-                            valueColor =
-                                if (item.balance.isNegative) {
-                                    CentsTheme.colors.destructiveText
-                                } else {
-                                    CentsTheme.colors.label
-                                },
-                            leading = { IconBadge(iconRes = R.drawable.ic_wallet, color = Color(account.colorArgb)) },
-                            showChevron = true,
-                            showSeparator = index != accounts.lastIndex,
-                            onClick = { onOpenAccount(account.id) },
-                        )
-                    }
+                    CentsListRow(
+                        title = account.name,
+                        subtitle = stringResource(account.type.labelRes()),
+                        value = MoneyFormatter.format(item.balance),
+                        valueColor =
+                            if (item.balance.isNegative) {
+                                CentsTheme.colors.destructiveText
+                            } else {
+                                CentsTheme.colors.label
+                            },
+                        leading = { IconBadge(iconRes = R.drawable.ic_wallet, color = Color(account.colorArgb)) },
+                        showChevron = true,
+                        showSeparator = index != accounts.lastIndex,
+                        onClick = { onOpenAccount(account.id) },
+                    )
                 }
             }
         }

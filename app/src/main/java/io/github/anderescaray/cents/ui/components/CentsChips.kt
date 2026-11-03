@@ -1,6 +1,7 @@
 package io.github.anderescaray.cents.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -21,7 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -105,7 +109,18 @@ fun IconBadge(
             modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(color.copy(alpha = BADGE_TINT_ALPHA)),
+                // Lit from above: a little stronger at the top than at the bottom.
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            color.copy(alpha = BADGE_TINT_ALPHA * BADGE_TOP),
+                            color.copy(
+                                alpha =
+                                    BADGE_TINT_ALPHA * BADGE_BOTTOM,
+                            ),
+                        ),
+                    ),
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -144,6 +159,8 @@ fun CentsChip(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale = rememberPressScale(pressed)
+    // A picked chip lifts on a glow of its own colour, so the answer stands out of the row.
+    val glow by animateFloatAsState(if (selected) CHIP_GLOW else 0f, label = "chipGlow")
 
     Row(
         modifier =
@@ -151,7 +168,12 @@ fun CentsChip(
                 .minimumInteractiveComponentSize()
                 .semantics { this.selected = selected }
                 .scale(scale)
-                .clip(CircleShape)
+                .dropShadow(CircleShape) {
+                    radius = CHIP_GLOW_RADIUS.dp.toPx()
+                    color = tint
+                    alpha = glow
+                    offset = Offset(0f, CHIP_GLOW_DROP.dp.toPx())
+                }.clip(CircleShape)
                 .background(background)
                 .clickable(
                     interactionSource = interactionSource,
@@ -236,3 +258,9 @@ private fun ChipLeading(
 
 private const val CHIP_BADGE = 26
 private const val SELECTED_BADGE_ALPHA = 0.25f
+
+private const val BADGE_TOP = 1.35f
+private const val BADGE_BOTTOM = 0.75f
+private const val CHIP_GLOW = 0.35f
+private const val CHIP_GLOW_RADIUS = 10
+private const val CHIP_GLOW_DROP = 3

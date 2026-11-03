@@ -71,7 +71,7 @@ fun CentsLargeTitleScaffold(
         modifier =
             modifier
                 .fillMaxSize()
-                .background(CentsTheme.colors.groupedBackground),
+                .canvas(),
     ) {
         LazyColumn(
             state = listState,

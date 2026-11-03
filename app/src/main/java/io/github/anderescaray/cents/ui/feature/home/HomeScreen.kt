@@ -47,6 +47,7 @@ import io.github.anderescaray.cents.ui.components.MoneyFiguresBlock
 import io.github.anderescaray.cents.ui.components.ScreenHeader
 import io.github.anderescaray.cents.ui.components.SettingsButton
 import io.github.anderescaray.cents.ui.components.arrive
+import io.github.anderescaray.cents.ui.components.canvas
 import io.github.anderescaray.cents.ui.components.tappable
 import io.github.anderescaray.cents.ui.feature.inbox.InboxUiState
 import io.github.anderescaray.cents.ui.feature.inbox.InboxViewModel
@@ -119,7 +120,7 @@ internal fun HomeContent(
     actions: HomeActions,
 ) {
     val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    Box(modifier = Modifier.fillMaxSize().background(CentsTheme.colors.groupedBackground)) {
+    Box(modifier = Modifier.fillMaxSize().canvas()) {
         HomeList(state = state, inbox = inbox, actions = actions, topInset = topInset)
         // The status bar is drawn over the app: without a backdrop the title scrolls up under
         // the clock and the two are read as one.

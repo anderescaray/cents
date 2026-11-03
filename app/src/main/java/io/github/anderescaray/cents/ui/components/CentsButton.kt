@@ -16,8 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.github.anderescaray.cents.ui.theme.CentsDimens
 import io.github.anderescaray.cents.ui.theme.CentsTheme
@@ -47,14 +54,32 @@ fun CentsButton(
             ButtonStyle.PLAIN -> colors.fill to colors.label
         }
 
+    val shape = RoundedCornerShape(CentsDimens.primaryButtonRadius)
+    // The filled styles stand on a glow of their own colour and are lit a touch from above: the
+    // one button a sheet ends in should look like the thing to press.
+    val filled = style == ButtonStyle.PRIMARY || style == ButtonStyle.DESTRUCTIVE
+    val fill = buttonFill(background, filled = filled, enabled = enabled)
     Box(
         modifier =
             modifier
                 .fillMaxWidth()
                 .scale(scale)
                 .defaultMinSize(minHeight = CentsDimens.primaryButtonHeight)
-                .clip(RoundedCornerShape(CentsDimens.primaryButtonRadius))
-                .background(if (enabled) background else background.copy(alpha = background.alpha * DISABLED_ALPHA))
+                .then(
+                    if (filled && enabled && !colors.isDark) {
+                        Modifier.dropShadow(
+                            shape,
+                            Shadow(
+                                radius = 16.dp,
+                                color = background.copy(alpha = FILLED_GLOW),
+                                offset = DpOffset(0.dp, 6.dp),
+                            ),
+                        )
+                    } else {
+                        Modifier
+                    },
+                ).clip(shape)
+                .background(fill)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -72,5 +97,19 @@ fun CentsButton(
     }
 }
 
+/** A filled button lit a touch from above; anything else, or a disabled one, flat. */
+private fun buttonFill(
+    background: Color,
+    filled: Boolean,
+    enabled: Boolean,
+): Brush =
+    when {
+        !enabled -> SolidColor(background.copy(alpha = background.alpha * DISABLED_ALPHA))
+        filled -> Brush.verticalGradient(listOf(lerp(background, Color.White, FILLED_HIGHLIGHT), background))
+        else -> SolidColor(background)
+    }
+
 private const val DISABLED_ALPHA = 0.4f
+private const val FILLED_HIGHLIGHT = 0.12f
+private const val FILLED_GLOW = 0.32f
 private const val DISABLED_TEXT_ALPHA = 0.7f

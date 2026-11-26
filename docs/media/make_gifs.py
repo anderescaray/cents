@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Turns the frames ReadmeAnimations recorded into the README's GIFs.
 
-    python3 docs/media/make_gifs.py <frames dir> docs/media
+    CENTS_README_FRAMES=/tmp/frames ./gradlew testDebugUnitTest --tests '*ReadmeAnimations*'
+    python3 docs/media/make_gifs.py /tmp/frames docs/media capture investments reports
+
+The first line records the real app in Robolectric, filled with an invented ledger
+(app/src/test/.../readme/ReadmeLedger.kt); CENTS_README_SCENE=<name> records one scene only.
 
 Each scene folder holds one PNG per 40 ms of the app's window and an events.txt. What is not
 the app's window is drawn here: the status bar, the gesture bar, the finger, and the bank's
-notification, which Android draws above every app. Needs Pillow and ffmpeg.
+notification, which Android draws above every app. Needs Pillow, ffmpeg and gifsicle.
 """
 
-import math
 import shutil
 import subprocess
 import sys
@@ -37,7 +40,7 @@ def dp(v):
 
 
 def read_events(scene):
-    taps, notes = [], []
+    taps, swipes, notes = [], [], []
     frame_ms = 40
     for line in (scene / "events.txt").read_text().splitlines():
         parts = line.split()
@@ -47,12 +50,15 @@ def read_events(scene):
             frame_ms = int(parts[1])
         elif parts[0] == "tap":
             taps.append((int(parts[1]), int(parts[2]), int(parts[3])))
+        elif parts[0] == "swipe":
+            # swipe <first frame> <frames> <x0> <y0> <x1> <y1>
+            swipes.append(tuple(int(p) for p in parts[1:7]))
         elif parts[0] == "notification":
             # notification <first frame> <last frame> <app> | <title> | <text>
             first, last = int(parts[1]), int(parts[2])
             app, title, text = [s.strip() for s in " ".join(parts[3:]).split("|")]
             notes.append((first, last, app, title, text))
-    return frame_ms, taps, notes
+    return frame_ms, taps, swipes, notes
 
 
 def status_bar(draw, width, color, ink):
@@ -98,20 +104,26 @@ def notification(frame, width, progress, app, title, text):
     frame.alpha_composite(card, (dp(8), top))
 
 
-def finger(frame, x, y, age):
-    """A touch: a disc that presses in and fades over eight frames."""
-    if age > 8:
-        return
+def touch(frame, x, y, strength, grow=0.0):
+    """A fingertip: a soft grey disc with a white ring, faded by [strength] 0..1."""
     layer = Image.new("RGBA", frame.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    r = dp(20 + age * 1.2)
-    alpha = int(150 * (1 - age / 9))
-    d.ellipse([x - r, y - r, x + r, y + r], fill=(40, 40, 48, alpha // 2), outline=(255, 255, 255, alpha), width=dp(2))
+    r = dp(19 + grow)
+    a = int(200 * strength)
+    d.ellipse([x - r, y - r, x + r, y + r], fill=(30, 30, 38, a // 2), outline=(255, 255, 255, a), width=dp(2))
     frame.alpha_composite(layer)
 
 
+def finger(frame, x, y, age):
+    """A tap: shown pressing for the four frames before the click, then lifting over six."""
+    if age < 4:
+        touch(frame, x, y, min(1.0, (age + 1) / 2))
+    elif age < 10:
+        touch(frame, x, y, 1 - (age - 4) / 6, grow=(age - 4) * 1.5)
+
+
 def compose(scene, out_dir, name):
-    frame_ms, taps, notes = read_events(scene)
+    frame_ms, taps, swipes, notes = read_events(scene)
     files = sorted(scene.glob("*.png"))
     first = Image.open(files[0])
     w, h = first.size
@@ -133,6 +145,13 @@ def compose(scene, out_dir, name):
         for frame, x, y in taps:
             if frame <= i:
                 finger(screen, x, y + dp(STATUS_DP), i - frame)
+        for start, steps, x0, y0, x1, y1 in swipes:
+            t = (i - start) / steps
+            if 0 <= t <= 1:
+                e = t * t * 2 if t < 0.5 else 1 - (-2 * t + 2) ** 2 / 2
+                touch(screen, x0 + (x1 - x0) * e, y0 + (y1 - y0) * e + dp(STATUS_DP), 1.0)
+            elif 1 < t and i - start - steps < 5:
+                touch(screen, x1, y1 + dp(STATUS_DP), 1 - (i - start - steps) / 5)
         for start, end, app_name, title, text in notes:
             slide = 7
             if start <= i <= end:
@@ -158,11 +177,12 @@ def compose(scene, out_dir, name):
     )
     subprocess.run(
         ["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps), "-i", str(tmp / "%04d.png"), "-i", str(palette),
-         "-lavfi", "paletteuse=dither=sierra2_4a:diff_mode=rectangle:alpha_threshold=128", "-loop", "0", str(gif)],
+         "-lavfi", "paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle:alpha_threshold=128", "-loop", "0", str(gif)],
         check=True,
     )
-    # A still of the last frame, for anywhere a GIF does not play.
-    shutil.copy(tmp / f"{len(files) - 1:04d}.png", out_dir / f"{name}.png")
+    # Only what changes between frames is kept, and colours a step apart are merged: an eighth of
+    # the size, with no difference visible at this width.
+    subprocess.run(["gifsicle", "-O3", "--lossy=60", "-b", str(gif)], check=True)
     shutil.rmtree(tmp)
     print(f"{gif}: {len(files)} frames, {gif.stat().st_size / 1e6:.2f} MB")
 

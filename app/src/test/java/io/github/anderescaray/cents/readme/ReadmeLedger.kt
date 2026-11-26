@@ -67,12 +67,14 @@ internal object ReadmeLedger {
 
         fun add(
             accountId: Long,
-            categoryId: Long,
+            categoryId: Long?,
             kind: TransactionKind,
             amountMinor: Long,
             date: LocalDate,
             note: String?,
             ruleId: Long? = null,
+            transferId: Long? = null,
+            tradeId: Long? = null,
         ) {
             if (date.isAfter(today)) return
             transactions +=
@@ -85,8 +87,8 @@ internal object ReadmeLedger {
                     currency = EUR,
                     date = date.toEpochDay(),
                     note = note,
-                    transferId = null,
-                    tradeId = null,
+                    transferId = transferId,
+                    tradeId = tradeId,
                     ruleId = ruleId,
                 )
         }
@@ -96,18 +98,53 @@ internal object ReadmeLedger {
         var month = start
         while (!month.isAfter(today)) {
             add(CHECKING, RENT, TransactionKind.EXPENSE, 95_000, month, "Rent", RENT_RULE)
-            add(CHECKING, SUBSCRIPTIONS, TransactionKind.EXPENSE, 1_399, month.withDayOfMonth(3), "Streaming", STREAMING_RULE)
+            add(
+                CHECKING,
+                SUBSCRIPTIONS,
+                TransactionKind.EXPENSE,
+                1_399,
+                month.withDayOfMonth(3),
+                "Streaming",
+                STREAMING_RULE,
+            )
             add(CHECKING, LEISURE, TransactionKind.EXPENSE, 3_990, month.withDayOfMonth(5), "Gym", GYM_RULE)
             add(CHECKING, SALARY, TransactionKind.INCOME, 248_000, month.withDayOfMonth(25), "Salary")
-            add(CHECKING, UTILITIES, TransactionKind.EXPENSE, random.nextLong(5_500, 9_800), month.withDayOfMonth(9), "Electricity")
+            add(
+                CHECKING,
+                UTILITIES,
+                TransactionKind.EXPENSE,
+                random.nextLong(5_500, 9_800),
+                month.withDayOfMonth(9),
+                "Electricity",
+            )
             add(CHECKING, UTILITIES, TransactionKind.EXPENSE, 3_500, month.withDayOfMonth(12), "Internet")
             var day = month
             while (day.month == month.month && !day.isAfter(today)) {
                 if (random.nextInt(3) == 0) {
-                    add(CHECKING, GROCERIES, TransactionKind.EXPENSE, random.nextLong(1_800, 8_500), day, shops.random(random))
+                    add(
+                        CHECKING,
+                        GROCERIES,
+                        TransactionKind.EXPENSE,
+                        random.nextLong(1_800, 8_500),
+                        day,
+                        shops.random(random),
+                    )
                 }
                 if (random.nextInt(4) == 0) {
-                    add(CASH, EATING_OUT, TransactionKind.EXPENSE, random.nextLong(900, 4_800), day, places.random(random))
+                    add(
+                        if (random.nextInt(4) ==
+                            0
+                        ) {
+                            CASH
+                        } else {
+                            CHECKING
+                        },
+                        EATING_OUT,
+                        TransactionKind.EXPENSE,
+                        random.nextLong(900, 3_800),
+                        day,
+                        places.random(random),
+                    )
                 }
                 if (random.nextInt(5) == 0) {
                     add(CHECKING, TRANSPORT, TransactionKind.EXPENSE, random.nextLong(250, 4_500), day, "Metro")
@@ -118,32 +155,49 @@ internal object ReadmeLedger {
                 day = day.plusDays(1)
             }
             if (random.nextInt(3) == 0) {
-                add(CHECKING, HEALTH, TransactionKind.EXPENSE, random.nextLong(1_500, 6_000), month.withDayOfMonth(16), "Pharmacy")
+                add(
+                    CHECKING,
+                    HEALTH,
+                    TransactionKind.EXPENSE,
+                    random.nextLong(1_500, 6_000),
+                    month.withDayOfMonth(16),
+                    "Pharmacy",
+                )
             }
             month = month.plusMonths(1)
         }
 
+        // The brokerage is funded from Checking, and each purchase spends its cash, written as
+        // the app writes it: otherwise a restore keeps today's cash and the chart would start
+        // with every euro ever invested already in the account.
         val portfolio = portfolio(today, start)
+        portfolio.trades.forEach { trade ->
+            val day = LocalDate.ofEpochDay(trade.date)
+            val outgoing = transactions.size + 1L
+            add(CHECKING, null, TransactionKind.EXPENSE, trade.amountMinor, day, null, transferId = outgoing)
+            add(BROKERAGE, null, TransactionKind.INCOME, trade.amountMinor, day, null, transferId = outgoing)
+            add(BROKERAGE, null, TransactionKind.EXPENSE, trade.amountMinor, day, null, tradeId = trade.id)
+        }
         return Backup(
             schemaVersion = CentsDatabase.VERSION,
             exportedAt = Instant.EPOCH,
             accounts =
                 listOf(
-                    account(CHECKING, "Checking", AccountType.BANK, 420_000, 0xFF3B6FE0.toInt(), 0),
-                    account(CASH, "Cash", AccountType.CASH, 18_000, 0xFF2FA36B.toInt(), 1),
-                    account(BROKERAGE, "Brokerage", AccountType.BROKER, 1_850_000, 0xFF7A4FD6.toInt(), 2),
+                    account(CHECKING, "Checking", AccountType.BANK, 2_100_000, 0xFF3B6FE0.toInt(), 0),
+                    account(CASH, "Cash", AccountType.CASH, 160_000, 0xFF2FA36B.toInt(), 1),
+                    account(BROKERAGE, "Brokerage", AccountType.BROKER, 40_000, 0xFF7A4FD6.toInt(), 2),
                 ),
             categories =
                 listOf(
-                    category(SALARY, "Salary", CategoryKind.INCOME, 0xFF2E9E5B.toInt(), 0),
-                    category(RENT, "Rent", CategoryKind.EXPENSE, 0xFF8C5A3C.toInt(), 1),
-                    category(GROCERIES, "Groceries", CategoryKind.EXPENSE, 0xFF34A853.toInt(), 2),
-                    category(EATING_OUT, "Eating out", CategoryKind.EXPENSE, 0xFFF29D38.toInt(), 3),
-                    category(TRANSPORT, "Transport", CategoryKind.EXPENSE, 0xFF3D8BF2.toInt(), 4),
-                    category(UTILITIES, "Bills", CategoryKind.EXPENSE, 0xFF9B5DE5.toInt(), 5),
-                    category(SUBSCRIPTIONS, "Subscriptions", CategoryKind.EXPENSE, 0xFFE5484D.toInt(), 6),
-                    category(LEISURE, "Leisure", CategoryKind.EXPENSE, 0xFF12A4B6.toInt(), 7),
-                    category(HEALTH, "Health", CategoryKind.EXPENSE, 0xFFE0569B.toInt(), 8),
+                    category(SALARY, "Salary", CategoryKind.INCOME, 0xFF2E9E5B.toInt(), 0, "💼"),
+                    category(RENT, "Rent", CategoryKind.EXPENSE, 0xFF8C5A3C.toInt(), 1, "🏠"),
+                    category(GROCERIES, "Groceries", CategoryKind.EXPENSE, 0xFF34A853.toInt(), 2, "🛒"),
+                    category(EATING_OUT, "Eating out", CategoryKind.EXPENSE, 0xFFF29D38.toInt(), 3, "🍝"),
+                    category(TRANSPORT, "Transport", CategoryKind.EXPENSE, 0xFF3D8BF2.toInt(), 4, "🚇"),
+                    category(UTILITIES, "Bills", CategoryKind.EXPENSE, 0xFF9B5DE5.toInt(), 5, "💡"),
+                    category(SUBSCRIPTIONS, "Subscriptions", CategoryKind.EXPENSE, 0xFFE5484D.toInt(), 6, "📺"),
+                    category(LEISURE, "Leisure", CategoryKind.EXPENSE, 0xFF12A4B6.toInt(), 7, "🎬"),
+                    category(HEALTH, "Health", CategoryKind.EXPENSE, 0xFFE0569B.toInt(), 8, "💊"),
                 ),
             transactions = transactions,
             holdings =
@@ -162,9 +216,9 @@ internal object ReadmeLedger {
                 ),
             budgets =
                 listOf(
-                    BackupBudget(categoryId = null, amountMinor = 160_000, currency = EUR),
-                    BackupBudget(categoryId = GROCERIES, amountMinor = 35_000, currency = EUR),
-                    BackupBudget(categoryId = EATING_OUT, amountMinor = 15_000, currency = EUR),
+                    BackupBudget(categoryId = null, amountMinor = 260_000, currency = EUR),
+                    BackupBudget(categoryId = GROCERIES, amountMinor = 65_000, currency = EUR),
+                    BackupBudget(categoryId = EATING_OUT, amountMinor = 35_000, currency = EUR),
                 ),
         )
     }
@@ -183,6 +237,7 @@ internal object ReadmeLedger {
         start: LocalDate,
     ): Portfolio {
         val trades = mutableListOf<BackupTrade>()
+
         fun buy(
             holdingId: Long,
             amountMinor: Long,
@@ -219,7 +274,11 @@ internal object ReadmeLedger {
         while (!friday.isAfter(today)) {
             val t = (friday.toEpochDay() - first.toEpochDay()) / 7.0 / weeks.coerceAtLeast(1)
             for (holdingId in listOf(ALL_WORLD, SP500, BITCOIN)) {
-                val invested = trades.filter { it.holdingId == holdingId && it.date <= friday.toEpochDay() }.sumOf { it.amountMinor }
+                val invested =
+                    trades
+                        .filter {
+                            it.holdingId == holdingId && it.date <= friday.toEpochDay()
+                        }.sumOf { it.amountMinor }
                 if (invested == 0L) continue
                 val growth = growth(holdingId, t) * (1 + random.nextDouble(-0.006, 0.006))
                 values += BackupHoldingValue(holdingId, friday.toEpochDay(), (invested * growth).roundToLong(), EUR)
@@ -257,7 +316,17 @@ internal object ReadmeLedger {
         kind: CategoryKind,
         colorArgb: Int,
         sortOrder: Int,
-    ) = BackupCategory(id, name, kind.name, colorArgb, parentId = null, archived = false, sortOrder = sortOrder)
+        emoji: String,
+    ) = BackupCategory(
+        id,
+        name,
+        kind.name,
+        colorArgb,
+        parentId = null,
+        archived = false,
+        sortOrder = sortOrder,
+        emoji = emoji,
+    )
 
     private fun holding(
         id: Long,
